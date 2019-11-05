@@ -45,14 +45,6 @@ class control:
             self.horizontal_correlations = Hc
             self.temporal_correlations = Tc
             
-#    def setupInterfaces(self, interface):
-#        self.vec2mod = interface.vec2mod
-#        self.mod2vec = interface.mod2vec
-#        self.mod2file = interface.mod2file
-#        self.file2mod = interface.file2mod
-#        if vec2mod_adj is not None :
-#            self.vec2mod_adj = interface.vec2mod_adj
-            
     def setupPreco(self, xc_to_x, g_to_gc):
         self.xc_to_c = xc_to_x
         self.g_to_gc = g_to_gc
@@ -110,3 +102,26 @@ class control:
                 self.temporal_correlations[cor] = fid['correlations/temp'][cor][:]
                 
         return rcf
+    
+    def get(self, item):
+        try 
+            return self.vectors.loc[:, item].values
+        except KeyError :
+            logging.critical(colorize("Parameter <b:%s> doesn't exist ..."%item))
+            raise 
+            
+    def set(self, item, values):
+        try:
+            self.vectors.loc[:, item] = values
+        except ValueError:
+            logging.critical(colorize("Parameter value for <b:%s> could not be stored, because its dimension (%i) doesn't conform with that of the control vector (%i)"%(key, len(values), self.size)))
+            raise
+    
+    def __getattr__(self, item):
+        if item is 'size' :
+            return len(self)
+        else :
+            if hasattr(self, item):
+                return getattr(self, item)
+            else :
+                raise AttributeError(item)

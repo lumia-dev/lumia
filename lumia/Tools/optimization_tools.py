@@ -50,3 +50,31 @@ class Category:
 
     def __eq__(self, other):
         return self.name == other
+    
+
+class costFunction:
+    def __init__(self, bg=0, obs=None):
+        self.J_obs = obs
+        self.J_bg = bg
+
+    def __getattr__(self, item):
+        if item in ['J_obs', 'obs']:
+            return self.J_obs
+        if item in ['bg', 'J_bg','b']:
+            return self.J_bg
+        elif item in ['J', 'J_tot', 'tot']:
+            try :
+                return self.J_bg+self.J_obs
+            except TypeError :
+                raise RuntimeError("J_tot cannot be computed because J_obs hasn't been evaluated")
+        else :
+            raise AttributeError("CostFunction attributes can only be J, tot, J_tot, J_bg or J_obs")
+
+    def __setattr__(self, key, value):
+        # Modify __dict__ directly to avoid infinite recursion loops
+        if key in ['obs', 'J_obs']:
+            self.__dict__['J_obs'] = value
+        elif key in ['bg', 'J_bg']:
+            self.__dict__['J_bg'] = value
+        else :
+            raise AttributeError("Attribute %s not permitted"%key)    
