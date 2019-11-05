@@ -3,36 +3,52 @@ import os
 from netCDF4 import Dataset
 import subprocess
 from .obsdb import obsdb
+import shutil
 
 class transport(object):
-    def __init__(self, rcf, control, observations, interface):
+    def __init__(self, rcf, observations, interface):
         self.rcf = rcf
-        self.db = observations
-        self.control = control
-#        self.writeEmis = self.control.mod2file
-#        self.readEmis = self.control.file2mod
-#        self.readAdjoint = self.control.file2mod
-        self.writeEmis = interface.mod2file
+        self.writeStruct = interface.mod2file
         self.readEmis = interface.file2mod
         self.readAdjoint = interface.file2mod
+        self.stateToStruct = interface.stateToStruct
+        self.setupObs(observations)
         
-    def setupEmis(self, emstruct):
-        self.emis = emstruct
-        self.pror_emis = deepcopy(self.emis)
+    def save(self, path=None, tag=None):
+        """
+        This copies the last model I/O to "path", with an optional tag to identify it
+        """
+        tag = '' if step is None else tag+'.'
+        if path is None :
+            path = self.rcf.get('path.output')
+        self.interface.archive(self.interface.emfile, path, tag)
+        self.rcf.write(os.path.join(path, 'transport.%src'%tag))
+        self.db.save(os.path.join(path, 'observations.%shdf'%tag))
         
-    def runForward(self, step):
+    def setupObs(self, obsdb):
+        self.db = obsdb
+        
+    def setupControl(self, struct, info=None):
+        self.control = struct
+        self.showInfo(info)
+        
+    def runForward(self, step, controlvec=None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
+        if controlvec is not None :
+            struct, info = self.stateToStruct(controlvec)
+            self.setupControl(struct, info)
+        
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
         
         # Write emissions:
-        emf = self.writeEmis(rundir, 'emissions.%s.nc4'%step))
+        emf = self.writeStruct(rundir, 'emissions.%s.nc4'%step))
         
         # Write observations:
-        dbf = self.db.save(os.path.join(rundir, 'observations.%s.nc4'%step))
+        dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
         
         pid = subprocess.Popen(['python', executable, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
         pid.wait()
@@ -77,4 +93,5 @@ class transport(object):
         # Collect the results :
         adj = self.readAdjoint(adjf)
         
-        return adj
+        # Convert from adjoint structure to adjoint vector :
+        return self.stateToStruct_adj(adj)
