@@ -45,6 +45,14 @@ class control:
             self.horizontal_correlations = Hc
             self.temporal_correlations = Tc
             
+#    def setupInterfaces(self, interface):
+#        self.vec2mod = interface.vec2mod
+#        self.mod2vec = interface.mod2vec
+#        self.mod2file = interface.mod2file
+#        self.file2mod = interface.file2mod
+#        if vec2mod_adj is not None :
+#            self.vec2mod_adj = interface.vec2mod_adj
+            
     def setupPreco(self, xc_to_x, g_to_gc):
         self.xc_to_c = xc_to_x
         self.g_to_gc = g_to_gc

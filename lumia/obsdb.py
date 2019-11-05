@@ -19,3 +19,4 @@ class obsdb:
         self.observations.to_hdf(filename, 'observations')
         self.sites.to_hdf(filename, 'sites')
         self.files.to_hdf(filename, 'files')
+        return filename
