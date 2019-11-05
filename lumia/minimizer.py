@@ -3,6 +3,8 @@ from netCDF4 import Dataset
 import subprocess, os
 import shutil
 
+#TODO: integrate proper logging here ...
+
 class Minimizer(object):
     def __init__(self, rcf, nstate=None):
         self.rcf = rcf

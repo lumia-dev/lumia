@@ -10,7 +10,7 @@ class Optimizer(object):
         self.control = control           # modelData structure, containing the optimization data
         self.minimizer = minimizer       # minimizer object instance (initiated!)
         self.interface = obsop.interface # interface between model and optimization space
-        
+
     def Var4D(self, label='apos'):
         self.minimizer.reset()     # Just to make sure ...
         

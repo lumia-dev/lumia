@@ -4,15 +4,31 @@ from netCDF4 import Dataset
 import subprocess
 from .obsdb import obsdb
 import shutil
+import inspect
 
 class transport(object):
-    def __init__(self, rcf, observations, interface):
+    def __init__(self, rcf, interface=None, obs=None):
         self.rcf = rcf
-        self.writeStruct = interface.mod2file
-        self.readEmis = interface.file2mod
-        self.readAdjoint = interface.file2mod
-        self.stateToStruct = interface.stateToStruct
-        self.setupObs(observations)
+        # Initialize the obs if needed
+        if obs is not None : self.setupObs(obs)
+            
+        # Initialize the interface if needed
+        if interface is not None : self.setupInterface(interface)
+#        self.writeStruct = interface.mod2file
+#        self.readEmis = interface.file2mod
+#        self.readAdjoint = interface.file2mod
+#        self.stateToStruct = interface.stateToStruct
+        
+    def setupObs(self, obsdb):
+        self.db = obsdb
+        
+    def setupInterface(self, interface):
+        # First, check if "interface" is instantiated or not
+        if insect.isclass(interface):
+            interface = interface(self.rcf)
+            
+    def setupControl(self, struct, info=False):
+        self.interface.setup(struct, info=info)
         
     def save(self, path=None, tag=None):
         """
@@ -25,31 +41,29 @@ class transport(object):
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
         self.db.save(os.path.join(path, 'observations.%shdf'%tag))
         
-    def setupObs(self, obsdb):
-        self.db = obsdb
         
-    def setupControl(self, struct, info=None):
-        self.control = struct
-        self.showInfo(info)
-        
-    def runForward(self, step, controlvec=None):
+    def runForward(self, step, controlvec=None, struct=None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
-        if controlvec is not None :
-            struct, info = self.stateToStruct(controlvec)
-            self.setupControl(struct, info)
         
+        # Make sure that we have some data to run with #TODO: replace this by an assert?
+        if controlvec is not None :
+            struct, info = self.VecToStruct(controlvec)
+            
+        # Setup the data in the interface
+        # self.interface.setup(struct, info)
+        
+        # read model-specific info
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
         
-        # Write emissions:
-        emf = self.writeStruct(rundir, 'emissions.%s.nc4'%step))
-        
-        # Write observations:
+        # Write model inputs:
+        emf = self.interface.writeStruct(struct, rundir, 'modelData.%s'%step)
         dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
         
+        # Run the model
         pid = subprocess.Popen(['python', executable, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
         pid.wait()
         
@@ -66,6 +80,7 @@ class transport(object):
         
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
+    
     
     def runAdjoint(self, departures):
         """
@@ -94,4 +109,4 @@ class transport(object):
         adj = self.readAdjoint(adjf)
         
         # Convert from adjoint structure to adjoint vector :
-        return self.stateToStruct_adj(adj)
+        return self.VecToStruct_adj(adj)

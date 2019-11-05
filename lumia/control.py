@@ -9,12 +9,15 @@ import logging
 import h5py
 
 class control:
-    def __init__(self, rcf=None, savefile=None):
+    def __init__(self, rcf=None, savefile=None, prior=None):
         if savefile is None :
             # Data containers :
             self.horizontal_correlations = {}
             self.temporal_correlations = {}
             self.vectors = DataFrame(columns=['state_prior', 'state_prior_preco'], dtype=float64)
+            self.vectors.loc[:, 'state_prior_preco'] = 0.
+            if prior is not None :
+                self.vectors.loc[:, 'state_prior'] = prior
         else :
             rcf = self.load(savefile)
         self.loadrc(rcf)
@@ -30,13 +33,13 @@ class control:
         self.start = datetime(*self.rcf.get('time.start'))
         self.end = datetime(*self.rcf.get('time.end'))
     
-    def fillVectors(self, apri, **kwargs):
-        """
-        """
-        self.vectors.loc[:, 'state_prior'] = apri
-        self.vectors.loc[:, 'state_prior_preco'] = 0
-        for field in kwargs.keys():
-            self.vectors.loc[:, field] = kwargs.get(field)
+#    def fillVectors(self, apri, **kwargs):
+#        """
+#        """
+#        self.vectors.loc[:, 'state_prior'] = apri
+#        self.vectors.loc[:, 'state_prior_preco'] = 0
+#        for field in kwargs.keys():
+#            self.vectors.loc[:, field] = kwargs.get(field)
             
     def setupUncertainties(self, dapri=None, Hc=None, Tc=None):
         if dapri is not None :
