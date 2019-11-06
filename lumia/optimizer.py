@@ -2,9 +2,10 @@
 from .Tools import costFunction
 from numpy import *
 import os
+from .lumia import Minimizer as congrad
 
 class Optimizer(object):
-    def __init__(self, rcf, control, obsop, minimizer, interface):
+    def __init__(self, rcf, control, obsop, interface, minimizer=congrad):
         self.rcf = rcf                   # Settings
         self.obsop = obsop               # Model interface instance (initialized!)
         self.control = control           # modelData structure, containing the optimization data

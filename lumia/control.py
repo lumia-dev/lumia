@@ -9,7 +9,7 @@ import logging
 import h5py
 from tqdm import tqdm
 
-class control:
+class Control:
     def __init__(self, rcf=None, savefile=None, prior=None):
         if savefile is None :
             # Data containers :
