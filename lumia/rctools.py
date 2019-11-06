@@ -136,7 +136,7 @@ class rc:
                     except:
                         raise
             elif convert and tolist:
-                for iv in xrange(len(val)):
+                for iv in range(len(val)):
                     # first, try converting to integer
                     try:
                         val[iv] = int(val[iv])

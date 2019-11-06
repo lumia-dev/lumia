@@ -93,7 +93,7 @@ def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy):
 
     g_c = zeros([n_state])
     for i in tqdm(range(nt), desc='preconditioning gradient', leave=False):
-        for j in xrange(nt):
+        for j in range(nt):
             g_c[ipos+i*nhor:ipos+(i+1)*nhor] += dot(Temp_Lt[i,j]*Hor_Lt, G_state[ipos+j*nhor:ipos+(j+1)*nhor] * g[ipos+j*nhor:ipos+(j+1)*nhor])
         #print i, ipos+i*nhor, ipos+(i+1)*nhor, sum(g_c[ipos+i*nhor:ipos+(i+1)*nhor])
     return g_c
