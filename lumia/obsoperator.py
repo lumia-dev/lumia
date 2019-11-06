@@ -7,25 +7,28 @@ import shutil
 import inspect
 
 class transport(object):
-    def __init__(self, rcf, interface=None, obs=None):
+    def __init__(self, rcf, interface=None, obs=None, formatter=None):
         self.rcf = rcf
         # Initialize the obs if needed
         if obs is not None : self.setupObs(obs)
             
         # Initialize the interface if needed
         if interface is not None : self.setupInterface(interface)
-#        self.writeStruct = interface.mod2file
-#        self.readEmis = interface.file2mod
-#        self.readAdjoint = interface.file2mod
-#        self.stateToStruct = interface.stateToStruct
+        
+        # In a strictly forward run, we don't actually need the whole interface
+        # and we can just pass the write function instead
+        if formatter is not None :
+            self.writeStruct = formatter 
         
     def setupObs(self, obsdb):
         self.db = obsdb
         
     def setupInterface(self, interface):
         # First, check if "interface" is instantiated or not
-        if insect.isclass(interface):
+        if inspect.isclass(interface):
             interface = interface(self.rcf)
+        self.interface = interface
+        self.writeStruct = interface.writeStruct
             
     def setupControl(self, struct, info=False):
         self.interface.setup(struct, info=info)
@@ -48,19 +51,21 @@ class transport(object):
         The eventual parallelization is handled by the subprocess directly.        
         """
         
-        # Make sure that we have some data to run with #TODO: replace this by an assert?
+        # The following should happen as part of an inversion ...
         if controlvec is not None :
             struct, info = self.VecToStruct(controlvec)
-            
-        # Setup the data in the interface
-        # self.interface.setup(struct, info)
         
+        # If no "struct" is provided, or generated from a control vector (for instance a pure forward run),
+        # then we just run on the prior
+        elif struct is None :
+            struct = self.interface.data
+            
         # read model-specific info
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
         
         # Write model inputs:
-        emf = self.interface.writeStruct(struct, rundir, 'modelData.%s'%step)
+        emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
         dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
         
         # Run the model
