@@ -7,35 +7,25 @@ import os
 from netCDF4 import Dataset
 from dateutil.relativedelta import relativedelta
 
-class interface:
-    status = Settings
+    
+class Interface:
+    data_initialized = False
     def __init__(self, rcf, struct=None):
         self.rcf = rcf
-        self.data = self.genEmptyStruct()
+        self.categories = Categories(rcf)
         if struct is not None :
             self.setup(struct, info=True)
+        self.WriteStruct = WriteStruct
         
-    def genEmptyStruct(self):
-        data = {}
-        for cat in self.categories :
-            data[cat] = {
-                'emis':None,
-                'time_interval':{
-                    'time_start':None,
-                    'time_end':None
-                }
-            }
-        return
-    
-    #def setup(self, struct=None, info=False):
-    #    self.data = struct
-    #    if info :
-    #        for cat in self.categories :
-    #            logging.info('Total for category %s: %i umol/m2/s'%(cat, data[cat]['emis'].sum()))
-    #    self.status.data_initialized = True
+    def setup(self, struct=None, info=False):
+        self.data = struct
+        if info :
+            for cat in self.categories :
+                logging.info('Total for category %s: %i umol/m2/s'%(cat, self.data[cat.name]['emis'].sum()))
+        self.data_initialized = True
         
     def StructToVec(self, struct=None, method='MonthlyFlux'):
-        if struct is None and self.status.data_initialized :
+        if struct is None and self.data_initialized :
             struct = self.data
         else :
             logging.critical("No data in memory to form a control vector ...")
@@ -46,37 +36,6 @@ class interface:
         self.VecToStruct_adj = getattr(self, '_vts_%s_adj'%method)
         return self._stv(struct)
     
-    def WriteStruct(self, data, path, prefix):
-        """
-        Write the model input (control parameters)
-        """
-        
-        # Create the filename and directory (if needed)
-        filename = os.path.join(path, '%s.nc'%prefix)
-        if not os.path.exists(path):
-            os.makedirs(path)
-            
-#        # By default, the data that is already in memory is written
-#        # TODO: should this be made mandatory?
-#        if data is None :
-#            data = self.data
-            
-        # Write to a netCDF format
-        with Dataset(filename, 'w') as ds :
-            ds.createDimension('time_components', 6)
-            for cat in self.categories:
-                gr = ds.createGroup(cat)
-                gr.createDimension('nt', data[cat]['emis'].shape[0])
-                gr.createDimension('nlat', data[cat]['emis'].shape[1])
-                gr.createDimension('nlon', data[cat]['emis'].shape[2])
-                gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
-                gr['emis'][:] = data[cat]['emis']
-                gr.createVariable('times_start', 'i', ('nt', 'time_components'))
-                gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])
-                gr.createVariable('times_end', 'i', ('nt', 'time_components'))
-                gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
-        return filename
-    
     ###################################
     # Specific classes
     
@@ -85,8 +44,8 @@ class interface:
         for cat in [x for x in self.categories if x.optimize]:
             emcat = coarsenTime(struct[cat.name], cat.optimization_interval, compute_std=False)
             for i_time, tt in enumerate(sorted(emcat['time_interval']['time_start'])):
-                for i_lat in xrange(emcat['emis'].shape[1]):
-                    for i_lon in xrange(emcat['emis'].shape[2]):
+                for i_lat in range(emcat['emis'].shape[1]):
+                    for i_lon in range(emcat['emis'].shape[2]):
                         statevec.append(emcat['emis'][i_time, i_lat, i_lon])
         return array(statevec)
     
@@ -98,8 +57,8 @@ class interface:
         for cat in [x for x in catInfo if x.optimize]:
             coarse_data = coarsenTime(self.prior_data[cat.name], cat.optimization_interval, compute_std=False)
             for i_time, tt in enumerate(sorted(coarse_data['time_interval']['time_start'])):
-                for i_lat in xrange(data['emis'].shape[1]):
-                    for i_lon in xrange(data['emis'].shape[2]):
+                for i_lat in range(data['emis'].shape[1]):
+                    for i_lon in range(data['emis'].shape[2]):
                         coarse_data['emis'][i_time, i_lat, i_lon] = statevec[i_state]
                         i_state += 1
             fine_data[cat.name]['emis'] = refineTime(coarse_data, fine_data[cat.name])
@@ -127,9 +86,6 @@ class interface:
         return adjvec
 
             
-class Settings:
-    data_initialized = False
-    
     
 def coarsenTime(emis, interval, compute_std=False):
     intervals_emis = emis['time_interval']['time_start']
@@ -185,15 +141,15 @@ def refineTime(coarseEmis, fineEmis):
     f = deepcopy(fineEmis)
     nt_optim = len(coarseEmis['time_interval']['time_start'])
     tstart_emis = fineEmis['time_interval']['time_start']
-    for i_time in xrange(nt_optim):
-	tmin = coarseEmis['time_interval']['time_start'][i_time]
-	tmax = coarseEmis['time_interval']['time_end'][i_time]
-	select = (tstart_emis >= tmin)*(tstart_emis < tmax)
-	nt = sum(select)+0.   # Make sure we have a real
-	x1 = coarseEmis['emis'][i_time, :, :]
-	f0 = fineEmis['emis'][select, :, :]
-	x0 = f0.sum(0)
-	f['emis'][select, :, :] = x1/nt + f0 - x0/nt
+    for i_time in range(nt_optim):
+        tmin = coarseEmis['time_interval']['time_start'][i_time]
+        tmax = coarseEmis['time_interval']['time_end'][i_time]
+        select = (tstart_emis >= tmin)*(tstart_emis < tmax)
+        nt = sum(select)+0.   # Make sure we have a real
+        x1 = coarseEmis['emis'][i_time, :, :]
+        f0 = fineEmis['emis'][select, :, :]
+        x0 = f0.sum(0)
+        f['emis'][select, :, :] = x1/nt + f0 - x0/nt
 
 #	offset = fineEmis['emis'][select, :, :]-fineEmis['emis'][select, :, :].mean(0)
 #	fineEmis['emis'][select, :, :] = coarseEmis['emis'][i_time, :, :]/nt + offset
@@ -212,6 +168,33 @@ def refineTime_adj(adjEmis, fineEmis, dt_optim):
         raise NotImplementedError
     for i_time, time in enumerate(unique(intervals_optim)) :
         select = intervals_optim == time
-	nt = sum(select)+0.  # Make sure we have a real
-	adjEmis['emis'][select, :, :] /= nt
+        nt = sum(select)+0.  # Make sure we have a real
+        adjEmis['emis'][select, :, :] /= nt
     return adjEmis
+
+
+def WriteStruct(data, path, prefix):
+    """
+    Write the model input (control parameters)
+    """
+
+    # Create the filename and directory (if needed)
+    filename = os.path.join(path, '%s.nc'%prefix)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    # Write to a netCDF format
+    with Dataset(filename, 'w') as ds :
+        ds.createDimension('time_components', 6)
+        for cat in data.keys():
+            gr = ds.createGroup(cat)
+            gr.createDimension('nt', data[cat]['emis'].shape[0])
+            gr.createDimension('nlat', data[cat]['emis'].shape[1])
+            gr.createDimension('nlon', data[cat]['emis'].shape[2])
+            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
+            gr['emis'][:] = data[cat]['emis']
+            gr.createVariable('times_start', 'i', ('nt', 'time_components'))
+            gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])
+            gr.createVariable('times_end', 'i', ('nt', 'time_components'))
+            gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
+    return filename
