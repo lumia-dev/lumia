@@ -3,8 +3,9 @@ import re
 from numpy import unique
 import datetime
 import os
-from comm import colorize
 import sys
+import logging
+from .Tools import colorize
 
 class rc:
     def __init__(self, file=None, verbosity=1):
@@ -66,10 +67,10 @@ class rc:
 
     def message(self, msg):
         if self.verbosity > 0 :
-            print colorize('[RC] %s'%msg, background='g')
+            logging.info(colorize('[RC] %s'%msg, background='g'))
 
     def fail(self, msg, err=RuntimeError):
-        print colorize("<r>[CRITICAL ERROR]</b> %s"%msg, background='r')
+        logging.critical(colorize("<r>[CRITICAL ERROR]</b> %s"%msg, background='r'))
         sys.exit()
 
     def matchval(self, val):
