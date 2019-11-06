@@ -12,7 +12,7 @@ def colorize(msg, background=None):
     msg = re.sub(r'(<h2:)(.*?)(>)', r'<m>\2</m>', msg)                # intermediate step
     msg = re.sub(r'(<v:)(.*?)(>)', r'<r>\2</r>', msg)                 # value
     msg = re.sub(r'(<h1:)(.*?)(>)', r'<m><s><u>\2</s></u></i>', msg)  # major step
-    msg = re.sub(r'(<hl:)(.*?)(>)', r'<s>\x1b[0;31;1;47m\2</bg></s></r>', msg)  # highlight
+    #msg = re.sub(r'(<hl:)(.*?)(>)', r'<s>\x1b[0;31;1;47m\2</bg></s></r>', msg)  # highlight
     msg = re.sub(r'(<w:)(.*?)(>)', r'<w>\2</w>', msg)
 
     # Hard coded styles ...

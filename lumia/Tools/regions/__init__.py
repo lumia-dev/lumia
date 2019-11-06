@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from numpy import *
+import logging 
 
 class region:
     def __init__(self, name=None, longitudes=None, latitudes=None, lon0=None, lon1=None, lat0=None, lat1=None, dlon=None, dlat=None, nlon=None, nlat=None):
@@ -77,7 +78,7 @@ class region:
         try :
             self.calc_area()
         except MemoryError :
-            print "Too much pixels, area array won't be created (MemoryError)"
+            logging.warning("Too much pixels, area array won't be created (MemoryError)")
         if self.lonmax-self.lonmin == 360 and self.latmax-self.latmin == 180 :
             self.isglobal = True
         else :
