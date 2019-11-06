@@ -2,11 +2,12 @@
 
 from pandas import DataFrame, read_hdf
 from lumia.rctools import rc
-from .Tools import Region, Categories, colorize
+from .Tools import Region, Categories, colorize, g_to_gc, xc_to_x
 from numpy import *
 import os
 import logging
 import h5py
+from tqdm import tqdm
 
 class control:
     def __init__(self, rcf=None, savefile=None, prior=None):
@@ -14,7 +15,11 @@ class control:
             # Data containers :
             self.horizontal_correlations = {}
             self.temporal_correlations = {}
-            self.vectors = DataFrame(columns=['state_prior', 'state_prior_preco'], dtype=float64)
+            self.vectors = DataFrame(columns=[
+                'state_prior', 
+                'state_prior_preco', 
+                'category'
+            ], dtype=float64)
             self.vectors.loc[:, 'state_prior_preco'] = 0.
             if prior is not None :
                 self.vectors.loc[:, 'state_prior'] = prior
@@ -48,9 +53,30 @@ class control:
             self.horizontal_correlations = Hc
             self.temporal_correlations = Tc
             
-    def setupPreco(self, xc_to_x, g_to_gc):
-        self.xc_to_c = xc_to_x
-        self.g_to_gc = g_to_gc
+    def xc_to_x(self, state_preco, add_prior=True):
+        uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
+        state = 0*uncertainty
+        catIndex = self.vectors.category.tolist()
+        for cat in tqdm(self.categories) :
+            if cat.optimize :
+                Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
+                Temp_L = self.temporal_correlations[cat.temporal_correlation]
+                ipos = catIndex.index(cat.name)
+                state += xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1)
+        if add_prior: state += self.vectors.loc[:, 'state_prior']
+        return state
+    
+    def g_to_gc(self, g):
+        g_c = zeros_like(g)
+        state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
+        catIndex = self.vectors.category.tolist()
+        for cat in tqdm(self.categories):
+            if cat.optimize :
+                Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
+                Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
+                ipos = catIndex.index(cat.name)
+                g_c += g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1)
+        return g_c
         
     def _to_hdf(self, filename):
         savedir = os.path.dirname(filename)

@@ -77,4 +77,34 @@ class costFunction:
         elif key in ['bg', 'J_bg']:
             self.__dict__['J_bg'] = value
         else :
-            raise AttributeError("Attribute %s not permitted"%key)    
+            raise AttributeError("Attribute %s not permitted"%key)
+        
+        
+def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy):
+    n_state = len(G_state)
+    nt = shape(Temp_Lt)[0]
+    nhor = shape(Hor_Lt)[0]
+    #idx = zeros([nt*nt, 2])
+    #k = 0
+    #for i in xrange(nt):
+    #    for j in xrange(nt):
+    #        idx[k, :] = array([i, j])
+    #        k +=1
+
+    g_c = zeros([n_state])
+    for i in tqdm(range(nt), desc='preconditioning gradient', leave=False):
+        for j in xrange(nt):
+            g_c[ipos+i*nhor:ipos+(i+1)*nhor] += dot(Temp_Lt[i,j]*Hor_Lt, G_state[ipos+j*nhor:ipos+(j+1)*nhor] * g[ipos+j*nhor:ipos+(j+1)*nhor])
+        #print i, ipos+i*nhor, ipos+(i+1)*nhor, sum(g_c[ipos+i*nhor:ipos+(i+1)*nhor])
+    return g_c
+
+def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy):
+    n_state = len(G_state)
+    nt = shape(Temp_L)[0]
+    nhor = shape(Hor_L)[0]
+
+    x = zeros(n_state)
+    for i in tqdm(range(nt), desc='xc_to_x', leave=True):
+        for j in tqdm(range(nt), desc='step %i/%i'%(i, nt), leave=False):
+            x[ipos+i*nhor:ipos+(i+1)*nhor] += G_state[ipos+i*nhor:ipos+(i+1)*nhor]* dot(Temp_L[i,j]*Hor_L, x_c[ipos+j*nhor:ipos+(j+1)*nhor])
+    return x
