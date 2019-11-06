@@ -1,5 +1,6 @@
-from pandas import DataFrame, read_hdf
+from pandas import DataFrame, read_hdf, read_json
 import logging
+from datetime import datetime
 
 class obsdb:
     def __init__(self, filename=None):
@@ -8,7 +9,13 @@ class obsdb:
         self.files = DataFrame(columns=['filename'])
         if filename is not None :
             self.load(filename)
-        
+            
+    def load_json(self, prefix):
+        self.observations = read_json('%s.obs.json'%prefix)
+        self.sites = read_json('%s.sites.json'%prefix)
+        self.files = read_json('%s.files.json'%prefix)
+        self.observations.loc[:, 'time'] = [datetime.strptime(str(d), '%Y%m%d%H%M%S') for d in self.observations.time]
+            
     def load(self, filename):
         self.observations = read_hdf(filename, 'observations')
         self.sites = read_hdf(filename, 'sites')
