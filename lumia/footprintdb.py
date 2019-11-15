@@ -36,9 +36,10 @@ class obsdb:
         """
         if fnames is None :
             # Create the footprint theoretical filenames :
+            codes = [self.sites.loc[s].code for s in self.observations.site]
             fnames = array(
                 ['%s.%im.%s.h5'%(c.lower(), z, t.strftime('%Y-%m')) for (c, z, t) in zip(
-                    self.observations.site, self.observations.height, self.observations.time
+                    codes, self.observations.height, self.observations.time
                 )]
             )
             fnames = [os.path.join(self.footprints_path, f) for f in fnames]

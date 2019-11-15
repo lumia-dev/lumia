@@ -18,7 +18,6 @@ class obsdb:
         self.observations = read_hdf(filename, 'observations')
         self.sites = read_hdf(filename, 'sites')
         self.files = read_hdf(filename, 'files')
-        self._fix_sites_indices()
         self.SelectTimes(self.start, self.end)
 
     def load_json(self, prefix):
@@ -26,7 +25,6 @@ class obsdb:
         self.sites = read_json('%s.sites.json'%prefix)
         self.files = read_json('%s.files.json'%prefix)
         self.observations.loc[:, 'time'] = [datetime.strptime(str(d), '%Y%m%d%H%M%S') for d in self.observations.time]
-        self._fix_sites_indices()
         self.SelectTimes(self.start, self.end)
 
     def SelectTimes(self, tmin=None, tmax=None):
@@ -39,16 +37,6 @@ class obsdb:
             (self.observations.time <= tmax)
         )]
         self.sites = self.sites.loc[unique(self.observations.site), :]
-
-    def _fix_sites_indices(self):
-        # Make sure that the site codes are used as site indices:
-        for id in unique(self.observations.loc[:, 'site']):
-            try :
-                self.observations.loc[self.observations.site == id, 'site'] = self.sites.loc[id].code
-            except :
-                import pdb; pdb.set_trace()
-        self.sites.set_index('code', inplace=True)
-        self.sites.loc[:, 'code'] = self.sites.index
 
     def save(self, filename):
         logging.info(colorize("Writing observation database to <p:%s>"%filename))
