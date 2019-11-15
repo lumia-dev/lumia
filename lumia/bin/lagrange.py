@@ -57,8 +57,8 @@ class Footprint:
             dym[cat] = 0.
             fptot = 0.
             for tt in sorted(fp, key=operator.attrgetter('start')):
-                ilats = fp[tt]['ilat'][:]
-                ilons = fp[tt]['ilon'][:]
+                ilats = fp[tt]['ilats'][:]
+                ilons = fp[tt]['ilons'][:]
                 try :
                      dyc = (emis[cat]['emis'][times_cat.index(tt), ilats, ilons]*fp[tt]['resp'][:]).sum()*scalefac
                      dym[cat] += dyc
@@ -99,12 +99,12 @@ def forward(db, emis):
     dy['id'] = []
     dy['model'] = []
     msg = "Forward"
-    nsites = len(unique(db.footprint))
-    for fpfile in tqdm(unique(db.loc[-isnull(db.footprint), 'footprint']), total=nsites, desc=msg, disable=batch):
+    nsites = len(unique(db.observations.footprint))
+    for fpfile in tqdm(unique(db.observations.loc[-isnull(db.observations.footprint), 'footprint']), total=nsites, desc=msg, disable=batch):
         fp = Footprint(fpfile)
         msg = colorize("Forward run (%s)"%fpfile)
-        nobs = sum(db.footprint == fpfile)
-        for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=batch):
+        nobs = sum(db.observations.footprint == fpfile)
+        for obs in tqdm(db.observations.loc[db.observations.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=batch):
             dym, tot = fp.applyEmis(obs.time, emis)
             if dym is not None :
                 for cat in categories :
@@ -113,13 +113,13 @@ def forward(db, emis):
                 dy['id'].append(obs.Index)
                 dy['model'].append(dym)
         fp.close()
-    db.loc[:, 'foreground'] = 0.
+    db.observations.loc[:, 'foreground'] = 0.
     for cat in categories :
-        db.loc[dy['id'], cat] = dy[cat]
-        db.loc[dy['id'], 'foreground'] += array(dy[cat])
-    db.loc[dy['id'], 'totals'] = dy['tot']
-    db.loc[dy['id'], 'id'] = dy['id']
-    db.loc[dy['id'], 'model'] = dy['model']
+        db.observations.loc[dy['id'], cat] = dy[cat]
+        db.observations.loc[dy['id'], 'foreground'] += array(dy[cat])
+    db.observations.loc[dy['id'], 'totals'] = dy['tot']
+    db.observations.loc[dy['id'], 'id'] = dy['id']
+    db.observations.loc[dy['id'], 'model'] = dy['model']
     return db
 
 
