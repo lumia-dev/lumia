@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 from .Tools import Region, Categories, colorize
 from numpy import *
-from pandas import DataFrame
 import logging
 import os
 from netCDF4 import Dataset
 from dateutil.relativedelta import relativedelta
+from datetime import datetime, timedelta
+from copy import deepcopy
 
     
 class Interface:
@@ -15,7 +16,7 @@ class Interface:
         self.categories = Categories(rcf)
         if struct is not None :
             self.setup(struct, info=True)
-        self.WriteStruct = WriteStruct
+        self.writeStruct = WriteStruct
         
     def setup(self, struct=None, info=False):
         self.data = struct
@@ -29,7 +30,7 @@ class Interface:
             struct = self.data
         else :
             logging.critical("No data in memory to form a control vector ...")
-            raise RuntimError
+            raise RuntimeError
         
         self._stv = getattr(self, '_stv_%s'%method) # TODO: check if the "self" can be avoided here ...
         self.VecToStruct = getattr(self, '_vts_%s'%method)
@@ -198,3 +199,18 @@ def WriteStruct(data, path, prefix):
             gr.createVariable('times_end', 'i', ('nt', 'time_components'))
             gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
     return filename
+
+
+def ReadStruct(filename):
+    with Dataset(filename) as ds :
+        categories = ds.groups.keys()
+        data = {'cat_list':categories}
+        for cat in categories :
+            data[cat] = {
+                'emis':ds.groups[cat].variables['emis'][:],
+                'time_interval':{
+                    'time_start': array([datetime(*x) for x in ds.groups[cat].variables['times_start'][:]]),
+                    'time_end': array([datetime(*x) for x in ds.groups[cat].variables['times_end'][:]]),
+                }
+            }
+    return data

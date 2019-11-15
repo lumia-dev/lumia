@@ -2,6 +2,7 @@
 from netCDF4 import Dataset
 import subprocess, os
 import shutil
+import logging
 
 #TODO: integrate proper logging here ...
 
@@ -68,7 +69,7 @@ class CommFile(object):
         self.debug = False
 
     def createFile(self, nstate):
-        print self.filepath
+        print(self.filepath)
         if not os.path.exists(os.path.dirname(self.filepath)):
             os.makedirs(os.path.dirname(self.filepath))
         fid = Dataset(self.filepath, 'w')
@@ -94,9 +95,9 @@ class CommFile(object):
 
     def update(self, gradient_preco, J_tot):
         with Dataset(self.filepath, 'a') as ds:
-	    ds['g_c'][:, self.len_g] = gradient_preco
-	    print J_tot
-	    ds.J_tot = float(J_tot)
+            ds['g_c'][:, self.len_g] = gradient_preco
+            logging.info("Cost function updated to %.2e"%J_tot)
+            ds.J_tot = float(J_tot)
         self.len_g += 1
 
     def readState(self):

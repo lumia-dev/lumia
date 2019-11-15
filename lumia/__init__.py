@@ -8,4 +8,8 @@ from .rctools import rc
 from .interface import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer
-from .minimizer import Minimizer 
+from .minimizer import Minimizer
+
+# Setup the $LUMIA_ROOT environment variable
+import os
+os.environ['LUMIA_ROOT'] = os.path.dirname(__file__)

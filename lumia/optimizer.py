@@ -2,7 +2,7 @@
 from .Tools import costFunction
 from numpy import *
 import os
-from .lumia import Minimizer as congrad
+from .minimizer import Minimizer as congrad
 
 class Optimizer(object):
     def __init__(self, rcf, control, obsop, interface, minimizer=congrad):
