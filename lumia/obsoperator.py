@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import os
-from netCDF4 import Dataset
 import subprocess
 from .obsdb import obsdb
-import shutil
 import inspect
 
 class transport(object):
@@ -22,7 +20,7 @@ class transport(object):
         
     def setupObs(self, obsdb):
         self.db = obsdb
-        
+
     def setupInterface(self, interface):
         # First, check if "interface" is instantiated or not
         if inspect.isclass(interface):
