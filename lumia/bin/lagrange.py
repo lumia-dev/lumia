@@ -150,3 +150,5 @@ if __name__ == "__main__" :
 
         # Forward transport :
         db = forward(db, emis)
+
+        db.save(args.db)
