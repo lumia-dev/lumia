@@ -35,7 +35,7 @@ class transport(object):
         """
         This copies the last model I/O to "path", with an optional tag to identify it
         """
-        tag = '' if step is None else tag+'.'
+        tag = '' if tag is None else tag+'.'
         if path is None :
             path = self.rcf.get('path.output')
         self.interface.archive(self.interface.emfile, path, tag)
@@ -72,9 +72,9 @@ class transport(object):
         
         # Retrieve results :
         db = obsdb(filename=dbf)
-        self.db.observations.loc[:, 'foreground'] = db.loc[:, 'foreground']
-        self.db.observations.loc[:, 'totals'] = db.loc[:, 'totals']
-        self.db.observations.loc[:, 'model'] = db.loc[:, 'model']
+        self.db.observations.loc[:, 'foreground'] = db.observations.loc[:, 'foreground']
+        self.db.observations.loc[:, 'totals'] = db.observations.loc[:, 'totals']
+        self.db.observations.loc[:, 'model'] = db.observations.loc[:, 'model']
         self.db.observations.loc[:, 'mismatch'] = \
             self.db.observations.loc[:,'background'] + \
             self.db.observations.loc[:,'foreground'] - \

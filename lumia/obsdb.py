@@ -11,6 +11,7 @@ class obsdb:
         self.files = DataFrame(columns=['filename'])
         self.start = start
         self.end = end
+        self.setup = False
         if filename is not None :
             self.load(filename)
 

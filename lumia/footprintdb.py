@@ -8,23 +8,23 @@ from .Tools import colorize
 import h5py
 from datetime import datetime
 import os
+import subprocess
 
 class obsdb:
     def __init__(self, **kwargs):
         self._db = obsdb_base(**kwargs)
-        self.setup = False
         self.footprints_path = kwargs.get('footprints_path', None)
 
     def __getattr__(self, item):
         return getattr(self._db, item)
 
-    def setupFootprints(self, path=None, names=None):
+    def setupFootprints(self, path=None, names=None, cache=None):
         self.footprints_path = path if path is not None else self.footprints_path
         if self.footprints_path is None :
             logging.error("Unspecified footprints path")
 
         self.observations.loc[:, 'footprint'] = self._genFootprintNames(names)
-        self.observations.loc[:, 'footprint_exists'] = self._checkFootprints()
+        self._checkFootprints(cache=cache)
         self.setup = True
 
     def _genFootprintNames(self, fnames=None):
@@ -42,21 +42,33 @@ class obsdb:
                     codes, self.observations.height, self.observations.time
                 )]
             )
-            fnames = [os.path.join(self.footprints_path, f) for f in fnames]
+        fnames = [os.path.join(self.footprints_path, f) for f in fnames]
         return fnames
 
-    def _checkFootprints(self):
+    def _checkCacheFile(self, filename, cache):
+        if cache is None :
+            cache = self.footprints_path
+        file_in_cache = filename.replace(self.footprints_path, cache)
+        if not os.path.exists(file_in_cache):
+            if not os.path.exists(filename):
+                tqdm.write(colorize('<y>[WARNING] File <p:%s> not found! no footprints will be read from it</y>'%filename))
+                file_in_cache = None
+            elif cache != self.footprints_path:
+                subprocess.check_call(['rsync', filename, file_in_cache])
+        self.observations.loc[self.observations.footprint == filename, 'footprint'] = file_in_cache
+        return file_in_cache
+
+    def _checkFootprints(self, cache=None):
         footprint_files = unique(self.observations.footprint)
 
         # Loop over the footprint files (not on the obs, for efficiency)
         for fpf in tqdm(footprint_files, desc='Checking footprints'):
 
-            # 1st, check if the footprint file exists
-            if not os.path.exists(fpf):
-                tqdm.write(colorize('<y>[WARNING] File <p:%s> not found! no footprints will be read from it</y>'%fpf))
+            # 1st, check if the footprint exists, and migrate it to cache if needed:
+            fpf = self._checkCacheFile(fpf, cache)
 
             # Then, look if the file has all the individual obs footprints it's supposed to have
-            else :
+            if fpf is not None :
                 fp = h5py.File(fpf, mode='r')
 
                 # Times of the obs that are supposed to be in this file
@@ -69,19 +81,4 @@ class obsdb:
                 fp_exists[fp_exists] = [size(fp[x.strftime('%Y%m%d%H%M%S')].keys()) > 0 for x in array(times)[fp_exists]]
 
                 # Store that ...
-                self.observations.loc[self.observations.footprint == fpf, 'footprint_exists'] = fp_exists
-
-    def _checkFootprintLengths(self):
-        footprint_files = unique(self.observations.footprint)
-
-        # Loop over the footprint files (not on the obs, for efficiency)
-        for fpf in tqdm(footprint_files, desc='Checking footprints'):
-            if os.path.exists(fpf):
-                fp = h5py.File(fpf, mode='r')
-                # Check the footprint lenghts
-                t1 = [sorted(fp[x.strftime('%Y%m%d%H%M%S')].keys())[0].split('_')[1] for x in self.observations.loc[self.observations.footprint == fpf].loc[fp_exists, 'time']]
-                t2 = [sorted(fp[x.strftime('%Y%m%d%H%M%S')].keys())[-1].split('_')[0] for x in self.observations.loc[self.observations.footprint == fpf].loc[fp_exists, 'time']]
-                t1 = [datetime.strptime(x, '%Y%m%d%H%M%S') for x in t1]
-                t2 = [datetime.strptime(x, '%Y%m%d%H%M%S') for x in t2]
-                dt = [tt2-tt1 for (tt2, tt1) in zip(t2, t1)]
-                self.observations.loc[(self.observations.footprint == fpf) & (self.observations.footprint_exists), 'footprint_length'] = dt
+                self.observations.loc[self.observations.footprint == fpf, 'footprint_exists'] = fp_exists.astype(bool)
