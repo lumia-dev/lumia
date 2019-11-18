@@ -36,7 +36,7 @@ class Interface:
         self.VecToStruct = getattr(self, '_vts_%s'%method)
         self.VecToStruct_adj = getattr(self, '_vts_%s_adj'%method)
         return self._stv(struct)
-    
+
     ###################################
     # Specific classes
     

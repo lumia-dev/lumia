@@ -3,6 +3,7 @@ import os
 import subprocess
 from .obsdb import obsdb
 import inspect
+from lumia.Tools import checkDir
 
 class transport(object):
     def __init__(self, rcf, interface=None, obs=None, formatter=None):
@@ -38,25 +39,32 @@ class transport(object):
         tag = '' if tag is None else tag+'.'
         if path is None :
             path = self.rcf.get('path.output')
-        self.interface.archive(self.interface.emfile, path, tag)
+        checkDir(path)
+
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
         self.db.save(os.path.join(path, 'observations.%shdf'%tag))
-        
-        
-    def runForward(self, step, controlvec=None, struct=None):
+        self.writeStruct(self.struct, path, 'transport_control.%s')
+
+    def runForward(self, step, struct):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
-        
-        # The following should happen as part of an inversion ...
-        if controlvec is not None :
-            struct, info = self.VecToStruct(controlvec)
+
+        #######
+        #### 18 Nov 2019: Disabled the following lines (choices between running on a control vector, on a control
+        ####              structure stored in memory, or on a control structure provided as argument. Now a control
+        ####              structure *must* be provided as argument (in an inversion, the conversion from vector to
+        ####              structure would be called elsewhere.
+#        # The following should happen as part of an inversion ...
+#        if controlvec is not None :
+#            struct, info = self.VecToStruct(controlvec)
         
         # If no "struct" is provided, or generated from a control vector (for instance a pure forward run),
         # then we just run on the prior
-        elif struct is None :
-            struct = self.interface.data
+#        elif struct is None :
+#            struct = self.interface.data
+        self.struct = struct
             
         # read model-specific info
         rundir = self.rcf.get('path.run')
