@@ -8,23 +8,20 @@ import os
 import logging
 import h5py
 from tqdm import tqdm
+from datetime import datetime
 
 class Control:
-    def __init__(self, rcf=None, savefile=None, prior=None):
-        if savefile is None :
-            # Data containers :
-            self.horizontal_correlations = {}
-            self.temporal_correlations = {}
-            self.vectors = DataFrame(columns=[
-                'state_prior', 
-                'state_prior_preco', 
-                'category'
-            ], dtype=float64)
-            self.vectors.loc[:, 'state_prior_preco'] = 0.
-            if prior is not None :
-                self.vectors.loc[:, 'state_prior'] = prior
-        else :
-            rcf = self.load(savefile)
+    name = 'monthlytot'
+    def __init__(self, rcf):
+        # Data containers :
+        self.horizontal_correlations = {}
+        self.temporal_correlations = {}
+        self.vectors = DataFrame(columns=[
+            'state_prior',
+            'state_prior_preco',
+            'category'
+        ], dtype=float64)
+        self.vectors.loc[:, 'state_prior_preco'] = 0.
         self.loadrc(rcf)
         
         # Interfaces :
@@ -37,21 +34,15 @@ class Control:
         self.region = Region(self.rcf)
         self.start = datetime(*self.rcf.get('time.start'))
         self.end = datetime(*self.rcf.get('time.end'))
-    
-#    def fillVectors(self, apri, **kwargs):
-#        """
-#        """
-#        self.vectors.loc[:, 'state_prior'] = apri
-#        self.vectors.loc[:, 'state_prior_preco'] = 0
-#        for field in kwargs.keys():
-#            self.vectors.loc[:, field] = kwargs.get(field)
-            
-    def setupUncertainties(self, dapri=None, Hc=None, Tc=None):
-        if dapri is not None :
-            self.vectors.loc[:, 'prior_uncertainty'] = dapri
-        if 'prior_uncertainty' in self.vectors :
-            self.horizontal_correlations = Hc
-            self.temporal_correlations = Tc
+
+    def setup(self, prior):
+        self.vectors.loc[:, 'state_prior'] = prior.value.values.astype(float64)
+        self.vectors.loc[:, 'category'] = prior.category.values.astype(str)
+
+    def setupUncertainties(self, uncdict):
+        self.vectors.loc[:, 'prior_uncertainty'] = uncdict['prior_uncertainty']
+        self.horizontal_correlations = uncdict['Hcor']
+        self.temporal_correlations = uncdict['Tcor']
             
     def xc_to_x(self, state_preco, add_prior=True):
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
@@ -133,7 +124,7 @@ class Control:
         return rcf
     
     def get(self, item):
-        try 
+        try :
             return self.vectors.loc[:, item].values
         except KeyError :
             logging.critical(colorize("Parameter <b:%s> doesn't exist ..."%item))
