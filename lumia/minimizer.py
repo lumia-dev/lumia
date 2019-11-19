@@ -6,7 +6,7 @@ import logging
 
 #TODO: integrate proper logging here ...
 
-class Minimizer(object):
+class Minimizer:
     def __init__(self, rcf, nstate=None):
         self.rcf = rcf
         self.nstate = nstate

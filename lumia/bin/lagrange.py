@@ -3,7 +3,7 @@
 import sys
 from argparse import ArgumentParser, REMAINDER
 from lumia.obsdb import obsdb
-from lumia.interface import ReadStruct as readFluxes
+from lumia.interfaces import ReadStruct as readFluxes
 from numpy import unique, array
 from pandas import isnull
 from tqdm import tqdm
