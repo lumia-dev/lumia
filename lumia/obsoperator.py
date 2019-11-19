@@ -6,28 +6,33 @@ import inspect
 from lumia.Tools import checkDir
 
 class transport(object):
-    def __init__(self, rcf, interface=None, obs=None, formatter=None):
+    name = 'lagrange'
+    def __init__(self, rcf, interface=None, obs=None, formatter=None, controlstruct=None):
         self.rcf = rcf
         # Initialize the obs if needed
         if obs is not None : self.setupObs(obs)
             
-        # Initialize the interface if needed
+        # Initialize the interfaces if needed
         if interface is not None : self.setupInterface(interface)
-        
-        # In a strictly forward run, we don't actually need the whole interface
-        # and we can just pass the write function instead
+
+        # In a strictly forward run, we don't actually need the whole interfaces
+        # and we can just pass the control structure and the write function instead
         if formatter is not None :
-            self.writeStruct = formatter 
-        
+            self.writeStruct = formatter
+
+        if controlstruct is not None :
+            self.controlstruct = controlstruct
+
     def setupObs(self, obsdb):
         self.db = obsdb
 
     def setupInterface(self, interface):
-        # First, check if "interface" is instantiated or not
+        # First, check if "interfaces" is instantiated or not
         if inspect.isclass(interface):
             interface = interface(self.rcf)
         self.interface = interface
         self.writeStruct = interface.writeStruct
+        self.readStruct = interface.readStruct
             
     def setupControl(self, struct, info=False):
         self.interface.setup(struct, info=info)
@@ -43,29 +48,15 @@ class transport(object):
 
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
         self.db.save(os.path.join(path, 'observations.%shdf'%tag))
-        self.writeStruct(self.struct, path, 'transport_control.%s')
+#        self.writeStruct(self.struct, path, 'transport_control.%s')
 
-    def runForward(self, step, struct):
+    def runForward(self, struct=None, step=None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
+        if struct is None : struct = self.controlstruct
 
-        #######
-        #### 18 Nov 2019: Disabled the following lines (choices between running on a control vector, on a control
-        ####              structure stored in memory, or on a control structure provided as argument. Now a control
-        ####              structure *must* be provided as argument (in an inversion, the conversion from vector to
-        ####              structure would be called elsewhere.
-#        # The following should happen as part of an inversion ...
-#        if controlvec is not None :
-#            struct, info = self.VecToStruct(controlvec)
-        
-        # If no "struct" is provided, or generated from a control vector (for instance a pure forward run),
-        # then we just run on the prior
-#        elif struct is None :
-#            struct = self.interface.data
-        self.struct = struct
-            
         # read model-specific info
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
@@ -117,7 +108,7 @@ class transport(object):
         pid.wait()
         
         # Collect the results :
-        adj = self.readAdjoint(adjf)
+        return self.readStruct(adjf)
         
-        # Convert from adjoint structure to adjoint vector :
-        return self.VecToStruct_adj(adj)
+        ## Convert from adjoint structure to adjoint vector :
+        #return self.VecToStruct_adj(adj)
