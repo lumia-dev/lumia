@@ -3,40 +3,24 @@ import os
 import subprocess
 from .obsdb import obsdb
 import inspect
-from lumia.Tools import checkDir
+from lumia.Tools import checkDir, rctools
+import logging
 
 class transport(object):
     name = 'lagrange'
-    def __init__(self, rcf, interface=None, obs=None, formatter=None, controlstruct=None):
+    def __init__(self, rcf, obs=None, formatter=None):
         self.rcf = rcf
         # Initialize the obs if needed
         if obs is not None : self.setupObs(obs)
             
-        # Initialize the interfaces if needed
-        if interface is not None : self.setupInterface(interface)
-
-        # In a strictly forward run, we don't actually need the whole interfaces
-        # and we can just pass the control structure and the write function instead
         if formatter is not None :
-            self.writeStruct = formatter
-
-        if controlstruct is not None :
-            self.controlstruct = controlstruct
+            self.writeStruct = formatter.WriteStruct
+            self.readStruct = formatter.ReadStruct
+            self.createStruct = formatter.CreateStruct
 
     def setupObs(self, obsdb):
         self.db = obsdb
 
-    def setupInterface(self, interface):
-        # First, check if "interfaces" is instantiated or not
-        if inspect.isclass(interface):
-            interface = interface(self.rcf)
-        self.interface = interface
-        self.writeStruct = interface.writeStruct
-        self.readStruct = interface.readStruct
-            
-    def setupControl(self, struct, info=False):
-        self.interface.setup(struct, info=info)
-        
     def save(self, path=None, tag=None):
         """
         This copies the last model I/O to "path", with an optional tag to identify it
@@ -50,12 +34,12 @@ class transport(object):
         self.db.save(os.path.join(path, 'observations.%shdf'%tag))
 #        self.writeStruct(self.struct, path, 'transport_control.%s')
 
-    def runForward(self, struct=None, step=None):
+    def runForward(self, struct, step=None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
-        if struct is None : struct = self.controlstruct
+        #if struct is None : struct = self.controlstruct
 
         # read model-specific info
         rundir = self.rcf.get('path.run')
@@ -66,6 +50,8 @@ class transport(object):
         dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
         
         # Run the model
+        cmd = ['python', executable, '--forward', '--db', dbf, '--emis', emf]
+        logging.info(' '.join([x for x in cmd]))
         pid = subprocess.Popen(['python', executable, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
         pid.wait()
         
@@ -93,22 +79,21 @@ class transport(object):
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
         fields = self.rcf.get('model.adjoint.obsfields')
+
+        self.db.observations.loc[:, 'dy'] = departures
+        dpf = self.db.save(os.path.join(rundir, 'departures.hdf'))
         
-        # Write the departures file:
-        dpf = os.path.join(rundir, 'departures.json')
-        dp = self.db.observations.loc[:, fields]
-        dp.loc[:, 'dy'] = departures
-        dp.to_json(dpf)
-        
-        # Create the adjoint filename:
-        adjf = os.path.join(rundir, 'adjoint.hdf')
-        
+        # Create an adjoint rc-file
+        rcadj = self.rcf.write(os.path.join(rundir, 'adjoint.rc'))
+
+        # Name of the adjoint output file
+        adjf = os.path.join(rundir, 'adjoint.nc')
+
         # Run the adjoint transport:
-        pid = subprocess.Popen(['python', executable, '--adjoint', '--db', dpf, '--emis', adjf], close_fds=True)
+        cmd = ['python', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]
+        logging.info(' '.join([x for x in cmd]))
+        pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
         
         # Collect the results :
-        return self.readStruct(adjf)
-        
-        ## Convert from adjoint structure to adjoint vector :
-        #return self.VecToStruct_adj(adj)
+        return self.readStruct(rundir, 'adjoint')

@@ -3,7 +3,7 @@
 import sys
 from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
-from lumia.footprintdb import obsdb
+from lumia.obsdb.footprintdb import obsdb
 from lumia.interfaces import ReadStruct, WriteStruct
 
 def readArgs(args):

@@ -18,7 +18,6 @@ class Interface:
     def __init__(self, rcf, ancilliary=None):
         self.rcf = rcf
         self.categories = Categories(rcf)
-        self.writeStruct = WriteStruct
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
 
@@ -44,10 +43,10 @@ class Interface:
 
         # Store and return
         vec.loc[:, 'category'] = array(categ, dtype=str)
-        vec.loc[:, 'value'] = array(statevec, dtype=float64)
+        vec.loc[:, 'time'] = array(time)
         vec.loc[:, 'lat'] = array(lat, dtype=float64)
         vec.loc[:, 'lon'] = array(lon, dtype=float64)
-        vec.loc[:, 'time'] = array(time)
+        vec.loc[:, 'value'] = array(statevec, dtype=float64)
         return vec
 
     def VecToStruct(self, vector):
@@ -140,7 +139,7 @@ def refineTime(coarseEmis, fineEmis):
     """
     f = deepcopy(fineEmis)
     nt_optim = len(coarseEmis['time_interval']['time_start'])
-    tstart_emis = fineEmis['time_interval']['time_start']
+    tstart_emis = array(fineEmis['time_interval']['time_start'])
     for i_time in range(nt_optim):
         tmin = coarseEmis['time_interval']['time_start'][i_time]
         tmax = coarseEmis['time_interval']['time_end'][i_time]
@@ -171,45 +170,3 @@ def refineTime_adj(adjEmis, fineEmis, dt_optim):
         nt = sum(select) + 0.  # Make sure we have a real
         adjEmis['emis'][select, :, :] /= nt
     return adjEmis
-
-
-def WriteStruct(data, path, prefix):
-    """
-    Write the model input (control parameters)
-    """
-
-    # Create the filename and directory (if needed)
-    filename = os.path.join(path, '%s.nc' % prefix)
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    # Write to a netCDF format
-    with Dataset(filename, 'w') as ds:
-        ds.createDimension('time_components', 6)
-        for cat in data.keys():
-            gr = ds.createGroup(cat)
-            gr.createDimension('nt', data[cat]['emis'].shape[0])
-            gr.createDimension('nlat', data[cat]['emis'].shape[1])
-            gr.createDimension('nlon', data[cat]['emis'].shape[2])
-            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
-            gr['emis'][:] = data[cat]['emis']
-            gr.createVariable('times_start', 'i', ('nt', 'time_components'))
-            gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])
-            gr.createVariable('times_end', 'i', ('nt', 'time_components'))
-            gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
-    return filename
-
-
-def ReadStruct(filename):
-    with Dataset(filename) as ds:
-        categories = ds.groups.keys()
-        data = {'cat_list': categories}
-        for cat in categories:
-            data[cat] = {
-                'emis': ds.groups[cat].variables['emis'][:],
-                'time_interval': {
-                    'time_start': array([datetime(*x) for x in ds.groups[cat].variables['times_start'][:]]),
-                    'time_end': array([datetime(*x) for x in ds.groups[cat].variables['times_end'][:]]),
-                }
-            }
-    return data

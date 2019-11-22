@@ -3,15 +3,18 @@
 import sys
 from argparse import ArgumentParser, REMAINDER
 from lumia.obsdb import obsdb
-from lumia.interfaces import ReadStruct as readFluxes
+from lumia.formatters.lagrange import ReadStruct as readFluxes
+from lumia.formatters.lagrange import CreateStruct, WriteStruct
 from numpy import unique, array
-from pandas import isnull
+from pandas import isnull, read_json
 from tqdm import tqdm
 from lumia.Tools import colorize
 import os
 from datetime import datetime
 import h5py
-from lumia.Tools.time_tools import tinterv
+from lumia.Tools.time_tools import tinterv, time_interval
+from lumia.Tools import rctools
+from lumia.Tools import Region
 import operator
 
 name = 'lagrange'
@@ -83,8 +86,8 @@ class Footprint:
         for cat in cats :
             times_cat = [tinterv(t1, t2) for (t1, t2) in zip(adjEmis[cat]['time_interval']['time_start'], adjEmis[cat]['time_interval']['time_end'])]
             for tt in sorted(fp, key=operator.attrgetter('end')):
-                ilats = fp[tt]['ilat'][:]
-                ilons = fp[tt]['ilon'][:]
+                ilats = fp[tt]['ilats'][:]
+                ilons = fp[tt]['ilons'][:]
                 try :
                     adjEmis[cat]['emis'][times_cat.index(tt), ilats, ilons] += fp[tt]['resp'][:]*dy*scalefac
                 except ValueError :
@@ -122,11 +125,26 @@ def forward(db, emis):
     db.observations.loc[dy['id'], 'model'] = dy['model']
     return db
 
+def adjoint(adj, db):
+    batch = os.environ['INTERACTIVE'] == 'F'
+    categories = adj['cat_list']
+    msg = 'Adjoint'
+    nsites = len(unique(db.footprint))
+    db = db.loc[~isnull(db.footprint) & ~isnull(db.dy)]
+    for fpfile in tqdm(unique(db.footprint), total=nsites, desc=msg, disable=batch):
+        fp = Footprint(fpfile)
+        msg = colorize("Adjoint run (%s)"%fpfile)
+        for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=batch):
+            adj = fp.applyAdjoint(obs.time, obs.dy, adj, categories)
+        fp.close()
+    return adj
+
 
 def readArgs(args):
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
+    p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
     p.add_argument('args', nargs=REMAINDER)
@@ -140,15 +158,23 @@ if __name__ == "__main__" :
     args = readArgs(sys.argv[1:])
 
     # Load observations/departures
-    print(args.db)
     db = obsdb(args.db)
 
     if args.forward :
-
         # Load emissions
         emis = readFluxes(args.emis)
-
         # Forward transport :
         db = forward(db, emis)
-
         db.save(args.db)
+
+    if args.adjoint :
+        # Create an empty adjoint structure
+        rcf = rctools.rc(args.rc)
+        region = Region(rcf)
+        categories = [c for c in rcf.get('emissions.categories') if rcf.get('emissions.%s.optimize'%c) == 1]
+        start = datetime(*rcf.get('time.start'))
+        end = datetime(*rcf.get('time.end'))
+        dt = time_interval(rcf.get('emissions.*.interval'))
+        adj = CreateStruct(categories, region, start, end, dt)
+        adj = adjoint(adj, db.observations)
+        WriteStruct(adj, args.emis)

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from .obsdb import obsdb as obsdb_base
+from lumia.obsdb import obsdb as obsdb_base
 import logging
 from numpy import *
 from tqdm.autonotebook import tqdm
-from .Tools import colorize
+from lumia.Tools import colorize
 import h5py
 from datetime import datetime
 import os
@@ -26,6 +26,13 @@ class obsdb:
         self.observations.loc[:, 'footprint'] = self._genFootprintNames(names)
         self._checkFootprints(cache=cache)
         self.setup = True
+
+    def setupBackgrounds(self, path=None):
+        # TODO: implement a real function!
+        self.observations.loc[:, 'background'] = 400.
+
+    def setupUncertainties(self, errvec):
+        self.observations.loc[:, 'err'] = errvec
 
     def _genFootprintNames(self, fnames=None):
         """
