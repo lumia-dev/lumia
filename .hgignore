@@ -5,3 +5,6 @@ syntax: glob
 build/*
 dist/*
 lumia.egg-info/*
+*.exe
+*.mod
+*.o
