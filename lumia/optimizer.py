@@ -74,10 +74,10 @@ class Optimizer(object):
             if store_eigenvec:
                 self.control.set(LE[:, ii], 'eigenvec_%i'%ii)
             
-            Mat2 = 1./converged_eigvals - 1.
-            dapri = self.control.get('prior_uncertainty')
-            dapos = nan_to_num(sqrt(dapri**2 + inner(LE**2, Mat2)))
-            self.control.set(dapos, 'posterior_uncertainty')
+        Mat2 = 1./converged_eigvals - 1.
+        dapri = self.control.get('prior_uncertainty')
+        dapos = nan_to_num(sqrt(dapri**2 + inner(LE**2, Mat2)))
+        self.control.set('posterior_uncertainty', dapos)
             
     def save(self, step=None):
         step = '' if step is None else step+'.'
@@ -85,5 +85,5 @@ class Optimizer(object):
         if not os.path.exists(path): os.makedirs(path)
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.obsop.save(path, step)
-        self.control.write(os.path.join(path, 'control.%shdf'%step))
+        self.control.save(os.path.join(path, 'control.%shdf'%step))
         self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
