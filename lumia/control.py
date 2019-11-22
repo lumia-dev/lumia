@@ -24,7 +24,6 @@ class Control:
             'lon',
             'time'
         ], dtype=float64)
-        self.vectors.loc[:, 'state_prior_preco'] = 0.
         self.loadrc(rcf)
         
         # Interfaces :
@@ -41,6 +40,7 @@ class Control:
     def setupPrior(self, prior):
         self.vectors.loc[:, ['category', 'time', 'lat', 'lon']] = prior.loc[:, ['category', 'time', 'lat', 'lon']]
         self.vectors.loc[:, 'state_prior'] = prior.value
+        self.vectors.loc[:, 'state_prior_preco'] = 0.
 
     def setupUncertainties(self, uncdict):
         self.vectors.loc[:, 'prior_uncertainty'] = uncdict['prior_uncertainty']
