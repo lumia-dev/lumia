@@ -4,11 +4,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 from .obsdb import obsdb
-from .rctools import rc
+from lumia.Tools.rctools import rc
 from .interfaces import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer
-from .minimizer import Minimizer
 from .control import Control
 from .Uncertainties import Uncertainties
 

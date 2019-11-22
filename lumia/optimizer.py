@@ -2,9 +2,8 @@
 from .Tools import costFunction
 from numpy import *
 import os
-from .minimizer import Minimizer as congrad
-from lumia.interfaces import Interface
-import inspect
+from lumia.minimizers.congrad import Minimizer as congrad
+
 
 class Optimizer(object):
     def __init__(self, rcf, control, obsop, interface, minimizer=congrad):
@@ -44,7 +43,7 @@ class Optimizer(object):
     def _computeDepartures(self, state_preco, step):
         state = self.control.xc_to_x(state_preco)
         struct = self.interface.VecToStruct(state)
-        departures = self.obsop.runForward(step=step, struct=struct)
+        departures = self.obsop.runForward(struct, step=step)
         dy = departures.loc[:, 'mismatch']
         dye = departures.loc[:, 'err']
         return dy, dye
@@ -62,7 +61,7 @@ class Optimizer(object):
         gradient_obs_preco = self.control.g_to_gc(adjoint_state)
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
-        return gradient_preco.values  # TODO: ideally, the ".values" should not be needed ...
+        return gradient_preco
     
     def _calcPosteriorUncertainties(self, store_eigenvec=False):
         converged_eigvals, converged_eigvecs = self.minimizer.read_eigsys()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pandas import DataFrame, read_hdf
-from lumia.rctools import rc
+from lumia.Tools.rctools import rc
 from .Tools import Region, Categories, colorize, g_to_gc, xc_to_x
 from numpy import *
 import os
@@ -19,7 +19,10 @@ class Control:
         self.vectors = DataFrame(columns=[
             'state_prior',
             'state_prior_preco',
-            'category'
+            'category',
+            'lat',
+            'lon',
+            'time'
         ], dtype=float64)
         self.vectors.loc[:, 'state_prior_preco'] = 0.
         self.loadrc(rcf)
@@ -35,9 +38,9 @@ class Control:
         self.start = datetime(*self.rcf.get('time.start'))
         self.end = datetime(*self.rcf.get('time.end'))
 
-    def setup(self, prior):
-        self.vectors.loc[:, 'state_prior'] = prior.value.values.astype(float64)
-        self.vectors.loc[:, 'category'] = prior.category.values.astype(str)
+    def setupPrior(self, prior):
+        self.vectors.loc[:, ['category', 'time', 'lat', 'lon']] = prior.loc[:, ['category', 'time', 'lat', 'lon']]
+        self.vectors.loc[:, 'state_prior'] = prior.value
 
     def setupUncertainties(self, uncdict):
         self.vectors.loc[:, 'prior_uncertainty'] = uncdict['prior_uncertainty']
@@ -139,7 +142,7 @@ class Control:
     
     def __getattr__(self, item):
         if item is 'size' :
-            return len(self)
+            return len(self.vectors)
         else :
             if hasattr(self, item):
                 return getattr(self, item)

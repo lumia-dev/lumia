@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from .messaging_tools import colorize
 
 class tinterv:
@@ -62,3 +62,9 @@ class tinterv:
             self.end.strftime('%d %B %Y %H:%M')
         )
         return line
+
+def time_interval(tstr):
+    if 'h' in tstr:
+        return timedelta(hours=int(tstr.strip('h')))
+    else :
+        raise NotImplemented

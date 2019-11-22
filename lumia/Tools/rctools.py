@@ -5,7 +5,8 @@ import datetime
 import os
 import sys
 import logging
-from .Tools import colorize
+from lumia.Tools import colorize
+from numpy import ndarray
 
 class rc:
     def __init__(self, file=None, verbosity=1):
@@ -223,5 +224,8 @@ class rc:
             # retrieve the value of the key and print it
             val = self.get(key)
             if type(val) == datetime.datetime: val = val.strftime('%Y%m%d%H%M%S')
+            if isinstance(val, (list, tuple, ndarray)):
+                val = ', '.join([str(x) for x in val])
             rcfout.write(fmt % (key, val))
         rcfout.close()
+        return path
