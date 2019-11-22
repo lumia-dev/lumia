@@ -1,0 +1,3 @@
+1) make sure the netcdff libs are installed
+2) make clean ==> do what it says
+3) make congrad.exe
