@@ -31,7 +31,7 @@ class Optimizer(object):
         self.minimizer.update(gradient_preco, self.J.tot)
         self._calcPosteriorUncertainties()
         self.save(label)
-        
+
     def _Var4D_step(self, state_preco, step='apri'):
         dy, err = self._computeDepartures(state_preco, step)
         self.J = self._computeCostFunction(state_preco, dy, err)
@@ -39,7 +39,7 @@ class Optimizer(object):
         status = self.minimizer.calc_update(state_preco, gradient_preco, self.J.tot)
         state_preco = self.minimizer.readState()
         return state_preco, status
-    
+
     def _computeDepartures(self, state_preco, step):
         state = self.control.xc_to_x(state_preco)
         struct = self.interface.VecToStruct(state)
@@ -47,14 +47,14 @@ class Optimizer(object):
         dy = departures.loc[:, 'mismatch']
         dye = departures.loc[:, 'err']
         return dy, dye
-    
+
     def _computeCostFunction(self, state_preco, dy, dye):
         dstate = state_preco-self.control.get('state_prior_preco')   # TODO: check if state_prior_preco is ever non-zero
         J_bg = 0.5*dot(dstate, dstate)
         J_obs = 0.5*dot(dy/dye, dy/dye)
         J = costFunction(bg=J_bg, obs=J_obs)
         return J
-    
+
     def _ComputeGradient(self, state_preco, dy, dye):
         adjoint_struct = self.obsop.runAdjoint(dy/dye**2)
         adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
@@ -62,7 +62,7 @@ class Optimizer(object):
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
         return gradient_preco
-    
+
     def _calcPosteriorUncertainties(self, store_eigenvec=False):
         converged_eigvals, converged_eigvecs = self.minimizer.read_eigsys()
         LE = zeros_like(converged_eigvecs)
@@ -78,7 +78,7 @@ class Optimizer(object):
         dapri = self.control.get('prior_uncertainty')
         dapos = nan_to_num(sqrt(dapri**2 + inner(LE**2, Mat2)))
         self.control.set('posterior_uncertainty', dapos)
-            
+
     def save(self, step=None):
         step = '' if step is None else step+'.'
         path = self.rcf.get('path.output')

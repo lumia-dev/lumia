@@ -2,7 +2,8 @@
 
 from pandas import DataFrame, read_hdf
 from lumia.Tools.rctools import rc
-from .Tools import Region, Categories, colorize, g_to_gc, xc_to_x
+from .Tools import Region, Categories, colorize, xc_to_x
+from .preconditioner import g_to_gc, xc_to_x
 from numpy import *
 import os
 import logging
@@ -25,11 +26,12 @@ class Control:
             'time'
         ], dtype=float64)
         self.loadrc(rcf)
-        
+
         # Interfaces :
         self.save = self._to_hdf
         self.load = self._from_hdf
-        
+
+
     def loadrc(self, rcf):
         self.rcf = rcf
         self.categories = Categories(rcf)
@@ -48,6 +50,11 @@ class Control:
         self.temporal_correlations = uncdict['Tcor']
             
     def xc_to_x(self, state_preco, add_prior=True):
+        # Setup MPI if possible:
+        if self.rcf.get('use.mpi', default=False):
+            from .preconditioner import xc_to_x_MPI as xc_to_x
+            logging.warning("MPI implementation of xc_to_x will be used")
+
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
         catIndex = self.vectors.category.tolist()
@@ -56,11 +63,16 @@ class Control:
                 Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
                 Temp_L = self.temporal_correlations[cat.temporal_correlation]
                 ipos = catIndex.index(cat.name)
-                state += xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1)
+                state += xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
         if add_prior: state += self.vectors.loc[:, 'state_prior']
         return state
     
     def g_to_gc(self, g):
+        # Setup MPI if possible:
+        if self.rcf.get('use.mpi', default=False):
+            from .preconditioner import g_to_gc_MPI as g_to_gc
+            logging.warning("MPI implementation of G_to_Gc will be used")
+
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         catIndex = self.vectors.category.tolist()
@@ -69,7 +81,7 @@ class Control:
                 Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
                 Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
                 ipos = catIndex.index(cat.name)
-                g_c += g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1)
+                g_c += g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.run'))
         return g_c
         
     def _to_hdf(self, filename):
