@@ -103,7 +103,7 @@ def forward(db, emis):
     dy['model'] = []
     msg = "Forward"
     nsites = len(unique(db.observations.footprint))
-    for fpfile in tqdm(unique(db.observations.loc[-isnull(db.observations.footprint), 'footprint']), total=nsites, desc=msg, disable=batch):
+    for fpfile in tqdm(unique(db.observations.loc[-isnull(db.observations.footprint), 'footprint']), total=nsites, desc=msg, disable=batch, leave=True):
         fp = Footprint(fpfile)
         msg = colorize("Forward run (%s)"%fpfile)
         nobs = sum(db.observations.footprint == fpfile)
@@ -131,7 +131,7 @@ def adjoint(adj, db):
     msg = 'Adjoint'
     nsites = len(unique(db.footprint))
     db = db.loc[~isnull(db.footprint) & ~isnull(db.dy)]
-    for fpfile in tqdm(unique(db.footprint), total=nsites, desc=msg, disable=batch):
+    for fpfile in tqdm(unique(db.footprint), total=nsites, desc=msg, disable=batch, leave=True):
         fp = Footprint(fpfile)
         msg = colorize("Adjoint run (%s)"%fpfile)
         for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=batch):

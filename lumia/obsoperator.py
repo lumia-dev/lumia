@@ -54,7 +54,7 @@ class transport(object):
         logging.info(' '.join([x for x in cmd]))
         pid = subprocess.Popen(['python', executable, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
         pid.wait()
-        
+
         # Retrieve results :
         db = obsdb(filename=dbf)
         self.db.observations.loc[:, 'foreground'] = db.observations.loc[:, 'foreground']
@@ -94,6 +94,6 @@ class transport(object):
         logging.info(' '.join([x for x in cmd]))
         pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
-        
+
         # Collect the results :
         return self.readStruct(rundir, 'adjoint')
