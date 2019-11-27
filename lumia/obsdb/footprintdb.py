@@ -10,6 +10,8 @@ from datetime import datetime
 import os
 import subprocess
 
+logger = logging.getLogger(__name__)
+
 class obsdb:
     def __init__(self, **kwargs):
         self._db = obsdb_base(**kwargs)
@@ -21,7 +23,7 @@ class obsdb:
     def setupFootprints(self, path=None, names=None, cache=None):
         self.footprints_path = path if path is not None else self.footprints_path
         if self.footprints_path is None :
-            logging.error("Unspecified footprints path")
+            logger.error("Unspecified footprints path")
 
         self.observations.loc[:, 'footprint'] = self._genFootprintNames(names)
         self._checkFootprints(cache=cache)

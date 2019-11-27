@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from copy import deepcopy
 from pandas import DataFrame
 
+logger = logging.getLogger(__name__)
+
 obsoperator = 'lagrange'
 invcontrol = 'monthlytot'
 

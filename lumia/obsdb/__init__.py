@@ -4,6 +4,8 @@ from datetime import datetime
 from numpy import unique
 from lumia.Tools import colorize
 
+logger = logging.getLogger(__name__)
+
 class obsdb:
     def __init__(self, filename=None, start=None, end=None):
         self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
@@ -40,7 +42,7 @@ class obsdb:
         self.sites = self.sites.loc[unique(self.observations.site), :]
 
     def save(self, filename):
-        logging.info(colorize("Writing observation database to <p:%s>"%filename))
+        logger.info(colorize("Writing observation database to <p:%s>"%filename))
         self.observations.to_hdf(filename, 'observations')
         self.sites.to_hdf(filename, 'sites')
         self.files.to_hdf(filename, 'files')

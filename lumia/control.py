@@ -11,6 +11,8 @@ import h5py
 from tqdm import tqdm
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
 class Control:
     name = 'monthlytot'
     def __init__(self, rcf):
@@ -53,7 +55,7 @@ class Control:
         # Setup MPI if possible:
         if self.rcf.get('use.mpi', default=False):
             from .preconditioner import xc_to_x_MPI as xc_to_x
-            logging.warning("MPI implementation of xc_to_x will be used")
+            logger.warning("MPI implementation of xc_to_x will be used")
 
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
@@ -71,7 +73,7 @@ class Control:
         # Setup MPI if possible:
         if self.rcf.get('use.mpi', default=False):
             from .preconditioner import g_to_gc_MPI as g_to_gc
-            logging.warning("MPI implementation of G_to_Gc will be used")
+            logger.warning("MPI implementation of G_to_Gc will be used")
 
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
@@ -88,7 +90,7 @@ class Control:
         savedir = os.path.dirname(filename)
         if not os.path.exists(savedir):
             os.makedirs(savedir)
-        logging.info(colorize("Write control savefile to <p:%s>"%filename))
+        logger.info(colorize("Write control savefile to <p:%s>"%filename))
         
         # Vectors
         self.vectors.to_hdf(filename, 'vectors')
@@ -127,7 +129,7 @@ class Control:
                 try :
                     rcf = self.rcf
                 except AttributeError :
-                    logging.critical("no rcf info in the object")
+                    logger.critical("no rcf info in the object")
                     raise
 
             # correlations :
@@ -142,14 +144,14 @@ class Control:
         try :
             return self.vectors.loc[:, item].values
         except KeyError :
-            logging.critical(colorize("Parameter <b:%s> doesn't exist ..."%item))
+            logger.critical(colorize("Parameter <b:%s> doesn't exist ..."%item))
             raise 
             
     def set(self, item, values):
         try:
             self.vectors.loc[:, item] = values
         except ValueError:
-            logging.critical(colorize("Parameter value for <b:%s> could not be stored, because its dimension (%i) doesn't conform with that of the control vector (%i)"%(key, len(values), self.size)))
+            logger.critical(colorize("Parameter value for <b:%s> could not be stored, because its dimension (%i) doesn't conform with that of the control vector (%i)"%(key, len(values), self.size)))
             raise
     
     def __getattr__(self, item):

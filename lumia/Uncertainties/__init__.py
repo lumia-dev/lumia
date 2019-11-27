@@ -5,6 +5,7 @@ import os
 from .tools import read_latlon, horcor, calc_temp_corr
 from lumia.Tools import Region
 from numpy import dot
+logger = logging.getLogger(__name__)
 
 class Uncertainties:
     def __init__(self, rcf, data):
@@ -65,7 +66,7 @@ class Uncertainties:
         fname = 'Bh:%s:%5.5i_%s.nc'%(self.region.name, corlen, cortype)
         fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
         if not os.path.exists(fname):
-            logging.info("Correlation file <p:%s> not found. Computing it"%fname)
+            logger.info("Correlation file <p:%s> not found. Computing it"%fname)
             hc = horcor(
                 self.region,
                 corlen,

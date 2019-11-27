@@ -4,7 +4,7 @@ import subprocess, os
 import shutil
 import logging
 
-#TODO: integrate proper logging here ...
+logger = logging.getLogger(__name__)
 
 class Minimizer:
     def __init__(self, rcf, nstate=None):
@@ -69,7 +69,7 @@ class CommFile(object):
         self.debug = False
 
     def createFile(self, nstate):
-        print(self.filepath)
+        logger.info(self.filepath)
         if not os.path.exists(os.path.dirname(self.filepath)):
             os.makedirs(os.path.dirname(self.filepath))
         fid = Dataset(self.filepath, 'w')
@@ -96,7 +96,7 @@ class CommFile(object):
     def update(self, gradient_preco, J_tot):
         with Dataset(self.filepath, 'a') as ds:
             ds['g_c'][:, self.len_g] = gradient_preco
-            logging.info("Cost function updated to %.2e"%J_tot)
+            logger.info("Cost function updated to %.2e"%J_tot)
             ds.J_tot = float(J_tot)
         self.len_g += 1
 

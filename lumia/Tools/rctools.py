@@ -8,6 +8,8 @@ import logging
 from lumia.Tools import colorize
 from numpy import ndarray
 
+logger = logging.getLogger(__name__)
+
 class rc:
     def __init__(self, file=None, verbosity=1):
         self.verbosity=verbosity
@@ -68,10 +70,10 @@ class rc:
 
     def message(self, msg):
         if self.verbosity > 0 :
-            logging.info(colorize('[RC] %s'%msg, background='g'))
+            logger.info(colorize('[RC] %s'%msg, background='g'))
 
     def fail(self, msg, err=RuntimeError):
-        logging.critical(colorize("<r>[CRITICAL ERROR]</b> %s"%msg, background='r'))
+        logger.critical(colorize("<r>[CRITICAL ERROR]</b> %s"%msg, background='r'))
         sys.exit()
 
     def matchval(self, val):
