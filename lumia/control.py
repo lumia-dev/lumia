@@ -55,7 +55,6 @@ class Control:
         # Setup MPI if possible:
         if self.rcf.get('use.mpi', default=False):
             from .preconditioner import xc_to_x_MPI as xc_to_x
-            logger.warning("MPI implementation of xc_to_x will be used")
 
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
@@ -73,7 +72,6 @@ class Control:
         # Setup MPI if possible:
         if self.rcf.get('use.mpi', default=False):
             from .preconditioner import g_to_gc_MPI as g_to_gc
-            logger.warning("MPI implementation of G_to_Gc will be used")
 
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
