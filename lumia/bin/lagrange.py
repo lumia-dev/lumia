@@ -8,7 +8,7 @@ from lumia.formatters.lagrange import CreateStruct, WriteStruct
 from numpy import unique, array
 from pandas import isnull, read_json
 from tqdm import tqdm
-from lumia.Tools import colorize
+from lumia.Tools import logging_tools
 import os
 from datetime import datetime
 import h5py
@@ -19,14 +19,13 @@ import operator
 
 name = 'lagrange'
 import logging
-logging.basicConfig(level=logging.INFO)
-logging.getLogger(__name__).addHandler(logging.NullHandler())
+logger = logging.getLogger(__name__)
 
 class Footprint:
     def __init__(self, fpfile, verbosity=0, path='', open=True):
         self.filename = fpfile
         if not os.path.exists(self.filename):
-            logging.warning(colorize('Footprint file not found: <p:%s>'%self.filename))
+            logging.warning('Footprint file not found: %s'%self.filename)
         self.ds = h5py.File(fpfile, 'r')
         self.varname = None
 
@@ -105,7 +104,7 @@ def forward(db, emis):
     nsites = len(unique(db.observations.footprint))
     for fpfile in tqdm(unique(db.observations.loc[-isnull(db.observations.footprint), 'footprint']), total=nsites, desc=msg, disable=batch, leave=True):
         fp = Footprint(fpfile)
-        msg = colorize("Forward run (%s)"%fpfile)
+        msg = "Forward run (%s)"%fpfile
         nobs = sum(db.observations.footprint == fpfile)
         for obs in tqdm(db.observations.loc[db.observations.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=batch):
             dym, tot = fp.applyEmis(obs.time, emis)
@@ -133,7 +132,7 @@ def adjoint(adj, db):
     db = db.loc[~isnull(db.footprint) & ~isnull(db.dy)]
     for fpfile in tqdm(unique(db.footprint), total=nsites, desc=msg, disable=batch, leave=True):
         fp = Footprint(fpfile)
-        msg = colorize("Adjoint run (%s)"%fpfile)
+        msg = "Adjoint run (%s)"%fpfile
         for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=batch):
             adj = fp.applyAdjoint(obs.time, obs.dy, adj, categories)
         fp.close()

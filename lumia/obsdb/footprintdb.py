@@ -4,7 +4,6 @@ from lumia.obsdb import obsdb as obsdb_base
 import logging
 from numpy import *
 from tqdm.autonotebook import tqdm
-from lumia.Tools import colorize
 import h5py
 from datetime import datetime
 import os
@@ -60,7 +59,7 @@ class obsdb:
         file_in_cache = filename.replace(self.footprints_path, cache)
         if not os.path.exists(file_in_cache):
             if not os.path.exists(filename):
-                tqdm.write(colorize('<y>[WARNING] File <p:%s> not found! no footprints will be read from it</y>'%filename))
+                logger.warning('File %s not found! no footprints will be read from it'%filename)
                 file_in_cache = None
             elif cache != self.footprints_path:
                 subprocess.check_call(['rsync', filename, file_in_cache])

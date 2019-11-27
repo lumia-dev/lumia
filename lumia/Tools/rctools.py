@@ -5,7 +5,6 @@ import datetime
 import os
 import sys
 import logging
-from lumia.Tools import colorize
 from numpy import ndarray
 
 logger = logging.getLogger(__name__)
@@ -70,10 +69,10 @@ class rc:
 
     def message(self, msg):
         if self.verbosity > 0 :
-            logger.info(colorize('[RC] %s'%msg, background='g'))
+            logger.info(msg)
 
     def fail(self, msg, err=RuntimeError):
-        logger.critical(colorize("<r>[CRITICAL ERROR]</b> %s"%msg, background='r'))
+        logger.critical(msg)
         sys.exit()
 
     def matchval(self, val):

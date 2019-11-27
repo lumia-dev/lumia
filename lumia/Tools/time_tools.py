@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from .messaging_tools import colorize
 
 class tinterv:
     def __init__(self, start, end):
@@ -8,7 +7,7 @@ class tinterv:
         self.dt = self.end - self.start
 
     def __repr__(self):
-        return colorize("<c>%s</c> to <c>%s</c>"%(self.start.strftime("%d %b %Y %H:%M"), self.end.strftime("%d %b %Y %H:%M")))
+        return "%s to %s"%(self.start.strftime("%d %b %Y %H:%M"), self.end.strftime("%d %b %Y %H:%M"))
 
     def __ge__(self, other):
         if isinstance(other, datetime) :
