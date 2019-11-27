@@ -2,7 +2,7 @@
 
 from pandas import DataFrame, read_hdf
 from lumia.Tools.rctools import rc
-from .Tools import Region, Categories, colorize, xc_to_x
+from .Tools import Region, Categories
 from .preconditioner import g_to_gc, xc_to_x
 from numpy import *
 import os
@@ -90,7 +90,7 @@ class Control:
         savedir = os.path.dirname(filename)
         if not os.path.exists(savedir):
             os.makedirs(savedir)
-        logger.info(colorize("Write control savefile to <p:%s>"%filename))
+        logger.info("Write control savefile to %s"%filename)
         
         # Vectors
         self.vectors.to_hdf(filename, 'vectors')
@@ -144,14 +144,14 @@ class Control:
         try :
             return self.vectors.loc[:, item].values
         except KeyError :
-            logger.critical(colorize("Parameter <b:%s> doesn't exist ..."%item))
+            logger.critical("Parameter %s doesn't exist ..."%item)
             raise 
             
     def set(self, item, values):
         try:
             self.vectors.loc[:, item] = values
         except ValueError:
-            logger.critical(colorize("Parameter value for <b:%s> could not be stored, because its dimension (%i) doesn't conform with that of the control vector (%i)"%(key, len(values), self.size)))
+            logger.critical("Parameter value for '%s' could not be stored, because its dimension '%i' doesn't conform with that of the control vector (%i)"%(key, len(values), self.size))
             raise
     
     def __getattr__(self, item):

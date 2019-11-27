@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from lumia.Tools import Region, Categories, colorize
+from lumia.Tools import Region, Categories
 from numpy import *
 import logging
 import os
