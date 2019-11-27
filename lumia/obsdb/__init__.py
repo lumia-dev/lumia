@@ -1,7 +1,11 @@
-from pandas import DataFrame, read_hdf, read_json
+from pandas import DataFrame, read_hdf, read_json, errors
 import logging
 from datetime import datetime
 from numpy import unique
+
+# Disable "PerformanceWarning" when saving the database to a hdf file
+import warnings
+warnings.simplefilter(action='ignore', category=errors.PerformanceWarning)
 
 logger = logging.getLogger(__name__)
 

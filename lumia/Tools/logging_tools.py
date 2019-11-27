@@ -2,12 +2,13 @@
 import logging
 
 import colorlog
+import shutil
+columns = shutil.get_terminal_size().columns
 
 log = logging.getLogger()
 handler = colorlog.StreamHandler()
 formatter = colorlog.ColoredFormatter(
-    # '%(log_color)s%(levelname)-8s : %(name)s : %(reset)s%(message_log_color)s %(message)',
-    "%(log_color)s%(levelname)8s | %(message_log_color)s %(name)s (line %(lineno)d) | %(reset)s %(message)s",
+    "%(message_log_color)s %(name)40s | %(reset)s %(log_color)s %(levelname)-8s (line %(lineno)d) | %(reset)s %(message)s",
     datefmt=None,
     reset=True,
     log_colors={
