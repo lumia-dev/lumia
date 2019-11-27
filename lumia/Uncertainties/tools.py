@@ -3,6 +3,7 @@ from netCDF4 import Dataset
 from numpy import transpose, where, zeros, eye, ones, dot, pi, sin, cos, arcsin, exp, \
     meshgrid, linalg, diag, sqrt, argsort, flipud
 import logging
+logger = logging.getLogger(__name__)
 
 def read_latlon(file_name):
     if not os.path.exists(file_name):
@@ -32,9 +33,9 @@ class horcor:
         from numpy.linalg import eigh
 #        from scipy.linalg import cholesky, LinAlgError
 
-        logging.info("Use numpy.linalg to compute eigen decomposition of covariance matrix")
+        logger.info("Use numpy.linalg to compute eigen decomposition of covariance matrix")
         n_hor = self.state.shape[0]
-        logging.info("Matrix size: (%i x %i)"%(n_hor, n_hor))
+        logger.info("Matrix size: (%i x %i)"%(n_hor, n_hor))
         P = zeros((n_hor, n_hor))
         P_diag = zeros((n_hor, n_hor))
         iexp = {'e':1, 'g':2}[self.cortype]
@@ -93,7 +94,7 @@ class horcor:
         ds.variables['P'][:] = self.P.transpose() # numpy.eigv returns the vectors in columns, but the equivalent fotran subroutine returns them in rows. So store it in rows for consistency.
 
         # Also write B itself (first recalculate), for use in postprocessing
-        logging.info("Recalculating B matrix from eigenvectors/eigenvalues")
+        logger.info("Recalculating B matrix from eigenvectors/eigenvalues")
         ds.createVariable('B', 'd', ('n_hor', 'n_hor'), zlib=True)
         B = dot(self.P, self.P_diag)
         P = dot(B, self.P.transpose())
@@ -104,11 +105,11 @@ class horcor:
         min_eigval = self.min_eigval+0.
         if self.min_eigval > 1.e-10:
             min_eigval = self.min_eigval*min((1., lam.max()))
-        logging.info("Maximum eigenvalue = %10.3e, minimum eigenvalue = %10.3e"%(lam.min(), lam.max()))
+        logger.info("Maximum eigenvalue = %10.3e, minimum eigenvalue = %10.3e"%(lam.min(), lam.max()))
         n_neg = sum(lam < min_eigval)
         lam[lam<min_eigval] = min_eigval
         if n_neg > 0 :
-            logging.info("Set %i eigenvalues to %15.11f"%(n_neg, min_eigval))
+            logger.info("Set %i eigenvalues to %15.11f"%(n_neg, min_eigval))
         return lam
 
 def dist(lon1, lat1, lon2, lat2, ae=6.371e6):

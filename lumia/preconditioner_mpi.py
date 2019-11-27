@@ -6,7 +6,8 @@ import sys
 from h5py import File
 import os
 
-#def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy):
+logger = logging.getLogger(__name__)
+
 def xc_to_x(filename):
     sys.stdout.flush()
 
@@ -29,12 +30,9 @@ def xc_to_x(filename):
 
     x = zeros(nt*nh)
     comm.Reduce(None, x, op=MPI.SUM, root=MPI.ROOT)
-    logging.warning("Workers sum up to %.2f"%x.sum())
 
     with File(filename, 'a') as fid :
         fid['x'] = x
-        print(x.sum())
-        print(fid['x'][:].sum())
 
 def xc_to_x_worker():
     # Initialize MPI
@@ -68,7 +66,6 @@ def xc_to_x_worker():
             if r == size: r = 0
 
     # Send back
-    logging.warning("Worker %i returns %.2f"%(rank, x.sum()))
     comm.Reduce(x, None, op=MPI.SUM, root=0)
 
 def g_to_gc(filename):
@@ -100,8 +97,6 @@ def g_to_gc_worker():
     # Initialize MPI
     comm = MPI.Comm.Get_parent()
     rank = comm.Get_rank()
-
-    print("Lalalaaaa, I am worker %i"%rank)
 
     # Receive data
     nt, nh, ipos = comm.bcast(None, root=0)

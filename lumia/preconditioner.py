@@ -9,11 +9,11 @@ import os
 from h5py import File
 import subprocess
 
+logger = logging.getLogger(__name__)
+
 executable_mpi = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'preconditioner_mpi.py')
 
 def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
-
-    logging.info("Use serial implementation of g_to_gc")
 
     n_state = len(G_state)
     nt = shape(Temp_Lt)[0]
@@ -25,8 +25,6 @@ def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
     return g_c
 
 def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
-
-    logging.info("Use serial implementation of xc_to_x")
 
     n_state = len(G_state)
     nt = shape(Temp_L)[0]
@@ -40,11 +38,7 @@ def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
 
 def g_to_gc_MPI(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
 
-    logging.warning("g_to_gc_mpi")
-    logging.warning(executable_mpi)
-
     fname = os.path.join(path, 'preco_data.hdf')
-    logging.warning(fname)
     with File(fname, 'w') as fid :
         fid['prior_uncertainties'] = G_state
         fid['Bt'] = Temp_Lt
@@ -52,7 +46,7 @@ def g_to_gc_MPI(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
         fid['g'] = g
         fid.attrs.create('ipos', ipos)
 
-    logging.info('mpiexec python %s -g -f %s'%(executable_mpi, fname))
+    logger.info('mpiexec python %s -g -f %s'%(executable_mpi, fname))
     pid = subprocess.Popen(['mpiexec', 'python', executable_mpi, '-g', '-f', fname], close_fds=True)
     pid.wait()
 
@@ -63,11 +57,7 @@ def g_to_gc_MPI(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
 
 def xc_to_x_MPI(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
 
-    logging.warning("xc_to_x_mpi")
-    logging.warning(executable_mpi)
-
     fname = os.path.join(path, 'preco_data.hdf')
-    logging.warning(fname)
     with File(fname, 'w') as fid :
         fid['prior_uncertainties'] = G_state
         fid['Bt'] = Temp_L
@@ -75,10 +65,7 @@ def xc_to_x_MPI(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
         fid['x_c'] = x_c
         fid.attrs.create('ipos', ipos)
 
-    print(G_state.sum())
-    print(x_c.sum())
-
-    logging.info('mpiexec python %s -x -f %s'%(executable_mpi, fname))
+    logger.info('mpiexec python %s -x -f %s'%(executable_mpi, fname))
 #    pid = subprocess.Popen(['mpiexec', 'python', executable_mpi, '-x', '-f', fname], close_fds=True)
 #    pid.wait()
     os.system('mpiexec python %s -x -f %s'%(executable_mpi, fname))

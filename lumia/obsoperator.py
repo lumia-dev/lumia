@@ -6,6 +6,8 @@ import inspect
 from lumia.Tools import checkDir, rctools
 import logging
 
+logger = logging.getLogger(__name__)
+
 class transport(object):
     name = 'lagrange'
     def __init__(self, rcf, obs=None, formatter=None):
@@ -51,7 +53,7 @@ class transport(object):
         
         # Run the model
         cmd = ['python', executable, '--forward', '--db', dbf, '--emis', emf]
-        logging.info(' '.join([x for x in cmd]))
+        logger.info(' '.join([x for x in cmd]))
         pid = subprocess.Popen(['python', executable, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
         pid.wait()
 
@@ -91,7 +93,7 @@ class transport(object):
 
         # Run the adjoint transport:
         cmd = ['python', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]
-        logging.info(' '.join([x for x in cmd]))
+        logger.info(' '.join([x for x in cmd]))
         pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
 
