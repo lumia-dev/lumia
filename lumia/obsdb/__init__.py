@@ -10,7 +10,7 @@ warnings.simplefilter(action='ignore', category=errors.PerformanceWarning)
 logger = logging.getLogger(__name__)
 
 class obsdb:
-    def __init__(self, filename=None, start=None, end=None):
+    def __init__(self, filename=None, start=None, end=None, db=None):
         self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
         self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt', 'file'])
         self.files = DataFrame(columns=['filename'])
@@ -19,6 +19,10 @@ class obsdb:
         self.setup = False
         if filename is not None :
             self.load(filename)
+        if db is not None :
+            self.observations = db.observations
+            self.sites = db.sites
+            self.files = db.files
 
     def load(self, filename):
         self.observations = read_hdf(filename, 'observations')
