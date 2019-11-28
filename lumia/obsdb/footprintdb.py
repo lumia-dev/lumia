@@ -5,7 +5,6 @@ import logging
 from numpy import *
 from tqdm.autonotebook import tqdm
 import h5py
-from datetime import datetime
 import os
 import subprocess
 
