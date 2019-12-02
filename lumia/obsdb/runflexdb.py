@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from lumia import obsdb as Obsdb_base
+from lumia.obsdb.footprintdb import obsdb as FootprintDB
 from datetime import *
 import logging
 logger = logging.getLogger(__name__)
 
-class RunFlexDB(Obsdb_base):
+class RunFlexDB(FootprintDB):
     def configure(self, config_file):
         """
         Read settings from a station list file

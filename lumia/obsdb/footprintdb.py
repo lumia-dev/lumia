@@ -10,13 +10,10 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
-class obsdb:
+class obsdb(obsdb_base):
     def __init__(self, **kwargs):
-        self._db = obsdb_base(**kwargs)
+        super().__init__(**kwargs)
         self.footprints_path = kwargs.get('footprints_path', None)
-
-    def __getattr__(self, item):
-        return getattr(self._db, item)
 
     def setupFootprints(self, path=None, names=None, cache=None):
         self.footprints_path = path if path is not None else self.footprints_path
@@ -34,7 +31,7 @@ class obsdb:
     def setupUncertainties(self, errvec):
         self.observations.loc[:, 'err'] = errvec
 
-    def _genFootprintNames(self, fnames=None):
+    def _genFootprintNames(self, fnames=None, leave_pbar=False):
         """
         Deduct the names of the footprint files based on their sitename, sampling height and observation time
         Optionally, a user-specified list (for example following a different pattern) can be speficied here.
@@ -43,16 +40,23 @@ class obsdb:
         """
         if fnames is None :
             # Create the footprint theoretical filenames :
-            codes = [self.sites.loc[s].code for s in self.observations.site]
+            for isite, site in tqdm(self.sites.iterrows(), leave=leave_pbar, desc='Generate footprint file names (step 1/3)', total=self.sites.shape[0]):
+                self.observations.loc[self.observations.site == isite, 'code'] = site.code
+#            codes = [self.sites.loc[s].code for s in tqdm(self.observations.site, leave=False, desc='Generate footprint file names (step 1/3)')]
             fnames = array(
-                ['%s.%im.%s.h5'%(c.lower(), z, t.strftime('%Y-%m')) for (c, z, t) in zip(
-                    codes, self.observations.height, self.observations.time
-                )]
+                ['%s.%im.%s.h5'%(c.lower(), z, t.strftime('%Y-%m')) for (c, z, t) in tqdm(zip(
+                    self.observations.code, self.observations.height, self.observations.time
+                ), leave=leave_pbar, desc='Generate footprint file names (step 2/3)', total=self.observations.shape[0])]
             )
-        fnames = [os.path.join(self.footprints_path, f) for f in fnames]
+        fnames = [os.path.join(self.footprints_path, f) for f in tqdm(fnames, leave=leave_pbar, desc='Generate footprint file names (step 2/3)')]
         return fnames
 
     def _checkCacheFile(self, filename, cache):
+        if cache is False :
+            if os.path.exists(filename) :
+                return filename
+            else :
+                return None
         if cache is None :
             cache = self.footprints_path
         file_in_cache = filename.replace(self.footprints_path, cache)
