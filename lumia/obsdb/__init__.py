@@ -29,6 +29,7 @@ class obsdb:
         self.sites = read_hdf(filename, 'sites')
         self.files = read_hdf(filename, 'files')
         self.SelectTimes(self.start, self.end)
+        logger.info(f"{self.observations.shape[0]} observation read from {filename}")
 
     def load_json(self, prefix):
         self.observations = read_json('%s.obs.json'%prefix)
@@ -47,6 +48,11 @@ class obsdb:
             (self.observations.time <= tmax)
         )]
         self.sites = self.sites.loc[unique(self.observations.site), :]
+
+    def SelectObs(self, selection):
+        self.observations = self.observations.loc[selection,:]
+        sites = unique(self.observations.site)
+        self.sites = self.sites.loc[sites]
 
     def save(self, filename):
         logger.info("Writing observation database to %s"%filename)
