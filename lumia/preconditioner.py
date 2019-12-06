@@ -8,6 +8,7 @@ import logging
 import os
 from h5py import File
 import subprocess
+from lumia.Tools.logging_tools import colorize
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def g_to_gc_MPI(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
         fid['g'] = g
         fid.attrs.create('ipos', ipos)
 
-    logger.info('mpiexec python %s -g -f %s'%(executable_mpi, fname))
+    logger.info(colorize('mpiexec python %s -g -f %s'%(executable_mpi, fname), 'g'))
     pid = subprocess.Popen(['mpiexec', 'python', executable_mpi, '-g', '-f', fname], close_fds=True)
     pid.wait()
 
@@ -65,7 +66,7 @@ def xc_to_x_MPI(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
         fid['x_c'] = x_c
         fid.attrs.create('ipos', ipos)
 
-    logger.info('mpiexec python %s -x -f %s'%(executable_mpi, fname))
+    logger.info(colorize('mpiexec python %s -x -f %s'%(executable_mpi, fname), 'g'))
 #    pid = subprocess.Popen(['mpiexec', 'python', executable_mpi, '-x', '-f', fname], close_fds=True)
 #    pid.wait()
     os.system('mpiexec python %s -x -f %s'%(executable_mpi, fname))

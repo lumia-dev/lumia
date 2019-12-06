@@ -3,6 +3,7 @@
 import os, sys, subprocess, tempfile, operator, h5py
 from lumia.Tools import rctools
 from lumia.obsdb import obsdb
+from lumia.Tools.logging_tools import colorize
 from lumia.formatters.lagrange import ReadStruct, Struct, WriteStruct, CreateStruct
 from numpy import unique, array
 from tqdm.autonotebook import tqdm
@@ -10,6 +11,7 @@ from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from lumia.Tools.time_tools import tinterv, time_interval
 from lumia.Tools import Region
+from lumia.Tools import Categories
 import logging
 logger = logging.getLogger(__name__)
 
@@ -94,10 +96,13 @@ class Lagrange:
         self.emfile = emfile
         self.executable = __file__
         self.batch = os.environ['INTERACTIVE'] == 'F'
+        self.categories = Categories(self.rcf)
         if mp :
+            self.parallel = True
             self.runForward = self.runForward_mp
             self.runAdjoint = self.runAdjoint_mp
         else :
+            self.parallel = False
             self.runForward = self.runForward_sp
             self.runAdjoint = self.runAdjoint_sp
 
@@ -110,13 +115,13 @@ class Lagrange:
         dy['tot'] = []
         dy['id'] = []
         dy['model'] = []
-        for cat in self.rcf.get('categories') :
+        for cat in self.categories.list :
             dy[cat] = []
 
         # Loop over the footprint files
         nsites = len(unique(self.obs.observations.footprint))
         msg = 'Forward run'
-        for fpfile in tqdm(unique(self.obs.observations.footprint, total=nsites, desc=msg, disable=self.batch, leave=False)):
+        for fpfile in tqdm(unique(self.obs.observations.footprint), total=nsites, desc=msg, disable=self.batch, leave=False):
             fp = Footprint(fpfile)
 
             # Loop over the obs in the file
@@ -125,7 +130,7 @@ class Lagrange:
             for obs in tqdm(self.obs.observations.loc[self.obs.observations.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=self.batch):
                 dym, tot = fp.applyEmis(obs.time, emis)
                 if dym is not None :
-                    for cat in self.rcf.get('categories') :
+                    for cat in self.categories.list :
                         dy[cat].append(dym.get(cat))
                     dy['tot'].append(tot)
                     dy['id'].append(obs.Index)
@@ -136,7 +141,7 @@ class Lagrange:
         self.obs.observations.loc[dy['id'], 'totals'] = dy['tot']
         self.obs.observations.loc[dy['id'], 'model'] = dy['model']
         self.obs.observations.loc[:, 'foreground'] = 0.
-        for cat in self.rcf.get('categories') :
+        for cat in self.categories.list :
             self.obs.observations.loc[dy['id'], cat] = dy[cat]
             self.obs.observations.loc[dy['id'], 'foreground'] += array(dy[cat])
         
@@ -147,16 +152,15 @@ class Lagrange:
         files = self.RunParallel('--forward')
 
         # Retrieve the data
-        if len(files) > 1 :
-            for dbf in files :
-                db = obsdb(dbf)
-                self.obs.observations.loc[db.observations.index, 'foreground'] = db.observations.loc[:, 'foreground']
-                self.obs.observations.loc[db.observations.index, 'totals'] = db.observations.loc[:, 'totals']
-                self.obs.observations.loc[db.observations.index, 'model'] = db.observations.loc[:, 'model']
-                for cat in self.rcf.get('categories'):
-                    self.obs.observations.loc[db.observations.index, cat] = db.observations.loc[:, cat]
-                os.remove(dbf)
-            self.obs.observations.save(self.obsfile)
+        for dbf in files :
+            db = obsdb(dbf)
+            self.obs.observations.loc[db.observations.index, 'foreground'] = db.observations.loc[:, 'foreground']
+            self.obs.observations.loc[db.observations.index, 'totals'] = db.observations.loc[:, 'totals']
+            self.obs.observations.loc[db.observations.index, 'model'] = db.observations.loc[:, 'model']
+            for cat in self.categories.list:
+                self.obs.observations.loc[db.observations.index, cat] = db.observations.loc[:, cat]
+            os.remove(dbf)
+        self.obs.save(self.obsfile)
 
     def runAdjoint_sp(self):
         # Create an empty adjoint structure:
@@ -206,7 +210,7 @@ class Lagrange:
 
             # Launch the transport subprocesses
             cmd = ['python', self.executable, step, '--db', dbf, '--rc', self.rcfile, '--emis', emfile, '--serial']
-            logging.info(' '.join([x for x in cmd]))
+            logging.info(colorize(' '.join([x for x in cmd]), 'g'))
             pids.append(subprocess.Popen(cmd, close_fds=True))
 
         # Let the subprocesses finish
@@ -223,11 +227,11 @@ class Lagrange:
         if nchunks == 1 :
             yield self.obsfile
 
-        chunk_size = nobs/nchunks
+        chunk_size = int(nobs/nchunks)
         remain = nobs%nchunks
         if remain != 0 : chunk_size += 1
         for ichunk in range(nchunks):
-            db = self.obs.get_iloc(range(ichunk*chunk_size, (ichunk+1)*chunk_size))
+            db = self.obs.get_iloc(slice(ichunk*chunk_size, (ichunk+1)*chunk_size))
 
             # Write observation file
             dbfid, dbf = tempfile.mkstemp(dir=self.rcf.get('path.run'), prefix='obs.', suffix='.hdf')
@@ -254,7 +258,7 @@ if __name__ == '__main__':
     args = p.parse_args(sys.argv[1:])
 
     # Create the transport model
-    model = Lagrange(args.rcf, args.db, args.emis, mp=~args.serial)
+    model = Lagrange(args.rc, args.db, args.emis, mp=not args.serial)
 
     if args.forward :
         model.runForward()
