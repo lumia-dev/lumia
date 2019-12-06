@@ -54,6 +54,12 @@ class obsdb:
         sites = unique(self.observations.site)
         self.sites = self.sites.loc[sites]
 
+    def get_iloc(self, selection):
+        obs = self.observations.iloc[selection]
+        sites = unique(obs.observations.site)
+        obs.sites = obs.sites.loc[sites]
+        return obs
+
     def save(self, filename):
         logger.info("Writing observation database to %s"%filename)
         self.observations.to_hdf(filename, 'observations')
