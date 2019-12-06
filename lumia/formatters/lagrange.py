@@ -1,8 +1,26 @@
 import os
 from netCDF4 import Dataset
-from numpy import array, zeros, arange
+from numpy import array, zeros, arange, array_equal
 from datetime import datetime
 from lumia.Tools.system_tools import checkDir
+import logging
+logger = logging.getLogger(__name__)
+
+class Struct(dict):
+    def __add__(self, other):
+        allcats = set(self['cat_list']+other['cat_list'])
+        for cat in allcats :
+            if cat in self.keys():
+                # Add the category if the time intervals are matching!
+                ts = array_equal(self[cat]['time_interval']['time_start'], other[cat]['time_interval']['time_start'])
+                te = array_equal(self[cat]['time_interval']['time_end'], other[cat]['time_interval']['time_end'])
+                if ts and te :
+                    self[cat]['emis'] += other[cat]['emis']
+                else :
+                    logger.error("Cannot add the two structures, time dimensions non conforming")
+                    raise ValueError
+            else :
+                self[cat] = other[cat]
 
 def WriteStruct(data, path, prefix=None):
     """
@@ -43,7 +61,8 @@ def ReadStruct(path, prefix=None):
         filename = os.path.join(path, '%s.nc' % prefix)
     with Dataset(filename) as ds:
         categories = ds.groups.keys()
-        data = {'cat_list': categories}
+#        data = {'cat_list': categories}
+        data = Struct(cat_list=categories)
         for cat in categories:
             data[cat] = {
                 'emis': ds.groups[cat].variables['emis'][:],
@@ -57,7 +76,8 @@ def ReadStruct(path, prefix=None):
 
 def CreateStruct(categories, region, start, end, dt):
     times = arange(start, end, dt, dtype=datetime)
-    data = {'cat_list': categories}
+    #data = {'cat_list': categories}
+    data = Struct(cat_list=categories)
     for cat in categories :
         data[cat] = {
             'emis':zeros((len(times), region.nlat, region.nlon)),
@@ -67,3 +87,4 @@ def CreateStruct(categories, region, start, end, dt):
             }
         }
     return data
+
