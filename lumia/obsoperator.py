@@ -50,11 +50,12 @@ class transport(object):
         # Write model inputs:
         emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
         dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
+        rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
         
         # Run the model
         cmd = ['python', executable, '--forward', '--db', dbf, '--emis', emf]
         logger.info(' '.join([x for x in cmd]))
-        pid = subprocess.Popen(['python', executable, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
+        pid = subprocess.Popen(['python', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
         pid.wait()
 
         # Retrieve results :
