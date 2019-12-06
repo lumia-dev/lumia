@@ -60,7 +60,6 @@ class transport(object):
         # Retrieve results :
         db = obsdb(filename=dbf)
         self.db.observations.loc[:, 'foreground'] = db.observations.loc[:, 'foreground']
-        self.db.observations.loc[:, 'totals'] = db.observations.loc[:, 'totals']
         self.db.observations.loc[:, 'model'] = db.observations.loc[:, 'model']
         self.db.observations.loc[:, 'mismatch'] = \
             self.db.observations.loc[:,'background'] + \
