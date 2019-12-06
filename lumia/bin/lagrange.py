@@ -115,13 +115,20 @@ def forward(db, emis):
                 dy['id'].append(obs.Index)
                 dy['model'].append(dym)
         fp.close()
+
+    # Foreground + individual categories
     db.observations.loc[:, 'foreground'] = 0.
     for cat in categories :
         db.observations.loc[dy['id'], cat] = dy[cat]
         db.observations.loc[dy['id'], 'foreground'] += array(dy[cat])
+
+    # Total "model" concentration (i.e. foreground + background)
+    db.observations.loc[dy['id'], 'model'] = dy['model']
+
+    # Diagnostics ...
     db.observations.loc[dy['id'], 'totals'] = dy['tot']
     db.observations.loc[dy['id'], 'id'] = dy['id']
-    db.observations.loc[dy['id'], 'model'] = dy['model']
+    
     return db
 
 def adjoint(adj, db):
