@@ -151,7 +151,7 @@ class rc:
                             if val[iv] == 'T': val[iv] = True
                             if val[iv] == 'F': val[iv] = False
         if totype == bool:
-            val = {'T':True, 'F':False, 1:True, 0:False}[val]
+            val = {'T':True, 'F':False, 1:True, 0:False, 'True':True, 'False':False}[val]
         return val
 
     def setkey(self, key, val):

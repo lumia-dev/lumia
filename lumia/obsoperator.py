@@ -3,7 +3,7 @@ import os
 import subprocess
 from .obsdb import obsdb
 import inspect
-from lumia.Tools import checkDir, rctools
+from lumia.Tools import checkDir, colorize
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,9 +53,9 @@ class transport(object):
         rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
         
         # Run the model
-        cmd = ['python', executable, '--forward', '--db', dbf, '--emis', emf]
-        logger.info(' '.join([x for x in cmd]))
-        pid = subprocess.Popen(['python', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf], close_fds=True)
+        cmd = ['python', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]
+        logger.info(colorize(' '.join([x for x in cmd]), 'g'))
+        pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
 
         # Retrieve results :
@@ -93,7 +93,7 @@ class transport(object):
 
         # Run the adjoint transport:
         cmd = ['python', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]
-        logger.info(' '.join([x for x in cmd]))
+        logger.info(colorize(' '.join([x for x in cmd]), 'g'))
         pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
 

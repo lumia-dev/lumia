@@ -2,6 +2,7 @@ from pandas import DataFrame, read_hdf, read_json, errors
 import logging
 from datetime import datetime
 from numpy import unique
+from copy import deepcopy
 
 # Disable "PerformanceWarning" when saving the database to a hdf file
 import warnings
@@ -53,12 +54,15 @@ class obsdb:
         self.observations = self.observations.loc[selection,:]
         sites = unique(self.observations.site)
         self.sites = self.sites.loc[sites]
+        self.files = self.files.loc[unique(self.observations.file)]
 
     def get_iloc(self, selection):
-        obs = self.observations.iloc[selection]
-        sites = unique(obs.observations.site)
-        obs.sites = obs.sites.loc[sites]
-        return obs
+        db = obsdb()
+        db.observations = self.observations.iloc[selection]
+        sites = unique(db.observations.site)
+        db.sites = self.sites.loc[sites, :]
+        db.files = self.files.loc[unique(db.observations.file), :]
+        return db
 
     def save(self, filename):
         logger.info("Writing observation database to %s"%filename)

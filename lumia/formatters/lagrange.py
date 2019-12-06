@@ -7,6 +7,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Struct(dict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self['cat_list'] = []
+
     def __add__(self, other):
         allcats = set(self['cat_list']+other['cat_list'])
         for cat in allcats :
@@ -21,6 +25,7 @@ class Struct(dict):
                     raise ValueError
             else :
                 self[cat] = other[cat]
+        return self
 
 def WriteStruct(data, path, prefix=None):
     """
