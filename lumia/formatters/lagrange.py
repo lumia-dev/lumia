@@ -55,7 +55,7 @@ def WriteStruct(data, path, prefix=None):
                 gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
             except :
                 import pdb; pdb.set_trace()
-    logging.debug(f"Model parameters written to {filename}")
+    logger.debug(f"Model parameters written to {filename}")
     return filename
 
 
@@ -75,7 +75,7 @@ def ReadStruct(path, prefix=None):
                     'time_end': array([datetime(*x) for x in ds.groups[cat].variables['times_end'][:]]),
                 }
             }
-    logging.debug(f"Model parameters read from {filename}")
+    logger.debug(f"Model parameters read from {filename}")
     return data
 
 
