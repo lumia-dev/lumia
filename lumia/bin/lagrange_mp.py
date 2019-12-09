@@ -12,8 +12,10 @@ from datetime import datetime
 from lumia.Tools.time_tools import tinterv, time_interval
 from lumia.Tools import Region
 from lumia.Tools import Categories
+
 import logging
 logger = logging.getLogger(__name__)
+
 
 # Clean(er/ish) disabling of tqdm in batch mode
 # If the "INTERACTIVE" environment variable is defined and set to "F", we redefine tqdm with the following dummy function
@@ -225,7 +227,7 @@ class Lagrange:
                 cf = f'{self.checkfile}.{idb}'
                 cmd += ['-c', cf]
                 checkfiles.append(cf)
-            logging.info(colorize(' '.join([x for x in cmd]), 'g'))
+            logger.info(colorize(' '.join([x for x in cmd]), 'g'))
             pids.append(subprocess.Popen(cmd, close_fds=True))
 
         # Let the subprocesses finish
@@ -268,10 +270,11 @@ class Lagrange:
                 if os.path.exists(file) :
                     os.remove(file)
                 else :
-                    logging.error("Forward run failed, exiting ...")
+                    logger.error("Forward run failed, exiting ...")
                     raise
 
 if __name__ == '__main__':
+    logger = logging.getLogger(os.path.basename(__file__))
 
     # Read arguments:
     p = ArgumentParser()
