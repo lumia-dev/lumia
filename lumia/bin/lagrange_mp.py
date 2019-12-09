@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Footprint:
-    def __init__(self, fpfile, verbosity=0, path='', open=True):
+    def __init__(self, fpfile, path='', open=True):
         self.filename = fpfile
         if not os.path.exists(self.filename):
             logging.warning('Footprint file not found: %s'%self.filename)
@@ -98,6 +98,7 @@ class Lagrange:
         self.batch = os.environ['INTERACTIVE'] == 'F'
         self.categories = Categories(self.rcf)
         self.checkfile=checkfile
+        logger.debug(checkfile)
         if mp :
             self.parallel = True
             self.runForward = self.runForward_mp
@@ -195,13 +196,13 @@ class Lagrange:
         for adjf in files :
             adj += ReadStruct(adjf)
             os.remove(adjf)
-        self.check_success()
 
         WriteStruct(adj, self.emfile)
 
     def RunParallel(self, step):
         pids = []
         files = []
+        checkfiles = []
         for idb, dbf in enumerate(self.splitDb()):
             # If it's an adjoint run, we also need a name for the adjoint file:
             if step == '--adjoint':
@@ -216,11 +217,15 @@ class Lagrange:
             if self.checkfile is not None :
                 cf = f'{self.checkfile}.{idb}'
                 cmd += ['-c', cf]
+                checkfiles.append(cf)
             logging.info(colorize(' '.join([x for x in cmd]), 'g'))
             pids.append(subprocess.Popen(cmd, close_fds=True))
 
         # Let the subprocesses finish
         sigterm = [x.wait() for x in pids]
+
+        # Check success
+        self.check_success(checkfiles)
 
         # Return a list with the file names :
         return files
@@ -250,13 +255,14 @@ class Lagrange:
 
             yield dbf
 
-    def check_success(self):
-        if self.checkfile is not None :
-            if os.path.exists(self.checkfile) :
-                shutil.rmtree(os.path.dirname(self.checkfile))
-            else :
-                logging.error("Forward run failed, exiting ...")
-                raise
+    def check_success(self, files):
+        for file in files :
+            if file is not None :
+                if os.path.exists(file) :
+                    os.remove(file)
+                else :
+                    logging.error("Forward run failed, exiting ...")
+                    raise
 
 if __name__ == '__main__':
 

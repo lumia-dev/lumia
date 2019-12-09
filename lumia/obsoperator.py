@@ -62,11 +62,7 @@ class transport(object):
         pid.wait()
 
         # Check that the run was successful:
-        if os.path.exists(checkf):
-            shutil.rmtree(os.path.dirname(checkf))
-        else :
-            logging.error("Forward run failed, exiting ...")
-            raise
+        self.check_success(checkf, "Forward run failed, exiting ...")
 
         # Retrieve results :
         db = obsdb(filename=dbf)
@@ -110,13 +106,16 @@ class transport(object):
         pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
 
+        self.check_success(checkf, 'Adjoint run failed, exiting ...')
+
+        # Collect the results :
+        return self.readStruct(rundir, 'adjoint')
+
+    def check_success(self, checkf, msg):
+
         # Check that the run was successful
         if os.path.exists(checkf) :
             shutil.rmtree(os.path.dirname(checkf))
         else :
-            logging.error("Forward run failed, exiting ...")
+            logging.error(msg)
             raise
-
-
-        # Collect the results :
-        return self.readStruct(rundir, 'adjoint')
