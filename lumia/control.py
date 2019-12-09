@@ -88,6 +88,8 @@ class Control:
         savedir = os.path.dirname(filename)
         if not os.path.exists(savedir):
             os.makedirs(savedir)
+        elif os.path.exists(filename):
+            os.remove(filename)
         logger.info("Write control savefile to %s"%filename)
         
         # Vectors
