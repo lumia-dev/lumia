@@ -6,7 +6,7 @@ from lumia.obsdb import obsdb
 from lumia.Tools.logging_tools import colorize
 from lumia.formatters.lagrange import ReadStruct, Struct, WriteStruct, CreateStruct
 from numpy import unique, array
-#from tqdm.autonotebook import tqdm
+from tqdm.autonotebook import tqdm
 from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from lumia.Tools.time_tools import tinterv, time_interval
@@ -14,6 +14,13 @@ from lumia.Tools import Region
 from lumia.Tools import Categories
 import logging
 logger = logging.getLogger(__name__)
+
+# Clean(er/ish) disabling of tqdm in batch mode
+# If the "INTERACTIVE" environment variable is defined and set to "F", we redefine tqdm with the following dummy function
+if os.environ['INTERACTIVE'] == 'F':
+    def tqdm(iterable, *args, **kwargs):
+        return iterable
+
 
 class Footprint:
     def __init__(self, fpfile, path='', open=True):
@@ -123,15 +130,13 @@ class Lagrange:
         # Loop over the footprint files
         nsites = len(unique(self.obs.observations.footprint))
         msg = 'Forward run'
-#        for fpfile in tqdm(unique(self.obs.observations.footprint), total=nsites, desc=msg, disable=self.batch, leave=False):
-        for fpfile in self.obs.observations.footprint :
+        for fpfile in tqdm(unique(self.obs.observations.footprint), total=nsites, desc=msg, disable=self.batch, leave=False):
             fp = Footprint(fpfile)
 
             # Loop over the obs in the file
             msg = "Forward run (%s)"%fpfile
             nobs = sum(self.obs.observations.footprint == fpfile)
-#            for obs in tqdm(self.obs.observations.loc[self.obs.observations.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=self.batch):
-            for obs in self.obs.observations.loc[self.obs.observations.footprint == fpfile, :].itertuples():
+            for obs in tqdm(self.obs.observations.loc[self.obs.observations.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=self.batch):
                 dym, tot = fp.applyEmis(obs.time, emis)
                 if dym is not None :
                     for cat in self.categories.list :
@@ -178,14 +183,12 @@ class Lagrange:
         # Loop over the footprint files:
         db = self.obs.observations
         files = unique(db.footprint)
-#        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=False, disable=self.batch):
-        for fpfile in files :
+        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=False, disable=self.batch):
             fp = Footprint(fpfile)
             msg = f"Adjoint run {fpfile}"
 
             # Loop over the obs in the file
-#            for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=self.batch):
-            for obs in db.loc[db.footprint == fpfile, :].itertuples():
+            for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=self.batch):
                 adj = fp.applyAdjoint(obs.time, obs.dy, adj, categories)
             fp.close()
 
