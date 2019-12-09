@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import os
+import shutil
 import subprocess
 from .obsdb import obsdb
 import inspect
 from lumia.Tools import checkDir, colorize
 import logging
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +53,20 @@ class transport(object):
         emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
         dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
         rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
+        checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
         
         # Run the model
-        cmd = ['python', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]
+        cmd = ['python', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf, '--checkfile', checkf]
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
         pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
+
+        # Check that the run was successful:
+        if os.path.exists(checkf):
+            shutil.rmtree(os.path.dirname(checkf))
+        else :
+            logging.error("Forward run failed, exiting ...")
+            raise
 
         # Retrieve results :
         db = obsdb(filename=dbf)
@@ -91,11 +101,22 @@ class transport(object):
         # Name of the adjoint output file
         adjf = os.path.join(rundir, 'adjoint.nc')
 
+        # Create temporary file
+        checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'adjoint.ok')
+
         # Run the adjoint transport:
-        cmd = ['python', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]
+        cmd = ['python', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf, '--checkfile', checkf]
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
         pid = subprocess.Popen(cmd, close_fds=True)
         pid.wait()
+
+        # Check that the run was successful
+        if os.path.exists(checkf) :
+            shutil.rmtree(os.path.dirname(checkf))
+        else :
+            logging.error("Forward run failed, exiting ...")
+            raise
+
 
         # Collect the results :
         return self.readStruct(rundir, 'adjoint')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, subprocess, tempfile, operator, h5py
+import os, sys, subprocess, tempfile, operator, h5py, shutil
 from lumia.Tools import rctools
 from lumia.obsdb import obsdb
 from lumia.Tools.logging_tools import colorize
@@ -45,7 +45,7 @@ class Footprint:
     def applyEmis(self, time, emis, categories=None, scalefac=1.):
         fp = self.loadObs(time)
         if fp is None : return None, None
-        if categories is None: categories = emis['cat_list']
+        if categories is None: categories = emis.keys()
         dym = {}
         fptot = 0.
         for cat in categories :
@@ -88,7 +88,7 @@ class Footprint:
         return adjEmis
 
 class Lagrange:
-    def __init__(self, rcf, obs, emfile, mp=False):
+    def __init__(self, rcf, obs, emfile, mp=False, checkfile=None):
         self.rcf = rctools.rc(rcf)
         self.obs = obsdb(obs)
         self.obsfile = obs
@@ -97,6 +97,7 @@ class Lagrange:
         self.executable = __file__
         self.batch = os.environ['INTERACTIVE'] == 'F'
         self.categories = Categories(self.rcf)
+        self.checkfile=checkfile
         if mp :
             self.parallel = True
             self.runForward = self.runForward_mp
@@ -174,7 +175,7 @@ class Lagrange:
         # Loop over the footprint files:
         db = self.obs.observations
         files = unique(db.footprint)
-        for fpfile in tqdm(files, total=len(files), desc='Adjoint', leave=False, disable=self.batch):
+        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=False, disable=self.batch):
             fp = Footprint(fpfile)
             msg = f"Adjoint run {fpfile}"
 
@@ -194,6 +195,8 @@ class Lagrange:
         for adjf in files :
             adj += ReadStruct(adjf)
             os.remove(adjf)
+        self.check_success()
+
         WriteStruct(adj, self.emfile)
 
     def RunParallel(self, step):
@@ -210,6 +213,9 @@ class Lagrange:
 
             # Launch the transport subprocesses
             cmd = ['python', self.executable, step, '--db', dbf, '--rc', self.rcfile, '--emis', emfile, '--serial']
+            if self.checkfile is not None :
+                cf = f'{self.checkfile}.{idb}'
+                cmd += ['-c', cf]
             logging.info(colorize(' '.join([x for x in cmd]), 'g'))
             pids.append(subprocess.Popen(cmd, close_fds=True))
 
@@ -244,6 +250,14 @@ class Lagrange:
 
             yield dbf
 
+    def check_success(self):
+        if self.checkfile is not None :
+            if os.path.exists(self.checkfile) :
+                shutil.rmtree(os.path.dirname(self.checkfile))
+            else :
+                logging.error("Forward run failed, exiting ...")
+                raise
+
 if __name__ == '__main__':
 
     # Read arguments:
@@ -251,6 +265,7 @@ if __name__ == '__main__':
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
+    p.add_argument('--checkfile', '-c')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
@@ -258,9 +273,11 @@ if __name__ == '__main__':
     args = p.parse_args(sys.argv[1:])
 
     # Create the transport model
-    model = Lagrange(args.rc, args.db, args.emis, mp=not args.serial)
+    model = Lagrange(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
 
     if args.forward :
         model.runForward()
     if args.adjoint :
         model.runAdjoint()
+    if args.checkfile is not None :
+        open(args.checkfile, 'w').close()
