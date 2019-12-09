@@ -9,10 +9,9 @@ logger = logging.getLogger(__name__)
 class Struct(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self['cat_list'] = []
 
     def __add__(self, other):
-        allcats = set(self['cat_list']+other['cat_list'])
+        allcats = set(list(self.keys())+list(other.keys()))
         for cat in allcats :
             if cat in self.keys():
                 # Add the category if the time intervals are matching!
@@ -56,6 +55,7 @@ def WriteStruct(data, path, prefix=None):
                 gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
             except :
                 import pdb; pdb.set_trace()
+    logging.debug(f"Model parameters written to {filename}")
     return filename
 
 
@@ -66,8 +66,7 @@ def ReadStruct(path, prefix=None):
         filename = os.path.join(path, '%s.nc' % prefix)
     with Dataset(filename) as ds:
         categories = ds.groups.keys()
-#        data = {'cat_list': categories}
-        data = Struct(cat_list=categories)
+        data = Struct()
         for cat in categories:
             data[cat] = {
                 'emis': ds.groups[cat].variables['emis'][:],
@@ -76,13 +75,14 @@ def ReadStruct(path, prefix=None):
                     'time_end': array([datetime(*x) for x in ds.groups[cat].variables['times_end'][:]]),
                 }
             }
+    logging.debug(f"Model parameters read from {filename}")
     return data
 
 
 def CreateStruct(categories, region, start, end, dt):
     times = arange(start, end, dt, dtype=datetime)
     #data = {'cat_list': categories}
-    data = Struct(cat_list=categories)
+    data = Struct()
     for cat in categories :
         data[cat] = {
             'emis':zeros((len(times), region.nlat, region.nlon)),

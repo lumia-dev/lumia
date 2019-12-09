@@ -75,4 +75,4 @@ handler2.setFormatter(formatter)
 
 #log.addHandler(handler)
 log.addHandler(handler2)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
