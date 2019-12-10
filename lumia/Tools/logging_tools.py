@@ -64,7 +64,7 @@ except :
 
 class TqdmHandler(base_handler):
     def __init__(self):
-        super(self).__init__()
+        super().__init__()
 
     def emit(self, record):
         try:
