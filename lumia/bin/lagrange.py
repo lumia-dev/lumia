@@ -7,7 +7,7 @@ from lumia.formatters.lagrange import ReadStruct as readFluxes
 from lumia.formatters.lagrange import CreateStruct, WriteStruct
 from numpy import unique, array
 from pandas import isnull, read_json
-from tqdm import tqdm
+from lumia import tqdm
 from lumia.Tools import logging_tools
 import os
 from datetime import datetime

@@ -3,7 +3,7 @@
 from lumia.obsdb import obsdb as obsdb_base
 import logging
 from numpy import *
-from tqdm.autonotebook import tqdm
+from lumia import tqdm
 import h5py
 import os
 import subprocess

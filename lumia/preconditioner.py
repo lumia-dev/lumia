@@ -3,7 +3,7 @@
 import sys
 from numpy import *
 import argparse
-from tqdm import tqdm
+from lumia import tqdm
 import logging
 import os
 from h5py import File
