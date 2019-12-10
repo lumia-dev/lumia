@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from numpy import shape, zeros, dot
-from tqdm import tqdm
+from lumia import tqdm
 
 class Categories:
     def __init__(self, rcf=None):

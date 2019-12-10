@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 name = 'lumia'
+import sys
+
+try :
+    from tqdm.autonotebook import tqdm
+except :
+    class tqdm:
+        def tqdm(self, iterable, *args, **kwargs):
+            return iterable
+        def write(self, message):
+            sys.stdout.write(message)
+            sys.stdout.write('\n')
+
 from .Tools import logging_tools
 from .obsdb import obsdb
 from lumia.Tools.rctools import rc

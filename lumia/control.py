@@ -8,7 +8,7 @@ from numpy import *
 import os
 import logging
 import h5py
-from tqdm import tqdm
+from lumia import tqdm
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
