@@ -55,17 +55,17 @@ formatter = colorlog.ColoredFormatter(
     datefmt=None,
     reset=True,
     log_colors={
-        'DEBUG': 'blue',
+        'DEBUG': 'purple',
         'INFO': 'cyan',
         'WARNING': 'yellow',
         'ERROR': 'red',
-        'CRITICAL': 'purple'},
+        'CRITICAL': 'white,bg_red'},
     secondary_log_colors={'message': {
         'DEBUG': 'bold_blue',
         'INFO': 'bold_cyan',
         'WARNING': 'bold_yellow',
-        'ERROR': 'bold_red',
-        'CRITICAL': 'white,bg_purple'}},
+        'ERROR': 'red',
+        'CRITICAL': 'white,bg_red'}},
 
 )
 handler.setFormatter(formatter)
@@ -75,4 +75,4 @@ handler2.setFormatter(formatter)
 
 #log.addHandler(handler)
 log.addHandler(handler2)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
