@@ -8,7 +8,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-def xc_to_x(filename):
+def xc_to_x(filename, verbosity='INFO'):
     sys.stdout.flush()
 
     with File(filename, 'r') as fid :
@@ -21,7 +21,8 @@ def xc_to_x(filename):
     nt = shape(Temp_L)[0]
     nh = shape(Hor_L)[0]
 
-    comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--xw'], maxprocs=int(os.environ['NCPUS_LUMIA']))
+    logger.debug(f"Attempting preconditioning with {int(os.environ['NCPUS_LUMIA'])} processes")    
+    comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--xw', '-v', verbosity], maxprocs=int(os.environ['NCPUS_LUMIA']))
     comm.bcast([nt, nh, ipos], root=MPI.ROOT)
     comm.Bcast([G_state, MPI.DOUBLE], root=MPI.ROOT)
     comm.Bcast([Hor_L, MPI.DOUBLE], root=MPI.ROOT)
@@ -39,6 +40,8 @@ def xc_to_x_worker():
     comm = MPI.Comm.Get_parent()
     rank = comm.Get_rank()
     size = comm.Get_size()
+
+    logger.debug(f"I'm worker {rank} out of {size} and I'm not on strike")
 
     # Receive data
     nt, nh, ipos = comm.bcast(None, root=0)
@@ -68,7 +71,7 @@ def xc_to_x_worker():
     # Send back
     comm.Reduce(x, None, op=MPI.SUM, root=0)
 
-def g_to_gc(filename):
+def g_to_gc(filename, verbosity='INFO'):
 
     with File(filename, 'r') as fid :
         G_state = fid['prior_uncertainties'][:]
@@ -80,7 +83,7 @@ def g_to_gc(filename):
     nt = Temp_Lt.shape[0]
     nh = Hor_Lt.shape[0]
 
-    comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--gw'], maxprocs=int(os.environ['NCPUS_LUMIA']))
+    comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--gw', '-v', verbosity], maxprocs=int(os.environ['NCPUS_LUMIA']))
     comm.bcast([nt, nh, ipos], root=MPI.ROOT)
     comm.Bcast([g, MPI.DOUBLE], root=MPI.ROOT)
     comm.Bcast([Hor_Lt, MPI.DOUBLE], root=MPI.ROOT)
@@ -128,17 +131,24 @@ def g_to_gc_worker():
 
 
 if __name__ == '__main__':
+    import lumia.Tools.logging_tools
+    logger = logging.getLogger(__file__)
+
     parser = ArgumentParser()
     parser.add_argument("--g", "-g", action='store_true', default=False)
     parser.add_argument("--gw", action='store_true', default=False)
     parser.add_argument("--x", "-x", action='store_true', default=False)
     parser.add_argument("--xw", action='store_true', default=False)
     parser.add_argument("--file", '-f')
+    parser.add_argument("--verbosity", '-v', default='INFO')
     args = parser.parse_args()
+
+    logger.setLevel(args.verbosity)
+
     if args.g:
-        g_to_gc(args.file)
+        g_to_gc(args.file, args.verbosity)
     elif args.x :
-        xc_to_x(args.file)
+        xc_to_x(args.file, args.verbosity)
     elif args.gw:
         g_to_gc_worker()
     elif args.xw :

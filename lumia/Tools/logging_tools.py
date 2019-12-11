@@ -6,7 +6,8 @@ import shutil
 columns = shutil.get_terminal_size().columns
 
 def colorize(msg, color=None):
-    msg = f'<{color}>{msg}</{color}>'
+    if color is not None :
+        msg = f'<{color}>{msg}</{color}>'
     # grey :
     msg = msg.replace('<k>', '\x1b[0;30m')
     msg = msg.replace('</k>', '\x1b[0m')
@@ -32,6 +33,16 @@ def colorize(msg, color=None):
     # White
     msg = msg.replace('<w>', '\x1b[0;37m')
     msg = msg.replace('</w>', '\x1b[0m')
+
+    # Bold
+    msg = msg.replace('<s>', '\x1b[1m')
+    msg = msg.replace('</s>', '\x1b[22m')
+    # Italic
+    msg = msg.replace('<i>', '\x1b[3m')
+    msg = msg.replace('</i>', '\x1b[23m')
+    # Underlined
+    msg = msg.replace('<u>', '\x1b[4m')
+    msg = msg.replace('</u>', '\x1b[24m')
     return msg
 
 try :
@@ -82,6 +93,6 @@ handler = TqdmHandler()
 handler.setFormatter(formatter)
 
 #log.addHandler(handler)
-log = logging.getLogger()
-log.addHandler(handler)
-log.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.addHandler(handler)
+#logger.setLevel(logging.INFO)
