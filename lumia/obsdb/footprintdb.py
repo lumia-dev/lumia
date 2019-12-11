@@ -52,13 +52,11 @@ class obsdb(obsdb_base):
         return fnames
 
     def _checkCacheFile(self, filename, cache):
-        if cache is False :
+        if cache in [None, False] :
             if os.path.exists(filename) :
                 return filename
             else :
                 return None
-        if cache is None :
-            cache = self.footprints_path
         file_in_cache = filename.replace(self.footprints_path, cache)
         if not os.path.exists(file_in_cache):
             if not os.path.exists(filename):
