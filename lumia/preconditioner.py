@@ -9,6 +9,7 @@ import os
 from h5py import File
 import subprocess
 from lumia.Tools.logging_tools import colorize
+from lumia.Tools import checkDir
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,9 @@ def g_to_gc_MPI(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
         fid['g'] = g
         fid.attrs.create('ipos', ipos)
 
-    logger.info(colorize('mpiexec python %s -g -f %s'%(executable_mpi, fname), 'g'))
-    pid = subprocess.Popen(['mpiexec', 'python', executable_mpi, '-g', '-f', fname], close_fds=True)
+    cmd = ['mpiexec', '-n', '1', 'python', executable_mpi, '-g', '-f', fname, '-v', logging.getLevelName(logger.getEffectiveLevel())]
+    logger.info(colorize(' '.join([*cmd]), 'g'))
+    pid = subprocess.Popen(cmd, close_fds=True)
     pid.wait()
 
     with File(fname, 'r') as fid:
@@ -58,6 +60,7 @@ def g_to_gc_MPI(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
 
 def xc_to_x_MPI(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
 
+    checkDir(path)
     fname = os.path.join(path, 'preco_data.hdf')
     with File(fname, 'w') as fid :
         fid['prior_uncertainties'] = G_state
@@ -65,11 +68,12 @@ def xc_to_x_MPI(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
         fid['Bh'] = Hor_L
         fid['x_c'] = x_c
         fid.attrs.create('ipos', ipos)
-
-    logger.info(colorize('mpiexec python %s -x -f %s'%(executable_mpi, fname), 'g'))
-#    pid = subprocess.Popen(['mpiexec', 'python', executable_mpi, '-x', '-f', fname], close_fds=True)
-#    pid.wait()
-    os.system('mpiexec python %s -x -f %s'%(executable_mpi, fname))
+    
+    cmd = ['mpiexec', '-n', '1', 'python', executable_mpi, '-x', '-f', fname, '-v', logging.getLevelName(logger.getEffectiveLevel())]
+    logger.info(colorize(' '.join([*cmd]), 'g'))
+    pid = subprocess.Popen(cmd, close_fds=True)
+    pid.wait()
+#    os.system('mpiexec python %s -x -f %s'%(executable_mpi, fname))
 
     with File(fname, 'r') as fid :
         x = fid['x'][:]
