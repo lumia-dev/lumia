@@ -109,8 +109,7 @@ def coarsenTime(emis, interval, compute_std=False):
         try:
             emisOut.append(emis['emis'][intervals_optim == tt, :, :].sum(0))
         except:
-            import pdb;
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
         nt = sum(intervals_optim == tt)
         if compute_std:
             emisOut_std.append(emis['emis'][intervals_optim == tt, :, :].std(0) * nt)
