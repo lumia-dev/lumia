@@ -7,6 +7,7 @@ from lumia import tqdm
 import h5py
 import os
 import subprocess
+from lumia.Tools import system_tools
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +59,16 @@ class obsdb(obsdb_base):
             else :
                 return None
         file_in_cache = filename.replace(self.footprints_path, cache)
+        system_tools.checkDir(cache)
         if not os.path.exists(file_in_cache):
             if not os.path.exists(filename):
                 logger.warning('File %s not found! no footprints will be read from it'%filename)
                 file_in_cache = None
             elif cache != self.footprints_path:
+                logger.debug(f'File <s>{os.path.basename(filename)}</s> found in <s>{self.footprints_path}</s>')
                 subprocess.check_call(['rsync', filename, file_in_cache])
+        else :
+            logger.debug(f'File <s>{os.path.basename(filename)}</s> already in <s>{cache}</s>')
         self.observations.loc[self.observations.footprint == filename, 'footprint'] = file_in_cache
         return file_in_cache
 
