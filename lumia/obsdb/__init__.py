@@ -61,7 +61,7 @@ class obsdb:
         db.observations = self.observations.iloc[selection]
         sites = unique(db.observations.site)
         db.sites = self.sites.loc[sites, :]
-        db.files = self.files.loc[unique(db.observations.file), :]
+        db.files = self.files.loc[unique(db.observations.file.dropna()), :]
         return db
 
     def save(self, filename):

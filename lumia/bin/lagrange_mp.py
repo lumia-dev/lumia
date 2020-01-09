@@ -130,9 +130,9 @@ class Lagrange:
             dy[cat] = []
 
         # Loop over the footprint files
-        nsites = len(unique(self.obs.observations.footprint))
+        nsites = len(unique(self.obs.observations.footprint.dropna()))
         msg = 'Forward run'
-        for fpfile in tqdm(unique(self.obs.observations.footprint), total=nsites, desc=msg, disable=self.batch, leave=False):
+        for fpfile in tqdm(unique(self.obs.observations.footprint.dropna()), total=nsites, desc=msg, disable=self.batch, leave=False):
             fp = Footprint(fpfile)
 
             # Loop over the obs in the file
@@ -184,7 +184,7 @@ class Lagrange:
 
         # Loop over the footprint files:
         db = self.obs.observations
-        files = unique(db.footprint)
+        files = unique(db.footprint.dropna())
         for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=False, disable=self.batch):
             fp = Footprint(fpfile)
             msg = f"Adjoint run {fpfile}"
