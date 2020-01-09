@@ -4,7 +4,7 @@ import sys
 from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from lumia.obsdb.footprintdb import obsdb
-from lumia.interfaces import ReadStruct, WriteStruct
+from lumia.formatters.lagrange import ReadStruct, WriteStruct
 
 def readArgs(args):
     p = ArgumentParser()
@@ -26,5 +26,6 @@ db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.ca
 
 emis = ReadStruct(rcf.get('emissions.input_file'))
 
-model = lumia.transport(rcf, struct=emis, obs=db, formatter=WriteStruct)
+model = lumia.transport(rcf, obs=db, formatter=WriteStruct)
+model.runForward(emis, step='forward')
 model.save()
