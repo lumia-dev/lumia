@@ -117,5 +117,5 @@ class transport(object):
         if os.path.exists(checkf) :
             shutil.rmtree(os.path.dirname(checkf))
         else :
-            logging.error(msg)
+            logger.error(msg)
             raise

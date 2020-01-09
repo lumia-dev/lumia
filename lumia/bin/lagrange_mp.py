@@ -100,6 +100,7 @@ class Lagrange:
     def __init__(self, rcf, obs, emfile, mp=False, checkfile=None):
         self.rcf = rctools.rc(rcf)
         self.obs = obsdb(obs)
+        self.obs.checkIndex(reindex=True)
         self.obsfile = obs
         self.rcfile = rcf
         self.emfile = emfile
@@ -148,7 +149,10 @@ class Lagrange:
                     dy['model'].append(dym)
             fp.close()
 
-        self.obs.observations.loc[dy['id'], 'id'] = dy['id']
+        try :
+            self.obs.observations.loc[dy['id'], 'id'] = dy['id']
+        except :
+            import pdb; pdb.set_trace()
         self.obs.observations.loc[dy['id'], 'totals'] = dy['tot']
         self.obs.observations.loc[dy['id'], 'model'] = dy['model']
         self.obs.observations.loc[:, 'foreground'] = 0.
@@ -247,22 +251,23 @@ class Lagrange:
         if nchunks == 1 :
             yield self.obsfile
 
-        chunk_size = int(nobs/nchunks)
-        remain = nobs%nchunks
-        if remain != 0 : chunk_size += 1
-        for ichunk in range(nchunks):
-            db = self.obs.get_iloc(slice(ichunk*chunk_size, (ichunk+1)*chunk_size))
+        else :
+            chunk_size = int(nobs/nchunks)
+            remain = nobs%nchunks
+            if remain != 0 : chunk_size += 1
+            for ichunk in range(nchunks):
+                db = self.obs.get_iloc(slice(ichunk*chunk_size, (ichunk+1)*chunk_size))
 
-            # Write observation file
-            dbfid, dbf = tempfile.mkstemp(dir=self.rcf.get('path.run'), prefix='obs.', suffix='.hdf')
+                # Write observation file
+                dbfid, dbf = tempfile.mkstemp(dir=self.rcf.get('path.run'), prefix='obs.', suffix='.hdf')
 
-            # The previous function actually creates a file. We need to remove it or we end up with too many open files
-            os.fdopen(dbfid).close()
+                # The previous function actually creates a file. We need to remove it or we end up with too many open files
+                os.fdopen(dbfid).close()
 
-            # Save the file
-            db.save(dbf)
+                # Save the file
+                db.save(dbf)
 
-            yield dbf
+                yield dbf
 
     def check_success(self, files):
         for file in files :

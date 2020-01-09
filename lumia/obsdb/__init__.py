@@ -70,3 +70,12 @@ class obsdb:
         self.sites.to_hdf(filename, 'sites')
         self.files.to_hdf(filename, 'files')
         return filename
+
+    def checkIndex(self, reindex=False):
+        if True in self.observations.index.duplicated():
+            if reindex :
+                logger.warning("Duplicated indices found in the observations table! The table will be reindexed and the original indices will be lost!")
+                self.observations.reset_index(inplace=True)
+            else :
+                logger.error("Duplicated indices found in the observations table!")
+                raise RuntimeError

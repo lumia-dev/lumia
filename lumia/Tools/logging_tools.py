@@ -79,7 +79,7 @@ class TqdmHandler(base_handler):
 
     def emit(self, record):
         try:
-            msg = self.format(record)
+            msg = colorize(self.format(record))
             tqdm.write(msg)
         except (KeyboardInterrupt, SystemExit):
             raise
