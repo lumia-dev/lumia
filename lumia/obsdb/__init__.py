@@ -22,13 +22,13 @@ class obsdb:
         self.end = end
         self.setup = False
         if filename is not None :
-            self.load(filename)
+            self.load_tar(filename)
         if db is not None :
             self.observations = db.observations
             self.sites = db.sites
             self.files = db.files
 
-    def load(self, filename):
+    def load_hdf(self, filename):
         self.observations = read_hdf(filename, 'observations')
         self.sites = read_hdf(filename, 'sites')
         self.files = read_hdf(filename, 'files')
@@ -67,7 +67,7 @@ class obsdb:
         db.files = self.files.loc[unique(db.observations.file.dropna()), :]
         return db
 
-    def save(self, filename):
+    def save_hdf(self, filename):
         logger.info("Writing observation database to %s"%filename)
         self.observations.to_hdf(filename, 'observations')
         self.sites.to_hdf(filename, 'sites')
@@ -91,6 +91,7 @@ class obsdb:
             info = tarfile.TarInfo('files.csv')
             info.size = len(data)
             tar.addfile(info, BytesIO(data))
+        return filename
 
     def load_tar(self, filename):
         with tarfile.open(filename, 'r:gz') as tar:

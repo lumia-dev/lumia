@@ -161,7 +161,7 @@ class Lagrange:
             self.obs.observations.loc[dy['id'], 'foreground'] += array(dy[cat])
         
         # Write db:
-        self.obs.save(self.obsfile)
+        self.obs.save_tar(self.obsfile)
 
     def runForward_mp(self):
         files = self.RunParallel('--forward')
@@ -175,7 +175,7 @@ class Lagrange:
             for cat in self.categories.list:
                 self.obs.observations.loc[db.observations.index, cat] = db.observations.loc[:, cat]
             os.remove(dbf)
-        self.obs.save(self.obsfile)
+        self.obs.save_tar(self.obsfile)
 
     def runAdjoint_sp(self):
         # Create an empty adjoint structure:
@@ -265,7 +265,7 @@ class Lagrange:
                 os.fdopen(dbfid).close()
 
                 # Save the file
-                db.save(dbf)
+                db.save_tar(dbf)
 
                 yield dbf
 
