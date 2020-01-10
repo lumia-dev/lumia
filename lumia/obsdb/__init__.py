@@ -1,8 +1,11 @@
-from pandas import DataFrame, read_hdf, read_json, errors
+from pandas import DataFrame, read_hdf, read_json, errors, read_csv
 import logging
 from datetime import datetime
 from numpy import unique
 from copy import deepcopy
+import tarfile
+import os
+from io import BytesIO
 
 # Disable "PerformanceWarning" when saving the database to a hdf file
 import warnings
@@ -70,6 +73,32 @@ class obsdb:
         self.sites.to_hdf(filename, 'sites')
         self.files.to_hdf(filename, 'files')
         return filename
+
+    def save_tar(self, filename):
+        logger.info("Writing observation database to %s"%filename)
+        with tarfile.open(filename, 'w:gz') as tar :
+            data = self.observations.to_csv(date_format='%Y%m%d%H%M%S').encode('utf-8')
+            info = tarfile.TarInfo('observations.csv')
+            info.size = len(data)
+            tar.addfile(info, BytesIO(data))
+
+            data = self.sites.to_csv().encode('utf-8')
+            info = tarfile.TarInfo('sites.csv')
+            info.size = len(data)
+            tar.addfile(info, BytesIO(data))
+
+            data = self.files.to_csv().encode('utf-8')
+            info = tarfile.TarInfo('files.csv')
+            info.size = len(data)
+            tar.addfile(info, BytesIO(data))
+
+    def load_tar(self, filename):
+        with tarfile.open(filename, 'r:gz') as tar:
+            self.observations = read_csv(tar.extractfile('observations.csv'), infer_datetime_format='%Y%m%d%H%M%S', index_col=0, parse_dates=['time'])
+            self.sites = read_csv(tar.extractfile('sites.csv'), index_col=0)
+            self.files = read_csv(tar.extractfile('files.csv'), index_col=0)
+        self.SelectTimes(self.start, self.end)
+        logger.info(f"{self.observations.shape[0]} observation read from {filename}")
 
     def checkIndex(self, reindex=False):
         if True in self.observations.index.duplicated():
