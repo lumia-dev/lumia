@@ -35,7 +35,7 @@ class transport(object):
         checkDir(path)
 
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
-        self.db.save(os.path.join(path, 'observations.%shdf'%tag))
+        self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
 #        self.writeStruct(self.struct, path, 'transport_control.%s')
 
     def runForward(self, struct, step=None):
@@ -51,7 +51,7 @@ class transport(object):
         
         # Write model inputs:
         emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
-        dbf = self.db.save(os.path.join(rundir, 'observations.%s.hdf'%step))
+        dbf = self.db.save_tar(os.path.join(rundir, 'observations.%s.tar.gz'%step))
         rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
         checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
         
@@ -89,7 +89,7 @@ class transport(object):
         fields = self.rcf.get('model.adjoint.obsfields')
 
         self.db.observations.loc[:, 'dy'] = departures
-        dpf = self.db.save(os.path.join(rundir, 'departures.hdf'))
+        dpf = self.db.save_tar(os.path.join(rundir, 'departures.tar.gz'))
         
         # Create an adjoint rc-file
         rcadj = self.rcf.write(os.path.join(rundir, 'adjoint.rc'))
