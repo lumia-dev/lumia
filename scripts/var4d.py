@@ -26,6 +26,7 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     db = obsdb(filename=obsfile, start=start, end=end)
     db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
     db.setupBackgrounds(path=rcf.get('backgrounds.path'))
+    db.SetMinErr(rcf.get('obs.err_min'))
     #TODO: setup the uncertainties
 
     # Load the pre-processed emissions:
