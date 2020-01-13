@@ -6,9 +6,7 @@ from lumia.obsdb.footprintdb import obsdb
 from datetime import datetime
 from lumia.formatters import lagrange
 from lumia.interfaces import Interface
-import logging
-
-logger = logging.getLogger(__name__)
+from lumia.Tools.logging_tools import logger
 
 def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
 
@@ -54,8 +52,6 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
 
 if __name__ == '__main__' :
 
-    logger = logging.getLogger(__file__)
-
     # Read arguments
     p = ArgumentParser()
     p.add_argument('rc', help="Main configuration file (i.e. rc-file) of the inversion run")
@@ -65,4 +61,4 @@ if __name__ == '__main__' :
     p.add_argument('--setuponly', '-s', action='store_true', help='use this flag to do the setup but not launch the actual optimization (for debug purpose)')
     args = p.parse_args()
 
-    optimize(args.rc, args.obs, args.emis, args.setuponly)
+    optimize(args.rc, args.obs, args.emis, args.setuponly, verbosity=args.verbosity)

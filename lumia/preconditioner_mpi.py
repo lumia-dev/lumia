@@ -21,8 +21,8 @@ def xc_to_x(filename, verbosity='INFO'):
     nt = shape(Temp_L)[0]
     nh = shape(Hor_L)[0]
 
-    ncpu_min = min(nt*nt, int(os.environ['NCPUS_LUMIA']))
-    logger.debug(f"Preconditioning with {ncpu_min} processes")    
+    ncpu_min = min(nt*nt, int(os.environ['NCPUS_LUMIA'])-1)
+    logger.debug(f"Preconditioning with {ncpu_min} processes (min of {nt*nt}, {os.environ['NCPUS_LUMIA']})")    
     comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--xw', '-v', verbosity], maxprocs=ncpu_min)
     comm.bcast([nt, nh, ipos], root=MPI.ROOT)
     comm.Bcast([G_state, MPI.DOUBLE], root=MPI.ROOT)
@@ -84,7 +84,7 @@ def g_to_gc(filename, verbosity='INFO'):
     nt = Temp_Lt.shape[0]
     nh = Hor_Lt.shape[0]
 
-    ncpu_min = min(nt*nt, int(os.environ['NCPUS_LUMIA']))
+    ncpu_min = min(nt*nt, int(os.environ['NCPUS_LUMIA'])-1)
     logger.debug(f"Preconditioning with {ncpu_min} processes")
     comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--gw', '-v', verbosity], maxprocs=ncpu_min)
     comm.bcast([nt, nh, ipos], root=MPI.ROOT)

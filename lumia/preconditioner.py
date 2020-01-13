@@ -10,6 +10,7 @@ from h5py import File
 import subprocess
 from lumia.Tools.logging_tools import colorize
 from lumia.Tools import checkDir
+#from lumia.Tools.logging_tools import logger
 
 logger = logging.getLogger(__name__)
 
