@@ -53,8 +53,10 @@ class Control:
             
     def xc_to_x(self, state_preco, add_prior=True):
         # Setup MPI if possible:
-        if self.rcf.get('use.mpi', default=False):
+        if self.rcf.get('mpi.nproc', default=1) > 1 and self.rcf.get('use.mpi', default=False):
             from .preconditioner import xc_to_x_MPI as xc_to_x
+        else :
+            from .preconditioner import xc_to_x
 
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
@@ -70,8 +72,10 @@ class Control:
     
     def g_to_gc(self, g):
         # Setup MPI if possible:
-        if self.rcf.get('use.mpi', default=False):
+        if self.rcf.get('mpi.nproc', default=1) > 1 and self.rcf.get('use.mpi', default=False):
             from .preconditioner import g_to_gc_MPI as g_to_gc
+        else :
+            from .preconditioner import g_to_gc
 
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values

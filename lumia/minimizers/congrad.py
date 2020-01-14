@@ -3,6 +3,7 @@ from netCDF4 import Dataset
 import subprocess, os
 import shutil
 import logging
+from lumia.Tools.logging_tools import colorize
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class Minimizer:
     def runMinimizer(self):
         exec_name = self.rcf.get('var4d.conGrad.exec', default='/home/lumia/var4d/bin/congrad.exe')
         cmd = [exec_name, '--write-traject', '--state-file', self.commfile.filepath]
+        logger.info(colorize(' '.join([*cmd]), 'g'))
         subprocess.check_call(cmd)
 
     def update(self, gradient, J_tot):

@@ -14,6 +14,7 @@ class Optimizer(object):
         self.control = control                # modelData structure, containing the optimization data
         self.minimizer = minimizer(self.rcf)  # minimizer object instance (initiated!)
         self.interface = interface
+        self.iteration = 0
 
     def Var4D(self, label='apos'):
         self.minimizer.reset()     # Just to make sure ...
@@ -40,6 +41,7 @@ class Optimizer(object):
         gradient_preco = self._ComputeGradient(state_preco, dy, err)
         status = self.minimizer.calc_update(state_preco, gradient_preco, self.J.tot)
         state_preco = self.minimizer.readState()
+        self.iteration += 1
         return state_preco, status
 
     def _computeDepartures(self, state_preco, step):
@@ -55,6 +57,7 @@ class Optimizer(object):
         J_bg = 0.5*dot(dstate, dstate)
         J_obs = 0.5*dot(dy/dye, dy/dye)
         J = costFunction(bg=J_bg, obs=J_obs)
+        logger.info(f"Iteration {self.iteration}: J_bg={J_bg}; J_obs={J_obs}")
         return J
 
     def _ComputeGradient(self, state_preco, dy, dye):
