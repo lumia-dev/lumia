@@ -17,7 +17,6 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     # Create basic objects
     rcf = lumia.rc(rcfile)
     obsfile = rcf.get('observations.input_file') if obs is None else args.obs
-    emfile = rcf.get('emissions.input_file') if emis is None else args.emis
 
     # Read additional basic settings from rc-file:
     start = datetime(*rcf.get('time.start'))
