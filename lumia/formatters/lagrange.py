@@ -4,6 +4,10 @@ from numpy import array, zeros, arange, array_equal
 from datetime import datetime
 from lumia.Tools.system_tools import checkDir
 import logging
+from tqdm.autonotebook import tqdm
+from numpy import *
+import xarray as xr
+from pandas import Timestamp
 logger = logging.getLogger(__name__)
 
 class Struct(dict):
@@ -93,3 +97,38 @@ def CreateStruct(categories, region, start, end, dt):
         }
     return data
 
+
+def ReadArchive(prefix, start, end, **kwargs):
+    """
+    Create an internal model data structure (i.e. Struct() instance) from a set of netCDF files.
+    The files are loaded using xarray, the file name follows the format {prefix}{field}.{year}.nc, with prefix provided
+    as argument, and field provided within the mandatory **kw arguments (see below)
+    :param prefix: prefix used to construct the file name. Typically absolute or relative path + beginning of the file
+    :param start: beginning of the first flux interval
+    :param end: end of the last flux interval
+    :param **: either a "category" keyword mapping to a dictionary containing pairs of {category_name : field_name}
+    values, or a list of extra category_name = field_name arguments. This allows mapping data from a specific dataset
+    (identified by field_name) to a user-specified flux category.
+    :return:
+    """
+    data = Struct()
+    if kwargs.get('categories',False):
+        categories = kwargs.get('categories')
+    else :
+        categories = kwargs
+
+    for cat in tqdm(categories, leave=False) :
+        field = categories[cat]
+        ds = []
+        for year in tqdm(range(start.year, end.year+1), desc=f"Importing data for category {cat}"):
+            ds.append(xr.load_dataset(f'{prefix}.{field}.{year}.nc'))
+        ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
+        times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
+        data[cat] = {
+            'emis':ds.co2flux[:-1,:,:],
+            'time_interval':{
+                'time_start':times[:-1],
+                'time_end':times[1:]
+            }
+        }
+    return data

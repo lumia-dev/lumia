@@ -7,6 +7,7 @@ from datetime import datetime
 from lumia.formatters import lagrange
 from lumia.interfaces import Interface
 from lumia.Tools.logging_tools import logger
+import os
 
 def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
 
@@ -30,7 +31,10 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     #TODO: setup the uncertainties
 
     # Load the pre-processed emissions:
-    emis = lagrange.ReadStruct(emfile)
+    categories = dict.fromkeys(rcf.get('emissions.categories'))
+    for cat in categories :
+        categories[cat] = rcf.get(f'emissions.{cat}.origin')
+    emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories= categories)
 
     # Initialize the obs operator (transport model)
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
