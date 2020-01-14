@@ -119,6 +119,7 @@ def ReadArchive(prefix, start, end, **kwargs):
 
     for cat in tqdm(categories, leave=False) :
         field = categories[cat]
+        logger.debug(f"Emissions from category {cat} will be read using source {field}")
         ds = []
         for year in tqdm(range(start.year, end.year+1), desc=f"Importing data for category {cat}"):
             ds.append(xr.load_dataset(f'{prefix}.{field}.{year}.nc'))

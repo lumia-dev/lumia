@@ -33,7 +33,7 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     categories = dict.fromkeys(rcf.get('emissions.categories'))
     for cat in categories :
         categories[cat] = rcf.get(f'emissions.{cat}.origin')
-    emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories= categories)
+    emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
 
     # Initialize the obs operator (transport model)
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
