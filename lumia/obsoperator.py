@@ -44,6 +44,7 @@ class transport(object):
         The eventual parallelization is handled by the subprocess directly.        
         """
         #if struct is None : struct = self.controlstruct
+        self.check_init()
 
         # read model-specific info
         rundir = self.rcf.get('path.run')
@@ -118,4 +119,13 @@ class transport(object):
             shutil.rmtree(os.path.dirname(checkf))
         else :
             logger.error(msg)
+            raise
+
+    def check_init(self):
+        """
+        Initial checks to avoid performing computations if some critical input is missing:
+        - exits if no footprint file is present
+        """
+        if self.db.observations.footprint.count() == 0 :
+            logger.critical("No valid footprint files in the database. Aborting ...")
             raise
