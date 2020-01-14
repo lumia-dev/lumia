@@ -119,14 +119,15 @@ def ReadArchive(prefix, start, end, **kwargs):
 
     for cat in tqdm(categories, leave=False) :
         field = categories[cat]
-        logger.debug(f"Emissions from category {cat} will be read using source {field}")
         ds = []
         for year in tqdm(range(start.year, end.year+1), desc=f"Importing data for category {cat}"):
-            ds.append(xr.load_dataset(f'{prefix}.{field}.{year}.nc'))
+            fname = f"{prefix}{field}.{year}.nc"
+            tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
+            ds.append(xr.load_dataset(fname))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
         data[cat] = {
-            'emis':ds.co2flux[:-1,:,:],
+            'emis':ds.co2flux[:-1,:,:].values,
             'time_interval':{
                 'time_start':times[:-1],
                 'time_end':times[1:]
