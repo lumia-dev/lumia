@@ -15,18 +15,44 @@ logger = logging.getLogger(__name__)
 
 class obsdb:
     def __init__(self, filename=None, start=None, end=None, db=None):
-        self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
-        self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt', 'file'])
-        self.files = DataFrame(columns=['filename'])
-        self.start = start
-        self.end = end
-        self.setup = False
+        if db is not None :
+            self._parent = db
+        else :
+            self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
+            self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt', 'file'])
+            self.files = DataFrame(columns=['filename'])
+            self.start = start
+            self.end = end
+            self.setup = False
         if filename is not None :
             self.load_tar(filename)
-        if db is not None :
-            self.observations = db.observations
-            self.sites = db.sites
-            self.files = db.files
+
+    def __getattr__(self, item):
+        if '_parent' in vars(self):
+            return getattr(self._parent, item)
+        else :
+            raise AttributeError
+
+    def __setattr__(self, key, value):
+        if '_parent' in vars(self):
+            setattr(self._parent, key, value)
+        else :
+            super().__setattr__(key, value)
+
+    def load_db(self, db):
+        """
+        This is a method to import an existing obsdb instance. This enables expanding it with additional methods, from
+        a derived class. For instance :
+        db1 = obsdb(filename=db.tar.gz)  # Open an archived database
+        db2 = footprintdb(db1)           # this will expand the initial "db1" object with methods from the "footprintdb"
+                                         # class, which is a derived class of obsdb
+        :param db:
+        :return:
+        """
+        self.observations = db.observations
+        self.sites = db.sites
+        self.files = db.files
+
 
     def load_hdf(self, filename):
         self.observations = read_hdf(filename, 'observations')
