@@ -68,9 +68,6 @@ class obsdb:
         self.observations.loc[:, 'time'] = [datetime.strptime(str(d), '%Y%m%d%H%M%S') for d in self.observations.time]
         self.SelectTimes(self.start, self.end)
 
-    def SetMinErr(self, errmin):
-        self.observations.loc[self.observations.err < errmin, 'err'] = errmin
-
     def SelectTimes(self, tmin=None, tmax=None):
         tmin = self.start if tmin is None else tmin
         tmax = self.end if tmax is None else tmax
