@@ -7,6 +7,7 @@ from datetime import datetime
 from lumia.formatters import lagrange
 from lumia.interfaces import Interface
 from lumia.Tools.logging_tools import logger
+from lumia.obsdb.backgroundDb import backgroundDb
 import os
 
 def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
@@ -25,9 +26,11 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     # Load the observations database
     db = obsdb(filename=obsfile, start=start, end=end)
     db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
-    db.setupBackgrounds(path=rcf.get('backgrounds.path'))
-    db.SetMinErr(rcf.get('obs.err_min'))
+    db = backgroundDb(db)
+    db.read_backgrounds(path=rcf.get('backgrounds.path'))
+
     #TODO: setup the uncertainties
+    db.SetMinErr(rcf.get('obs.err_min'))
 
     # Load the pre-processed emissions:
     categories = dict.fromkeys(rcf.get('emissions.categories'))

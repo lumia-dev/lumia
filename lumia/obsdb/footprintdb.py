@@ -25,10 +25,6 @@ class obsdb(obsdb_base):
         self._checkFootprints(cache=cache)
         self.setup = True
 
-    def setupBackgrounds(self, path=None):
-        # TODO: implement a real function!
-        self.observations.loc[:, 'background'] = 400.
-
     def setupUncertainties(self, errvec):
         self.observations.loc[:, 'err'] = errvec
 
