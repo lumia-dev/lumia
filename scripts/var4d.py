@@ -8,6 +8,7 @@ from lumia.formatters import lagrange
 from lumia.interfaces import Interface
 from lumia.Tools.logging_tools import logger
 from lumia.obsdb.backgroundDb import backgroundDb
+from lumia.obsdb.invdb import invdb
 import os
 
 def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
@@ -28,9 +29,13 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
     db = backgroundDb(db)
     db.read_backgrounds(path=rcf.get('backgrounds.path'))
-
-    #TODO: setup the uncertainties
-    db.SetMinErr(rcf.get('obs.err_min'))
+    db = invdb(db)
+    db.setupUncertainties(
+        err_obs_min=rcf.get('obs.err_obs_min'), err_obs_fac=rcf.get('obs.err_obs_fac', default=1),
+        err_mod_min=rcf.get('obs.err_mod_min'), err_mod_fac=rcf.get('obs.err_mod_fac', default=1),
+        err_bg_min=rcf.get('obs.err_bg_min'), err_bg_fac=rcf.get('obs.err_bg_fac', default=1),
+        err_tot_min=rcf.get('obs.err_min'), err_tot_max=rcf.get('obs.err_max', None)
+    )
 
     # Load the pre-processed emissions:
     categories = dict.fromkeys(rcf.get('emissions.categories'))

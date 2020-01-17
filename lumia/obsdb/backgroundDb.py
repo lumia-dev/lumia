@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 from lumia.obsdb import obsdb
-from netCDF4 import Dataset
-from datetime import *
 from numpy import *
 import os
-from pandas import DataFrame, to_datetime
+from pandas import to_datetime
 import xarray as xr
 from lumia.Tools.system_tools import checkDir
 import logging
