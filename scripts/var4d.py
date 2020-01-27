@@ -11,7 +11,7 @@ from lumia.obsdb.backgroundDb import backgroundDb
 from lumia.obsdb.invdb import invdb
 import os
 
-def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
+def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
 
     # Set verbosity level
     logger.setLevel(verbosity)
@@ -27,21 +27,29 @@ def optimize(rcfile, obs=None, emis=None, setuponly=False, verbosity='INFO'):
     # Load the observations database
     db = obsdb(filename=obsfile, start=start, end=end)
     db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
-    db = backgroundDb(db)
-    db.read_backgrounds(path=rcf.get('backgrounds.path'))
-    db = invdb(db)
-    db.setupUncertainties(
-        err_obs_min=rcf.get('obs.err_obs_min'), err_obs_fac=rcf.get('obs.err_obs_fac', default=1),
-        err_mod_min=rcf.get('obs.err_mod_min'), err_mod_fac=rcf.get('obs.err_mod_fac', default=1),
-        err_bg_min=rcf.get('obs.err_bg_min'), err_bg_fac=rcf.get('obs.err_bg_fac', default=1),
-        err_tot_min=rcf.get('obs.err_min'), err_tot_max=rcf.get('obs.err_max', None)
-    )
+
+    # Setup background and uncertainties if needed:
+    if rcf.get('obs.setup.bg'):
+        db = backgroundDb(db)
+        db.read_backgrounds(path=rcf.get('backgrounds.path'))
+
+    if rcf.get('obs.setup.uncertainties'):
+        db = invdb(db)
+        db.setupUncertainties(
+            err_obs_min=rcf.get('obs.err_obs_min'), err_obs_fac=rcf.get('obs.err_obs_fac', default=1),
+            err_mod_min=rcf.get('obs.err_mod_min'), err_mod_fac=rcf.get('obs.err_mod_fac', default=1),
+            err_bg_min=rcf.get('obs.err_bg_min'), err_bg_fac=rcf.get('obs.err_bg_fac', default=1),
+            err_tot_min=rcf.get('obs.err_min'), err_tot_max=rcf.get('obs.err_max', None)
+        )
 
     # Load the pre-processed emissions:
-    categories = dict.fromkeys(rcf.get('emissions.categories'))
-    for cat in categories :
-        categories[cat] = rcf.get(f'emissions.{cat}.origin')
-    emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
+    if emfile is None :
+        categories = dict.fromkeys(rcf.get('emissions.categories'))
+        for cat in categories :
+            categories[cat] = rcf.get(f'emissions.{cat}.origin')
+        emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
+    else :
+        emis = lagrange.ReadStruct(emfile)
 
     # Initialize the obs operator (transport model)
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
@@ -73,4 +81,4 @@ if __name__ == '__main__' :
     p.add_argument('--setuponly', '-s', action='store_true', help='use this flag to do the setup but not launch the actual optimization (for debug purpose)')
     args = p.parse_args()
 
-    optimize(args.rc, args.obs, args.emis, args.setuponly, verbosity=args.verbosity)
+    optimize(args.rc, obs=args.obs, emis=args.emis, setuponly=args.setuponly, verbosity=args.verbosity)
