@@ -48,6 +48,7 @@ class Footprint:
             if t2 < t1 :
             # Some files may contain fields as tmin_tmax, which shouldn't be used (old and wrong!)
                 ttint = tinterv(t2, t1)
+                ttint.varname = self.varname
                 data[ttint] = self.ds[self.varname][tt]
         return data
 
@@ -62,8 +63,12 @@ class Footprint:
             dym[cat] = 0.
             fptot = 0.
             for tt in sorted(fp, key=operator.attrgetter('start')):
-                ilats = fp[tt]['ilats'][:]
-                ilons = fp[tt]['ilons'][:]
+                try :
+                    ilats = fp[tt]['ilat'][:]
+                    ilons = fp[tt]['ilon' ][:]
+                except :
+                    logger.error(f"Error reading ilats/ilons from footprint {tt.varname} in file {self.filename}")
+                    raise KeyError 
                 try :
                      dyc = (emis[cat]['emis'][times_cat.index(tt), ilats, ilons]*fp[tt]['resp'][:]).sum()*scalefac
                      dym[cat] += dyc
@@ -88,8 +93,8 @@ class Footprint:
         for cat in cats :
             times_cat = [tinterv(t1, t2) for (t1, t2) in zip(adjEmis[cat]['time_interval']['time_start'], adjEmis[cat]['time_interval']['time_end'])]
             for tt in sorted(fp, key=operator.attrgetter('end')):
-                ilats = fp[tt]['ilats'][:]
-                ilons = fp[tt]['ilons'][:]
+                ilats = fp[tt]['ilat'][:]
+                ilons = fp[tt]['ilon'][:]
                 try :
                     adjEmis[cat]['emis'][times_cat.index(tt), ilats, ilons] += fp[tt]['resp'][:]*dy*scalefac
                 except ValueError :
@@ -276,7 +281,7 @@ class Lagrange:
                     os.remove(file)
                 else :
                     logger.error("Forward run failed, exiting ...")
-                    raise
+                    raise 
 
 if __name__ == '__main__':
     logger = logging.getLogger(os.path.basename(__file__))
