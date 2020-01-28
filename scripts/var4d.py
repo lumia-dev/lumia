@@ -24,22 +24,26 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
     start = datetime(*rcf.get('time.start'))
     end = datetime(*rcf.get('time.end'))
 
+    # Add "tag" based on dates:
+    rcf.setkey('tag', f'{start.strftime("%Y%m%d%H")}-{end.strftime("%Y%m%d%H")}')
+
     # Load the observations database
     db = obsdb(filename=obsfile, start=start, end=end)
     db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
 
     # Setup background and uncertainties if needed:
-    if rcf.get('obs.setup.bg'):
-        db = backgroundDb(db)
+    if rcf.get('obs.setup_bg'):
+        db = backgroundDb(db=db)
         db.read_backgrounds(path=rcf.get('backgrounds.path'))
 
-    if rcf.get('obs.setup.uncertainties'):
-        db = invdb(db)
+    if rcf.get('obs.setup_uncertainties'):
+        db = invdb(db=db)
         db.setupUncertainties(
             err_obs_min=rcf.get('obs.err_obs_min'), err_obs_fac=rcf.get('obs.err_obs_fac', default=1),
             err_mod_min=rcf.get('obs.err_mod_min'), err_mod_fac=rcf.get('obs.err_mod_fac', default=1),
             err_bg_min=rcf.get('obs.err_bg_min'), err_bg_fac=rcf.get('obs.err_bg_fac', default=1),
-            err_tot_min=rcf.get('obs.err_min'), err_tot_max=rcf.get('obs.err_max', None)
+            err_tot_min=rcf.get('obs.err_min'), err_tot_max=rcf.get('obs.err_max', None),
+            err_bg_field='err_profile_bg'
         )
 
     # Load the pre-processed emissions:
@@ -69,6 +73,8 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
     opt = lumia.optimizer.Optimizer(rcf, ctrl, model, interface)
     if not setuponly :
         opt.Var4D()
+    else :
+        return opt
 
 if __name__ == '__main__' :
 
@@ -81,4 +87,4 @@ if __name__ == '__main__' :
     p.add_argument('--setuponly', '-s', action='store_true', help='use this flag to do the setup but not launch the actual optimization (for debug purpose)')
     args = p.parse_args()
 
-    optimize(args.rc, obs=args.obs, emis=args.emis, setuponly=args.setuponly, verbosity=args.verbosity)
+    opt = optimize(args.rc, obs=args.obs, emfile=args.emis, setuponly=args.setuponly, verbosity=args.verbosity)
