@@ -62,7 +62,7 @@ class obsdb(obsdb_base):
                 file_in_cache = None
             elif cache != self.footprints_path:
                 logger.debug(f'File <s>{os.path.basename(filename)}</s> found in <s>{self.footprints_path}</s>')
-                subprocess.check_call(['rsync', filename, file_in_cache])
+                subprocess.check_call(['rsync', '--copy-links', filename, file_in_cache])
         else :
             logger.debug(f'File <s>{os.path.basename(filename)}</s> already in <s>{cache}</s>')
         self.observations.loc[self.observations.footprint == filename, 'footprint'] = file_in_cache
