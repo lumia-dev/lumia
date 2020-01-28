@@ -90,7 +90,8 @@ class obsdb:
         db.observations = self.observations.iloc[selection]
         sites = unique(db.observations.site)
         db.sites = self.sites.loc[sites, :]
-        db.files = self.files.loc[unique(db.observations.file.dropna()), :]
+        if hasattr(self, 'files') and 'file' in db.observations.columns:
+            db.files = self.files.loc[unique(db.observations.file.dropna()), :]
         return db
 
     def save_hdf(self, filename):
