@@ -87,7 +87,7 @@ class transport(object):
         
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
-        fields = self.rcf.get('model.adjoint.obsfields')
+        #fields = self.rcf.get('model.adjoint.obsfields')
 
         self.db.observations.loc[:, 'dy'] = departures
         dpf = self.db.save_tar(os.path.join(rundir, 'departures.tar.gz'))
