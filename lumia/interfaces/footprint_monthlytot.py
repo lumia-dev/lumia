@@ -24,8 +24,10 @@ class Interface:
         self.ancilliary_data = ancilliary
 
     def StructToVec(self, struct):
+        lsm = self.region.get_land_mask(refine_factor=2)
+        
         vec = DataFrame(columns=['category', 'value'])
-        statevec, categ, lat, lon, time = [], [], [], [], []
+        statevec, categ, lat, lon, time, lf = [], [], [], [], [], []
 
         for cat in [x for x in self.categories if x.optimize]:
             emcat = coarsenTime(struct[cat.name], cat.optimization_interval, compute_std=False)
@@ -42,6 +44,7 @@ class Interface:
                         lat.append(self.region.lats[i_lat])
                         lon.append(self.region.lons[i_lon])
                         time.append(times[i_time])
+                        lf.append(lsm[i_lat, i_lon])
 
         # Store and return
         vec.loc[:, 'category'] = array(categ, dtype=str)
@@ -49,6 +52,7 @@ class Interface:
         vec.loc[:, 'lat'] = array(lat, dtype=float64)
         vec.loc[:, 'lon'] = array(lon, dtype=float64)
         vec.loc[:, 'value'] = array(statevec, dtype=float64)
+        vec.loc[:, 'land_fraction'] = array(lf)
         return vec
 
     def VecToStruct(self, vector):
