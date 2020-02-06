@@ -22,6 +22,7 @@ class Control:
         self.vectors = DataFrame(columns=[
             'state_prior',
             'state_prior_preco',
+            'land_fraction',
             'category',
             'lat',
             'lon',
@@ -42,7 +43,7 @@ class Control:
         self.end = datetime(*self.rcf.get('time.end'))
 
     def setupPrior(self, prior):
-        self.vectors.loc[:, ['category', 'time', 'lat', 'lon']] = prior.loc[:, ['category', 'time', 'lat', 'lon']]
+        self.vectors.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']]
         self.vectors.loc[:, 'state_prior'] = prior.value
         self.vectors.loc[:, 'state_prior_preco'] = 0.
 

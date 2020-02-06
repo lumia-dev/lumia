@@ -130,8 +130,8 @@ class region:
             for ilon, lon in enumerate(r2.lons):
                 lsm[ilat, ilon] = 1. if m1.is_land(lon, lat) else 0.
         lsm_coarse = zeros((self.nlat, self.nlon))
-        for ilat in xrange(self.nlat):
-            for ilon in xrange(self.nlon):
+        for ilat in range(self.nlat):
+            for ilon in range(self.nlon):
                 lsm_coarse[ilat, ilon] = average(lsm[ilat*refine_factor:(ilat+1)*refine_factor, ilon*refine_factor:(ilon+1)*refine_factor], weights=r2.area[ilat*refine_factor:(ilat+1)*refine_factor, ilon*refine_factor:(ilon+1)*refine_factor])
         return lsm_coarse
 

@@ -31,6 +31,12 @@ class Uncertainties:
             if cat.optimize :
                 errfact = cat.uncertainty*0.01
                 errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
+                
+                # TODO: This is a temporary fix to reproduce EUROCOM inversions. Needs to be moved to a "Uncertainties_eurocom" module or class
+                min_unc = cat.min_uncertainty*errcat.max()/100.
+                land_filter = self.data.land_fraction.values
+                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
+                
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
 
     def setup_Hcor(self):

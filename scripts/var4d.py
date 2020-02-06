@@ -29,7 +29,8 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
 
     # Load the observations database
     db = obsdb(filename=obsfile, start=start, end=end)
-    db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
+    if rcf.get('footprints.setup', default=True):
+        db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
 
     # Setup background and uncertainties if needed:
     if rcf.get('obs.setup_bg'):
