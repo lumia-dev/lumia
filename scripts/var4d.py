@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 
-import lumia
-from argparse import ArgumentParser
-from lumia.obsdb.footprintdb import obsdb
 from datetime import datetime
+from argparse import ArgumentParser
+import lumia
+from lumia.obsdb.footprintdb import obsdb
 from lumia.formatters import lagrange
 from lumia.interfaces import Interface
 from lumia.Tools.logging_tools import logger
 from lumia.obsdb.backgroundDb import backgroundDb
 from lumia.obsdb.invdb import invdb
-import os
 
 def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
 
