@@ -252,6 +252,8 @@ class Lagrange:
         nobs = self.obs.observations.shape[0]
         nchunks = self.rcf.get('model.transport.split', default=1)
 
+        logger.debug(f"The database will be split in {nchunks} chunks")
+
         # If we run on just one CPU, don't go further, run on the current file
         if nchunks == 1 :
             yield self.obsfile
@@ -261,6 +263,9 @@ class Lagrange:
             remain = nobs%nchunks
             if remain != 0 : chunk_size += 1
             for ichunk in range(nchunks):
+                logger.debug(f"Extract chunk {ichunk}, from iloc {ichunk*chunk_size} to {(ichunk+1)*chunk_size}")
+                logger.debug(f"Database size: {nobs} rows")
+
                 db = self.obs.get_iloc(slice(ichunk*chunk_size, (ichunk+1)*chunk_size))
 
                 # Write observation file
@@ -295,8 +300,11 @@ if __name__ == '__main__':
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
+    p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
+
+    logger.setLevel(args.verbosity)
 
     # Create the transport model
     model = Lagrange(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)

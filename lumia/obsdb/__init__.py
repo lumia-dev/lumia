@@ -90,8 +90,16 @@ class obsdb:
         db.observations = self.observations.iloc[selection]
         sites = unique(db.observations.site)
         db.sites = self.sites.loc[sites, :]
+        # Often that part of the database is corrupted, so we try to read it, but we don't try too hard ...
         if hasattr(self, 'files') and 'file' in db.observations.columns:
-            db.files = self.files.loc[unique(db.observations.file.dropna()), :]
+            file_indices = unique(db.observations.file.dropna())
+            files_in_db = [f for f in file_indices if f in db.files.index]
+            files_not_in_db = [f for f in file_indices if not f in files_in_db]
+            if len(files_in_db) > 0 :
+                db.files = self.files.loc[files_in_db, :]
+            if len(files_not_in_db) > 0 :
+                for file in files_not_in_db :
+                    db.observations.loc[db.observations.file == file, 'file'] = nan
         return db
 
     def save_hdf(self, filename):

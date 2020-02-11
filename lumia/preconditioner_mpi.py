@@ -103,6 +103,7 @@ def g_to_gc_worker():
     # Initialize MPI
     comm = MPI.Comm.Get_parent()
     rank = comm.Get_rank()
+    size = comm.Get_size()
 
     # Receive data
     nt, nh, ipos = comm.bcast(None, root=0)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-from .Tools import costFunction
-from numpy import *
 import os
-from lumia.minimizers.congrad import Minimizer as congrad
 import logging
+from numpy import *
+from lumia.minimizers.congrad import Minimizer as congrad
+from .Tools import costFunction
 
 logger = logging.getLogger(__name__)
 
@@ -18,15 +18,15 @@ class Optimizer(object):
 
     def Var4D(self, label='apos'):
         self.minimizer.reset()     # Just to make sure ...
-        
+
         state_preco = zeros(self.control.size)
-        
+
         step = 'apri'
         status = 0
         while status == 0 :
             state_preco, status = self._Var4D_step(state_preco, step)
             step = 'var4d'
-            
+
         # Finishup ...
         dy, err = self._computeDepartures(state_preco, label)
         self.J = self._computeCostFunction(state_preco, dy, err)
@@ -57,7 +57,7 @@ class Optimizer(object):
         J_bg = 0.5*dot(dstate, dstate)
         J_obs = 0.5*dot(dy/dye, dy/dye)
         J = costFunction(bg=J_bg, obs=J_obs)
-        logger.info(f"Iteration {self.iteration}: J_bg={J_bg}; J_obs={J_obs}")
+        logger.info(f"Iteration {self.iteration}: J_bg={J_bg:.2f}; J_obs={J_obs:.2f}")
         return J
 
     def _ComputeGradient(self, state_preco, dy, dye):
@@ -78,7 +78,7 @@ class Optimizer(object):
             LE[:,ii] = self.control.xc_to_x(converged_eigvecs[:,ii], add_prior=False)
             if store_eigenvec:
                 self.control.set(LE[:, ii], 'eigenvec_%i'%ii)
-            
+
         Mat2 = 1./converged_eigvals - 1.
         dapri = self.control.get('prior_uncertainty')
         dapos = nan_to_num(sqrt(dapri**2 + inner(LE**2, Mat2)))
