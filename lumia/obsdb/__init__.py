@@ -2,7 +2,6 @@ from pandas import DataFrame, read_hdf, read_json, errors, read_csv
 import logging
 from datetime import datetime
 from numpy import unique, nan
-from copy import deepcopy
 import tarfile
 import os
 from io import BytesIO

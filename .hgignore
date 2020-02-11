@@ -8,3 +8,4 @@ lumia.egg-info/*
 *.exe
 *.mod
 *.o
+.idea
