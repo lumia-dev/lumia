@@ -28,7 +28,7 @@ class Footprint:
     def __init__(self, fpfile, path='', open=True):
         self.filename = fpfile
         if not os.path.exists(self.filename):
-            logging.warning('Footprint file not found: %s'%self.filename)
+            logger.warning('Footprint file not found: %s'%self.filename)
         self.ds = h5py.File(fpfile, 'r')
         self.varname = None
 
