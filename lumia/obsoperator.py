@@ -29,6 +29,7 @@ class transport(object):
         """
         This copies the last model I/O to "path", with an optional tag to identify it
         """
+        tag = tag.strip('.')
         tag = '' if tag is None else tag+'.'
         if path is None :
             path = self.rcf.get('path.output')

@@ -9,3 +9,4 @@ lumia.egg-info/*
 *.mod
 *.o
 .idea
+.vscode
