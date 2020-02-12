@@ -1,8 +1,20 @@
 #!/usr/bin/env python
 
-from numpy import *
+import cartopy.io.shapereader as shpreader
+import shapely.geometry as sgeom
+from shapely.ops import unary_union
+from shapely.prepared import prep
 import logging 
+from numpy import *
 logger = logging.getLogger(__name__)
+
+class LandMask:
+    def __init__(self):
+        land_shp_fname = shpreader.natural_earth(resolution='50m', category='physical', name='land')
+        land_geom = unary_union(list(shpreader.Reader(land_shp_fname).geometries()))
+        self.land = prep(land_geom)
+    def is_land(self, lat, lon):
+        return self.land.contains(sgeom.Point(lat, lon))
 
 class region:
     def __init__(self, name=None, longitudes=None, latitudes=None, lon0=None, lon1=None, lat0=None, lat1=None, dlon=None, dlat=None, nlon=None, nlat=None):
@@ -112,10 +124,10 @@ class region:
         lats = self.GetIndicesFromLats(lats)
         return [(x, y) for (x, y) in zip(lons, lats)]
 
-    def basemap(self,**kwargs):
-        from mpl_toolkits.basemap import Basemap
-        m1 = Basemap(llcrnrlat=self.latmin, llcrnrlon=self.lonmin, urcrnrlat=self.latmax, urcrnrlon=self.lonmax, **kwargs)
-        return m1
+#    def basemap(self,**kwargs):
+#        from mpl_toolkits.basemap import Basemap
+#        m1 = Basemap(llcrnrlat=self.latmin, llcrnrlon=self.lonmin, urcrnrlat=self.latmax, urcrnrlon=self.lonmax, **kwargs)
+#        return m1
 
     def get_land_mask(self, refine_factor=1):
         """ Returns the proportion (from 0 to 1) of land in each pixel
@@ -124,11 +136,11 @@ class region:
         assert isinstance(refine_factor, int), "refine_factor must be an integer"
         r2 = region(lon0=self.lonmin, lon1=self.lonmax, lat0=self.latmin, lat1=self.latmax, dlon=self.dlon/refine_factor, dlat=self.dlat/refine_factor)
         r2.calc_area()
-        m1 = r2.basemap()
         lsm = zeros((r2.nlat, r2.nlon))
+        lm = LandMask()
         for ilat, lat in enumerate(r2.lats):
             for ilon, lon in enumerate(r2.lons):
-                lsm[ilat, ilon] = 1. if m1.is_land(lon, lat) else 0.
+                lsm[ilat, ilon] = 1. if lm.is_land(lon, lat) else 0.
         lsm_coarse = zeros((self.nlat, self.nlon))
         for ilat in range(self.nlat):
             for ilon in range(self.nlon):
