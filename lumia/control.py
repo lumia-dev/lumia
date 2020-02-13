@@ -15,24 +15,31 @@ logger = logging.getLogger(__name__)
 
 class Control:
     name = 'monthlytot'
-    def __init__(self, rcf):
+    def __init__(self, rcf=None, filename=None):
         # Data containers :
         self.horizontal_correlations = {}
         self.temporal_correlations = {}
         self.vectors = DataFrame(columns=[
             'state_prior',
             'state_prior_preco',
+            'state',
+            'state_preco',
             'land_fraction',
             'category',
             'lat',
             'lon',
             'time'
         ], dtype=float64)
-        self.loadrc(rcf)
 
         # Interfaces :
         self.save = self._to_hdf
         self.load = self._from_hdf
+
+        if rcf is not None :
+            self.loadrc(rcf)
+        elif filename is not None :
+            rcf = self.load(filename, loadrc=True)
+            self.loadrc(rcf)
 
 
     def loadrc(self, rcf):
@@ -69,6 +76,11 @@ class Control:
                 ipos = catIndex.index(cat.name)
                 state += xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
         if add_prior: state += self.vectors.loc[:, 'state_prior']
+
+        # Store the current state and state_preco
+        self.vectors.loc[:,'state'] = state
+        self.vectors.loc[:,'state_preco'] = state_preco
+
         return state
     
     def g_to_gc(self, g):
@@ -142,7 +154,7 @@ class Control:
                 self.horizontal_correlations[cor] = fid['correlations/hor'][cor][:]
             for cor in fid['correlations/temp']:
                 self.temporal_correlations[cor] = fid['correlations/temp'][cor][:]
-                
+
         return rcf
     
     def get(self, item):
@@ -162,8 +174,7 @@ class Control:
     def __getattr__(self, item):
         if item is 'size' :
             return len(self.vectors)
+        elif item in self.__dict__:
+            return getattr(self, item)
         else :
-            if hasattr(self, item):
-                return getattr(self, item)
-            else :
-                raise AttributeError(item)
+            raise AttributeError(item)
