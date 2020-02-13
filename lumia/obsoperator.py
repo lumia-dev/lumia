@@ -25,7 +25,7 @@ class transport(object):
     def setupObs(self, obsdb):
         self.db = obsdb
 
-    def save(self, path=None, tag=None):
+    def save(self, path=None, tag=None, structf=None):
         """
         This copies the last model I/O to "path", with an optional tag to identify it
         """
@@ -37,7 +37,7 @@ class transport(object):
 
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
         self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
-#        self.writeStruct(self.struct, path, 'transport_control.%s')
+        shutil.copy(structf, path)
 
     def runForward(self, struct, step=None):
         """
@@ -75,7 +75,12 @@ class transport(object):
             self.db.observations.loc[:,'foreground'] - \
             self.db.observations.loc[:,'obs']
         self.db.observations.loc[:, step] = self.db.observations.loc[:, 'background']+self.db.observations.loc[:, 'foreground']
-        
+
+        # Output if needed:
+        if self.rcf.get('transport.output'):
+            if step in self.rcf.get('transport.output.steps'):
+                self.save(tag=step, structf=emf)
+
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
     
