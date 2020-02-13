@@ -47,18 +47,19 @@ def WriteStruct(data, path, prefix=None):
         ds.createDimension('time_components', 6)
         for cat in [c for c in data.keys() if not 'cat_list' in c]:
             gr = ds.createGroup(cat)
-            try :
-                gr.createDimension('nt', data[cat]['emis'].shape[0])
-                gr.createDimension('nlat', data[cat]['emis'].shape[1])
-                gr.createDimension('nlon', data[cat]['emis'].shape[2])
-                gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
-                gr['emis'][:] = data[cat]['emis']
-                gr.createVariable('times_start', 'i', ('nt', 'time_components'))
-                gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])
-                gr.createVariable('times_end', 'i', ('nt', 'time_components'))
-                gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
-            except :
-                import pdb; pdb.set_trace()
+            gr.createDimension('nt', data[cat]['emis'].shape[0])
+            gr.createDimension('nlat', data[cat]['emis'].shape[1])
+            gr.createDimension('nlon', data[cat]['emis'].shape[2])
+            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
+            gr['emis'][:] = data[cat]['emis']
+            gr.createVariable('times_start', 'i', ('nt', 'time_components'))
+            gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])
+            gr.createVariable('times_end', 'i', ('nt', 'time_components'))
+            gr['times_end'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_end']])
+            gr.createVariable('lats', 'f', ('nlat',))
+            gr['lats'][:] = data[cat]['lats']
+            gr.createVariable('lons', 'f', ('nlon',))
+            gr['lons'][:] = data[cat]['lons']
     logger.debug(f"Model parameters written to {filename}")
     return filename
 
@@ -73,11 +74,13 @@ def ReadStruct(path, prefix=None):
         data = Struct()
         for cat in categories:
             data[cat] = {
-                'emis': ds.groups[cat].variables['emis'][:],
+                'emis': ds[cat]['emis'][:],
                 'time_interval': {
-                    'time_start': array([datetime(*x) for x in ds.groups[cat].variables['times_start'][:]]),
-                    'time_end': array([datetime(*x) for x in ds.groups[cat].variables['times_end'][:]]),
-                }
+                    'time_start': array([datetime(*x) for x in ds[cat]['times_start'][:]]),
+                    'time_end': array([datetime(*x) for x in ds[cat]['times_end'][:]]),
+                },
+                'lats': ds[cat]['lats'][:],
+                'lons': ds[cat]['lons'][:]
             }
     logger.debug(f"Model parameters read from {filename}")
     return data
@@ -93,7 +96,10 @@ def CreateStruct(categories, region, start, end, dt):
             'time_interval': {
                 'time_start': times,
                 'time_end':array(times)+dt
-            }
+            },
+            'lats':region.lats,
+            'lons':region.lons,
+            'region':region.name
         }
     return data
 
@@ -111,6 +117,8 @@ def ReadArchive(prefix, start, end, **kwargs):
     (identified by field_name) to a user-specified flux category.
     :return:
     """
+
+    # TODO: remove the dependency to xarray
     data = Struct()
     if kwargs.get('categories',False):
         categories = kwargs.get('categories')
@@ -131,6 +139,8 @@ def ReadArchive(prefix, start, end, **kwargs):
             'time_interval':{
                 'time_start':times[:-1],
                 'time_end':times[1:]
-            }
+            },
+            'lats':ds.lat[:],
+            'lons':ds.lon[:]
         }
     return data
