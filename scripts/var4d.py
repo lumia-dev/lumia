@@ -10,7 +10,7 @@ from lumia.Tools.logging_tools import logger
 from lumia.obsdb.backgroundDb import backgroundDb
 from lumia.obsdb.invdb import invdb
 
-def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
+def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', start=None, end=None):
 
     # Set verbosity level
     logger.setLevel(verbosity)
@@ -20,8 +20,14 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO'):
     obsfile = rcf.get('observations.input_file') if obs is None else args.obs
 
     # Read additional basic settings from rc-file:
-    start = datetime(*rcf.get('time.start'))
-    end = datetime(*rcf.get('time.end'))
+    if start is None :
+        start = datetime(*rcf.get('time.start'))
+    else :
+        rcf.setkey('start', start)
+    if end is None :
+        end = datetime(*rcf.get('time.end'))
+    else :
+        rcf.setkey('end', end)
 
     # Add "tag" based on dates:
     rcf.setkey('tag', f'{start.strftime("%Y%m%d%H")}-{end.strftime("%Y%m%d%H")}')
@@ -85,6 +91,10 @@ if __name__ == '__main__' :
     p.add_argument('--obs', '-o', help='Path to the observation file (default taken from rc-file')
     p.add_argument('--emis', '-e', help='Path to the (pre-processed) emission/flux file)')
     p.add_argument('--setuponly', '-s', action='store_true', help='use this flag to do the setup but not launch the actual optimization (for debug purpose)')
+    p.add_argument('--start', help="start time (%Y%m%d[%H%M]) of the inversion (overwrites whatever is in the rc-file!", default=None)
+    p.add_argument('--end', help="end time of (%Y%m%d[%H%M]) the inversion (overwrites whatever is in the rc-file!", default=None)
     args = p.parse_args()
 
-    opt = optimize(args.rc, obs=args.obs, emfile=args.emis, setuponly=args.setuponly, verbosity=args.verbosity)
+    tstart = datetime.strptime(f'{args.start:<012}', '%Y%m%d%H%M') if args.start is None else None
+    tend = datetime.strptime(f'{args.end:<012}', '%Y%m%d%H%M') if args.start is None else None
+    opt = optimize(args.rc, obs=args.obs, emfile=args.emis, setuponly=args.setuponly, verbosity=args.verbosity, start=tstart, end=tend)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import logging
-from numpy import *
+from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 
@@ -90,5 +90,5 @@ class Optimizer(object):
         if not os.path.exists(path): os.makedirs(path)
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.obsop.save(path, step)
-        self.control.save(os.path.join(path, 'control.%shdf'%step))
+        #self.control.save(os.path.join(path, 'control.%shdf'%step))  # ==> The transport model saves itself
         self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
