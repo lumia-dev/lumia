@@ -148,8 +148,8 @@ class rc:
                             val[iv] = float(val[iv])
                         except ValueError:
                             # finally, to logical
-                            if val[iv] == 'T': val[iv] = True
-                            if val[iv] == 'F': val[iv] = False
+                            if val[iv] in ['T','True']: val[iv] = True
+                            if val[iv] in ['F','False']: val[iv] = False
         if totype == bool:
             val = {'T':True, 'F':False, 1:True, 0:False, 'True':True, 'False':False}[val]
         return val
