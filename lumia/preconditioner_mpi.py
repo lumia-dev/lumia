@@ -84,6 +84,10 @@ def g_to_gc(filename, verbosity='INFO'):
     nt = Temp_Lt.shape[0]
     nh = Hor_Lt.shape[0]
 
+    if len(g) != nt*nh :
+        logger.critical("Mismatch between the length of the gradient vector and the shape of the covariance matrices. Exiting to avoid mpi lock")
+        raise RuntimeError
+
     ncpu_min = min(nt*nt, int(os.environ['NCPUS_LUMIA'])-1)
     logger.debug(f"Preconditioning with {ncpu_min} processes")
     comm = MPI.COMM_SELF.Spawn(sys.executable, args=[os.path.abspath(__file__), '--gw', '-v', verbosity], maxprocs=ncpu_min)
@@ -127,6 +131,7 @@ def g_to_gc_worker():
         for j in range(nt):
             if rank == r :
                 g_c[ipos+i*nh:ipos+(i+1)*nh] += dot(Temp_Lt[i,j]*Hor_Lt, G_state[ipos+j*nh:ipos+(j+1)*nh] * g[ipos+j*nh:ipos+(j+1)*nh])
+                logger.debug(f"I'm worker {rank} out of {size} and I compute step {i},{j}")
             r += 1
             if r == size: r = 0
 

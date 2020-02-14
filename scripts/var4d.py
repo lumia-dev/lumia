@@ -23,11 +23,11 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
     if start is None :
         start = datetime(*rcf.get('time.start'))
     else :
-        rcf.setkey('start', start)
+        rcf.setkey('time.start', start.timetuple()[:6])
     if end is None :
         end = datetime(*rcf.get('time.end'))
     else :
-        rcf.setkey('end', end)
+        rcf.setkey('time.end', end.timetuple()[:6])
 
     # Add "tag" based on dates:
     rcf.setkey('tag', f'{start.strftime("%Y%m%d%H")}-{end.strftime("%Y%m%d%H")}')
@@ -95,6 +95,6 @@ if __name__ == '__main__' :
     p.add_argument('--end', help="end time of (%Y%m%d[%H%M]) the inversion (overwrites whatever is in the rc-file!", default=None)
     args = p.parse_args()
 
-    tstart = datetime.strptime(f'{args.start:<012}', '%Y%m%d%H%M') if args.start is None else None
-    tend = datetime.strptime(f'{args.end:<012}', '%Y%m%d%H%M') if args.start is None else None
+    tstart = datetime.strptime(f'{args.start:<012}', '%Y%m%d%H%M') if args.start is not None else None
+    tend = datetime.strptime(f'{args.end:<012}', '%Y%m%d%H%M') if args.end is not None else None
     opt = optimize(args.rc, obs=args.obs, emfile=args.emis, setuponly=args.setuponly, verbosity=args.verbosity, start=tstart, end=tend)
