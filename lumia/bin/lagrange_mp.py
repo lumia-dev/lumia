@@ -64,11 +64,15 @@ class Footprint:
             fptot = 0.
             for tt in sorted(fp, key=operator.attrgetter('start')):
                 try :
-                    ilats = fp[tt]['ilat'][:]
-                    ilons = fp[tt]['ilon' ][:]
-                except :
-                    logger.error(f"Error reading ilats/ilons from footprint {tt.varname} in file {self.filename}")
-                    raise KeyError 
+                    ilats = fp[tt]['ilats'][:]
+                    ilons = fp[tt]['ilons' ][:]
+                except KeyError :
+                    try :
+                        ilats = fp[tt]['ilat'][:]
+                        ilons = fp[tt]['ilon' ][:]
+                    except KeyError :
+                        logger.error(f"Error reading ilats/ilons from footprint {tt.varname} in file {self.filename}")
+                        raise KeyError 
                 try :
                      dyc = (emis[cat]['emis'][times_cat.index(tt), ilats, ilons]*fp[tt]['resp'][:]).sum()*scalefac
                      dym[cat] += dyc
