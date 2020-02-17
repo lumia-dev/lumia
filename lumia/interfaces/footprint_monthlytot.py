@@ -23,8 +23,8 @@ class Interface:
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
 
-    def StructToVec(self, struct):
-        lsm = self.region.get_land_mask(refine_factor=2)
+    def StructToVec(self, struct, lsm_from_file=False):
+        lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
         
         vec = DataFrame(columns=['category', 'value'])
         statevec, categ, lat, lon, time, lf = [], [], [], [], [], []

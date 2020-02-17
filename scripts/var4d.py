@@ -71,7 +71,7 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
     interface = Interface(ctrl.name, model.name, rcf, ancilliary=emis)
 
     # ... Should this to to the optimizer?
-    ctrl.setupPrior(interface.StructToVec(emis))
+    ctrl.setupPrior(interface.StructToVec(emis, lsm_from_file=rcf.get('emissions.lsm.file')))
     unc = lumia.Uncertainties(rcf, ctrl.vectors)
     ctrl.setupUncertainties(unc())
 
