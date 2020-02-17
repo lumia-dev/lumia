@@ -6,6 +6,7 @@ from shapely.ops import unary_union
 from shapely.prepared import prep
 import logging 
 from numpy import *
+from h5py import File
 logger = logging.getLogger(__name__)
 
 class LandMask:
@@ -129,22 +130,26 @@ class region:
 #        m1 = Basemap(llcrnrlat=self.latmin, llcrnrlon=self.lonmin, urcrnrlat=self.latmax, urcrnrlon=self.lonmax, **kwargs)
 #        return m1
 
-    def get_land_mask(self, refine_factor=1):
+    def get_land_mask(self, refine_factor=1, from_file=False):
         """ Returns the proportion (from 0 to 1) of land in each pixel
         By default, if the type (land or ocean) of the center of the pixel determines the land/ocean type of the whole pixel.
         If the optional argument "refine_factor" is > 1, the land/ocean mask is first computed on the refined grid, and then averaged on the region grid (accounting for grid box area differences)"""
-        assert isinstance(refine_factor, int), "refine_factor must be an integer"
-        r2 = region(lon0=self.lonmin, lon1=self.lonmax, lat0=self.latmin, lat1=self.latmax, dlon=self.dlon/refine_factor, dlat=self.dlat/refine_factor)
-        r2.calc_area()
-        lsm = zeros((r2.nlat, r2.nlon))
-        lm = LandMask()
-        for ilat, lat in enumerate(r2.lats):
-            for ilon, lon in enumerate(r2.lons):
-                lsm[ilat, ilon] = 1. if lm.is_land(lon, lat) else 0.
-        lsm_coarse = zeros((self.nlat, self.nlon))
-        for ilat in range(self.nlat):
-            for ilon in range(self.nlon):
-                lsm_coarse[ilat, ilon] = average(lsm[ilat*refine_factor:(ilat+1)*refine_factor, ilon*refine_factor:(ilon+1)*refine_factor], weights=r2.area[ilat*refine_factor:(ilat+1)*refine_factor, ilon*refine_factor:(ilon+1)*refine_factor])
+        if from_file :
+            with File(from_file, 'r') as df :
+                lsm_coarse = df['lsm'][:]
+        else :
+            assert isinstance(refine_factor, int), "refine_factor must be an integer"
+            r2 = region(lon0=self.lonmin, lon1=self.lonmax, lat0=self.latmin, lat1=self.latmax, dlon=self.dlon/refine_factor, dlat=self.dlat/refine_factor)
+            r2.calc_area()
+            lsm = zeros((r2.nlat, r2.nlon))
+            lm = LandMask()
+            for ilat, lat in enumerate(r2.lats):
+                for ilon, lon in enumerate(r2.lons):
+                    lsm[ilat, ilon] = 1. if lm.is_land(lon, lat) else 0.
+            lsm_coarse = zeros((self.nlat, self.nlon))
+            for ilat in range(self.nlat):
+                for ilon in range(self.nlon):
+                    lsm_coarse[ilat, ilon] = average(lsm[ilat*refine_factor:(ilat+1)*refine_factor, ilon*refine_factor:(ilon+1)*refine_factor], weights=r2.area[ilat*refine_factor:(ilat+1)*refine_factor, ilon*refine_factor:(ilon+1)*refine_factor])
         return lsm_coarse
 
     def plotGrid(self, color='cyan'):
