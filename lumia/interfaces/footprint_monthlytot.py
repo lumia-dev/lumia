@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-from lumia.Tools import Region, Categories
-from numpy import *
-import logging
 import os
+import logging
 from netCDF4 import Dataset
 from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
 from copy import deepcopy
 from pandas import DataFrame
+from numpy import *
+from lumia.Tools import Region, Categories
 
 logger = logging.getLogger(__name__)
 
