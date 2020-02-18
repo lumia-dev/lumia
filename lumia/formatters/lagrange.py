@@ -128,7 +128,13 @@ def ReadArchive(prefix, start, end, **kwargs):
     for cat in tqdm(categories, leave=False) :
         field = categories[cat]
         ds = []
-        for year in tqdm(range(start.year, end.year+1), desc=f"Importing data for category {cat}"):
+
+        # Import a file for every year at least partially covered (avoid trying to load a file if the end of the simulation is a 1st january).
+        end_year = end.year
+        if datetime(end_year, 1, 1) < end :
+            end_year += 1
+
+        for year in tqdm(range(start.year, end_year), desc=f"Importing data for category {cat}"):
             fname = f"{prefix}{field}.{year}.nc"
             tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
             ds.append(xr.load_dataset(fname))
