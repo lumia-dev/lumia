@@ -31,7 +31,10 @@ end = datetime(*rcf.get('time.end'))
 db = obsdb(filename=rcf.get('observations.input_file'), start=start, end=end)
 db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
 
-emis = lagrange.ReadStruct(rcf.get('emissions.input_file'))
+categories = dict.fromkeys(rcf.get('emissions.categories'))
+for cat in categories :
+    categories[cat] = rcf.get(f'emissions.{cat}.origin')
+emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
 
 model = lumia.transport(rcf, obs=db, formatter=lagrange)
 model.runForward(emis, step='forward')

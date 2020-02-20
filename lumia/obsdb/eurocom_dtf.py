@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-import os, glob
+import os
+import glob
 import logging
 from datetime import datetime
-from numpy import inf, loadtxt, array
+from numpy import inf, loadtxt, array, nan
 from tqdm import tqdm
-from lumia.obsdb import obsdb as obsdb_base
 from pandas import DataFrame
+from lumia.obsdb import obsdb as obsdb_base
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,12 @@ class obsdb(obsdb_base):
 
         # Import the data (if needed):
         observations = None
-        if header['platform'] in ['surface-insitu - fixed']:
-            continue_import = False
-            if lat_range[0] <= header['site_latitude'] <= lat_range[1] :
-                if lon_range[0] <= header['site_longitude'] <= lon_range[1]:
-                    continue_import = True
-            if continue_import :
-                observations = self.readASCIIData_fixedPlatform(filename, header, date_range[0], date_range[1])
-        else :
-            logger.warning(f"Mobile platforms are not implemented in this script yet. Skipping file {filename}")
+        continue_import = False
+        if lat_range[0] <= header['site_latitude'] <= lat_range[1] :
+            if lon_range[0] <= header['site_longitude'] <= lon_range[1]:
+                continue_import = True
+        if continue_import :
+            observations = self.readASCIIData_fixedPlatform(filename, header, date_range[0], date_range[1])
         return observations
 
     def addObs(self, observations):
@@ -65,26 +63,38 @@ class obsdb(obsdb_base):
 
 
     def readASCIIData_fixedPlatform(self, filename, header, tmin=datetime(1000,1,1), tmax=datetime(3000,1,1)):
-        data = loadtxt(filename, skiprows=header['nlines_header'], dtype=str)
+        data = loadtxt(filename, skiprows=header['nlines_header'], dtype=str,delimiter=';')
         ihh = header['columns'].index('Year')
         imn = header['columns'].index('Minute')
-        time = array([datetime(yy, mm, dd, hh, mn) for (yy, mm, dd, hh, mn) in zip(data[:, ihh:imn+1].astype(int))])
+        time = array([datetime(yy, mm, dd, hh, mn) for (yy, mm, dd, hh, mn) in data[:, ihh:imn+1].astype(int)])
         selection = (time >= tmin) * (time <= tmax)
         nobs = len(selection)
+        obs = data[:, header['columns'].index(header['param'])]
+        obs[obs == ''] = 'nan'
+        obs = obs.astype(float)
+        obs[obs < 0] = nan
+        err = data[:, header['columns'].index('Stdev')]
+        err[err == ''] = 'nan'
+        err = err.astype(float)
+        err[err < 0] = nan
+        err[err == 999.999] = nan
         if nobs > 0 :
-            observations = {
-                'time':time[selection],
-                'lat':array([header['site_latitude']] * nobs),
-                'lon': array([header['site_altitude']] * nobs),
-                'alt': array([header['site_longitude']] * nobs),
-                'height': data[:, header['columns'].index('SamplingHeight')].astype(float),
-                'obs':data[:, header['columns'].index(header['param'])].astype(float),
-                'err':data[:, header['columns'].index('Stdev')].astype(float),
-                'file':array([filename]*nobs),
-                'code':array([header['code'].lower()]*nobs),
-                'name':array([header['name']]*nobs)
-            }
-            return observations
+            try :
+                observations = {
+                    'time':time[selection],
+                    'lat':array([header['site_latitude']] * nobs),
+                    'lon': array([header['site_altitude']] * nobs),
+                    'alt': array([header['site_longitude']] * nobs),
+                    'height': data[:, header['columns'].index('SamplingHeight')].astype(float),
+                    'obs':obs.astype(float),
+                    'err':err.astype(float),
+                    'file':array([filename]*nobs),
+                    'code':array([header['site_code'].lower()]*nobs),
+                    'name':array([header['name']]*nobs)
+                }
+                return observations
+            except :
+                import pdb; pdb.set_trace()
         return None
 
     def read_header(self, filename):
@@ -92,15 +102,18 @@ class obsdb(obsdb_base):
         with open(filename, 'r') as fid :
             lines = [l.strip('#').strip() for l in fid.readlines() if l.startswith('#')]
         for line in lines :
-            key, value = line.split(':')
-            if 'SAMPLING TYPE' in key: header['platform'] = value.strip()
-            if 'LATITUDE' in key: header['site_latitude'] = float(value.strip())
-            if 'LONGITUDE' in key: header['site_longitude'] = float(value.strip())
-            if 'ALTITUDE' in key: header['site_altitude'] = float(value.strip())
-            if 'HEADER LINES' in key: header['nlines_header'] = int(value.strip())
-            if 'CODE' in key: header['site_code'] = value.strip()
-            if 'STATION NAME' in key: header['name'] = value.strip()
-            if key == 'PARAMETER': header['param'] = value.strip().lower()
-            if key == 'SAMPLING HEIGHTS' : header['sampling_heights'] = [int(v.split(' ')[0]) for v in value.split(',')]
+            if ':' in line :
+                try :
+                    key, value = line.split(':',1)
+                    if 'LATITUDE' in key: header['site_latitude'] = float(value.strip().split()[0])
+                    if 'LONGITUDE' in key: header['site_longitude'] = float(value.strip().split()[0])
+                    if 'ALTITUDE' in key: header['site_altitude'] = float(value.strip().split()[0])
+                    if 'HEADER LINES' in key: header['nlines_header'] = int(value.strip())
+                    if 'CODE' in key: header['site_code'] = value.strip()
+                    if 'STATION NAME' in key: header['name'] = value.strip()
+                    if key == 'PARAMETER': header['param'] = value.strip().lower()
+                    if key == 'SAMPLING HEIGHTS' : header['sampling_heights'] = [float(v.strip().split(' ')[0]) for v in value.split(',')]
+                except :
+                    import pdb; pdb.set_trace()
         header['columns'] = lines[-1].strip('#').split(';')
         return header
