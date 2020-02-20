@@ -28,6 +28,9 @@ rcf = lumia.rc(args.rc)
 start = datetime(*rcf.get('time.start'))
 end = datetime(*rcf.get('time.end'))
 
+if not 'tag' in rcf.keys:
+    rcf.setkey('tag', f'{start.strftime("%Y%m%d%H%M")}-{end.strftime("%Y%m%d%H%M")}')
+
 db = obsdb(filename=rcf.get('observations.input_file'), start=start, end=end)
 db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
 
