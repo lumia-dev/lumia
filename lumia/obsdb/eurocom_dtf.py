@@ -83,8 +83,8 @@ class obsdb(obsdb_base):
                 observations = {
                     'time':time[selection],
                     'lat':array([header['site_latitude']] * nobs),
-                    'lon': array([header['site_altitude']] * nobs),
-                    'alt': array([header['site_longitude']] * nobs),
+                    'lon': array([header['site_longitude']] * nobs),
+                    'alt': array([header['site_altitude']] * nobs),
                     'height': data[:, header['columns'].index('SamplingHeight')].astype(float),
                     'obs':obs.astype(float),
                     'err':err.astype(float),
