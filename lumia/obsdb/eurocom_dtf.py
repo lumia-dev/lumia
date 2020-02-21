@@ -4,7 +4,7 @@ import os
 import glob
 import logging
 from datetime import datetime
-from numpy import inf, loadtxt, array, nan
+from numpy import inf, loadtxt, array, nan, unique, count_nonzero
 from tqdm import tqdm
 from pandas import DataFrame
 from lumia.obsdb import obsdb as obsdb_base
@@ -21,6 +21,17 @@ class obsdb(obsdb_base):
             obs = self.importASCII(file, date_range, lat_range, lon_range, exclude_mobile)
             if obs is not None :
                 self.addObs(obs)
+        
+        self.fixDuplicatedSiteCodes()
+
+    def fixDuplicatedSiteCodes(self):
+        sitecodes = unique(self.site.code)
+        for code in sitecodes :
+            if count_nonzero(self.site.code.values == code) > 1 :
+                heights = self.site.loc[self.site.code == code, 'height'].values
+                oldcodes = self.site.loc[self.site.code == code, 'code'].values
+                newcodes = [f'{s.upper():3s}{h:03d}' for (s, h) in zip(oldcodes, heights)]
+                self.site.loc[self.site.code == code] = newcodes
 
     def importASCII(self, filename, date_range=(datetime(1000,1,1), datetime(3000,1,1)),
                     lat_range=(-inf, inf), lon_range=(-inf, inf), exclude_mobile=True):
