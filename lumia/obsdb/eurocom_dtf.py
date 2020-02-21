@@ -25,13 +25,13 @@ class obsdb(obsdb_base):
         self.fixDuplicatedSiteCodes()
 
     def fixDuplicatedSiteCodes(self):
-        sitecodes = unique(self.site.code)
+        sitecodes = unique(self.sites.code)
         for code in sitecodes :
-            if count_nonzero(self.site.code.values == code) > 1 :
-                heights = self.site.loc[self.site.code == code, 'height'].values
-                oldcodes = self.site.loc[self.site.code == code, 'code'].values
-                newcodes = [f'{s.upper():3s}{h:03d}' for (s, h) in zip(oldcodes, heights)]
-                self.site.loc[self.site.code == code] = newcodes
+            if count_nonzero(self.sites.code.values == code) > 1 :
+                heights = self.sites.loc [self.sites.code == code, 'height'].values
+                oldcodes = self.sites.loc[self.sites.code == code, 'code'].values
+                newcodes = [f'{s.upper():3s}{h:03.0f}' for (s, h) in zip(oldcodes, heights)]
+                self.sites.loc[self.sites.code == code, 'code'] = newcodes
 
     def importASCII(self, filename, date_range=(datetime(1000,1,1), datetime(3000,1,1)),
                     lat_range=(-inf, inf), lon_range=(-inf, inf), exclude_mobile=True):
