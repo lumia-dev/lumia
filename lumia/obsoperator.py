@@ -29,15 +29,15 @@ class transport(object):
         """
         This copies the last model I/O to "path", with an optional tag to identify it
         """
-        tag = tag.strip('.')
-        tag = '' if tag is None else tag+'.'
+        tag = '' if tag is None else tag.strip('.')+'.'
         if path is None :
             path = self.rcf.get('path.output')
         checkDir(path)
 
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
         self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
-        shutil.copy(structf, path)
+        if structf is not None :
+            shutil.copy(structf, path)
 
     def runForward(self, struct, step=None):
         """

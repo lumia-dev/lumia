@@ -23,6 +23,7 @@ logger.setLevel('INFO')
 if args.debug :
     logger.setLevel('DEBUG')
 
+
 rcf = lumia.rc(args.rc)
 
 start = datetime(*rcf.get('time.start'))
@@ -30,6 +31,10 @@ end = datetime(*rcf.get('time.end'))
 
 if not 'tag' in rcf.keys:
     rcf.setkey('tag', f'{start.strftime("%Y%m%d%H%M")}-{end.strftime("%Y%m%d%H%M")}')
+
+if rcf.get('transport.output'):
+    #rcf.keys.keys['transport.output.steps'] = '${tag}'
+    rcf.setkey('transport.output.steps', rcf.get('config'))
 
 db = obsdb(filename=rcf.get('observations.input_file'), start=start, end=end)
 db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
@@ -40,5 +45,5 @@ for cat in categories :
 emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
 
 model = lumia.transport(rcf, obs=db, formatter=lagrange)
-model.runForward(emis, step='forward')
-model.save()
+model.runForward(emis, step=rcf.get('config'))
+#model.save()
