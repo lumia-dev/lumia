@@ -65,7 +65,11 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
 
     # Initialize the data container (control)
-    ctrl = lumia.Control(rcf)
+    if rcf.get('use.ray'):
+        import lumia.preconditioner_ray as precon
+    else :
+        import lumia.preconditioner as precon
+    ctrl = lumia.Control(rcf, preconditioner=precon)
 
     # Create the "Interface" (to convert between control vector and model driver structure)
     interface = Interface(ctrl.name, model.name, rcf, ancilliary=emis)
