@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 
-from pandas import DataFrame, read_hdf
-from lumia.Tools.rctools import rc
-from .Tools import Region, Categories
-from .preconditioner import g_to_gc, xc_to_x
-from numpy import *
 import os
 import logging
-import h5py
-from lumia import tqdm
 from datetime import datetime
+import h5py
+from pandas import DataFrame, read_hdf
+from numpy import *
+from lumia.Tools.rctools import rc
+from lumia import preconditioner_ray as precon
+from .Tools import Region, Categories
 
 logger = logging.getLogger(__name__)
 
 class Control:
     name = 'monthlytot'
-    def __init__(self, rcf=None, filename=None):
+    def __init__(self, rcf=None, filename=None, preconditioner=precon):
         # Data containers :
         self.horizontal_correlations = {}
         self.temporal_correlations = {}
@@ -35,12 +34,15 @@ class Control:
         self.save = self._to_hdf
         self.load = self._from_hdf
 
+        # Preconditioner (+ initialization)
+        self.preco = preconditioner
+        self.preco.init()
+
         if rcf is not None :
             self.loadrc(rcf)
         elif filename is not None :
             rcf = self.load(filename, loadrc=True)
             self.loadrc(rcf)
-
 
     def loadrc(self, rcf):
         self.rcf = rcf
@@ -58,23 +60,17 @@ class Control:
         self.vectors.loc[:, 'prior_uncertainty'] = uncdict['prior_uncertainty']
         self.horizontal_correlations = uncdict['Hcor']
         self.temporal_correlations = uncdict['Tcor']
-            
-    def xc_to_x(self, state_preco, add_prior=True):
-        # Setup MPI if possible:
-        if self.rcf.get('mpi.nproc', default=1) > 1 and self.rcf.get('use.mpi', default=False):
-            from .preconditioner import xc_to_x_MPI as xc_to_x
-        else :
-            from .preconditioner import xc_to_x
 
+    def xc_to_x(self, state_preco, add_prior=True):
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
         catIndex = self.vectors.category.tolist()
-        for cat in tqdm(self.categories) :
+        for cat in self.categories :
             if cat.optimize :
                 Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
                 Temp_L = self.temporal_correlations[cat.temporal_correlation]
                 ipos = catIndex.index(cat.name)
-                state += xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
+                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
         if add_prior: state += self.vectors.loc[:, 'state_prior']
 
         # Store the current state and state_preco
@@ -82,23 +78,17 @@ class Control:
         self.vectors.loc[:,'state_preco'] = state_preco
 
         return state
-    
-    def g_to_gc(self, g):
-        # Setup MPI if possible:
-        if self.rcf.get('mpi.nproc', default=1) > 1 and self.rcf.get('use.mpi', default=False):
-            from .preconditioner import g_to_gc_MPI as g_to_gc
-        else :
-            from .preconditioner import g_to_gc
 
+    def g_to_gc(self, g):
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         catIndex = self.vectors.category.tolist()
-        for cat in tqdm(self.categories):
+        for cat in self.categories:
             if cat.optimize :
                 Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
                 Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
                 ipos = catIndex.index(cat.name)
-                g_c += g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.run'))
+                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.run'))
         return g_c
         
     def _to_hdf(self, filename):
@@ -107,7 +97,7 @@ class Control:
             os.makedirs(savedir)
         elif os.path.exists(filename):
             os.remove(filename)
-        logger.info("Write control savefile to %s"%filename)
+        logger.info(f"Write control savefile to {filename}")
         
         # Vectors
         self.vectors.to_hdf(filename, 'vectors')
@@ -161,14 +151,14 @@ class Control:
         try :
             return self.vectors.loc[:, item].values
         except KeyError :
-            logger.critical("Parameter %s doesn't exist ..."%item)
+            logger.critical("Parameter %s doesn't exist ...", item)
             raise 
             
     def set(self, item, values):
         try:
             self.vectors.loc[:, item] = values
         except ValueError:
-            logger.critical("Parameter value for '%s' could not be stored, because its dimension '%i' doesn't conform with that of the control vector (%i)"%(key, len(values), self.size))
+            logger.critical("Parameter value for '%s' could not be stored, because its dimension '%i' doesn't conform with that of the control vector (%i)", key, len(values), self.size)
             raise
     
     def __getattr__(self, item):
