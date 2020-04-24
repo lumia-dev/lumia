@@ -45,6 +45,15 @@ class tinterv:
     def overlaps(self, other):
         return self.start < other.end and self.end > other.start
 
+    def overlap_percent(self, other):
+        if self.within(other):
+            return 1.
+        elif self.overlaps(other):
+            dt = (min(self.end, other.end)-max(self.start, other.start)).total_seconds()
+            return dt/self.total_seconds()
+        else :
+            return 0.
+
     def within(self, other):
         return self.start >= other.start and self.end <= other.end
 

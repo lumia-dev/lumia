@@ -1,15 +1,35 @@
 #!/usr/bin/env python
 
-from lumia.obsdb import obsdb as obsdb_base
-import logging
-from numpy import *
-from lumia import tqdm
-import h5py
 import os
+import logging
 import subprocess
+from multiprocessing import Pool
+import h5py
+from xarray import DataArray, open_dataarray
+from numpy import unique, array, size, zeros
+from lumia.obsdb import obsdb as obsdb_base
+from lumia import tqdm
 from lumia.Tools import system_tools
 
 logger = logging.getLogger(__name__)
+
+def concat_footprints(file):
+    with h5py.File(file, 'r') as ds :
+        observations = [k for k in ds.keys() if not k in ['latitudes', 'longitudes']]
+        lats = ds['latitudes'][:]
+        lons = ds['longitudes'][:]
+        field = zeros((len(lats), len(lons)))
+        for obs in observations:
+            for fp in ds[obs].keys():
+                try :
+                    ilats = ds[obs][fp]['ilats'][:]
+                    ilons = ds[obs][fp]['ilons'][:]
+                except KeyError :
+                    ilats = ds[obs][fp]['ilat'][:]
+                    ilons = ds[obs][fp]['ilon'][:]
+                field[ilats, ilons] += ds[obs][fp]['resp'][:]
+    data = DataArray(field, coords=[lats, lons], dims=['lats', 'lons'])
+    return data
 
 class obsdb(obsdb_base):
     def __init__(self, **kwargs):
@@ -27,6 +47,26 @@ class obsdb(obsdb_base):
 
     def setupUncertainties(self, errvec):
         self.observations.loc[:, 'err'] = errvec
+
+    def calcSensitivityMap(self, recompute=False):
+        if not hasattr(self, 'sensi_map') or recompute :
+            footprint_files = unique(self.observations.footprint)
+            with Pool() as p :
+                fields = list(tqdm(p.imap(concat_footprints, footprint_files), total=len(footprint_files), desc="Computing network sensitivity map"))
+            #import pdb; pdb.set_trace()
+            field = DataArray(array([f.data for f in fields]).sum(0), coords=[fields[0].lats, fields[0].lons], dims=['lats', 'lons'])
+            self.sensi_map = field
+            self.add_sensiMapIO()
+#        if save is not None :
+#            field.to_netcdf(save)
+        return self.sensi_map
+
+    def add_sensiMapIO(self):
+        self.io['sensi_map'] = {
+            'write':[self.sensi_map.to_netcdf.__func__, {'path':'sensi_map.nc'}],
+            'read':[open_dataarray, {}],
+            'filename':'sensi_map.nc'
+        }
 
     def _genFootprintNames(self, fnames=None, leave_pbar=False):
         """
@@ -58,7 +98,7 @@ class obsdb(obsdb_base):
         system_tools.checkDir(cache)
         if not os.path.exists(file_in_cache):
             if not os.path.exists(filename):
-                logger.warning('File %s not found! no footprints will be read from it'%filename)
+                logger.warning('File %s not found! no footprints will be read from it',filename)
                 file_in_cache = None
             elif cache != self.footprints_path:
                 logger.debug(f'File <s>{os.path.basename(filename)}</s> found in <s>{self.footprints_path}</s>')

@@ -7,8 +7,8 @@ import h5py
 from pandas import DataFrame, read_hdf
 from numpy import *
 from lumia.Tools.rctools import rc
-from lumia import preconditioner_ray as precon
-from .Tools import Region, Categories
+from lumia.precon import preconditioner as precon
+from lumia.Tools import Region, Categories
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
+import os
 from datetime import datetime
 from argparse import ArgumentParser
+import xarray as xr
 import lumia
 from lumia.obsdb.footprintdb import obsdb
 from lumia.formatters import lagrange
@@ -9,6 +11,7 @@ from lumia.interfaces import Interface
 from lumia.Tools.logging_tools import logger
 from lumia.obsdb.backgroundDb import backgroundDb
 from lumia.obsdb.invdb import invdb
+from lumia.control import flexRes as control
 
 def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', start=None, end=None):
 
@@ -61,15 +64,25 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
     else :
         emis = lagrange.ReadStruct(emfile)
 
+    # Calculate grid point aggregation
+    if rcf.get("optimize.aggregate_emissions"):
+        if os.path.exists(rcf.get("optimize.gridspec")):
+            emis['sensi_map'] = xr.open_dataarray(rcf.get('optimize.gridspec'))
+        else :
+            emis['sensi_map'] = db.calcSensitivityMap()
+            lumia.Tools.checkDir(os.path.dirname(rcf.get('optimize.gridspec')))
+            emis['sensi_map'].to_netcdf(rcf.get('optimize.gridspec'))
+
     # Initialize the obs operator (transport model)
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
 
     # Initialize the data container (control)
     if rcf.get('use.ray'):
-        import lumia.preconditioner_ray as precon
+        from lumia.precon import preconditioner_ray as precon
     else :
-        import lumia.preconditioner as precon
-    ctrl = lumia.Control(rcf, preconditioner=precon)
+        from lumia.precon import preconditioner as precon
+
+    ctrl = control.Control(rcf, preconditioner=precon)
 
     # Create the "Interface" (to convert between control vector and model driver structure)
     interface = Interface(ctrl.name, model.name, rcf, ancilliary=emis)
@@ -83,8 +96,7 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
     opt = lumia.optimizer.Optimizer(rcf, ctrl, model, interface)
     if not setuponly :
         opt.Var4D()
-    else :
-        return opt
+    return opt
 
 if __name__ == '__main__' :
 
