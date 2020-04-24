@@ -1,9 +1,11 @@
 import os
-from netCDF4 import Dataset
-from numpy import transpose, where, zeros, eye, ones, dot, pi, sin, cos, arcsin, exp, \
-    meshgrid, linalg, diag, sqrt, argsort, flipud
 import logging
+from netCDF4 import Dataset
+from numpy import transpose, where, zeros, eye, dot, pi, sin, cos, arcsin, exp, \
+    meshgrid, linalg, diag, sqrt, argsort, flipud
 logger = logging.getLogger(__name__)
+
+#TODO: create a proper "grid" module, which will create a file storing the grid definition and the lat/lon covariances
 
 def read_latlon(file_name):
     if not os.path.exists(file_name):
@@ -18,24 +20,21 @@ def read_latlon(file_name):
 
 
 class horcor:
-    def __init__(self, region, corlen, cortype, statevec, min_eigval=0.00001):
+    def __init__(self, corlen, cortype, statevec, min_eigval=0.00001):
         self.corlen = corlen
         self.cortype = cortype
         self.state = statevec
         self.min_eigval = min_eigval
-        self.region = region
-        self.n_hor = -1
-        self.lam = None
-        self.P = None
-        self.P_diag = None
+#        self.region = region
+#        self.n_hor = -1
+#        self.lam = None
+#        self.P = None
+#        self.P_diag = None
 
     def calc_latlon_covariance(self):
-        from numpy.linalg import eigh
-#        from scipy.linalg import cholesky, LinAlgError
-
         logger.info("Use numpy.linalg to compute eigen decomposition of covariance matrix")
         n_hor = self.state.shape[0]
-        logger.info("Matrix size: (%i x %i)"%(n_hor, n_hor))
+        logger.info("Matrix size: (%i x %i)",n_hor, n_hor)
         P = zeros((n_hor, n_hor))
         P_diag = zeros((n_hor, n_hor))
         iexp = {'e':1, 'g':2}[self.cortype]
@@ -54,12 +53,7 @@ class horcor:
                     P[p1.Index, p2.Index] = cor
                     P[p2.Index, p1.Index] = cor
             # Eigen decomposition of symmetric matrix
-            #P0 = P[:]
-            #try :
-            #    P0 = cholesky(P0, lower=True)
-            #except LinAlgError as err :
-            #    print err.args[0]
-            lam, P = eigh(P)
+            lam, P = linalg.eigh(P)
             lam = self.make_positive_semidef(lam)
             for i in range(n_hor):
                 P_diag[i, i] = lam[i]
@@ -71,18 +65,18 @@ class horcor:
 
     def write(self, filename):
         ds = Dataset(filename, 'w')
-        ds.nregions = 1
-        ds.im = self.region.nlon
-        ds.jm = self.region.nlat
-        ds.lm = -1       # Not sure if this is used anywhere, so I prefer to put an invalid value, to be sure it'll crash if used.,
-        ds.dx = self.region.dlon
-        ds.dy = self.region.dlat
-        ds.xref = ones(2)
-        ds.yref = ones(2)
-        ds.xbeg = self.region.lonmin
-        ds.xend = self.region.lonmax
-        ds.ybeg = self.region.latmin
-        ds.yend = self.region.latmax
+#        ds.nregions = 1
+#        ds.im = self.region.nlon
+#        ds.jm = self.region.nlat
+#        ds.lm = -1       # Not sure if this is used anywhere, so I prefer to put an invalid value, to be sure it'll crash if used.,
+#        ds.dx = self.region.dlon
+#        ds.dy = self.region.dlat
+#        ds.xref = ones(2)
+#        ds.yref = ones(2)
+#        ds.xbeg = self.region.lonmin
+#        ds.xend = self.region.lonmax
+#        ds.ybeg = self.region.latmin
+#        ds.yend = self.region.latmax
         ds.corlen = self.corlen
         ds.corchoice = self.cortype
         ds.createDimension('n_hor', self.n_hor)
@@ -105,12 +99,45 @@ class horcor:
         min_eigval = self.min_eigval+0.
         if self.min_eigval > 1.e-10:
             min_eigval = self.min_eigval*min((1., lam.max()))
-        logger.info("Maximum eigenvalue = %10.3e, minimum eigenvalue = %10.3e"%(lam.min(), lam.max()))
+        logger.info("Maximum eigenvalue = %10.3e, minimum eigenvalue = %10.3e", lam.min(), lam.max())
         n_neg = sum(lam < min_eigval)
         lam[lam<min_eigval] = min_eigval
         if n_neg > 0 :
-            logger.info("Set %i eigenvalues to %15.11f"%(n_neg, min_eigval))
+            logger.info("Set %i eigenvalues to %15.11f",n_neg, min_eigval)
         return lam
+
+
+#class horcor_vres(horcor):
+#    def __init__(self, corlen, cortype, state, min_eigval=0.00001):
+#        self.corlen = corlen
+#        self.cortype = cortype
+#        self.state = state
+#        self.min_eigval = min_eigval
+#        self.n_hor = -1
+#        self.lam = None
+#        self.P = None
+#        self.P_diag = None
+#
+#    def write(self, filename):
+#        ds = Dataset(filename, 'w')
+#        ds.corlen = self.corlen
+#        ds.corchoice = self.cortype
+#        ds.createDimension('n_hor', self.n_hor)
+#        ds.createVariable('sqrt_lam', 'd', ('n_hor', ), zlib=True)
+#        ds.createVariable('lam', 'd', ('n_hor', ), zlib=True)
+#        ds.createVariable('P', 'd', ('n_hor', 'n_hor'), zlib=True)
+#        ds.variables['lam'][:] = self.lam
+#        ds.variables['sqrt_lam'][:] = self.lam**.5
+#        ds.variables['P'][:] = self.P.transpose() # numpy.eigv returns the vectors in columns, but the equivalent fotran subroutine returns them in rows. So store it in rows for consistency.
+#
+#        # Also write B itself (first recalculate), for use in postprocessing
+#        logger.info("Recalculating B matrix from eigenvectors/eigenvalues")
+#        ds.createVariable('B', 'd', ('n_hor', 'n_hor'), zlib=True)
+#        B = dot(self.P, self.P_diag)
+#        P = dot(B, self.P.transpose())
+#        ds.variables['B'][:] = P
+#        ds.close()
+
 
 def dist(lon1, lat1, lon2, lat2, ae=6.371e6):
     # Compute distance of two points on the globe

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
+import sys
 import os
 import shutil
 import subprocess
-from .obsdb import obsdb
-import inspect
-from lumia.Tools import checkDir, colorize
 import logging
 import tempfile
+from lumia.Tools import checkDir, colorize
+from .obsdb import obsdb
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ class transport(object):
             shutil.rmtree(os.path.dirname(checkf))
         else :
             logger.error(msg)
-            raise
+            sys.exit()
 
     def check_init(self):
         """
@@ -134,4 +134,4 @@ class transport(object):
         """
         if self.db.observations.footprint.count() == 0 :
             logger.critical("No valid footprint files in the database. Aborting ...")
-            raise
+            sys.exit()

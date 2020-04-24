@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from numpy import shape, zeros, dot
+from numpy import arange, ones_like
 from lumia import tqdm
 
 class Categories:
@@ -83,23 +83,86 @@ class costFunction:
             raise AttributeError("Attribute %s not permitted"%key)
         
         
-#def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy):
-#    n_state = len(G_state)
-#    nt = shape(Temp_Lt)[0]
-#    nhor = shape(Hor_Lt)[0]
-#    g_c = zeros([n_state])
-#    for i in tqdm(range(nt), desc='preconditioning gradient', leave=False):
-#        for j in range(nt):
-#            g_c[ipos+i*nhor:ipos+(i+1)*nhor] += dot(Temp_Lt[i,j]*Hor_Lt, G_state[ipos+j*nhor:ipos+(j+1)*nhor] * g[ipos+j*nhor:ipos+(j+1)*nhor])
-#    return g_c
+class Cluster:
+    def __init__(self, data, indices=None, mask=None):
+        self.data = data
+        self.shape = self.data.shape
+        self.ny, self.nx = data.shape
+        self.size = self.nx*self.ny
+        if indices is None :
+            self.ind = arange(self.size).reshape((self.ny, self.nx))
+        else :
+            self.ind = indices
+        if mask is None :
+            mask = ones_like(data, dtype=bool)
+        self.mask=mask
+        self.rank = abs(self.data.sum())
+        if self.size == 1 : self.rank = -1
 
-def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy):
-    n_state = len(G_state)
-    nt = shape(Temp_L)[0]
-    nhor = shape(Hor_L)[0]
+    def splitx(self):
+        self.transpose()
+        c1, c2 = self.splity()
+        c1.transpose()
+        c2.transpose()
+        return c1, c2
 
-    x = zeros(n_state)
-    for i in tqdm(range(nt), desc='xc_to_x', leave=True):
-        for j in tqdm(range(nt), desc='step %i/%i'%(i, nt), leave=False):
-            x[ipos+i*nhor:ipos+(i+1)*nhor] += G_state[ipos+i*nhor:ipos+(i+1)*nhor]* dot(Temp_L[i,j]*Hor_L, x_c[ipos+j*nhor:ipos+(j+1)*nhor])
-    return x
+    def splity(self):
+        npt = self.data.shape[0]
+        isplit = int(npt/2)
+        if npt%2 == 1 :
+            d1 = abs(self.data[:isplit,:].sum()-self.data[isplit:,:].sum())
+            d2 = abs(self.data[:isplit+1,:].sum()-self.data[isplit+1:,:].sum())
+            if d2 < d1 : isplit = isplit+1
+        c1 = Cluster(self.data[:isplit,:], indices=self.ind[:isplit,:], mask=self.mask[:isplit,:])
+        c2 = Cluster(self.data[isplit:,:], indices=self.ind[isplit:,:], mask=self.mask[isplit:,:])
+        return c1, c2
+
+    def transpose(self):
+        self.data = self.data.transpose()
+        self.ind = self.ind.transpose()
+        self.mask = self.mask.transpose()
+        self.ny, self.nx = self.data.shape
+
+    def split(self):
+        if self.ny > self.nx :
+            c1, c2 = self.splity()
+        elif self.nx > self.ny :
+            c1, c2 = self.splitx()
+        else :
+            c11, c21 = self.splity()
+            d1 = abs(c11.data.sum()-c21.data.sum())
+            c12, c22 = self.splitx()
+            d2 = abs(c12.data.sum()-c22.data.sum())
+            if d1 > d2 :
+                c1, c2 = c12, c22
+            else :
+                c1, c2 = c11, c21
+        return c1, c2
+
+
+def clusterize(field, nmax, mask=None):
+    clusters = [Cluster(field, mask=mask)]
+    sizes = [c.size for c in clusters]
+    clusters_final = []   # Offload the clusters that cannot be further divided to speed up the calculations
+    with tqdm(total=min(nmax, (clusters[0].mask > 0).sum()), desc="spatial aggregation") as pbar:
+        while len(clusters) < nmax and len(sizes) < sum(sizes):
+            ranks = [c.rank for c in clusters]
+            ind = ranks.index(max(ranks))
+            cl1, cl2 = clusters[ind].split()
+            clusters.pop(ind)
+            increment = 0
+            if cl1.mask.any() :
+                if cl1.size == 1 :
+                    clusters_final.append(cl1)
+                else :
+                    clusters.append(cl1)
+                increment = 1
+            if cl2.mask.any() :
+                if cl2.size == 1 :
+                    clusters_final.append(cl2)
+                else :
+                    clusters.append(cl2)
+                increment = 1
+            sizes = [c.size for c in clusters+clusters_final]
+            pbar.update(increment)
+    return clusters+clusters_final

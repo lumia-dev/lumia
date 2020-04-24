@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-from lumia.Tools import Categories
-import logging
 import os
-from .tools import read_latlon, horcor, calc_temp_corr
+import logging
+from numpy import dot, unique
+from lumia.Tools import Categories
 from lumia.Tools import Region
-from numpy import dot
+from .tools import read_latlon, horcor, calc_temp_corr
 logger = logging.getLogger(__name__)
 
 class Uncertainties:
@@ -39,11 +39,21 @@ class Uncertainties:
                 
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
 
-    def setup_Hcor(self):
+    def setup_Hcor_old(self):
         for cat in self.categories :
             if cat.optimize :
                 if not cat.horizontal_correlation in self.horizontal_correlations :
                     fname = self.checkCorFile(cat.horizontal_correlation, cat) # TODO: Move this to a completely external code/module?
+                    P_h, D_h = read_latlon(fname)
+                    Hor_L = P_h * D_h
+                    self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
+                    del P_h, D_h
+
+    def setup_Hcor(self):
+        for cat in self.categories :
+            if cat.optimize :
+                if not cat.horizontal_correlation in self.horizontal_correlations :
+                    fname = self.checkCorFile_vres(cat.horizontal_correlation, cat)
                     P_h, D_h = read_latlon(fname)
                     Hor_L = P_h * D_h
                     self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
@@ -67,20 +77,31 @@ class Uncertainties:
 
     def checkCorFile(self, hcor, cat):
         # Generate the correlation file name
+        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
         corlen, cortype = hcor.split('-')
         corlen = int(corlen)
         fname = 'Bh:%s:%5.5i_%s.nc'%(self.region.name, corlen, cortype)
         fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
         if not os.path.exists(fname):
-            logger.info("Correlation file <p:%s> not found. Computing it"%fname)
-            hc = horcor(
-                self.region,
-                corlen,
-                cortype,
-                self.data.loc[self.data.category == cat,('lat', 'lon')].drop_duplicates()
-            )
+            logger.info("Correlation file <p:%s> not found. Computing it",fname)
+            hc = horcor(corlen, cortype, data)
             hc.calc_latlon_covariance()
             hc.write(fname)
             del hc
         return fname
 
+    def checkCorFile_vres(self, hcor, cat):
+        # Generate the correlation file name
+        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+        corlen, cortype = hcor.split('-')
+        corlen = int(corlen)
+        nclusters = data.shape[0] 
+        fname = f'Bh:{self.region.name}-{nclusters}clusters:{corlen}:{cortype}'
+        fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
+        if not os.path.exists(fname):
+            logger.info("Correlation file <p:%s> not found. Computing it",fname)
+            hc = horcor(corlen, cortype, data)
+            hc.calc_latlon_covariance()
+            hc.write(fname)
+            del hc
+        return fname

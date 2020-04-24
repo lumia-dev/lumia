@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-import os
 import logging
-from netCDF4 import Dataset
-from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
 from copy import deepcopy
+from dateutil.relativedelta import relativedelta
 from pandas import DataFrame
-from numpy import *
+from numpy import array, float64, append, unique
 from lumia.Tools import Region, Categories
 
 logger = logging.getLogger(__name__)
@@ -36,7 +34,7 @@ class Interface:
             times = emcat['time_interval']['time_start'] + (emcat['time_interval']['time_end'] - emcat['time_interval']['time_start'])/2
 
             # Loop over all the components of the control vector
-            for i_time, tt in enumerate(sorted(emcat['time_interval']['time_start'])):
+            for i_time in range(len(emcat['time_interval']['time_start'])):
                 for i_lat in range(emcat['emis'].shape[1]):
                     for i_lon in range(emcat['emis'].shape[2]):
                         statevec.append(emcat['emis'][i_time, i_lat, i_lon])
@@ -61,7 +59,7 @@ class Interface:
         fine_data = deepcopy(self.ancilliary_data)
         for cat in [x for x in self.categories if x.optimize]:
             coarse_data = coarsenTime(fine_data[cat.name], cat.optimization_interval, compute_std=False)
-            for i_time, tt in enumerate(sorted(coarse_data['time_interval']['time_start'])):
+            for i_time in range(len(coarse_data['time_interval']['time_start'])):
                 for i_lat in range(coarse_data['emis'].shape[1]):
                     for i_lon in range(coarse_data['emis'].shape[2]):
                         coarse_data['emis'][i_time, i_lat, i_lon] = vector[i_state]
@@ -74,10 +72,8 @@ class Interface:
         adjvec = array(())
 
         for cat in [x for x in self.categories if x.optimize]:
-            # 1) Adjoint of refineTime (#TODO: take this out of stateToStruct_adj)
             adjCat = refineTime_adj(
                 deepcopy(adjstruct[cat.name]),
-                self.ancilliary_data[cat.name],
                 dt[cat.optimization_interval]
             )
 
@@ -160,7 +156,7 @@ def refineTime(coarseEmis, fineEmis):
     return f['emis']
 
 
-def refineTime_adj(adjEmis, fineEmis, dt_optim):
+def refineTime_adj(adjEmis, dt_optim):
     intervals_adjEmis = adjEmis['time_interval']['time_start']
     if dt_optim == relativedelta(years=1):
         intervals_optim = array([datetime(x.year, 1, 1) for x in intervals_adjEmis])
@@ -170,7 +166,7 @@ def refineTime_adj(adjEmis, fineEmis, dt_optim):
         intervals_optim = array([datetime(x.year, x.month, x.day) for x in intervals_adjEmis])
     else:
         raise NotImplementedError
-    for i_time, time in enumerate(unique(intervals_optim)):
+    for time in unique(intervals_optim):
         select = intervals_optim == time
         nt = sum(select) + 0.  # Make sure we have a real
         adjEmis['emis'][select, :, :] /= nt
