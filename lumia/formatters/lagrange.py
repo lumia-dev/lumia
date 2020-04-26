@@ -141,10 +141,10 @@ def ReadArchive(prefix, start, end, **kwargs):
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
         data[cat] = {
-            'emis':ds.co2flux[:-1,:,:].values,
+            'emis':ds.co2flux.values,
             'time_interval':{
-                'time_start':times[:-1],
-                'time_end':times[1:]
+                'time_start':times,
+                'time_end':times+(times[1]-times[0])
             },
             'lats':ds.lat[:],
             'lons':ds.lon[:]
