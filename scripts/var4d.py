@@ -11,7 +11,7 @@ from lumia.interfaces import Interface
 from lumia.Tools.logging_tools import logger
 from lumia.obsdb.backgroundDb import backgroundDb
 from lumia.obsdb.invdb import invdb
-from lumia.control import flexRes as control
+from lumia.control import flexRes, monthlyFlux# as control
 
 def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', start=None, end=None):
 
@@ -72,6 +72,9 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
             emis['sensi_map'] = db.calcSensitivityMap()
             lumia.Tools.checkDir(os.path.dirname(rcf.get('optimize.gridspec')))
             emis['sensi_map'].to_netcdf(rcf.get('optimize.gridspec'))
+        control = flexRes
+    else :
+        control = monthlyFlux
 
     # Initialize the obs operator (transport model)
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
