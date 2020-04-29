@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime
 from copy import deepcopy
-from numpy import zeros, meshgrid, average, flatnonzero, float64, array, size
+from numpy import zeros, meshgrid, average, flatnonzero, float64, array, size, nan
 from pandas import DataFrame
 from dateutil.relativedelta import relativedelta
 from lumia.Tools import Region, Categories
@@ -28,13 +28,14 @@ class Interface :
 
         #TODO: Replace this by a proper module to handle the mapping
         import os, pickle
-        if os.path.exists('mapping.pickle'):
-            with open('mapping.pickle', 'rb') as fid:
+        mapping_file = os.path.join(self.rcf.get('path.run'), 'mapping.pickle')
+        if os.path.exists(mapping_file):
+            with open(mapping_file, 'rb') as fid:
                 self.temporal_mapping, self.spatial_mapping = pickle.load(fid)
         else :
             self.temporal_mapping = self.calc_temporal_coarsening(struct)
             self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm)
-            with open('mapping.pickle', 'wb') as fid:
+            with open(mapping_file, 'wb') as fid:
                 pickle.dump([self.temporal_mapping, self.spatial_mapping], fid)
 
         vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
@@ -104,7 +105,7 @@ class Interface :
             mask = lsm
         )
         mapping = {
-            'clusters_map': zeros((self.region.nlat, self.region.nlon)),
+            'clusters_map': zeros((self.region.nlat, self.region.nlon))+nan,
             'cluster_specs': []
         }
         lons, lats = meshgrid(self.region.lons, self.region.lats)
