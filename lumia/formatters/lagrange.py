@@ -140,8 +140,17 @@ def ReadArchive(prefix, start, end, **kwargs):
             ds.append(xr.load_dataset(fname))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
+
+        # The DataArray.sel command includes the time step starting at "end", so we normally would need to trim the last time step. But if it is a 1st january at 00:00, then the corresponding file
+        # hasn't been loaded, so there is nothing to trim
+        if times[-1] == end :
+            times = times[:-1]
+            emis = ds.co2flux.values[:-1,:,:]
+        else :
+            emis = ds.co2flux.values
+            
         data[cat] = {
-            'emis':ds.co2flux.values,
+            'emis':emis,
             'time_interval':{
                 'time_start':times,
                 'time_end':times+(times[1]-times[0])
