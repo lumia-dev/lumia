@@ -142,27 +142,31 @@ class Cluster:
 
 def clusterize(field, nmax, mask=None):
     clusters = [Cluster(field, mask=mask)]
-    sizes = [c.size for c in clusters]
+    #sizes = [c.size for c in clusters]
     clusters_final = []   # Offload the clusters that cannot be further divided to speed up the calculations
-    with tqdm(total=min(nmax, (clusters[0].mask > 0).sum()), desc="spatial aggregation") as pbar:
-        while len(clusters) < nmax and len(sizes) < sum(sizes):
+    nclmax = min(nmax, (clusters[0].mask > 0).sum())
+    with tqdm(total=nclmax, desc="spatial aggregation") as pbar:
+        ncl = len(clusters+clusters_final)
+        while ncl < nclmax :# and len(Cluster) > 0 :
             ranks = [c.rank for c in clusters]
-            ind = ranks.index(max(ranks))
+            try :
+                ind = ranks.index(max(ranks))
+            except :
+                import pdb; pdb.set_trace()
             cl1, cl2 = clusters[ind].split()
             clusters.pop(ind)
-            increment = 0
             if cl1.mask.any() :
                 if cl1.size == 1 :
                     clusters_final.append(cl1)
                 else :
                     clusters.append(cl1)
-                increment = 1
             if cl2.mask.any() :
                 if cl2.size == 1 :
                     clusters_final.append(cl2)
                 else :
                     clusters.append(cl2)
-                increment = 1
-            sizes = [c.size for c in clusters+clusters_final]
-            pbar.update(increment)
+            #sizes = [c.size for c in clusters+clusters_final]
+            inc = len(clusters+clusters_final)-ncl
+            pbar.update(inc)
+            ncl += inc
     return clusters+clusters_final
