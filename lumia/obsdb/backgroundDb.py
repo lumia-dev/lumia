@@ -13,23 +13,24 @@ logger = logging.getLogger(__name__)
 
 class backgroundDb(obsdb):
     def read_backgrounds(self, path, prefix='mix.', suffix='.nc', step='apos', var='CO2.bg', field='background'):
-        for site in self.sites.iterrows():
+        for site in self.sites.itertuples():
             ds = xr.load_dataarray(os.path.join(path, f'{prefix}{site.code}{suffix}'))
 
             # Select the good level
             level = site.height
-            if not level in ds.level and len(ds.level == 1):
-                level = -1 # take the only level available
-                logger.warning(f"Use level {level} for site {site.code} with sampling height of {site.height} m")
-            else :
-                import pdb; pdb.set_trace()
+            if not level in ds.level :
+                if len(ds.level) == 1 :
+                    level = -1 # take the only level available
+                    logger.warning(f"Use level {level} for site {site.code} with sampling height of {site.height} m")
+                else :
+                    import pdb; pdb.set_trace()
 
             # Load the data
             bg = ds.sel(step=step, var=var, level=level)
 
             # Temporal interpolation
-            bg_interp = interp(self.observations.time, bg.time, bg)
-            self.observations.loc[self.observations.site == site.index, field] = bg_interp
+            bg_interp = interp(self.observations.loc[self.observations.site == site.code, 'time'], bg.time, bg)
+            self.observations.loc[self.observations.site == site.code, field] = bg_interp
 
 class lumiaBgFile:
     def __init__(self, filename):
