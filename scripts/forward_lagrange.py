@@ -29,7 +29,7 @@ rcf = lumia.rc(args.rc)
 start = datetime(*rcf.get('time.start'))
 end = datetime(*rcf.get('time.end'))
 
-if not 'tag' in rcf.keys:
+if 'tag' not in rcf.keys:
     rcf.setkey('tag', f'{start.strftime("%Y%m%d%H%M")}-{end.strftime("%Y%m%d%H%M")}')
 
 if rcf.get('transport.output'):
