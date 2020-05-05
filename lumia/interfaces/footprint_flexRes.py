@@ -45,7 +45,7 @@ class Interface :
             for itopt, topt in enumerate(self.temporal_mapping[cat.name]['times_optim']):
                 for cluster in self.spatial_mapping['cluster_specs']:
                     time_indices = flatnonzero(self.temporal_mapping[cat.name]['map'][itopt,:])
-                    statevec.append(struct[cat.name]['emis'][time_indices, cluster.ilats, cluster.ilons].sum())
+                    statevec.append(struct[cat.name]['emis'][time_indices,:,:][:,cluster.ilats, cluster.ilons].sum())
                     categ.append(cat.name)
                     time.append(topt)
                     lat.append(cluster.mean_lat)
@@ -74,9 +74,10 @@ class Interface :
         #for var in vector.itertuples():
             tind = flatnonzero(self.temporal_mapping[var.category]['map'][var.itime,:])
             cl = self.spatial_mapping['cluster_specs'][var.iloc]
-            f0 = self.ancilliary_data[cat.name]['emis'][tind, cl.ilats, cl.ilons]
+            f0 = self.ancilliary_data[cat.name]['emis'][tind, :, :][:,cl.ilats, cl.ilons]
             nv = size(f0)
-            struct[var.category]['emis'][tind, cl.ilats, cl.ilons] = vector.loc[var.Index] / nv + f0 - f0.sum() / nv
+            for ipt in range(cl.size) :
+                struct[var.category]['emis'][tind, cl.ilats[ipt], cl.ilons[ipt]] = vector.loc[var.Index] / nv + f0[:, ipt] - f0.sum() / nv
         return struct
 
     def VecToStruct_adj(self, adjstruct):
@@ -84,7 +85,7 @@ class Interface :
         for var in self.ancilliary_data['vec2struct'].itertuples():
             tind = flatnonzero(self.temporal_mapping[var.category]['map'][var.itime,:])
             cl = self.spatial_mapping['cluster_specs'][var.iloc]
-            adj = adjstruct[var.category]['emis'][tind, cl.ilats, cl.ilons]
+            adj = adjstruct[var.category]['emis'][tind, :, :][:, cl.ilats, cl.ilons]
             nv = size(adj)
             adjvec.append(adj.sum()/nv)
 #            itmod = flatnonzero(self.temporal_mapping[var.category][var.itime,:])
