@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from numpy import arange, ones_like
+from numpy import arange, ones_like, array, cumsum, meshgrid
 from lumia import tqdm
 
 class Categories:
@@ -84,11 +84,12 @@ class costFunction:
         
         
 class Cluster:
-    def __init__(self, data, indices=None, mask=None):
+    def __init__(self, data, indices=None, mask=None, dy=None, crop=True):
         self.data = data
         self.shape = self.data.shape
         self.ny, self.nx = data.shape
         self.size = self.nx*self.ny
+        self.dy = self.nx if dy is None else dy
         if indices is None :
             self.ind = arange(self.size).reshape((self.ny, self.nx))
         else :
@@ -98,6 +99,7 @@ class Cluster:
         self.mask=mask
         self.rank = abs(self.data.sum())
         if self.size == 1 : self.rank = -1
+        if crop: self.crop()
 
     def splitx(self):
         self.transpose()
@@ -113,15 +115,16 @@ class Cluster:
             d1 = abs(self.data[:isplit,:].sum()-self.data[isplit:,:].sum())
             d2 = abs(self.data[:isplit+1,:].sum()-self.data[isplit+1:,:].sum())
             if d2 < d1 : isplit = isplit+1
-        c1 = Cluster(self.data[:isplit,:], indices=self.ind[:isplit,:], mask=self.mask[:isplit,:])
-        c2 = Cluster(self.data[isplit:,:], indices=self.ind[isplit:,:], mask=self.mask[isplit:,:])
-        return c1, c2
+        c1 = Cluster(self.data[:isplit,:], indices=self.ind[:isplit,:], mask=self.mask[:isplit,:], dy=self.dy)
+        c2 = Cluster(self.data[isplit:,:], indices=self.ind[isplit:,:], mask=self.mask[isplit:,:], dy=self.dy)
+        return [c1, c2]
 
     def transpose(self):
         self.data = self.data.transpose()
         self.ind = self.ind.transpose()
         self.mask = self.mask.transpose()
         self.ny, self.nx = self.data.shape
+        self.shape = self.data.shape
 
     def split(self):
         if self.ny > self.nx :
@@ -137,35 +140,73 @@ class Cluster:
                 c1, c2 = c12, c22
             else :
                 c1, c2 = c11, c21
-        return c1, c2
+        return [c1, c2]
 
+    def crop(self):
+        """
+        This crops the edge row/columns if they are completely masked
+        """
+        mask_r = self.mask.sum(0) > 0
+        mask_c = self.mask.sum(1) > 0
+        mask_r = cumsum(mask_r, dtype=bool)*cumsum(mask_r[::-1], dtype=bool)[::-1]
+        mask_c = cumsum(mask_c, dtype=bool)*cumsum(mask_c[::-1], dtype=bool)[::-1]
+        return Cluster(
+            self.data[mask_c, :][:, mask_r], 
+            indices=self.ind[mask_c, :][:, mask_r], 
+            mask=self.mask[mask_c,:][:, mask_r], 
+            dy=self.dy,
+            crop=False
+        )
+
+    def splitByMask(self):
+        indices = self.ind[self.mask > 0]
+        new_clusters = []
+        while len(indices) > 0 :
+            cl2 = self._walk(indices[0])
+            newmask = array([c in cl2 for c in self.ind.reshape(-1)]).reshape(self.shape)
+            newcl = Cluster(
+                self.data, 
+                self.ind, 
+                mask=newmask, 
+                dy=self.dy
+            )
+            new_clusters.append(newcl)
+            indices = [ii for ii in indices if ii not in cl2]
+        return new_clusters
+
+    def _find_neighbours(self, ind):
+        neighbours = [ind-1, ind+1, ind-self.dy, ind+self.dy]
+        return [n for n in neighbours if n in self.ind[self.mask>0]]
+
+    def _walk(self, n0, neighbours=[]):
+        if len(neighbours) == 0 : neighbours = [n0]
+        new_neigbours = self._find_neighbours(n0)
+        new_neigbours = [n for n in new_neigbours if not n in neighbours]
+        neighbours.extend(new_neigbours)
+        for nb in new_neigbours:
+            neighbours = self._walk(nb, neighbours)
+        return neighbours
 
 def clusterize(field, nmax, mask=None):
-    clusters = [Cluster(field, mask=mask)]
-    #sizes = [c.size for c in clusters]
+    clusters = [Cluster(field, mask=mask, crop=False)]
     clusters_final = []   # Offload the clusters that cannot be further divided to speed up the calculations
     nclmax = min(nmax, (clusters[0].mask > 0).sum())
     with tqdm(total=nclmax, desc="spatial aggregation") as pbar:
         ncl = len(clusters+clusters_final)
         while ncl < nclmax :# and len(Cluster) > 0 :
             ranks = [c.rank for c in clusters]
-            try :
-                ind = ranks.index(max(ranks))
-            except :
-                import pdb; pdb.set_trace()
-            cl1, cl2 = clusters[ind].split()
+            ind = ranks.index(max(ranks))
+            new_clusters = clusters[ind].split()
             clusters.pop(ind)
-            if cl1.mask.any() :
-                if cl1.size == 1 :
-                    clusters_final.append(cl1)
-                else :
-                    clusters.append(cl1)
-            if cl2.mask.any() :
-                if cl2.size == 1 :
-                    clusters_final.append(cl2)
-                else :
-                    clusters.append(cl2)
-            #sizes = [c.size for c in clusters+clusters_final]
+            for cl in new_clusters :
+                if cl.mask.any() :
+                    if cl.size == 1 :
+                        clusters_final.append(cl)
+                    else :
+                        if mask is not None :
+                            clusters.extend(cl.splitByMask())
+                        else :
+                            clusters.append(cl)
             inc = len(clusters+clusters_final)-ncl
             pbar.update(inc)
             ncl += inc

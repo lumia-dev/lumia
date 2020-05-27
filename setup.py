@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
         name="lumia",
-        version="2019.10",
+        version="2020.05",
         author="Guillaume Monteil",
         author_email="guillaume.monteil@nateko.lu.se",
         description=long_description,
@@ -20,5 +20,4 @@ setuptools.setup(
             "Operating System :: OS Independent",
         ],
         python_requires='>=3.6',
-        install_requires=['pandas'],
 )
