@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
         name="lumia",
-        version="2020.05",
+        version="0.0.1",
         author="Guillaume Monteil",
         author_email="guillaume.monteil@nateko.lu.se",
         description=long_description,
