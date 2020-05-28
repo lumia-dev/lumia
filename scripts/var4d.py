@@ -110,8 +110,8 @@ if __name__ == '__main__' :
     p.add_argument('--obs', '-o', help='Path to the observation file (default taken from rc-file')
     p.add_argument('--emis', '-e', help='Path to the (pre-processed) emission/flux file)')
     p.add_argument('--setuponly', '-s', action='store_true', help='use this flag to do the setup but not launch the actual optimization (for debug purpose)')
-    p.add_argument('--start', help="start time (%Y%m%d[%H%M]) of the inversion (overwrites whatever is in the rc-file!", default=None)
-    p.add_argument('--end', help="end time of (%Y%m%d[%H%M]) the inversion (overwrites whatever is in the rc-file!", default=None)
+    p.add_argument('--start', help="start time (%%Y%%m%%d[%%H%%M]) of the inversion (overwrites whatever is in the rc-file!", default=None)
+    p.add_argument('--end', help="end time of (%%Y%%m%%d[%%H%%M]) the inversion (overwrites whatever is in the rc-file!", default=None)
     args = p.parse_args()
 
     tstart = datetime.strptime(f'{args.start:<012}', '%Y%m%d%H%M') if args.start is not None else None
