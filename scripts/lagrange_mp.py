@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import os, sys, subprocess, tempfile, operator, h5py, shutil
-from lumia.Tools import rctools
+#from lumia.Tools import rctools
+import rctools
 from lumia.obsdb import obsdb
 from lumia.Tools.logging_tools import colorize
 from lumia.formatters.lagrange import ReadStruct, Struct, WriteStruct, CreateStruct
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Clean(er/ish) disabling of tqdm in batch mode
 # If the "INTERACTIVE" environment variable is defined and set to "F", we redefine tqdm with the following dummy function
-if os.environ['INTERACTIVE'] == 'F':
+if 'INTERACTIVE' in os.environ and os.environ['INTERACTIVE'] == 'F':
     def tqdm(iterable, *args, **kwargs):
         return iterable
 
@@ -315,7 +316,8 @@ if __name__ == '__main__':
     logger.setLevel(args.verbosity)
 
     # Create the transport model
-    model = Lagrange(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
+    if args.forward or args.adjoint:
+        model = Lagrange(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
 
     if args.forward :
         model.runForward()
