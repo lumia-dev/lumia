@@ -19,3 +19,4 @@ dist/
 *.o
 *.mod
 scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
+.vscode/settings.json

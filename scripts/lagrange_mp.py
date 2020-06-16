@@ -20,9 +20,12 @@ logger = logging.getLogger(__name__)
 
 # Clean(er/ish) disabling of tqdm in batch mode
 # If the "INTERACTIVE" environment variable is defined and set to "F", we redefine tqdm with the following dummy function
-if 'INTERACTIVE' in os.environ and os.environ['INTERACTIVE'] == 'F':
-    def tqdm(iterable, *args, **kwargs):
-        return iterable
+interactive = True
+if 'INTERACTIVE' in os.environ:
+    if os.environ['INTERACTIVE'] == 'F':
+        def tqdm(iterable, *args, **kwargs):
+            return iterable
+        interactive = False
 
 
 class Footprint:
@@ -119,8 +122,9 @@ class Lagrange:
         self.rcfile = rcf
         self.emfile = emfile
         self.executable = __file__
-        self.batch = os.environ['INTERACTIVE'] == 'F'
-        self.categories = Categories(self.rcf)
+        self.batch = not interactive 
+#        self.categories = Categories(self.rcf)
+        self.categories = self.rcf.get('emissions.categories')
         self.checkfile=checkfile
         logger.debug(checkfile)
         if mp :
@@ -141,7 +145,7 @@ class Lagrange:
         dy['tot'] = []
         dy['id'] = []
         dy['model'] = []
-        for cat in self.categories.list :
+        for cat in self.categories :
             dy[cat] = []
 
         # Loop over the footprint files
@@ -156,7 +160,7 @@ class Lagrange:
             for obs in tqdm(self.obs.observations.loc[self.obs.observations.footprint == fpfile, :].itertuples(), desc=msg, leave=False, total=nobs, disable=self.batch):
                 dym, tot = fp.applyEmis(obs.time, emis)
                 if dym is not None :
-                    for cat in self.categories.list :
+                    for cat in self.categories :
                         dy[cat].append(dym.get(cat))
                     dy['tot'].append(tot)
                     dy['id'].append(obs.Index)
@@ -170,7 +174,7 @@ class Lagrange:
         self.obs.observations.loc[dy['id'], 'totals'] = dy['tot']
         self.obs.observations.loc[dy['id'], 'model'] = dy['model']
         self.obs.observations.loc[:, 'foreground'] = 0.
-        for cat in self.categories.list :
+        for cat in self.categories :
             self.obs.observations.loc[dy['id'], cat] = dy[cat]
             self.obs.observations.loc[dy['id'], 'foreground'] += array(dy[cat])
         
@@ -186,7 +190,7 @@ class Lagrange:
             self.obs.observations.loc[db.observations.index, 'foreground'] = db.observations.loc[:, 'foreground']
             self.obs.observations.loc[db.observations.index, 'totals'] = db.observations.loc[:, 'totals']
             self.obs.observations.loc[db.observations.index, 'model'] = db.observations.loc[:, 'model']
-            for cat in self.categories.list:
+            for cat in self.categories:
                 self.obs.observations.loc[db.observations.index, cat] = db.observations.loc[:, cat]
             os.remove(dbf)
         self.obs.save_tar(self.obsfile)
