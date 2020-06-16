@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import logging
 from lumia import tqdm
-#from tqdm.autonotebook import tqdm
 import shutil
 columns = shutil.get_terminal_size().columns
 

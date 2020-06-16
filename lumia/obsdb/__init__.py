@@ -46,7 +46,8 @@ class obsdb:
         if '_parent' in vars(self):
             return getattr(self._parent, item)
         else :
-            raise AttributeError
+            logger.error(f"Unknown method or attribute for obsdb: {item}")
+            raise AttributeError(item)
 
     def __setattr__(self, key, value):
         if '_parent' in vars(self):

@@ -92,7 +92,7 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
 
     # ... Should this to to the optimizer?
     ctrl.setupPrior(interface.StructToVec(emis, lsm_from_file=rcf.get('emissions.lsm.file')))
-    unc = lumia.Uncertainties(rcf, ctrl.vectors)
+    unc = lumia.Uncertainties(rcf)#, ctrl.vectors)
     ctrl.setupUncertainties(unc())
 
     # Initialize the optimization and run it
