@@ -4,7 +4,7 @@ from numpy import array, zeros, arange, array_equal
 from datetime import datetime
 from lumia.Tools.system_tools import checkDir
 import logging
-from tqdm.autonotebook import tqdm
+from tqdm import tqdm
 from numpy import *
 import xarray as xr
 from pandas import Timestamp

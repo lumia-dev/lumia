@@ -6,7 +6,7 @@ from datetime import datetime
 import h5py
 from pandas import DataFrame, read_hdf
 from numpy import *
-from lumia.Tools.rctools import rc
+from rctools import rc
 from lumia.precon import preconditioner as precon
 from lumia.Tools import Region, Categories
 
@@ -162,7 +162,7 @@ class Control:
             raise
     
     def __getattr__(self, item):
-        if item is 'size' :
+        if item == 'size' :
             return len(self.vectors)
         elif item in self.__dict__:
             return getattr(self, item)
