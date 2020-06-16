@@ -8,8 +8,8 @@ from .tools import read_latlon, horcor, calc_temp_corr
 logger = logging.getLogger(__name__)
 
 class Uncertainties:
-    def __init__(self, rcf, data):
-        self.data = data
+    def __init__(self, rcf):
+        self.data = None # data
         self.categories = Categories(rcf)
         self.horizontal_correlations = {}
         self.temporal_correlations = {}
@@ -26,17 +26,18 @@ class Uncertainties:
             'Tcor':self.temporal_correlations
         }
 
-    def calcPriorUncertainties(self):
+    def calcPriorUncertainties(self, data):
+        """
+        example method, but instead, use that of one of the derived classes
+        """
+        self.data = data
         for cat in self.categories :
             if cat.optimize :
                 errfact = cat.uncertainty*0.01
                 errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
-                
-                # TODO: This is a temporary fix to reproduce EUROCOM inversions. Needs to be moved to a "Uncertainties_eurocom" module or class
                 min_unc = cat.min_uncertainty*errcat.max()/100.
                 land_filter = self.data.land_fraction.values
                 errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
-                
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
 
     def setup_Hcor_old(self):
@@ -105,3 +106,39 @@ class Uncertainties:
             hc.write(fname)
             del hc
         return fname
+
+class PercentHourlyPrior(Uncertainties):
+    def __init__(self, interface, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.interface = interface
+
+    def calcPriorUncertainties(self, struct):
+        for cat in self.categories :
+            if cat.optimize :
+                errfact = cat.uncertainty*0.01
+                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
+                land_filter = self.data.land_fraction.values
+
+                # Calculate the uncertainties in the model space, then convert to optimization space
+
+                
+                # TODO: This is a temporary fix to reproduce EUROCOM inversions. Needs to be moved to a "Uncertainties_eurocom" module or class
+                min_unc = cat.min_uncertainty*errcat.max()/100.
+                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
+                
+                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
+
+
+class EUROCOM(Uncertainties):
+    def calcPriorUncertainties(self):
+        for cat in self.categories :
+            if cat.optimize :
+                errfact = cat.uncertainty*0.01
+                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
+                
+                # TODO: This is a temporary fix to reproduce EUROCOM inversions. Needs to be moved to a "Uncertainties_eurocom" module or class
+                min_unc = cat.min_uncertainty*errcat.max()/100.
+                land_filter = self.data.land_fraction.values
+                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
+                
+                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
