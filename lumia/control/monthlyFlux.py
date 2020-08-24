@@ -6,7 +6,7 @@ from datetime import datetime
 import h5py
 from pandas import DataFrame, read_hdf
 from numpy import *
-from rctools import rc
+from lumia.Tools.rctools import rc
 from lumia.precon import preconditioner as precon
 from lumia.Tools import Region, Categories
 

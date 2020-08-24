@@ -2,7 +2,8 @@
 import os
 from copy import deepcopy
 import logging
-from numpy import dot, unique
+from datetime import datetime
+from numpy import dot, unique, array
 from lumia.Tools import Categories
 from lumia.Tools import Region
 from .tools import read_latlon, horcor, calc_temp_corr
@@ -18,8 +19,8 @@ class Uncertainties:
         self.region = Region(self.rcf)
         self.interface = interface
 
-    def __call__(self, *args, **kwargs):
-        self.calcPriorUncertainties(*args, **kwargs)
+    def __call__(self, data, *args, **kwargs):
+        self.calcPriorUncertainties(data, *args, **kwargs)
         self.setup_Hcor()
         self.setup_Tcor()
         return {
@@ -110,7 +111,7 @@ class Uncertainties:
         return fname
 
     def errStructToVec(self, errstruct):
-        data = self.interface.StructToVec(errstruct)
+        data = self.interface.StructToVec(errstruct, lsm_from_file=self.rcf.get('emissions.lsm.file', default=False))
         data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
         return data.drop(columns=['value'])
 
@@ -159,4 +160,40 @@ class PercentAnnualPrior(Uncertainties):
                 errfact = cat.uncertainty*0.01
                 field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
                 data[cat.name]['emis'][:] = (abs(data[field]['emis'])*errfact).mean(0)
+        self.data = self.errStructToVec(data)
+
+
+class eurocom(Uncertainties):
+    def calcPriorUncertainties(self, struct):
+        data = deepcopy(struct)
+        data = self.errStructToVec(data)
+        for cat in self.categories :
+            if cat.optimize :
+                errfact = cat.uncertainty*0.01
+                errcat = abs(data.loc[data.category == cat, 'prior_uncertainty'].values)*errfact
+                errcat[(errcat < 0.01*errcat.max())*(data.loc[:, 'land_fraction']>0)] = errcat.max()/100
+                data.loc[data.category == cat, 'prior_uncertainty'] = errcat
+        self.data = data
+
+
+class PercentHourlyPrior_homogenized(Uncertainties):
+    def calcPriorUncertainties(self, struct):
+        data = deepcopy(struct)
+        for cat in self.categories :
+            if cat.optimize :
+                # Optionally, use a different field
+                field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
+
+                # base error is the flux itself
+                err = abs(data[field]['emis'])
+
+                # Calculate the monthly and annual error, then scale the monthly flux so that the total error remains similar along the year
+                start = data[field]['time_interval']['time_start']
+                months = array([datetime(t.year, t.month, 1) for t in start])
+                for month in unique(months):
+                    err[months == month,:,:] *= err.mean(0).sum()/err[months == month,:,:].mean(0).sum()
+
+                # save, accounting for the optional uncertainty scaling
+                errfact = cat.uncertainty*0.01
+                data[cat.name]['emis'][:] = err*errfact
         self.data = self.errStructToVec(data)

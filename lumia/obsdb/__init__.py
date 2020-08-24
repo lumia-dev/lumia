@@ -33,8 +33,8 @@ class obsdb:
                     'filename':'sites.csv',
                 },
                 'files':{
-                    'write':[self.files.to_csv.__func__, {'path_or_buf':'files.csv','encoding':'utf-8'}],
-                    'read':(read_csv, {'index_col':0}),# 'engine':'python', 'skipfooter':1, 'squeeze':True}),
+                    'write':[self.files.to_csv.__func__, {'path_or_buf':'files.csv', 'encoding':'utf-8'}],
+                    'read':(read_csv, {'index_col':0}),# 'engine':'python', 'skipfooter':1}),
                     'filename':'files.csv',
                 }
             }
@@ -88,7 +88,8 @@ class obsdb:
         self.observations = self.observations.loc[selection,:]
         sites = unique(self.observations.site)
         self.sites = self.sites.loc[sites]
-        self.files = self.files.loc[unique(self.observations.file)]
+        if hasattr(self, 'files'):
+            self.files = self.files.loc[unique(self.observations.file)]
 
     def get_iloc(self, selection):
         db = obsdb()

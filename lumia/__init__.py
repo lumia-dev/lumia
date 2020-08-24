@@ -21,7 +21,7 @@ except :
 
 from .Tools import logging_tools
 from .obsdb import obsdb
-from rctools import rc
+from lumia.Tools.rctools import rc
 from .interfaces import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer
