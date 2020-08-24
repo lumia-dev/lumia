@@ -1,0 +1,7 @@
+project        : example
+start          : 2020, 1, 1
+display.date   : T
+output.path    : ${project}/${tag}
+home.path      : ${LUMIA_HOME}
+
+#include categories.rc
