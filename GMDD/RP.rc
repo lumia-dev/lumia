@@ -1,0 +1,62 @@
+!#######################################################################3
+! Transport keys:
+
+tag         : RP
+project     : GMD
+path.run    : ${LUMIA_SCRATCH}/LUMIA/${project}/${tag}
+path.output : results/${project}/${tag}
+
+time.start : 2011,1,1
+time.end   : 2012,1,1
+region     : eurocom05x05
+
+transport.output       : T
+transport.output.steps : apri, apos 
+
+observations.filename      : observations/realobs.tar.gz
+observations.use_sites     : BAL, BSC, CES200, CRP, HEI, HUN115, LMP005, LMP008, LUT, MHD024, OPE120, PAL, PUI, TRN180, TTA, WAO
+
+emissions.categories       : fossil, ocean, fires, biosphere
+emissions.*.interval       : 3h
+emissions.fossil.origin    : EDGAR_eurocom
+emissions.biosphere.origin : LPJ_eurocom
+emissions.ocean.origin     : CARBOSCOPEv1_5
+emissions.fires.origin     : GFED_monthly
+emissions.prefix           : ${LUMIA_DATA}/fluxes/nc/${region}/${emissions.*.interval}/flux_co2.
+
+footprints.path       : ${LUMIA_DATA}/footprints/eurocom.z100.hybrid
+footprints.cache      : ${LUMIA_SCRATCH}/footprints
+
+!#######################################################################3
+! Optimization keys:
+
+emissions.biosphere.optimize   : 1
+emissions.biosphere.error      : 25
+emissions.biosphere.error_min  : 0.
+emissions.biosphere.corr       : 200-g
+emissions.biosphere.tcorr      : 1.0-e-monthly
+emissions.biosphere.error_type : tot
+emissions.*.optimize          : 0
+optimization.interval         : m
+
+region.eurocom05x05.lat0 : 33.
+region.eurocom05x05.lat1 : 73.
+region.eurocom05x05.lon0 : -15.
+region.eurocom05x05.lon1 : 35.
+region.eurocom05x05.dlat : 0.5
+region.eurocom05x05.dlon : 0.5
+
+correlation.inputdir          : ${LUMIA_DATA}/corr
+
+!#######################################################################3
+! Expert keys
+
+model.transport.exec   : ${LUMIA_ROOT}/../scripts/lagrange_mp.py
+model.transport.split  : ${NCPUS_LUMIA}
+var4d.gradient.norm.reduction : 1.e12
+
+!#######################################################################3
+! Internals ==> move to defaults?
+
+var4d.communication.file      : ${path.output}/comm_file.nc4
+var4d.conGrad.exec            : ${LUMIA_ROOT}/../bin/congrad.exe
