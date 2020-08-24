@@ -14,6 +14,7 @@ from lumia.obsdb.invdb import invdb
 from lumia.control import flexRes, monthlyFlux# as control
 from lumia.Uncertainties import PercentMonthlyPrior as unc
 
+
 def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', start=None, end=None):
 
     # Set verbosity level
@@ -93,8 +94,8 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
 
     # ... Should this to to the optimizer?
     ctrl.setupPrior(interface.StructToVec(emis, lsm_from_file=rcf.get('emissions.lsm.file')))
-    err = unc(rcf, interface)(emis)
-    ctrl.setupUncertainties(err)
+#    unc = lumia.Uncertainties(rcf)
+    ctrl.setupUncertainties(unc(rcf, interface)(emis))
 
     # Initialize the optimization and run it
     opt = lumia.optimizer.Optimizer(rcf, ctrl, model, interface)
