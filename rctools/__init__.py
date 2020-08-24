@@ -116,7 +116,7 @@ class rc:
             #	val = val.replace(match, matched)
             # self.keys[key] = val
             if tolist and ',' in val:
-                val = [z.strip() for z in val.split(',')]
+                val = [z.strip() for z in val.split(',') if z.strip() != '']
             else:
                 tolist = False
             # try converting the value to a integer, logical or real type:
