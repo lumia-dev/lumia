@@ -34,7 +34,7 @@ class obsdb:
                 },
                 'files':{
                     'write':[self.files.to_csv.__func__, {'path_or_buf':'files.csv','encoding':'utf-8'}],
-                    'read':(read_csv, {'index_col':0}),
+                    'read':(read_csv, {'index_col':0}),# 'engine':'python', 'skipfooter':1, 'squeeze':True}),
                     'filename':'files.csv',
                 }
             }
@@ -79,6 +79,10 @@ class obsdb:
             (self.observations.time <= tmax)
         )]
         self.sites = self.sites.loc[unique(self.observations.site), :]
+
+    def SelectSites(self, sitelist):
+        selection = [x in sitelist for x in self.observations.site]
+        self.SelectObs(selection)
 
     def SelectObs(self, selection):
         self.observations = self.observations.loc[selection,:]
