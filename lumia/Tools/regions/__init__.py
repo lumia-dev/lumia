@@ -4,6 +4,7 @@ import cartopy.io.shapereader as shpreader
 import shapely.geometry as sgeom
 from shapely.ops import unary_union
 from shapely.prepared import prep
+from matplotlib.pyplot import axhline, axvline
 import logging 
 from numpy import *
 from h5py import File
@@ -125,10 +126,12 @@ class region:
         lats = self.GetIndicesFromLats(lats)
         return [(x, y) for (x, y) in zip(lons, lats)]
 
-#    def basemap(self,**kwargs):
-#        from mpl_toolkits.basemap import Basemap
-#        m1 = Basemap(llcrnrlat=self.latmin, llcrnrlon=self.lonmin, urcrnrlat=self.latmax, urcrnrlon=self.lonmax, **kwargs)
-#        return m1
+    def basemap(self,**kwargs):
+        import cartopy
+        from matplotlib.pyplot import axes
+        ax = axes(projection=cartopy.crs.PlateCarree())
+        ax.set_extent([self.lonmin, self.lonmax, self.latmin, self.latmax], cartopy.crs.PlateCarree())
+        return ax
 
     def get_land_mask(self, refine_factor=1, from_file=False):
         """ Returns the proportion (from 0 to 1) of land in each pixel
