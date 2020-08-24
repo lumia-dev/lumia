@@ -1,0 +1,16 @@
+categories               : biosphere, fossil
+
+category.*.write         : False
+category.biosphere.write : True
+
+display.date             : True
+
+home.path                : /home/lumia
+
+output.path              : example/2020-1-1.backup
+
+project                  : example
+
+start                    : 2020, 1, 1
+
+tag                      : 2020-1-1.backup

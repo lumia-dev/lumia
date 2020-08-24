@@ -1,0 +1,3 @@
+categories : biosphere, fossil
+category.biosphere.write : T
+category.*.write         : F
