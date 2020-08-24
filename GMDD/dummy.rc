@@ -1,0 +1,21 @@
+correlation.inputdir           : /media/guillaume/EXT4TB/LUMIA/corr
+
+emissions.*.interval           : 3h
+emissions.*.optimize           : 0
+emissions.biosphere.corr       : 200-g
+emissions.biosphere.error      : 25
+emissions.biosphere.error_min  : 0.0
+emissions.biosphere.error_type : tot
+emissions.biosphere.optimize   : 1
+emissions.biosphere.origin     : ORCHIDEE
+emissions.biosphere.tcorr      : 1.0-e-monthly
+emissions.categories           : fossil, ocean, fires, biosphere
+emissions.fires.origin         : GFED_monthly
+emissions.fossil.origin        : EDGAR_eurocom
+emissions.ocean.origin         : CARBOSCOPEv1_5
+emissions.prefix               : /media/guillaume/EXT4TB/LUMIA/fluxes/nc/eurocom05x05/3h/flux_co2.
+
+footprints.cache               : /scratch/guillaume//footprints
+footprints.path                : /media/guillaume/EXT4TB/LUMIA/footprints/eurocom.z100.hybrid
+
+model.transport.exec           : /home/guillaume/dev/packages/lumia/lumia/../scripts/lagrange_mp.py
