@@ -12,6 +12,7 @@ from lumia.Tools.logging_tools import logger
 from lumia.obsdb.backgroundDb import backgroundDb
 from lumia.obsdb.invdb import invdb
 from lumia.control import flexRes, monthlyFlux# as control
+from lumia.Uncertainties import PercentMonthlyPrior as unc
 
 def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', start=None, end=None):
 
@@ -92,8 +93,8 @@ def optimize(rcfile, obs=None, emfile=None, setuponly=False, verbosity='INFO', s
 
     # ... Should this to to the optimizer?
     ctrl.setupPrior(interface.StructToVec(emis, lsm_from_file=rcf.get('emissions.lsm.file')))
-    unc = lumia.Uncertainties(rcf)#, ctrl.vectors)
-    ctrl.setupUncertainties(unc())
+    err = unc(rcf, interface)(emis)
+    ctrl.setupUncertainties(err)
 
     # Initialize the optimization and run it
     opt = lumia.optimizer.Optimizer(rcf, ctrl, model, interface)

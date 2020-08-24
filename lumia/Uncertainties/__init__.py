@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+from copy import deepcopy
 import logging
 from numpy import dot, unique
 from lumia.Tools import Categories
@@ -8,16 +9,17 @@ from .tools import read_latlon, horcor, calc_temp_corr
 logger = logging.getLogger(__name__)
 
 class Uncertainties:
-    def __init__(self, rcf):
+    def __init__(self, rcf, interface=None):
         self.data = None # data
         self.categories = Categories(rcf)
         self.horizontal_correlations = {}
         self.temporal_correlations = {}
         self.rcf = rcf
         self.region = Region(self.rcf)
+        self.interface = interface
 
-    def __call__(self):
-        self.calcPriorUncertainties()
+    def __call__(self, *args, **kwargs):
+        self.calcPriorUncertainties(*args, **kwargs)
         self.setup_Hcor()
         self.setup_Tcor()
         return {
@@ -26,20 +28,20 @@ class Uncertainties:
             'Tcor':self.temporal_correlations
         }
 
-    def calcPriorUncertainties(self, data):
-        """
-        example method, but instead, use that of one of the derived classes
-        """
-        self.data = data
-        for cat in self.categories :
-            if cat.optimize :
-                errfact = cat.uncertainty*0.01
-                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
-                min_unc = cat.min_uncertainty*errcat.max()/100.
-                land_filter = self.data.land_fraction.values
-                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
-                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
-
+#    def calcPriorUncertainties(self, data):
+#        """
+#        example method, but instead, use that of one of the derived classes
+#        """
+#        self.data = data
+#        for cat in self.categories :
+#            if cat.optimize :
+#                errfact = cat.uncertainty*0.01
+#                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
+#                min_unc = cat.min_uncertainty*errcat.max()/100.
+#                land_filter = self.data.land_fraction.values
+#                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
+#                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
+#
     def setup_Hcor_old(self):
         for cat in self.categories :
             if cat.optimize :
@@ -107,38 +109,54 @@ class Uncertainties:
             del hc
         return fname
 
-class PercentHourlyPrior(Uncertainties):
-    def __init__(self, interface, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.interface = interface
+    def errStructToVec(self, errstruct):
+        data = self.interface.StructToVec(errstruct)
+        data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
+        return data.drop(columns=['value'])
 
+
+class PercentMonthlyPrior(Uncertainties):
     def calcPriorUncertainties(self, struct):
+        fluxes = deepcopy(struct)
+        self.data = self.interface.StructToVec(fluxes)
         for cat in self.categories :
+            field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat)
             if cat.optimize :
                 errfact = cat.uncertainty*0.01
-                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
-                land_filter = self.data.land_fraction.values
-
-                # Calculate the uncertainties in the model space, then convert to optimization space
-
-                
-                # TODO: This is a temporary fix to reproduce EUROCOM inversions. Needs to be moved to a "Uncertainties_eurocom" module or class
-                min_unc = cat.min_uncertainty*errcat.max()/100.
-                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
-                
-                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
-
-
-class EUROCOM(Uncertainties):
-    def calcPriorUncertainties(self):
-        for cat in self.categories :
-            if cat.optimize :
-                errfact = cat.uncertainty*0.01
-                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
-                
-                # TODO: This is a temporary fix to reproduce EUROCOM inversions. Needs to be moved to a "Uncertainties_eurocom" module or class
+                errcat = abs(self.data.loc[self.data.category == field, 'value'].values)*errfact
                 min_unc = cat.min_uncertainty*errcat.max()/100.
                 land_filter = self.data.land_fraction.values
                 errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
-                
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
+
+
+class ErrorFromTruth(Uncertainties):
+    def calcPriorUncertainties(self, struct):
+        data = deepcopy(struct)
+        for cat in self.categories :
+            if cat.optimize :
+                errfact = cat.uncertainty*0.01
+                data[cat.name]['emis'] = errfact*abs(data[cat.name]['emis']-data[f'true_{cat.name}']['emis'])
+        self.data = self.errStructToVec(data)
+
+
+class PercentHourlyPrior(Uncertainties):
+    def calcPriorUncertainties(self, struct):
+        data = deepcopy(struct)
+        for cat in self.categories :
+            if cat.optimize :
+                errfact = cat.uncertainty*0.01
+                field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
+                data[cat.name]['emis'] = abs(data[field]['emis'])*errfact
+        self.data = self.errStructToVec(data)
+
+
+class PercentAnnualPrior(Uncertainties):
+    def calcPriorUncertainties(self, struct):
+        data = deepcopy(struct)
+        for cat in self.categories :
+            if cat.optimize :
+                errfact = cat.uncertainty*0.01
+                field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
+                data[cat.name]['emis'][:] = (abs(data[field]['emis'])*errfact).mean(0)
+        self.data = self.errStructToVec(data)
