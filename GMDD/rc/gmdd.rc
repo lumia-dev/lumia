@@ -1,0 +1,37 @@
+#include common.rc
+
+! settings common to the gmdd inversions
+
+! ################################################################################################
+! Paths:
+project     : GMD
+path.run    : ${LUMIA_SCRATCH}/LUMIA/${project}/${tag}   ! Temporary path run files are stored
+path.output : results/${project}/${tag}                  ! Location of the output
+
+! ################################################################################################
+! Domain size and time span:
+time.start : 2011,1,1
+time.end   : 2012,1,1
+region     : eurocom05x05
+
+! ################################################################################################
+! Fluxes
+emissions.categories       : fossil, ocean, fires, biosphere ! flux categories transported
+
+! The fluxes for the category "fossil" will be read from the files "flux_co2.EDGAR_eurocom.YYYY.nc" (with YYYY the year), in the folder ${LUMIA_DATA}/fluxes/eurocom05x05/3h (with ${LUMIA_DATA} an environment variable)
+emissions.*.interval       : 3h
+emissions.path             : ${LUMIA_DATA}/fluxes/nc/${region}/${emissions.*.interval}
+emissions.prefix           : ${emissions.path}/flux_co2.
+emissions.fossil.origin    : EDGAR_eurocom
+emissions.ocean.origin     : CARBOSCOPEv1_5
+emissions.fires.origin     : GFED_monthly
+
+! ################################################################################################
+! Optimization keys:
+
+emissions.biosphere.optimize   : 1               ! The biosphere category is optimized
+emissions.*.optimize           : 0               ! All the other categories are prescribed
+optimization.interval          : m               ! The optimization is done monthly
+emissions.biosphere.error_min  : 0.              ! Not used?
+emissions.biosphere.error_type : tot             ! Not used?
+emissions.biosphere.tcorr      : 1.0-e-monthly   ! Temporal covariance length

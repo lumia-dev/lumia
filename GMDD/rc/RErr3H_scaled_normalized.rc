@@ -1,0 +1,8 @@
+#include gmdd.rc
+
+tag                        : RErr3H_scaled_normalized
+observations.filename      : observations/realobs.tar.gz
+emissions.biosphere.origin : LPJ_eurocom
+emissions.biosphere.error  : 10.
+emissions.biosphere.corr   : 200-g
+optim.err.type             : hourlyPrior_scaled

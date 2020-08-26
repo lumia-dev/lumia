@@ -1,0 +1,29 @@
+! Settings common to all inversions
+
+! ################################################################################################
+! Transport model settings
+transport.output       : T            ! Whether the transport model should write permanent output (not needed for 
+                                      ! the inversion, but useful for diagnostic (posterior fits)
+transport.output.steps : apri, apos   ! Steps for which model output should be stored (corresponds to the "step"
+                                      ! argument of obsoperator.runForward)
+                                      
+model.transport.exec   : ${LUMIA_ROOT}/../scripts/lagrange_mp.py ! path to the transport model executable
+model.transport.split  : ${NCPUS_LUMIA}                          ! Number of CPUs used by the transport model
+
+footprints.path       : ${LUMIA_DATA}/footprints/eurocom.z100.hybrid
+footprints.cache      : ${LUMIA_SCRATCH}/footprints
+
+! ################################################################################################
+! eurocom05x05 region definition (in common.rc as it can be shared by multiple projects)                                      
+region.eurocom05x05.lat0 : 33.
+region.eurocom05x05.lat1 : 73.
+region.eurocom05x05.lon0 : -15.
+region.eurocom05x05.lon1 : 35.
+region.eurocom05x05.dlat : 0.5
+region.eurocom05x05.dlon : 0.5
+
+! ################################################################################################
+! expert keys
+correlation.inputdir   : ${LUMIA_DATA}/corr               ! Where the pre-computed correlation files are stored
+var4d.conGrad.exec     : ${LUMIA_ROOT}/../bin/congrad.exe ! path to the conjugate gradient executable
+var4d.gradient.norm.reduction : 1.e12                     ! criteria for stopping the inversion

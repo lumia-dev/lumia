@@ -1,0 +1,7 @@
+#include gmdd.rc
+
+tag         : R100
+observations.filename      : observations/realobs.tar.gz
+emissions.biosphere.origin : LPJ_eurocom
+emissions.biosphere.error  : 25
+emissions.biosphere.corr   : 100-g
