@@ -1,0 +1,8 @@
+#include gmdd.rc
+
+tag                        : SErr3H_normalized
+observations.filename      : observations/truth.tar.gz
+emissions.biosphere.origin : ORCHIDEE
+emissions.biosphere.error  : 10.
+emissions.biosphere.corr   : 200-g
+optim.err.type             : hourlyPrior

@@ -1,0 +1,8 @@
+#include gmdd.rc
+
+tag         : SA
+observations.filename      : observations/truth.tar.gz
+observations.use_sites     : CIB005, CMN, ELL, HPB054, JFJ, KAS, LMP008, OXK163, PAL, PRS, PUY010, PUY015, SSL, TTA
+emissions.biosphere.origin : ORCHIDEE
+emissions.biosphere.error  : 25
+emissions.biosphere.corr   : 200-g

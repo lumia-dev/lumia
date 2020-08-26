@@ -1,0 +1,7 @@
+#include gmdd.rc
+
+tag         : SRefG
+observations.filename      : observations/truth.tar.gz
+emissions.biosphere.origin : ORCHIDEE
+emissions.biosphere.error  : 25
+emissions.biosphere.corr   : 200-g

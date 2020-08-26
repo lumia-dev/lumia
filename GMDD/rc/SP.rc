@@ -1,0 +1,8 @@
+#include gmdd.rc
+
+tag                        : SP
+observations.filename      : observations/truth.tar.gz
+observations.use_sites     : BAL, BSC, CES200, CRP, HEI, HUN115, LMP005, LMP008, LUT, MHD024, OPE120, PAL, PUI, TRN180, TTA, WAO
+emissions.biosphere.origin : ORCHIDEE
+emissions.biosphere.error  : 25
+emissions.biosphere.corr   : 200-g
