@@ -79,9 +79,5 @@ eapos = VecToStruct(dapos, interface)
 
 from h5py import File
 with File(f'{rcf.get("path.output")}/errors.h5', 'w') as f :
-#    f['lats'] = eapri['lats']
-#    f['lons'] = eapri['lons']
-#    f['start'] = [x.timetuple()[:6] for x in eapri['time_interval']['time_start']]
-#    f['end'] = [x.timetuple()[:6] for x in eapri['time_interval']['time_end']]
     f['eapri'] = eapri#['emis']
     f['eapos'] = eapos#['emis']
