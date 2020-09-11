@@ -13076,7 +13076,7 @@ div#notebook {
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[12]:</div>
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">subprocess</span>
@@ -13131,10 +13131,10 @@ This README focuses on these two steps. The construction of transport model inpu
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">runprint</span><span class="p">(</span><span class="s1">&#39;lagrange_mp.py --help&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">runprint</span><span class="p">(</span><span class="s1">&#39;../transport/lagrange_mp.py --help&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -13254,11 +13254,11 @@ group: ocean {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># The file contains many footprints, we just show a fraction of it..</span>
-<span class="n">runprint</span><span class="p">(</span><span class="s1">&#39;h5dump -d latitudes -d longitudes -g 20170131140000/20170131150000_20170131120000 -g 20170131140000/20170131120000_20170131090000 example_data/nor.100m.2017-01.h5&#39;</span><span class="p">)</span>
+<span class="n">runprint</span><span class="p">(</span><span class="s1">&#39;h5dump -d latitudes -d longitudes -g 20170131140000/20170131150000_20170131120000 -g 20170131140000/20170131120000_20170131090000 footprints/nor.100m.2017-01.h5&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -13275,7 +13275,7 @@ group: ocean {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>HDF5 &#34;example_data/nor.100m.2017-01.h5&#34; {
+<pre>HDF5 &#34;footprints/nor.100m.2017-01.h5&#34; {
 DATASET &#34;latitudes&#34; {
    DATATYPE  H5T_IEEE_F64LE
    DATASPACE  SIMPLE { ( 32 ) / ( 32 ) }
@@ -13374,7 +13374,7 @@ GROUP &#34;20170131140000/20170131120000_20170131090000&#34; {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[34]:</div>
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">h5py</span> <span class="kn">import</span> <span class="n">File</span>

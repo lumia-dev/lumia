@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Clean(er/ish) disabling of tqdm in batch mode
 # If the "INTERACTIVE" environment variable is defined and set to "F", we redefine tqdm with the following dummy function
-if os.environ['INTERACTIVE'] == 'F':
+if os.environ.get('INTERACTIVE', 'T') == 'F':
     def tqdm(iterable, *args, **kwargs):
         return iterable
 
