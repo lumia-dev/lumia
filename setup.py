@@ -18,5 +18,5 @@ setuptools.setup(
         ],
         python_requires='>=3.6',
         scripts=['transport/lagrange_mp.py'],
-        data_files=[('transport',['src/congrad/congrad.exe'])]
+        data_files=[('transport',['src/congrad'])]
 )
