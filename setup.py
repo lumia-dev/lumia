@@ -17,6 +17,6 @@ setuptools.setup(
             "Operating System :: OS Independent",
         ],
         python_requires='>=3.6',
-        scripts=['bin/lagrange_mp.py'],
-        data_files=[('bin',['src/congrad/congrad.exe'])]
+        scripts=['transport/lagrange_mp.py'],
+        data_files=[('transport',['src/congrad/congrad.exe'])]
 )
