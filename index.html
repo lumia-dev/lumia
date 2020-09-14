@@ -13077,32 +13077,55 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="LUMIA">LUMIA<a class="anchor-link" href="#LUMIA">&#182;</a></h1><p>The Lund University Modular Inversion Algorithm (LUMIA) is a python package for performing atmospheric transport inversions.</p>
+<p>The Lund University Modular Inversion Algorithm (LUMIA) is a python package for performing atmospheric transport inversions.</p>
 <p>The release 2020.8 is described in <a href="https://www.geosci-model-dev-discuss.net/gmd-2019-227/">https://www.geosci-model-dev-discuss.net/gmd-2019-227/</a> and can be downloaded at <a href="lumia.202008.tar.gz">url</a></p>
-<h2 id="Installation-instructions">Installation instructions<a class="anchor-link" href="#Installation-instructions">&#182;</a></h2>
-<pre><code>wget THEPACKAGE.tar.gz
-tar xvf THEPACKAGE.tar.gz
-pip -e ...</code></pre>
-<h2 id="Usage">Usage<a class="anchor-link" href="#Usage">&#182;</a></h2><p>The installation above setup the <code>lumia</code> library on the system, which can then be imported as any regular python module.
-It also adds the following executable to the user $PATH:</p>
+<h1 id="1.-Installation">1. Installation<a class="anchor-link" href="#1.-Installation">&#182;</a></h1><p>lumia is constructed as a standard python package, and can be installed using the standard <code>pip</code> command.
+There are two main ways of installing it:</p>
 <ul>
-<li>lagrange_mp.py</li>
-<li>congrad.exe</li>
+<li>Installation as a python package</li>
+<li>Installation as a python project (recommended) </li>
 </ul>
-<p>For more specific usage instruction, a <a href="GMDD/var4d.html">tutorial</a> is available, and several example jupyter notebooks are included in the release file.</p>
-<h2 id="Developer-access">Developer access<a class="anchor-link" href="#Developer-access">&#182;</a></h2><p>The LUMIA python package is a scientific tool:</p>
+<p>The difference is that the installation as a project also downloads the documentation/example files, and installs everything in a folder of your choice. The installation as a package is faster and simpler but it only downloads and installs the lumia python package itself (i.e. it makes it possible to use <code>import lumia</code> in your python scripts), in the <code>site-packages</code> of your python environment.</p>
+<h2 id="1.1-Installation-as-a-python-package">1.1 Installation as a python package<a class="anchor-link" href="#1.1-Installation-as-a-python-package">&#182;</a></h2><p><code>pip install git+https://github.com/lumia-dev/lumia.git</code></p>
+<h2 id="1.2-Installation-as-a-python-project">1.2 Installation as a python project<a class="anchor-link" href="#1.2-Installation-as-a-python-project">&#182;</a></h2>
+<pre><code>git clone https://github.com/lumia-dev/lumia.git my_proj
+pip install -e my_proj</code></pre>
+<p>(replace <code>my_proj</code> by the name of your project)</p>
+<h2 id="1.3-Caveats:-dependencies">1.3 Caveats: dependencies<a class="anchor-link" href="#1.3-Caveats:-dependencies">&#182;</a></h2><p>Regardless the installation method, the installer handles some dependencies (some python packages will be installed automatically if they are missing on the system), but two dependencies cannot be installed via pip, and need to be installed manually:</p>
 <ul>
-<li>it is on constant evolution</li>
-<li>it has bugs that we haven't found yet</li>
-<li>some parts of the code are insufficiently documented</li>
+<li>The <code>cartopy</code> python package is required (it is used to compute land/sea masks). See <a href="https://scitools.org.uk/cartopy/docs/latest/installing.html">https://scitools.org.uk/cartopy/docs/latest/installing.html</a> for installation instructions.</li>
+<li>The variational inversions described in the documentation rely on an external compiled Fortran program. The source code and installation instructions can be found in the src/congrad folder.</li>
 </ul>
-<p>The code is released under the XXX open source licence. However, if you intend to use it for your scientific research, we suggest you contact us before (<a href="email">lumia@blablabla</a>). We may provide support and give you a developer access to our git repository.</p>
-<h2 id="Publications">Publications<a class="anchor-link" href="#Publications">&#182;</a></h2><p><a href="https://www.geosci-model-dev-discuss.net/gmd-2019-227/">https://www.geosci-model-dev-discuss.net/gmd-2019-227/</a></p>
-<p><a href="https://acp.copernicus.org/preprints/acp-2019-1008/">https://acp.copernicus.org/preprints/acp-2019-1008/</a></p>
-<p>Thompson et al., 2020</p>
+<h1 id="2.-Usage">2. Usage<a class="anchor-link" href="#2.-Usage">&#182;</a></h1><p>After following either of the installation procedure, the <code>lumia</code> package and its sub-modules should be available for other python scripts on the machine. By default, the installer also creates a copy of the <code>transport/lagrange_mp.py</code> script inside the user <code>$PATH</code>. The script is used as a transport model in the example inversions presented in the <a href="GMDD/var4d.html">tutorial</a>.</p>
+<p>For more specific usage instruction, please refer to the <a href="GMDD/var4d.html">tutorial</a>, and to the example jupyter notebooks in the GMDD folder.</p>
+<h1 id="3.-Developer-access">3. Developer access<a class="anchor-link" href="#3.-Developer-access">&#182;</a></h1><p>LUMIA is a scientific tool. The code is made available under the <a href="LICENSE">EUPL v1.2</a> open source license, and it is not provided with any warranty. In particular:</p>
+<ul>
+<li>it is in constant evolution;</li>
+<li>it has bugs that we haven't found yet;</li>
+<li>some parts of the code are insufficiently documented.</li>
+</ul>
+<p>You are free to download it and use it, but you are strongly encouraged to <a href="mailto:lumia@mail.nateko.lu.se">contact us</a> before, to discuss the level of support that we can provide, and give you a developer access to our git repository.</p>
+<h1 id="4.-Publications">4. Publications<a class="anchor-link" href="#4.-Publications">&#182;</a></h1><ul>
+<li><a href="https://www.geosci-model-dev-discuss.net/gmd-2019-227/">https://www.geosci-model-dev-discuss.net/gmd-2019-227/</a></li>
+<li><a href="https://acp.copernicus.org/preprints/acp-2019-1008/">https://acp.copernicus.org/preprints/acp-2019-1008/</a></li>
+<li><a href="https://doi.org/10.1098/rstb.2019.0512">https://doi.org/10.1098/rstb.2019.0512</a></li>
+</ul>
 
 </div>
 </div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span> 
+</pre></div>
+
+    </div>
+</div>
+</div>
+
 </div>
     </div>
   </div>
