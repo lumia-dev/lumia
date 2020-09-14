@@ -21,6 +21,5 @@ setuptools.setup(
         ],
         python_requires='>=3.6',
         scripts=['transport/lagrange_mp.py'],
-        install_requires=['numpy','cartopy','pandas'],
         data_files=[]
 )
