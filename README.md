@@ -13,15 +13,15 @@ The difference is that the installation as a project also downloads the document
 ## 1.1 Installation as a python package
 
 `pip install git+https://github.com/lumia-dev/lumia.git`
+
 ## 1.2 Installation as a python project
 
-```bash
-git clone https://github.com/lumia-dev/lumia.git my_proj
-pip install -e my_proj```
+    git clone https://github.com/lumia-dev/lumia.git myproj
+    pip install -e myproj
 
-(replace `my_proj` by the name of your project)
+(replace `myproj` by the name of your project)
 
-## 1.3 Caveats: dependencies
+## 1.3 Dependencies
 Regardless the installation method, the installer handles some dependencies (some python packages will be installed automatically if they are missing on the system), but two dependencies cannot be installed via pip, and need to be installed manually:
 - The `cartopy` python package is required (it is used to compute land/sea masks). See https://scitools.org.uk/cartopy/docs/latest/installing.html for installation instructions.
 - The variational inversions described in the documentation rely on an external compiled Fortran program. The source code and installation instructions can be found in the src/congrad folder.
@@ -47,8 +47,3 @@ You are free to download it and use it, but you are strongly encouraged to [cont
 - https://www.geosci-model-dev-discuss.net/gmd-2019-227/
 - https://acp.copernicus.org/preprints/acp-2019-1008/
 - https://doi.org/10.1098/rstb.2019.0512
-
-
-```python
-
-```
