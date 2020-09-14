@@ -13,15 +13,14 @@ The difference is that the installation as a project also downloads the document
 ## 1.1 Installation as a python package
 
 `pip install git+https://github.com/lumia-dev/lumia.git`
-
 ## 1.2 Installation as a python project
 
     git clone https://github.com/lumia-dev/lumia.git myproj
-    pip install -e myproj
+    pip install -e myproj```
 
 (replace `myproj` by the name of your project)
 
-## 1.3 Dependencies
+## 1.3 Caveats: dependencies
 Regardless the installation method, the installer handles some dependencies (some python packages will be installed automatically if they are missing on the system), but two dependencies cannot be installed via pip, and need to be installed manually:
 - The `cartopy` python package is required (it is used to compute land/sea masks). See https://scitools.org.uk/cartopy/docs/latest/installing.html for installation instructions.
 - The variational inversions described in the documentation rely on an external compiled Fortran program. The source code and installation instructions can be found in the src/congrad folder.
@@ -29,9 +28,9 @@ Regardless the installation method, the installer handles some dependencies (som
 
 # 2. Usage
 
-After following either of the installation procedure, the `lumia` package and its sub-modules should be available for other python scripts on the machine. By default, the installer also creates a copy of the `transport/lagrange_mp.py` script inside the user `$PATH`. The script is used as a transport model in the example inversions presented in the [tutorial](GMDD/var4d.html).
+After following either of the installation procedure, the `lumia` package and its sub-modules should be available for other python scripts on the machine. By default, the installer also creates a copy of the `transport/lagrange_mp.py` script inside the user `$PATH`. The script is used as a transport model in the example inversions presented in the [tutorial](doc/var4d.html).
 
-For more specific usage instruction, please refer to the [tutorial](GMDD/var4d.html), and to the example jupyter notebooks in the GMDD folder.
+For more specific usage instruction, please refer to the [tutorial](doc/var4d.html), and to the example jupyter notebooks in the GMDD folder.
 
 # 3. Developer access
 
