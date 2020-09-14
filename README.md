@@ -15,11 +15,10 @@ The difference is that the installation as a project also downloads the document
 `pip install git+https://github.com/lumia-dev/lumia.git`
 ## 1.2 Installation as a python project
 
-```bash
-git clone https://github.com/lumia-dev/lumia.git my_proj
-pip install -e my_proj```
+    git clone https://github.com/lumia-dev/lumia.git myproj
+    pip install -e myproj```
 
-(replace `my_proj` by the name of your project)
+(replace `myproj` by the name of your project)
 
 ## 1.3 Caveats: dependencies
 Regardless the installation method, the installer handles some dependencies (some python packages will be installed automatically if they are missing on the system), but two dependencies cannot be installed via pip, and need to be installed manually:

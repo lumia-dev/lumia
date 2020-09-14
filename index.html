@@ -13088,9 +13088,11 @@ There are two main ways of installing it:</p>
 <p>The difference is that the installation as a project also downloads the documentation/example files, and installs everything in a folder of your choice. The installation as a package is faster and simpler but it only downloads and installs the lumia python package itself (i.e. it makes it possible to use <code>import lumia</code> in your python scripts), in the <code>site-packages</code> of your python environment.</p>
 <h2 id="1.1-Installation-as-a-python-package">1.1 Installation as a python package<a class="anchor-link" href="#1.1-Installation-as-a-python-package">&#182;</a></h2><p><code>pip install git+https://github.com/lumia-dev/lumia.git</code></p>
 <h2 id="1.2-Installation-as-a-python-project">1.2 Installation as a python project<a class="anchor-link" href="#1.2-Installation-as-a-python-project">&#182;</a></h2>
-<pre><code>git clone https://github.com/lumia-dev/lumia.git my_proj
-pip install -e my_proj</code></pre>
-<p>(replace <code>my_proj</code> by the name of your project)</p>
+<pre><code>git clone https://github.com/lumia-dev/lumia.git myproj
+pip install -e myproj```
+
+</code></pre>
+<p>(replace <code>myproj</code> by the name of your project)</p>
 <h2 id="1.3-Caveats:-dependencies">1.3 Caveats: dependencies<a class="anchor-link" href="#1.3-Caveats:-dependencies">&#182;</a></h2><p>Regardless the installation method, the installer handles some dependencies (some python packages will be installed automatically if they are missing on the system), but two dependencies cannot be installed via pip, and need to be installed manually:</p>
 <ul>
 <li>The <code>cartopy</code> python package is required (it is used to compute land/sea masks). See <a href="https://scitools.org.uk/cartopy/docs/latest/installing.html">https://scitools.org.uk/cartopy/docs/latest/installing.html</a> for installation instructions.</li>
