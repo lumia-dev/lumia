@@ -15,7 +15,7 @@ The difference is that the installation as a project also downloads the document
 `pip install git+https://github.com/lumia-dev/lumia.git`
 ## 1.2 Installation as a python project
 
-```
+```bash
 git clone https://github.com/lumia-dev/lumia.git my_proj
 pip install -e my_proj```
 
