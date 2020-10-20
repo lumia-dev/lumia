@@ -30,6 +30,84 @@ class Struct(dict):
                 self[cat] = other[cat]
         return self
 
+    def between_times(self, tbeg, tend):
+        """
+        Return a structure with only the data that fall within the specified time interval (must be within
+        the time interval of the initial Struct).
+        This is mainly for postprocessing purposes.
+        """
+        outstruct = Struct()
+        for cat in self.keys():
+            beg = self[cat]['time_interval']['time_start']
+            end = self[cat]['time_interval']['time_end']
+            assert tbeg in beg and tend in end, f"The requested time boundaries ({tbeg} to {tend}) are not available for category {cat}."
+            select = (beg >= tbeg) & (end <= tend)
+            outstruct[cat] = {
+                'emis': self[cat]['emis'][select, :, :],
+                'time_interval':{
+                    'time_start':self[cat]['time_interval']['time_start'][select],
+                    'time_end':self[cat]['time_interval']['time_end'][select]
+                },
+                'lats':self[cat]['lats'],
+                'lons':self[cat]['lons']
+            }
+        return outstruct
+
+    def append(self, other, overwrite=True):
+        """
+        Extend the data with the data from another structure.
+        The other structure must have the same spatial boundaries. If the temporal boundaries of the two structures overlap, the data from "other"
+        overwrite the original data, unless the "overwrite" optional attribute is set to False.
+        """
+        new = Struct()
+        for cat in self.keys():
+
+            # Construct the new time coordinates
+            beg_self = self[cat]['time_interval']['time_start']
+            end_self = self[cat]['time_interval']['time_end']
+            beg_other = other[cat]['time_interval']['time_start']
+            end_other = other[cat]['time_interval']['time_end']
+            beg_final = unique(append(beg_self, beg_other))
+            end_final = unique(append(end_self, end_other))
+            diff_t = end_final-beg_final
+
+            # In theory there's nothing wrong with having irregular spacing, but this is not implemented and is probably an error (and it makes
+            # what comes after more difficult to code). So I disable it for now.
+            assert all([dt == diff_t[0] for dt in diff_t]), f"append results in irregular time intervals for category {cat}. Edit the source code if this is intentional"
+
+            # Construct the new data
+            nt = len(beg_final)
+            nlat = len(self[cat]['lats'])
+            nlon = len(self[cat]['lons'])
+            data = zeros((nt, nlat, nlon))
+            if overwrite :
+                data[[t in beg_self for t in beg_final], :, :] = self[cat]['emis']
+                data[[t in beg_other for t in beg_final], :, :] = other[cat]['emis']
+            else :
+                data[[t in beg_other for t in beg_final], :, :] = other[cat]['emis']
+                data[[t in beg_self for t in beg_final], :, :] = self[cat]['emis']
+
+            # Store
+            new[cat] = {
+                'emis': data,
+                'time_interval' : {
+                    'time_start':beg_final,
+                    'time_end':end_final
+                },
+                'lats':self[cat]['lats'],
+                'lons':self[cat]['lons']
+            }
+        return new
+
+
+    def _get_boundaries_t(self):
+        beg = [self[cat]['time_interval']['time_start'].min() for cat in self.keys()]
+        end = [self[cat]['time_interval']['time_end'].max() for cat in self.keys()]
+        assert all([b == beg[0] for b in beg] + [e == end[0] for e in end]), f"All categories do not share the same time boundaries, cannot append {beg}, {end}"
+        return beg[0], end[0]
+
+
+
 def WriteStruct(data, path, prefix=None):
     """
     Write the model input (control parameters)
