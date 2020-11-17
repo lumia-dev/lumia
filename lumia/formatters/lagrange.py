@@ -142,14 +142,14 @@ def WriteStruct(data, path, prefix=None):
     return filename
 
 
-def ReadStruct(path, prefix=None):
+def ReadStruct(path, prefix=None, structClass=Struct):
     if prefix is None :
         filename = path
     else :
         filename = os.path.join(path, '%s.nc' % prefix)
     with Dataset(filename) as ds:
         categories = ds.groups.keys()
-        data = Struct()
+        data = structClass()
         for cat in categories:
             data[cat] = {
                 'emis': ds[cat]['emis'][:],
