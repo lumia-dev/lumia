@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from numpy import arange, ones_like, array, cumsum, meshgrid
+from numpy import arange, ones_like, array, cumsum
 from lumia import tqdm
+
 
 class Categories:
     def __init__(self, rcf=None):
@@ -10,7 +11,7 @@ class Categories:
             self.setup(rcf)
 
     def add(self, name):
-        if not name in self.list :
+        if name not in self.list :
             setattr(self, name, Category(name))
             self.list.append(name)
         else :
@@ -30,7 +31,7 @@ class Categories:
         catlist = rcf.get('emissions.categories')
         for cat in catlist :
             self.add(cat)
-            self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool)
+            self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
             self[cat].is_ocean = rcf.get('emissions.%s.is_ocean'%cat, totype=bool, default=False)
             if self[cat].optimize :
                 self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
@@ -98,8 +99,10 @@ class Cluster:
             mask = ones_like(data, dtype=bool)
         self.mask=mask
         self.rank = abs(self.data.sum())
-        if self.size == 1 : self.rank = -1
-        if crop: self.crop()
+        if self.size == 1 : 
+            self.rank = -1
+        if crop: 
+            self.crop()
 
     def splitx(self):
         self.transpose()
@@ -114,7 +117,8 @@ class Cluster:
         if npt%2 == 1 :
             d1 = abs(self.data[:isplit,:].sum()-self.data[isplit:,:].sum())
             d2 = abs(self.data[:isplit+1,:].sum()-self.data[isplit+1:,:].sum())
-            if d2 < d1 : isplit = isplit+1
+            if d2 < d1 : 
+                isplit = isplit+1
         c1 = Cluster(self.data[:isplit,:], indices=self.ind[:isplit,:], mask=self.mask[:isplit,:], dy=self.dy)
         c2 = Cluster(self.data[isplit:,:], indices=self.ind[isplit:,:], mask=self.mask[isplit:,:], dy=self.dy)
         return [c1, c2]
@@ -179,13 +183,15 @@ class Cluster:
         return [n for n in neighbours if n in self.ind[self.mask>0]]
 
     def _walk(self, n0, neighbours=[]):
-        if len(neighbours) == 0 : neighbours = [n0]
+        if len(neighbours) == 0 : 
+            neighbours = [n0]
         new_neigbours = self._find_neighbours(n0)
-        new_neigbours = [n for n in new_neigbours if not n in neighbours]
+        new_neigbours = [n for n in new_neigbours if n not in neighbours]
         neighbours.extend(new_neigbours)
         for nb in new_neigbours:
             neighbours = self._walk(nb, neighbours)
         return neighbours
+
 
 def clusterize(field, nmax, mask=None):
     clusters = [Cluster(field, mask=mask, crop=False)]
@@ -193,7 +199,7 @@ def clusterize(field, nmax, mask=None):
     nclmax = min(nmax, (clusters[0].mask > 0).sum())
     with tqdm(total=nclmax, desc="spatial aggregation") as pbar:
         ncl = len(clusters+clusters_final)
-        while ncl < nclmax :# and len(Cluster) > 0 :
+        while ncl < nclmax :  # and len(Cluster) > 0 :
             ranks = [c.rank for c in clusters]
             ind = ranks.index(max(ranks))
             new_clusters = clusters[ind].split()

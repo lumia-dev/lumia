@@ -104,4 +104,4 @@ class obsdb(obsdb_base):
                     obs.loc[:, 'site'] = isite
 
                     # Append to self.observations:
-                    self.observations = self.observations.append(obs, sort=False)
+                    self.observations = self.observations.append(obs)#, sort=False)

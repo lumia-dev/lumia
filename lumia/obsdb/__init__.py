@@ -3,12 +3,11 @@ import shutil
 import logging
 import tarfile
 import tempfile
-from datetime import datetime
-from io import BytesIO
 from numpy import unique, nan
-from pandas import DataFrame, read_hdf, read_json, errors, read_csv
+from pandas import DataFrame, read_csv
 
 logger = logging.getLogger(__name__)
+
 
 class obsdb:
     def __init__(self, filename=None, start=None, end=None, db=None):
@@ -45,9 +44,9 @@ class obsdb:
     def __getattr__(self, item):
         if '_parent' in vars(self):
             return getattr(self._parent, item)
-        else :
-            logger.error(f"Unknown method or attribute for obsdb: {item}")
-            raise AttributeError(item)
+        #else :
+        #    logger.error(f"Unknown method or attribute for obsdb: {item}")
+        #    raise AttributeError(item)
 
     def __setattr__(self, key, value):
         if '_parent' in vars(self):
@@ -100,7 +99,7 @@ class obsdb:
         if hasattr(self, 'files') and 'file' in db.observations.columns:
             file_indices = unique(db.observations.file.dropna())
             files_in_db = [f for f in file_indices if f in db.files.index]
-            files_not_in_db = [f for f in file_indices if not f in files_in_db]
+            files_not_in_db = [f for f in file_indices if f not in files_in_db]
             if len(files_in_db) > 0 :
                 db.files = self.files.loc[files_in_db, :]
             if len(files_not_in_db) > 0 :
@@ -122,10 +121,7 @@ class obsdb:
             for field in self.io :
                 method, kwargs = self.io[field]['write']
                 method(getattr(self, field), **kwargs)
-                try :
-                    tar.add(self.io[field]['filename'])
-                except :
-                    import pdb; pdb.set_trace()
+                tar.add(self.io[field]['filename'])
                 os.remove(self.io[field]['filename'])
 
         # Move back to the original directory, and move the tarfile in it
