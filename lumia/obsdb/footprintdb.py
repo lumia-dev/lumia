@@ -13,9 +13,10 @@ from lumia.Tools import system_tools
 
 logger = logging.getLogger(__name__)
 
+
 def concat_footprints(file):
     with h5py.File(file, 'r') as ds :
-        observations = [k for k in ds.keys() if not k in ['latitudes', 'longitudes']]
+        observations = [k for k in ds.keys() if k not in ['latitudes', 'longitudes']]
         lats = ds['latitudes'][:]
         lons = ds['longitudes'][:]
         field = zeros((len(lats), len(lons)))
@@ -31,9 +32,10 @@ def concat_footprints(file):
     data = DataArray(field, coords=[lats, lons], dims=['lats', 'lons'])
     return data
 
+
 class obsdb(obsdb_base):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.footprints_path = kwargs.get('footprints_path', None)
 
     def setupFootprints(self, path=None, names=None, cache=None):

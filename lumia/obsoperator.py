@@ -10,12 +10,15 @@ from .obsdb import obsdb
 
 logger = logging.getLogger(__name__)
 
+
 class transport(object):
     name = 'lagrange'
+
     def __init__(self, rcf, obs=None, formatter=None):
         self.rcf = rcf
         # Initialize the obs if needed
-        if obs is not None : self.setupObs(obs)
+        if obs is not None : 
+            self.setupObs(obs)
             
         if formatter is not None :
             self.writeStruct = formatter.WriteStruct
@@ -83,7 +86,6 @@ class transport(object):
 
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
-    
     
     def runAdjoint(self, departures):
         """
