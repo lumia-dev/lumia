@@ -5,10 +5,11 @@ from datetime import datetime
 from lumia.Tools.system_tools import checkDir
 import logging
 from tqdm import tqdm
-from numpy import *
+from numpy import unique, append
 import xarray as xr
 from pandas import Timestamp
 logger = logging.getLogger(__name__)
+
 
 class Struct(dict):
     def __init__(self, **kwargs):
@@ -99,13 +100,11 @@ class Struct(dict):
             }
         return new
 
-
     def _get_boundaries_t(self):
         beg = [self[cat]['time_interval']['time_start'].min() for cat in self.keys()]
         end = [self[cat]['time_interval']['time_end'].max() for cat in self.keys()]
         assert all([b == beg[0] for b in beg] + [e == end[0] for e in end]), f"All categories do not share the same time boundaries, cannot append {beg}, {end}"
         return beg[0], end[0]
-
 
 
 def WriteStruct(data, path, prefix=None):
@@ -123,7 +122,7 @@ def WriteStruct(data, path, prefix=None):
     # Write to a netCDF format
     with Dataset(filename, 'w') as ds:
         ds.createDimension('time_components', 6)
-        for cat in [c for c in data.keys() if not 'cat_list' in c]:
+        for cat in [c for c in data.keys() if 'cat_list' not in c]:
             gr = ds.createGroup(cat)
             gr.createDimension('nt', data[cat]['emis'].shape[0])
             gr.createDimension('nlat', data[cat]['emis'].shape[1])
