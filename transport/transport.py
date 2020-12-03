@@ -1,7 +1,100 @@
 #!/usr/bin/env python
 import os
 import logging
-from footprints import FootprintTransport, LumiaFootprintFile
+from h5py import File
+from numpy import nan
+from datetime import datetime, timedelta
+from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+
+
+class LumiaFootprintFile(FootprintFile):
+    def read(self):
+        self.ds = File(self.filename, 'r')
+        self.close = self.ds.close
+        self.footprints = [x for x in self.ds.keys()]
+
+        # Store time and space coordinates
+        self.coordinates = SpatialCoordinates(
+            lats=self.ds['latitudes'][:],
+            lons=self.ds['longitudes'][:]
+        )
+        self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
+        self.dt = timedelta(seconds=self.ds.attrs['tres'])
+
+        # Copy them to the Footprint class 
+        self.Footprint.lats = self.coordinates.lats
+        self.Footprint.lons = self.coordinates.lons
+        self.Footprint.dlat = self.coordinates.dlat
+        self.Footprint.dlon = self.coordinates.dlon
+        self.Footprint.dt = self.dt
+
+        self._initialized = True
+
+    def setup(self, coords, origin, dt):
+        assert self.coordinates == coords
+        assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
+
+        # Calculate the number of time steps between the Footprint class (i.e 
+        # the data in the file) and the requested new origin
+        shift_t = (self.origin-origin)/self.dt
+        assert shift_t-int(shift_t) == 0
+
+        # Store the number of time steps and set the new origin of the Footprint class
+        self.shift_t = int(shift_t)
+        self.origin = origin
+
+    def getFootprint(self, obsid, origin=None):
+        fp = self.Footprint()
+        fp.itims = self.ds[obsid]['itims'][:] + self.shift_t
+        fp.ilats = self.ds[obsid]['ilats'][:]
+        fp.ilons = self.ds[obsid]['ilons'][:]
+        fp.sensi = self.ds[obsid]['sensi'][:]
+        fp.origin = self.origin
+        valid = sum(fp.sensi) > 0
+        if not valid :
+            logger.info(f"No usable data found in footprint {obsid}")
+            logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
+        return fp
+    
+    def writeFootprint(self, obsid, footprint):
+        with File(self.filename, 'a') as ds :
+            if "tres" in ds.attrs :
+                self.origin = datetime.strptime(ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
+            else :
+                ds.attrs['tres'] = footprint.dt.total_seconds()
+                ds.attrs['start'] = footprint.origin.strftime('%Y-%m-%d %H:%M:%S')
+                ds['latitudes'] = footprint.lats
+                ds['longitudes'] = footprint.lons
+            footprint.shift_origin(self.origin)
+            ds[f"{obsid}/ilons"] = footprint.ilons
+            ds[f"{obsid}/ilats"] = footprint.ilats
+            ds[f"{obsid}/itims"] = footprint.itims
+            ds[f"{obsid}/sensi"] = footprint.sensi
+
+
+class LumiaFootprintTransport(FootprintTransport):
+    def __init__(self, rcf, obs, emfile, mp, checkfile):
+        super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, checkfile)
+
+    def genFileNames(self, path):
+        return [f'{o.code}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
+
+    def checkFootprints(self, path):
+        """
+        (Try to) guess the path to the files containing the footprints, and the path to the footprints in the files.
+        This adds (or edits) three columns in the observation dataframe:
+        - footprint : path to the footprint files
+        - footprint_file_valid : whether the footprint file exists or not
+        - obsid : path to the observation within the file
+        """
+        # Add the footprint files
+        fnames = [os.path.join(path, f) for f in self.genFileNames(path)]
+        fnames = [f if os.path.exists(f) else nan for f in fnames]
+        self.obs.observations.loc[:, 'footprint'] = fnames 
+
+        # Construct the obs ids:
+        obsids = [f'{o.code}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.itertuples()]
+        self.obs.observations.loc[:, 'obsid'] = obsids
 
 
 if __name__ == '__main__':
@@ -25,7 +118,7 @@ if __name__ == '__main__':
     logger.setLevel(args.verbosity)
 
     # Create the transport model
-    model = FootprintTransport(args.rc, args.db, args.emis, LumiaFootprintFile, mp=not args.serial, checkfile=args.checkfile)
+    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))

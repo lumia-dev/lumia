@@ -55,7 +55,6 @@ class StiltFootprintFile(FootprintFile):
         self.Footprint.dlat = coords.dlat
         self.Footprint.dlon = coords.dlon
 
-    def set_origin(self, origin):
         self.origin = origin
 
     def getFootprint(self, obsid, origin=None):
@@ -94,6 +93,14 @@ class StiltFootprintFile(FootprintFile):
         return fp 
 
 
+class StiltFootprintTransport(FootprintTransport):
+    def __init__(self, rcf, obs, emfile, mp, checkfile):
+        super().__init__(rcf, obs, emfile, StiltFootprintFile, mp, checkfile)
+
+    def checkFootprints(self, path):
+        raise NotImplementedError
+
+
 if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
@@ -117,7 +124,7 @@ if __name__ == '__main__':
     logger.setLevel(args.verbosity)
 
     # Create the transport model
-    model = FootprintTransport(args.rc, args.db, args.emis, StiltFootprintFile, mp=not args.serial, checkfile=args.checkfile)
+    model = StiltFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
 
     # Check footprints
     # This is the default behaviour but can be turned of (for instance during the inversion steps)
