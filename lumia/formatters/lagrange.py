@@ -8,6 +8,7 @@ from tqdm import tqdm
 from numpy import unique, append
 import xarray as xr
 from pandas import Timestamp
+from archive import Archive
 logger = logging.getLogger(__name__)
 
 
@@ -202,6 +203,12 @@ def ReadArchive(prefix, start, end, **kwargs):
     else :
         categories = kwargs
 
+    if kwargs.get('archive', False):
+        archive = Archive(kwargs['archive'])
+    else :
+        archive = None
+    localArchive = Archive(os.path.dirname(prefix), parent=archive)
+
     for cat in tqdm(categories, leave=False) :
         field = categories[cat]
         ds = []
@@ -214,6 +221,8 @@ def ReadArchive(prefix, start, end, **kwargs):
         for year in tqdm(range(start.year, end_year), desc=f"Importing data for category {cat}"):
             fname = f"{prefix}{field}.{year}.nc"
             tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
+            # Make sure that the file is here:
+            localArchive.get(fname, os.path.dirname(prefix))
             ds.append(xr.load_dataset(fname))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])

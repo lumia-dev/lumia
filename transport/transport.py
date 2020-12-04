@@ -2,9 +2,10 @@
 import os
 import logging
 from h5py import File
-from numpy import nan
+from numpy import nan, array
 from datetime import datetime, timedelta
 from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from archive import Archive
 
 
 class LumiaFootprintFile(FootprintFile):
@@ -76,10 +77,10 @@ class LumiaFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emfile, mp, checkfile):
         super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, checkfile)
 
-    def genFileNames(self, path):
+    def genFileNames(self):
         return [f'{o.code}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
 
-    def checkFootprints(self, path):
+    def checkFootprints(self, path, archive=None):
         """
         (Try to) guess the path to the files containing the footprints, and the path to the footprints in the files.
         This adds (or edits) three columns in the observation dataframe:
@@ -87,9 +88,14 @@ class LumiaFootprintTransport(FootprintTransport):
         - footprint_file_valid : whether the footprint file exists or not
         - obsid : path to the observation within the file
         """
+        cache = Archive(path, parent=Archive(archive))
+
         # Add the footprint files
-        fnames = [os.path.join(path, f) for f in self.genFileNames(path)]
-        fnames = [f if os.path.exists(f) else nan for f in fnames]
+        #fnames = [os.path.join(path, f) for f in self.genFileNames()]
+        #fnames = [f if os.path.exists(f) else nan for f in fnames]
+        fnames = array(self.genFileNames())
+        exists = array([cache.get(f) for f in self.genFileNames()])
+        fnames[~exists] = nan
         self.obs.observations.loc[:, 'footprint'] = fnames 
 
         # Construct the obs ids:

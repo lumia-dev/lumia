@@ -264,7 +264,7 @@ class FootprintTransport:
         if destclass is None :
             destclass = self.__class__
         dest = destclass(self.rcf, self.obs, self.emfile)
-        fnames_out = array(dest.genFileNames(destpath))
+        fnames_out = array([os.path.join(destpath, f) for f in dest.genFileNames()])
         fnames_in = self.obs.observations.footprint.values
 
         for file0 in tqdm(unique(fnames_in)):
