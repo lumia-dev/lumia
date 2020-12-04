@@ -73,8 +73,14 @@ class LocalArchive:
             
             
 class Archive:
-    def __init__(self, key, *attrs, **kwattrs):
+    def __init__(self, key, parent=None, *attrs, **kwattrs):
+        # Make sure that "parent" is None if we create Archive(key, parent=Archive(None))
+        if key is None :
+            return None
+
         self.key = key
+        if parent is not None :
+            self.parent = parent 
         if os.path.isdir(key):
             self.archive = LocalArchive(key, *attrs, **kwattrs)
         elif key.startswith('rclone:'):
@@ -83,8 +89,14 @@ class Archive:
             logger.error(f"Un-recognized meteo archive: {key}")
             raise RuntimeError
     
-    def get(self, file, dest='.'):
+    def get(self, file, dest='.', fail=True):
         success = self.archive.get(file, dest)
         if not success :
-            logger.error(f"File {file} couldn't be downloaded from archive {self.key}")
-            raise RuntimeError
+            if hasattr(self, 'parent'):
+                logger.info(f"File {file} couldn't be downloaded from archive {self.key}. Trying archive {self.parent.key}")
+                success = self.parent.get(file, dest)
+            else :
+                if fail: 
+                    logger.error(f"File {file} could not be downloaded from archive {self.key}.")
+                    raise RuntimeError
+        return success
