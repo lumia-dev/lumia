@@ -2,14 +2,19 @@
 
 import os
 import shutil
+from datetime import datetime
 from numpy import array_equal, nan, array, unique
 import ray
 from tqdm import tqdm
 from lumia.Tools import rctools, Categories
 from lumia import obsdb
-from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct
+from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct, CreateStruct
 from lumia.Tools import regions
 import logging
+
+# Cleanup needed in the following ...
+from lumia.Tools import Region
+from lumia.Tools.time_tools import time_interval
 
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
@@ -101,8 +106,10 @@ class FootprintFile:
         # 1st, check which obsids are present in the file:
         footprint_valid = [o in self.footprints for o in obslist.obsid]
         obslist = obslist.loc[footprint_valid].copy()
-        if step == 'forward':
+        if step == 'forward' :
             return self._runForward(obslist, emis)
+        elif step == 'adjoint' :
+            return self._runAdjoint(obslist, emis)
 
     def _runForward(self, obslist, emis):
         """
@@ -114,6 +121,14 @@ class FootprintFile:
                 obslist.loc[iobs, cat] = fpt.to_conc(emis.data[cat]['emis'])
         self.close()
         return obslist.loc[:, emis.categories]
+
+    def _runAdjoint(self, obslist, adjstruct):
+        for iobs, obs in tqdm(obslist.iterrows(), desc=self.filename, total=obslist.shape[0], disable=self.silent):
+            fpt = self.getFootprint(obs.obsid, origin=self.origin)
+            for cat in adjstruct.categories :
+                adjstruct[cat]['emis'] = fpt.to_adj(obs.dy, adjstruct[cat]['emis'])
+        self.close()
+        return adjstruct
 
 
 class SpatialCoordinates:
@@ -195,14 +210,19 @@ class Footprint:
         s = (self.itims >= 0) * (self.itims <= flux.shape[0])
         return (flux[self.itims[s], self.ilats[s], self.ilons[s]]*self.sensi[s]).sum()*0.0002897
 
+    def to_adj(self, dy, adjfield):
+        # TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?
+        s = (self.itims >= 0) * (self.itims <= adjfield.shape[0])
+        adjfield[self.itims[s], self.ilats[s], self.ilons[s]] += self.sensi[s]*dy*0.0002897
+
     def itime_to_times(self, it):
         return self.origin+it*self.dt
 
 
 @ray.remote
-def ray_worker(filename, obslist, emis, FootprintFileClass):
+def ray_worker(filename, obslist, emis, FootprintFileClass, step='forward'):
     fpf = FootprintFileClass(filename, silent=True)
-    return fpf.run(obslist, emis, 'forward')
+    return fpf.run(obslist, emis, step)
 
 
 class FootprintTransport:
@@ -234,6 +254,7 @@ class FootprintTransport:
     def _set_parallelization(self, mode=False):
         if not mode :
             self._forward_loop = self._forward_loop_serial
+            self._adjoint_loop = self._adjoint_loop_serial
         elif mode == 'ray' :
             self._forward_loop = self._forward_loop_ray
 
@@ -248,13 +269,46 @@ class FootprintTransport:
         filenames = self.obs.observations.footprint.dropna().drop_duplicates()
         self._forward_loop(filenames)
 
+    def runAdjoint(self):
+        # 1) Create an empty adjoint structure
+        region = Region(self.rcf)
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c) == 1]
+        start = datetime(*self.rcf.get('time.start'))
+        end = datetime(*self.rcf.get('time.end'))
+        dt = time_interval(self.rcf.get('emissions.*.interval'))
+        adj = CreateStruct(categories, region, start, end, dt)
+
+        # 2) Loop over the footprint files
+        filenames = self.obs.observations.footprint.dropna().drop_duplicates()
+        adj = self._adjoint_loop(filenames, adj)
+
+        # 3) Write the updated adjoint field
+        WriteStruct(adj, self.emfile)
+
+    def _adjoint_loop_serial(self, filenames, adj):
+        for filename in tqdm(filenames):
+            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
+            adj = self.get(filename).run(obslist, adj, 'adjoint')
+        return adj
+
+    def _adjoint_loop_ray(self, filenames, adj):
+        ray.init()
+        workers = []
+        for filename in filenames :
+            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
+            workers.append(ray_worker.remote(filename, obslist, adj, self.FootprintFileClass, 'adjoint'))
+        for w in tqdm(workers):
+            adj += ray.get(w)
+        ray.shutdown()
+        return adj
+
     def _forward_loop_ray(self, filenames):
         ray.init()
         emis_id = ray.put(self.emis)
         workers = []
         for filename in filenames:
             obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
-            workers.append(ray_worker.remote(filename, obslist, emis_id, FootprintFileClass=self.FootprintFileClass))
+            workers.append(ray_worker.remote(filename, obslist, emis_id, self.FootprintFileClass))
         
         for w in tqdm(workers) :
             obs = ray.get(w)
