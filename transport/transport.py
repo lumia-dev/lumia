@@ -2,10 +2,12 @@
 import os
 import logging
 from h5py import File
-from numpy import nan, array
+from numpy import nan, array, int32, float32
 from datetime import datetime, timedelta
-from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
+
+logger = logging.getLogger(os.path.basename(__file__))
 
 
 class LumiaFootprintFile(FootprintFile):
@@ -57,24 +59,30 @@ class LumiaFootprintFile(FootprintFile):
             logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
         return fp
     
-    def writeFootprint(self, obsid, footprint):
+    def writeFootprint(self, obs, footprint):
+        obsid = f'{obs.code}.{obs.height:.0f}m.{obs.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}'
         with File(self.filename, 'a') as ds :
-            if "tres" in ds.attrs :
-                self.origin = datetime.strptime(ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
+            if obsid in ds :
+                logger.warn(f"Footprint {obsid} already in {self.filename}. Passing ...")
             else :
-                ds.attrs['tres'] = footprint.dt.total_seconds()
-                ds.attrs['start'] = footprint.origin.strftime('%Y-%m-%d %H:%M:%S')
-                ds['latitudes'] = footprint.lats
-                ds['longitudes'] = footprint.lons
-            footprint.shift_origin(self.origin)
-            ds[f"{obsid}/ilons"] = footprint.ilons
-            ds[f"{obsid}/ilats"] = footprint.ilats
-            ds[f"{obsid}/itims"] = footprint.itims
-            ds[f"{obsid}/sensi"] = footprint.sensi
+                if "tres" in ds.attrs :
+                    self.origin = datetime.strptime(ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
+                else :
+                    ds.attrs['tres'] = footprint.dt.total_seconds()
+                    ds.attrs['start'] = footprint.origin.strftime('%Y-%m-%d %H:%M:%S')
+                    ds['latitudes'] = footprint.lats
+                    ds['longitudes'] = footprint.lons
+                if not hasattr(self, 'origin'):
+                    self.origin = datetime(footprint.origin.year, footprint.origin.month, 1)
+                footprint.shift_origin(self.origin)
+                ds[f"{obsid}/ilons"] = footprint.ilons.astype(int32)
+                ds[f"{obsid}/ilats"] = footprint.ilats.astype(int32)
+                ds[f"{obsid}/itims"] = footprint.itims.astype(int32)
+                ds[f"{obsid}/sensi"] = footprint.sensi.astype(float32)
 
 
 class LumiaFootprintTransport(FootprintTransport):
-    def __init__(self, rcf, obs, emfile, mp, checkfile):
+    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None):
         super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, checkfile)
 
     def genFileNames(self):

@@ -15,6 +15,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
 
+def Observations(arg):
+    """
+    For now, this is just a wrapper around the lumia obsdb class, but since I don't
+    like that class, I might change it. 
+    """
+    if isinstance(arg, obsdb):
+        return arg
+    else :
+        return obsdb(arg)
+
+
 class Flux:
     """
     This class slighly adapts the "Struct" class from the lumia.formatters.lagrange module: it ensures that
@@ -75,10 +86,13 @@ class FootprintFile:
         Since different files may be processed on different nodes (and therefore may use different
         physical caches), the caching is done by the "FootprintFile" class itself.
         """
-        source, fname = os.path.split(filename)
-        dest = os.path.join(cache, fname)
-        if not os.path.exists(dest):
-            shutil.copy(filename, dest)
+        if cache :
+            source, fname = os.path.split(filename)
+            dest = os.path.join(cache, fname)
+            if not os.path.exists(dest):
+                shutil.copy(filename, dest)
+        else :
+            return filename
 
     def run(self, obslist, emis, step):
         self.read()  # Read basic information from the file itself
@@ -117,22 +131,29 @@ class SpatialCoordinates:
 
         self._autocomplete()
 
-    def itime_to_times(self, it):
-        return self.origin+it*self.dt
-
     def _autocomplete(self):
         """
         Tries to calculate missing values based on the ones that are present
         For now, dlon and dlat are deduced from lons and lats
         """
+        # Fix lons
         if self.lons is None and None not in [self.lon0, self.dlon, self.nlon]:
             self.lons = [self.lon0 + i*self.dlon for i in range(self.nlon)]
-        elif self.dlon is None and self.lons is not None :
-            self.dlon = self.lons[1]-self.lons[0]
+        # Else, fix dlon/nlon
+        elif self.lons is not None :
+            if self.dlon is None :
+                self.dlon = self.lons[1]-self.lons[0]
+            if self.nlon is None :
+                self.nlon = len(self.lons)
+
+        # same for lats:
         if self.lats is None and None not in [self.lat0, self.dlat, self.nlon]:
             self.lats = [self.lat0 + i*self.dlat for i in range(self.nlat)]
-        elif self.dlat is None and self.lats is not None :
-            self.dlat = self.lats[1]-self.lats[0]
+        elif self.lats is not None :
+            if self.dlat is None :
+                self.dlat = self.lats[1]-self.lats[0]
+            if self.nlat is None :
+                self.nlat = len(self.lats)
 
     def __le__(self, other):
         res = all([l in other.lons for l in self.lons])
@@ -161,7 +182,11 @@ class Footprint:
 
     def shift_origin(self, origin):
         shift_t = (self.origin-origin)/self.dt
-        self.itims += shift_t
+        if shift_t - int(shift_t) != 0:
+            import pdb
+            pdb.set_trace()
+        assert shift_t - int(shift_t) == 0
+        self.itims += int(shift_t)
         self.origin = origin
 
     def to_conc(self, flux):
@@ -169,6 +194,9 @@ class Footprint:
         # TODO: make this a bit more explicit ... 
         s = (self.itims >= 0) * (self.itims <= flux.shape[0])
         return (flux[self.itims[s], self.ilats[s], self.ilons[s]]*self.sensi[s]).sum()*0.0002897
+
+    def itime_to_times(self, it):
+        return self.origin+it*self.dt
 
 
 @ray.remote
@@ -178,9 +206,9 @@ def ray_worker(filename, obslist, emis, FootprintFileClass):
 
 
 class FootprintTransport:
-    def __init__(self, rcf, obs, emfile, FootprintFileClass, mp=False, checkfile=None):
+    def __init__(self, rcf, obs, emfile=None, FootprintFileClass=FootprintFile, mp=False, checkfile=None):
         self.rcf = rctools.rc(rcf)
-        self.obs = obsdb(obs)
+        self.obs = Observations(obs)
         self.obs.checkIndex(reindex=True)
         self.emfile = emfile
 
@@ -191,12 +219,15 @@ class FootprintTransport:
         # Internals
         self.executable = __file__
         self.ncpus = self.rcf.get('model.transport.split', default=os.cpu_count())
+        self._set_parallelization(False)
         if mp :
             self._set_parallelization('ray')
         self.FootprintFileClass = FootprintFileClass
-        #self.batch = os.environ['INTERACTIVE'] == 'F'
 
-        self.categories = Categories(self.rcf)
+        if emfile is not None :
+            self.categories = Categories(self.rcf)
+        else :
+            logger.warn("No emission files has been provided. Ignore this warning if it's on purpose")
         self.checkfile=checkfile
         logger.debug(checkfile)
 
@@ -235,11 +266,14 @@ class FootprintTransport:
     def _forward_loop_serial(self, filenames, write=False):
         for filename in tqdm(filenames):
             obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
-            obslist = self.FootprintFileClass(filename).run(obslist, self.emis, 'forward')
+            obslist = self.get(filename).run(obslist, self.emis, 'forward')
             for field in obslist.columns :
                 self.obs.observations.loc[obslist.index, field] = obslist.loc[:, field]
 
-    def WriteFootprints(self, destpath, destclass=None):
+    def get(self, filename):
+        return self.FootprintFileClass(filename)
+
+    def writeFootprints(self, destpath, destclass=None):
         """
         Write the footprints from the obs database to new footprint files, in the "destpath" directory.
         Optionally, an alternative footprint class can be provided, using the "destclass" argument, to write
@@ -263,16 +297,18 @@ class FootprintTransport:
         """
         if destclass is None :
             destclass = self.__class__
-        dest = destclass(self.rcf, self.obs, self.emfile)
-        fnames_out = array([os.path.join(destpath, f) for f in dest.genFileNames()])
-        fnames_in = self.obs.observations.footprint.values
+        self.obs.observations = self.obs.observations.dropna(subset=['footprint'])
+        dest = destclass(os.path.join(self.rcf.dirname, self.rcf.filename), self.obs, self.emfile)
 
+        fnames_out = array([os.path.join(destpath, f) for f in dest.genFileNames()])
+        fnames_in = self.obs.observations.footprint.dropna().values
+        silent=False
         for file0 in tqdm(unique(fnames_in)):
-            fpf0 = self.FootprintFileClass(file0)
+            fpf0 = self.get(file0)
             destfiles = fnames_out[fnames_in == file0]
-            for file1 in tqdm(unique(destfiles)):
-                fpf1 = dest.FootprintFileClass(file1)
-                obslist = self.obs.loc[(fnames_out == file1) & (fnames_in == file0)]
-                for obs in obslist :
-                    fp = fpf0.getFootprint(obs)
+            for file1 in tqdm(unique(destfiles), desc=file0, leave=False, disable=silent):
+                fpf1 = dest.get(file1)
+                obslist = self.obs.observations.loc[(fnames_out == file1) & (fnames_in == file0)]
+                for obs in tqdm(obslist.itertuples(), total=obslist.shape[0], desc=file1, leave=False, disable=silent) :
+                    fp = fpf0.getFootprint(obs.obsid)
                     fpf1.writeFootprint(obs, fp)
