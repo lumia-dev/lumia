@@ -119,13 +119,14 @@ if __name__ == '__main__':
 
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
+    p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
     p.add_argument('--checkfile', '-c')
-    p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them", dest='checkFootprints')
+    p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
@@ -139,3 +140,6 @@ if __name__ == '__main__':
 
     if args.forward :
         model.runForward()
+
+    if args.adjoint :
+        model.runAdjoint()
