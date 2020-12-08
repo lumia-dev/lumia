@@ -1,11 +1,17 @@
 import os
 import logging
+from tqdm import tqdm
 from netCDF4 import Dataset
+import multiprocessing
+from datetime import datetime
 from numpy import transpose, where, zeros, eye, dot, pi, sin, cos, arcsin, exp, \
-    meshgrid, linalg, diag, sqrt, argsort, flipud
+    meshgrid, diag, sqrt, argsort, flipud
+from scipy import linalg
+from h5py import File
 logger = logging.getLogger(__name__)
 
 #TODO: create a proper "grid" module, which will create a file storing the grid definition and the lat/lon covariances
+
 
 def read_latlon(file_name):
     if not os.path.exists(file_name):
@@ -19,44 +25,73 @@ def read_latlon(file_name):
     return transpose(P), D
 
 
+def build_matrix_inner(args):
+    index, lons, lats, reflon, reflat, corlen, iexp = args
+    V = zeros(len(lons))
+    for (ind, lon, lat) in zip(index, lons, lats):
+        dst = dist(reflon, reflat, lon, lat)
+        V[ind] = exp(-(dst/corlen)**iexp)
+    return ind, V
+
+
+def buid_matrix(state, corlen, iexp):
+    pp = multiprocessing.Pool()
+    n_hor = state.shape[0]
+    P = zeros((n_hor, n_hor))
+    #res = [pp.apply(build_matrix_inner, args=[state, p1, corlen, iexp]) for p1 in state.itertuples()]
+    res = pp.imap(build_matrix_inner, [(state.index.values, state.lon.values, state.lat.values, p1.lon, p1.lat, corlen, iexp) for p1 in tqdm(state.itertuples(), total=state.shape[0])])
+    for i,v in tqdm(res, desc='Retrieving results', total=n_hor) :
+        P[i, :] = v
+        P[:, i] = v 
+    return P
+
+
 class horcor:
     def __init__(self, corlen, cortype, statevec, min_eigval=0.00001):
         self.corlen = corlen
         self.cortype = cortype
         self.state = statevec
         self.min_eigval = min_eigval
-#        self.region = region
-#        self.n_hor = -1
-#        self.lam = None
-#        self.P = None
-#        self.P_diag = None
 
     def calc_latlon_covariance(self):
         logger.info("Use numpy.linalg to compute eigen decomposition of covariance matrix")
+        logger.info(datetime.now())
         n_hor = self.state.shape[0]
         logger.info("Matrix size: (%i x %i)",n_hor, n_hor)
-        P = zeros((n_hor, n_hor))
+        #P = zeros((n_hor, n_hor))
         P_diag = zeros((n_hor, n_hor))
         iexp = {'e':1, 'g':2}[self.cortype]
         assert self.corlen >= 0, "ERROR - correlation length should be >= 0"
         # put stuff here to construct P for exponential or gaussian decay
+        logger.info(datetime.now())
         if self.corlen == 0 :
+            P = zeros((n_hor, n_hor))
             P = eye(n_hor)
             P_diag = 1.*P
             lam = 1.
         else :
             # loop first index over latlon grid
-            for p1 in self.state.itertuples():
-                for p2 in self.state.itertuples():
-                    dst = dist(p1.lon, p1.lat, p2.lon, p2.lat)
-                    cor = exp(-(dst/self.corlen)**iexp)
-                    P[p1.Index, p2.Index] = cor
-                    P[p2.Index, p1.Index] = cor
+            logger.info(f'Start building the matrix: {datetime.now()}')
+
+            # for p1 in self.state.itertuples():
+            #     for p2 in self.state.itertuples():
+            #         dst = dist(p1.lon, p1.lat, p2.lon, p2.lat)
+            #         cor = exp(-(dst/self.corlen)**iexp)
+            #         P[p1.Index, p2.Index] = cor
+            #         P[p2.Index, p1.Index] = cor
+            P = buid_matrix(self.state, self.corlen, iexp)
+            with File("/proj/inversion/matrix.hdf", 'w') as f:
+                f['P'] = P
+
+            logger.info(f'Start the eigen value decomposition: {datetime.now()}')
             # Eigen decomposition of symmetric matrix
             lam, P = linalg.eigh(P)
+            logger.info(datetime.now())
             lam = self.make_positive_semidef(lam)
+            logger.info(datetime.now())
             for i in range(n_hor):
                 P_diag[i, i] = lam[i]
+            logger.info(datetime.now())
 
         self.n_hor = n_hor
         self.lam = lam
@@ -65,18 +100,6 @@ class horcor:
 
     def write(self, filename):
         ds = Dataset(filename, 'w')
-#        ds.nregions = 1
-#        ds.im = self.region.nlon
-#        ds.jm = self.region.nlat
-#        ds.lm = -1       # Not sure if this is used anywhere, so I prefer to put an invalid value, to be sure it'll crash if used.,
-#        ds.dx = self.region.dlon
-#        ds.dy = self.region.dlat
-#        ds.xref = ones(2)
-#        ds.yref = ones(2)
-#        ds.xbeg = self.region.lonmin
-#        ds.xend = self.region.lonmax
-#        ds.ybeg = self.region.latmin
-#        ds.yend = self.region.latmax
         ds.corlen = self.corlen
         ds.corchoice = self.cortype
         ds.createDimension('n_hor', self.n_hor)
@@ -107,38 +130,6 @@ class horcor:
         return lam
 
 
-#class horcor_vres(horcor):
-#    def __init__(self, corlen, cortype, state, min_eigval=0.00001):
-#        self.corlen = corlen
-#        self.cortype = cortype
-#        self.state = state
-#        self.min_eigval = min_eigval
-#        self.n_hor = -1
-#        self.lam = None
-#        self.P = None
-#        self.P_diag = None
-#
-#    def write(self, filename):
-#        ds = Dataset(filename, 'w')
-#        ds.corlen = self.corlen
-#        ds.corchoice = self.cortype
-#        ds.createDimension('n_hor', self.n_hor)
-#        ds.createVariable('sqrt_lam', 'd', ('n_hor', ), zlib=True)
-#        ds.createVariable('lam', 'd', ('n_hor', ), zlib=True)
-#        ds.createVariable('P', 'd', ('n_hor', 'n_hor'), zlib=True)
-#        ds.variables['lam'][:] = self.lam
-#        ds.variables['sqrt_lam'][:] = self.lam**.5
-#        ds.variables['P'][:] = self.P.transpose() # numpy.eigv returns the vectors in columns, but the equivalent fotran subroutine returns them in rows. So store it in rows for consistency.
-#
-#        # Also write B itself (first recalculate), for use in postprocessing
-#        logger.info("Recalculating B matrix from eigenvectors/eigenvalues")
-#        ds.createVariable('B', 'd', ('n_hor', 'n_hor'), zlib=True)
-#        B = dot(self.P, self.P_diag)
-#        P = dot(B, self.P.transpose())
-#        ds.variables['B'][:] = P
-#        ds.close()
-
-
 def dist(lon1, lat1, lon2, lat2, ae=6.371e6):
     # Compute distance of two points on the globe
     # Based on TM5/misctools.F90/dist
@@ -152,6 +143,7 @@ def dist(lon1, lat1, lon2, lat2, ae=6.371e6):
     ddg = dd*180/pi
     return (ddg*2*pi*0.001*ae)/360
 
+
 def calc_temp_corr(corlen, dt, n):
     if corlen<1.e-20:
         P = eye(n)
@@ -164,6 +156,7 @@ def calc_temp_corr(corlen, dt, n):
         # if abs((dot(dot(P, D**2), P.transpose())-A)) > 1.e-10 :
         #     raise SomeError
     return P, D
+
 
 def matrix_square_root(B):
     # Given a real symmetric matrix B, calculate L such that LL^T = B
@@ -179,16 +172,15 @@ def matrix_square_root(B):
     col_sign = where(P[0]<0.0, -1.0, 1.0)
     P = P*col_sign
 
-
-   ## Select positive values :
-   # ii, = where(lam>0)
-   # lam = lam[ii]
-   # P = P[:, ii]
-   # D = diag(sqrt(lam))
+    # Select positive values :
+#    ii, = where(lam>0)
+#    lam = lam[ii]
+#    P = P[:, ii]
+#    D = diag(sqrt(lam))
     return P, D
     #lam[lam<0.0] = 0.0
     #D = diag(sqrt(lam))
-    ## Make sure that the elements in the top row of P are non-negative
+    # Make sure that the elements in the top row of P are non-negative
     #col_sign = where(P[0]<0.0, -1.0, 1.0)
     #P *= col_sign
     #return P, D
