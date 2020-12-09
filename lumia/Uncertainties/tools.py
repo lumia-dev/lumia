@@ -2,7 +2,7 @@ import os
 import logging
 from tqdm import tqdm
 from netCDF4 import Dataset
-import multiprocessing
+from multiprocessing import Pool
 from datetime import datetime
 from numpy import transpose, where, zeros, eye, dot, pi, sin, cos, arcsin, exp, \
     meshgrid, diag, sqrt, argsort, flipud
@@ -25,25 +25,64 @@ def read_latlon(file_name):
     return transpose(P), D
 
 
-def build_matrix_inner(args):
-    index, lons, lats, reflon, reflat, corlen, iexp = args
-    V = zeros(len(lons))
-    for (ind, lon, lat) in zip(index, lons, lats):
-        dst = dist(reflon, reflat, lon, lat)
-        V[ind] = exp(-(dst/corlen)**iexp)
-    return ind, V
+class InnerLoop:
+    def __init__(self, corlen, iexp, lons, lats):
+        self.corlen = corlen
+        self.iexp = iexp
+        self.lats = lats
+        self.lons = lons
+    
+    def calc_slice(self, iloc):
+        reflon = self.lons[iloc]
+        reflat = self.lats[iloc]
+        V = zeros(iloc+1)
+        for ii, (lon, lat) in enumerate(zip(self.lons[:iloc+1], self.lats[:iloc+1])):
+            dst = dist(reflon, reflat, lon, lat)
+            V[ii] = exp(-(dst/self.corlen)**self.iexp)
+        return V
 
 
-def buid_matrix(state, corlen, iexp):
-    pp = multiprocessing.Pool()
-    n_hor = state.shape[0]
-    P = zeros((n_hor, n_hor))
-    #res = [pp.apply(build_matrix_inner, args=[state, p1, corlen, iexp]) for p1 in state.itertuples()]
-    res = pp.imap(build_matrix_inner, [(state.index.values, state.lon.values, state.lat.values, p1.lon, p1.lat, corlen, iexp) for p1 in tqdm(state.itertuples(), total=state.shape[0])])
-    for i,v in tqdm(res, desc='Retrieving results', total=n_hor) :
-        P[i, :] = v
-        P[:, i] = v 
-    return P
+class HorCorMatrix:
+    def __init__(self, corlen, cortype, state, min_eigval=0.00001):
+        self.corlen = corlen
+        self.cortype = cortype
+        self.iexp = {'e':1, 'g':2}[self.cortype]
+        self.state = state
+        self.min_eigval = min_eigval
+
+    def construct_matrix(self, minv=1.e-7):
+        pp = Pool()
+        n_hor = self.state.shape[0]
+        P = zeros((n_hor, n_hor))
+        inner = InnerLoop(self.corlen, self.iexp, self.state.lon.values, self.state.lat.values)
+        res = pp.imap(inner.calc_slice, range(n_hor))
+        for i, v in tqdm(enumerate(res), desc="Computing horizontal covariance matrix", total=n_hor):
+            P[:i+1, i] = v
+            P[i, :i+1] = v
+
+        P[P < minv] = 0
+        return P
+
+    def calc_latlon_covariance(self, loadmatrix=False):
+        if loadmatrix :
+            with File(loadmatrix, 'r') as f :
+                P = f['P'][:]
+        else :
+            P = self.construct_matrix()
+        logger.debug("start eigen value decomposition")
+        lam, p = linalg.eigh(P)
+        lam = self.make_positive_semidef(lam)
+        return lam, p
+
+    def make_positive_semidef(self, lam):
+        if self.min_eigval > 1.e-10:
+            min_eigval = self.min_eigval*min((1., lam.max()))
+        n_neg = sum(lam < min_eigval)
+        lam[lam < min_eigval] = min_eigval
+        logger.info(f"Maximum eigenvalue = {lam.max():10.3e}, minimum eigenvalue = {lam.min():10.3e}")
+        if n_neg > 0 :
+            logger.info(f"Set {n_neg} eigenvalues to {min_eigval:15.11f}")
+        return lam
 
 
 class horcor:
@@ -60,10 +99,13 @@ class horcor:
         logger.info("Matrix size: (%i x %i)",n_hor, n_hor)
         #P = zeros((n_hor, n_hor))
         P_diag = zeros((n_hor, n_hor))
-        iexp = {'e':1, 'g':2}[self.cortype]
-        assert self.corlen >= 0, "ERROR - correlation length should be >= 0"
-        # put stuff here to construct P for exponential or gaussian decay
+
         logger.info(datetime.now())
+        M = HorCorMatrix(self.corlen, self.cortype, self.state)
+
+        #iexp = {'e':1, 'g':2}[self.cortype]
+        #assert self.corlen >= 0, "ERROR - correlation length should be >= 0"
+        # put stuff here to construct P for exponential or gaussian decay
         if self.corlen == 0 :
             P = zeros((n_hor, n_hor))
             P = eye(n_hor)
@@ -72,6 +114,7 @@ class horcor:
         else :
             # loop first index over latlon grid
             logger.info(f'Start building the matrix: {datetime.now()}')
+            P = M.construct_matrix()
 
             # for p1 in self.state.itertuples():
             #     for p2 in self.state.itertuples():
@@ -79,9 +122,7 @@ class horcor:
             #         cor = exp(-(dst/self.corlen)**iexp)
             #         P[p1.Index, p2.Index] = cor
             #         P[p2.Index, p1.Index] = cor
-            P = buid_matrix(self.state, self.corlen, iexp)
-            with File("/proj/inversion/matrix.hdf", 'w') as f:
-                f['P'] = P
+            #P = buid_matrix(self.state, self.corlen, iexp)
 
             logger.info(f'Start the eigen value decomposition: {datetime.now()}')
             # Eigen decomposition of symmetric matrix
