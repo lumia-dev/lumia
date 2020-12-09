@@ -4,8 +4,9 @@ import logging
 from h5py import File
 from numpy import nan, array, int32, float32
 from datetime import datetime, timedelta
-from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
+from tqdm import tqdm
 
 logger = logging.getLogger(os.path.basename(__file__))
 
@@ -86,7 +87,7 @@ class LumiaFootprintTransport(FootprintTransport):
         super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, checkfile)
 
     def genFileNames(self):
-        return [f'{o.code}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
+        return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
 
     def checkFootprints(self, path, archive=None):
         """
@@ -102,12 +103,12 @@ class LumiaFootprintTransport(FootprintTransport):
         #fnames = [os.path.join(path, f) for f in self.genFileNames()]
         #fnames = [f if os.path.exists(f) else nan for f in fnames]
         fnames = array(self.genFileNames())
-        exists = array([cache.get(f) for f in self.genFileNames()])
+        exists = array([cache.get(f, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
         fnames[~exists] = nan
         self.obs.observations.loc[:, 'footprint'] = fnames 
 
         # Construct the obs ids:
-        obsids = [f'{o.code}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.itertuples()]
+        obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.itertuples()]
         self.obs.observations.loc[:, 'obsid'] = obsids
 
 
@@ -131,6 +132,9 @@ if __name__ == '__main__':
     args = p.parse_args(sys.argv[1:])
 
     logger.setLevel(args.verbosity)
+    logger.info('test logger')
+    logger.debug('test logger')
+    logger.warning('test logger')
 
     # Create the transport model
     model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)

@@ -9,6 +9,7 @@ from lumia.Tools import Region
 from .tools import read_latlon, horcor, calc_temp_corr
 logger = logging.getLogger(__name__)
 
+
 class Uncertainties:
     def __init__(self, rcf, interface=None):
         self.data = None # data
@@ -46,7 +47,7 @@ class Uncertainties:
     def setup_Hcor_old(self):
         for cat in self.categories :
             if cat.optimize :
-                if not cat.horizontal_correlation in self.horizontal_correlations :
+                if cat.horizontal_correlation not in self.horizontal_correlations :
                     fname = self.checkCorFile(cat.horizontal_correlation, cat) # TODO: Move this to a completely external code/module?
                     P_h, D_h = read_latlon(fname)
                     Hor_L = P_h * D_h
@@ -56,7 +57,7 @@ class Uncertainties:
     def setup_Hcor(self):
         for cat in self.categories :
             if cat.optimize :
-                if not cat.horizontal_correlation in self.horizontal_correlations :
+                if cat.horizontal_correlation not in self.horizontal_correlations :
                     fname = self.checkCorFile_vres(cat.horizontal_correlation, cat)
                     P_h, D_h = read_latlon(fname)
                     Hor_L = P_h * D_h
@@ -66,7 +67,7 @@ class Uncertainties:
     def setup_Tcor(self):
         for cat in self.categories :
             if cat.optimize :
-                if not cat.temporal_correlation in self.temporal_correlations :
+                if cat.temporal_correlation not in self.temporal_correlations :
                     temp_corlen = float(cat.temporal_correlation[:3].strip())
 
                     # Time interval of the optimization

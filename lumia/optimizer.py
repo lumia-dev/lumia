@@ -7,6 +7,7 @@ from .Tools import costFunction
 
 logger = logging.getLogger(__name__)
 
+
 class Optimizer(object):
     def __init__(self, rcf, control, obsop, interface, minimizer=congrad):
         self.rcf = rcf                        # Settings
@@ -90,7 +91,8 @@ class Optimizer(object):
     def save(self, step=None):
         step = '' if step is None else step+'.'
         path = self.rcf.get('path.output')
-        if not os.path.exists(path): os.makedirs(path)
+        if not os.path.exists(path): 
+            os.makedirs(path)
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.obsop.save(path, step)
         #self.control.save(os.path.join(path, 'control.%shdf'%step))  # ==> The transport model saves itself
