@@ -28,6 +28,6 @@ def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
     nhor = shape(Hor_L)[0]
     x = zeros(n_state)
     for i in tqdm(range(nt), desc='xc_to_x', leave=True):
-        for j in range(nt):#, desc='step %i/%i'%(i, nt), leave=False):
+        for j in tqdm(range(nt), desc='step %i/%i'%(i, nt), leave=False):
             x[ipos+i*nhor:ipos+(i+1)*nhor] += G_state[ipos+i*nhor:ipos+(i+1)*nhor]* dot(Temp_L[i,j]*Hor_L, x_c[ipos+j*nhor:ipos+(j+1)*nhor])
     return x
