@@ -68,16 +68,25 @@ class obsdb:
         self.sites = db.sites
         self.files = db.files
 
-    def SelectTimes(self, tmin=None, tmax=None):
+    def SelectTimes(self, tmin=None, tmax=None, copy=True):
         tmin = self.start if tmin is None else tmin
         tmax = self.end if tmax is None else tmax
         tmin = self.observations.time.min() if tmin is None else tmin
         tmax = self.observations.time.max() if tmax is None else tmax
-        self.observations = self.observations.loc[(
+        observations = self.observations.loc[(
             (self.observations.time >= tmin) &
             (self.observations.time <= tmax)
         )]
-        self.sites = self.sites.loc[unique(self.observations.site), :]
+        sites = self.sites.loc[unique(self.observations.site), :]
+        if copy :
+            new = obsdb(start=tmin, end=tmax)
+            new.observations = observations
+            new.sites = sites
+            new.files = self.files
+            return new
+        else :
+            self.observations = observations
+            self.sites = sites
 
     def SelectSites(self, sitelist):
         selection = [x in sitelist for x in self.observations.site]
@@ -87,8 +96,8 @@ class obsdb:
         self.observations = self.observations.loc[selection,:]
         sites = unique(self.observations.site)
         self.sites = self.sites.loc[sites]
-        if hasattr(self, 'files'):
-            self.files = self.files.loc[unique(self.observations.file)]
+        #if hasattr(self, 'files'):
+        #    self.files = self.files.loc[unique(self.observations.file)]
 
     def get_iloc(self, selection):
         db = obsdb()
