@@ -5,15 +5,17 @@ import logging
 from datetime import datetime
 import h5py
 from pandas import DataFrame, read_hdf
-from numpy import *
+from numpy import zeros_like, float64
 from lumia.Tools.rctools import rc
 from lumia.precon import preconditioner as precon
 from lumia.Tools import Region, Categories
 
 logger = logging.getLogger(__name__)
 
+
 class Control:
     name = 'monthlytot'
+
     def __init__(self, rcf=None, filename=None, preconditioner=precon):
         # Data containers :
         self.horizontal_correlations = {}
@@ -36,7 +38,7 @@ class Control:
 
         # Preconditioner (+ initialization)
         self.preco = preconditioner
-        self.preco.init()
+        #self.preco.init()
 
         if rcf is not None :
             self.loadrc(rcf)
@@ -71,7 +73,8 @@ class Control:
                 Temp_L = self.temporal_correlations[cat.temporal_correlation]
                 ipos = catIndex.index(cat.name)
                 state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
-        if add_prior: state += self.vectors.loc[:, 'state_prior']
+        if add_prior: 
+            state += self.vectors.loc[:, 'state_prior']
 
         # Store the current state and state_preco
         self.vectors.loc[:,'state'] = state
@@ -158,7 +161,7 @@ class Control:
         try:
             self.vectors.loc[:, item] = values
         except ValueError:
-            logger.critical("Parameter value for '%s' could not be stored, because its dimension '%i' doesn't conform with that of the control vector (%i)", key, len(values), self.size)
+            logger.critical(f"Parameter value for {item} could not be stored, because its dimension {len(values)} doesn't conform with that of the control vector ({self.size})")
             raise
     
     def __getattr__(self, item):

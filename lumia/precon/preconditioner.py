@@ -6,8 +6,10 @@ from lumia import tqdm
 
 logger = logging.getLogger(__name__)
 
+
 def init():
     pass
+
 
 def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
     n_state = len(G_state)

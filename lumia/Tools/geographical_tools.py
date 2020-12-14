@@ -2,6 +2,7 @@
 
 from .regions import region
 
+
 class Region(region):
     def __init__(self, rcf):
         rname = rcf.get('region')
