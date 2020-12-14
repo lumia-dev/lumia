@@ -3,6 +3,7 @@
 import os
 from glob import glob
 import logging
+from tqdm import tqdm
 from datetime import datetime, timedelta
 from numpy import array, nan, meshgrid, nonzero
 from netCDF4 import Dataset, chartostring
@@ -39,10 +40,15 @@ class FlexpartFootprintFile(FootprintFile):
                 self.Footprint.dt = self.dt
 
                 # Construct a grid of indices:
-                nt, nlat, nlon = ds.dimensions['time'].size, self.coordinates.nlat, self.coordinates.nlon
-                self.grids = [x.reshape(-1) for x in meshgrid(range(nt), range(nlat), range(nlon), copy=False)]
+#                nt, nlat, nlon = ds.dimensions['time'].size, self.coordinates.nlat, self.coordinates.nlon
+#                self.grids = [x.reshape(-1) for x in meshgrid(range(nt), range(nlat), range(nlon), copy=False)]
 
                 self._initialized = True
+
+    def load_grid(self):
+        with Dataset(self.filename, 'r') as ds :
+            nt, nlat, nlon = ds.dimensions['time'].size, self.coordinates.nlat, self.coordinates.nlon
+            return [x.reshape(-1) for x in meshgrid(range(nt), range(nlat), range(nlon), copy=False)]
 
     def setup(self, coords, origin, dt):
         assert self.coordinates == coords
@@ -58,6 +64,9 @@ class FlexpartFootprintFile(FootprintFile):
         self.origin = origin
 
     def getFootprint(self, obsid, origin=None):
+        if not hasattr(self, 'grids'):
+            self.grids = self.load_grid()
+
         fp = self.Footprint()
 
         with Dataset(self.filename, 'r') as ds :
@@ -87,7 +96,7 @@ class FlexpartFootprintTransport(FootprintTransport):
         super().__init__(rcf, obs, emis, FlexpartFootprintFile, mp, checkfile)
         self.footprint_files = {} 
 
-    def checkFiles(self, path):
+    def checkFiles(self, path, silent=False):
         """
         With the native FLEXPART format, there is no way to know what footprint is in what files,
         without actually opening the files. So here we open them:
@@ -108,7 +117,7 @@ class FlexpartFootprintTransport(FootprintTransport):
                 flist.append(gf)
 
         self.footprint_ids = {}
-        for fname in flist :
+        for fname in tqdm(flist, disable=silent) :
             fpf = FlexpartFootprintFile(fname)
             self.footprint_files[fname] = fpf
             self.footprint_ids = {**self.footprint_ids, **dict.fromkeys(fpf.footprints, fpf.filename)}
@@ -121,10 +130,10 @@ class FlexpartFootprintTransport(FootprintTransport):
         """
         raise NotImplementedError
 
-    def checkFootprints(self, path, archive=None):
+    def checkFootprints(self, path, archive=None, silent=False):
         obsids = [f'{o.code}.{o.height:.0f}m.{o.time.strftime("%Y%m%d%H%M%S")}' for o in self.obs.observations.itertuples()]
         self.obs.observations.loc[:, 'obsid'] = obsids
-        self.checkFiles(path)
+        self.checkFiles(path, silent=silent)
         self.obs.observations.loc[:, 'footprint'] = [self.footprint_ids.get(oid, nan) for oid in self.obs.observations.obsid.values]
 
     def get(self, filename):
