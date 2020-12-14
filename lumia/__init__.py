@@ -4,7 +4,6 @@ import sys
 
 try :
     from tqdm import tqdm
-
 except :
     class fake_tqdm:
         def __init__(self):
