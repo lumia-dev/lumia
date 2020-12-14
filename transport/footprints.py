@@ -327,7 +327,7 @@ class FootprintTransport:
     def get(self, filename):
         return self.FootprintFileClass(filename)
 
-    def writeFootprints(self, destpath, destclass=None):
+    def writeFootprints(self, destpath, destclass=None, silent=False):
         """
         Write the footprints from the obs database to new footprint files, in the "destpath" directory.
         Optionally, an alternative footprint class can be provided, using the "destclass" argument, to write
@@ -356,7 +356,6 @@ class FootprintTransport:
 
         fnames_out = array([os.path.join(destpath, f) for f in dest.genFileNames()])
         fnames_in = self.obs.observations.footprint.dropna().values
-        silent=False
         for file0 in tqdm(unique(fnames_in)):
             fpf0 = self.get(file0)
             destfiles = fnames_out[fnames_in == file0]
@@ -366,3 +365,4 @@ class FootprintTransport:
                 for obs in tqdm(obslist.itertuples(), total=obslist.shape[0], desc=file1, leave=False, disable=silent) :
                     fp = fpf0.getFootprint(obs.obsid)
                     fpf1.writeFootprint(obs, fp)
+            del fpf0
