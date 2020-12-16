@@ -40,15 +40,18 @@ class transport(object):
         self.rcf.write(os.path.join(path, 'transport.%src'%tag))
         self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
         if structf is not None :
-            shutil.copy(structf, path)
+            try :
+                shutil.copy(structf, path)
+            except shutil.SameFileError :
+                pass
 
     def runForward(self, struct, step=None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
-        #if struct is None : struct = self.controlstruct
-        self.check_init()
+        # #if struct is None : struct = self.controlstruct
+        # self.check_init()
 
         # read model-specific info
         rundir = self.rcf.get('path.run')
@@ -58,26 +61,40 @@ class transport(object):
         emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
         dbf = self.db.save_tar(os.path.join(rundir, 'observations.%s.tar.gz'%step))
         rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
-        checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
+        #checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
         
         # Run the model
-        cmd = ['python', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf, '--checkfile', checkf]
+        cmd = [sys.executable, executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
-        pid = subprocess.Popen(cmd, close_fds=True)
-        pid.wait()
+        try :
+            subprocess.run(cmd, close_fds=True)
+        except subprocess.CalledProcessError :
+            logger.error("Forward run failed, exiting ...")
+            raise subprocess.CalledProcessError
+
+        #pid.wait()
 
         # Check that the run was successful:
-        self.check_success(checkf, "Forward run failed, exiting ...")
+        # self.check_success(checkf, "Forward run failed, exiting ...")
 
         # Retrieve results :
         db = obsdb(filename=dbf)
-        self.db.observations.loc[:, 'foreground'] = db.observations.loc[:, 'foreground']
-        self.db.observations.loc[:, 'model'] = db.observations.loc[:, 'model']
-        self.db.observations.loc[:, 'mismatch'] = \
-            self.db.observations.loc[:,'background'] + \
-            self.db.observations.loc[:,'foreground'] - \
-            self.db.observations.loc[:,'obs']
-        self.db.observations.loc[:, step] = self.db.observations.loc[:, 'background']+self.db.observations.loc[:, 'foreground']
+        for cat in self.rcf.get('emissions.categories'):
+            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}']
+        self.db.observations.loc[:, f'mix_{step}'] = db.observations.loc[:, 'mix']
+        self.db.observations.loc[:, 'mix_background'] = db.observations.loc[:, 'mix_background']
+        self.db.observations.loc[:, 'mix_foreground'] = db.observations.loc[:, 'mix']-db.observations.loc[:, 'mix_background']
+        self.db.observations.loc[:, 'mismatch'] = db.observations.loc[:, 'mix']-self.db.observations.loc[:,'obs']
+
+        self.db.observations.dropna(subset=['mismatch'], inplace=True)
+
+        # self.db.observations.loc[:, 'foreground'] = db.observations.loc[:, 'foreground']
+        # self.db.observations.loc[:, 'model'] = db.observations.loc[:, 'model']
+        # self.db.observations.loc[:, 'mismatch'] = \
+        #     self.db.observations.loc[:,'background'] + \
+        #     self.db.observations.loc[:,'foreground'] - \
+        #     self.db.observations.loc[:,'obs']
+        # self.db.observations.loc[:, step] = self.db.observations.loc[:, 'background']+self.db.observations.loc[:, 'foreground']
 
         # Output if needed:
         if self.rcf.get('transport.output'):
@@ -107,33 +124,36 @@ class transport(object):
         adjf = os.path.join(rundir, 'adjoint.nc')
 
         # Create temporary file
-        checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'adjoint.ok')
+        #checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'adjoint.ok')
 
         # Run the adjoint transport:
-        cmd = ['python', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf, '--checkfile', checkf]
+        cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
-        pid = subprocess.Popen(cmd, close_fds=True)
-        pid.wait()
+        try :
+            subprocess.run(cmd, close_fds=True)
+        except subprocess.CalledProcessError :
+            logger.error("Adjoint run failed, exiting ...")
+            raise subprocess.CalledProcessError
 
-        self.check_success(checkf, 'Adjoint run failed, exiting ...')
+        #self.check_success(checkf, 'Adjoint run failed, exiting ...')
 
         # Collect the results :
         return self.readStruct(rundir, 'adjoint')
 
-    def check_success(self, checkf, msg):
+    # def check_success(self, checkf, msg):
 
-        # Check that the run was successful
-        if os.path.exists(checkf) :
-            shutil.rmtree(os.path.dirname(checkf))
-        else :
-            logger.error(msg)
-            sys.exit()
+    #     # Check that the run was successful
+    #     if os.path.exists(checkf) :
+    #         shutil.rmtree(os.path.dirname(checkf))
+    #     else :
+    #         logger.error(msg)
+    #         sys.exit()
 
-    def check_init(self):
-        """
-        Initial checks to avoid performing computations if some critical input is missing:
-        - exits if no footprint file is present
-        """
-        if self.db.observations.footprint.count() == 0 :
-            logger.critical("No valid footprint files in the database. Aborting ...")
-            sys.exit()
+    # def check_init(self):
+    #     """
+    #     Initial checks to avoid performing computations if some critical input is missing:
+    #     - exits if no footprint file is present
+    #     """
+    #     if self.db.observations.footprint.count() == 0 :
+    #         logger.critical("No valid footprint files in the database. Aborting ...")
+    #         sys.exit()

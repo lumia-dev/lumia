@@ -11,6 +11,7 @@ from lumia import obsdb
 from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct, CreateStruct
 from lumia.Tools import regions
 import logging
+import pickle
 
 # Cleanup needed in the following ...
 from lumia.Tools import Region
@@ -126,7 +127,7 @@ class FootprintFile:
         for iobs, obs in tqdm(obslist.iterrows(), desc=self.filename, total=obslist.shape[0], disable=self.silent):
             fpt = self.getFootprint(obs.obsid, origin=self.origin)
             for cat in adjstruct.categories :
-                adjstruct[cat]['emis'] = fpt.to_adj(obs.dy, adjstruct[cat]['emis'])
+                adjstruct.data[cat]['emis'] = fpt.to_adj(obs.dy, adjstruct.data[cat]['emis'].copy())
         self.close()
         return adjstruct
 
@@ -139,10 +140,11 @@ class SpatialCoordinates:
 
         # The following enables constructing a set of spatial coordinates from
         # an object that would already have some of the required attributes
-        if 'obj' in kwargs :
+        obj = kwargs.get('obj', False)
+        if obj :
             for attr in attrs :
-                if hasattr(attr, 'obj'):
-                    setattr(self, attr, getattr(attr, 'obj'))
+                if hasattr(obj, attr):
+                    setattr(self, attr, getattr(obj, attr))
 
         self._autocomplete()
 
@@ -207,22 +209,31 @@ class Footprint:
     def to_conc(self, flux):
         # Here we assume that flux has the exact same shape and coordinates as the footprints
         # TODO: make this a bit more explicit ... 
-        s = (self.itims >= 0) * (self.itims <= flux.shape[0])
+        s = (self.itims >= 0) * (self.itims < flux.shape[0])
         return (flux[self.itims[s], self.ilats[s], self.ilons[s]]*self.sensi[s]).sum()*0.0002897
 
     def to_adj(self, dy, adjfield):
         # TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?
-        s = (self.itims >= 0) * (self.itims <= adjfield.shape[0])
+        s = (self.itims >= 0) * (self.itims < adjfield.shape[0])
         adjfield[self.itims[s], self.ilats[s], self.ilons[s]] += self.sensi[s]*dy*0.0002897
+        return adjfield
 
     def itime_to_times(self, it):
         return self.origin+it*self.dt
 
 
 @ray.remote
-def ray_worker(filename, obslist, emis, FootprintFileClass, step='forward'):
+def ray_worker(filename, obslist, emis, FootprintFileClass, step='forward', tmpdir='.'):
     fpf = FootprintFileClass(filename, silent=True)
-    return fpf.run(obslist, emis, step)
+    res = fpf.run(obslist, emis, step)
+    if step == 'forward':
+        return res
+    else :
+        fname_out = os.path.join(tmpdir, f'adj_{os.path.basename(filename)}.pickle')
+        logger.debug(f"writing adjoing file {fname_out}")
+        with open(fname_out, 'wb') as fid :
+            pickle.dump(res.data, fid)
+    return fname_out
 
 
 class FootprintTransport:
@@ -257,6 +268,7 @@ class FootprintTransport:
             self._adjoint_loop = self._adjoint_loop_serial
         elif mode == 'ray' :
             self._forward_loop = self._forward_loop_ray
+            self._adjoint_loop = self._adjoint_loop_ray
 
     def runForward(self):
         # Read the emissions:
@@ -264,10 +276,15 @@ class FootprintTransport:
 
         # Add the flux columns to the observations dataframe:
         for cat in self.emis.categories:
-            self.obs.observations.loc[:, cat] = nan
+            self.obs.observations.loc[:, f'mix_{cat}'] = nan
 
         filenames = self.obs.observations.footprint.dropna().drop_duplicates()
         self._forward_loop(filenames)
+
+        # Combine the flux components:
+        self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
+        for cat in self.emis.categories :
+            self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat}'].values
 
     def runAdjoint(self):
         # 1) Create an empty adjoint structure
@@ -275,19 +292,19 @@ class FootprintTransport:
         categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c) == 1]
         start = datetime(*self.rcf.get('time.start'))
         end = datetime(*self.rcf.get('time.end'))
-        dt = time_interval(self.rcf.get('emissions.*.interval'))
-        adj = CreateStruct(categories, region, start, end, dt)
+        dt = time_interval(self.rcf.get('emissions.interval'))
+        adj = Flux(CreateStruct(categories, region, start, end, dt))
 
         # 2) Loop over the footprint files
         filenames = self.obs.observations.footprint.dropna().drop_duplicates()
         adj = self._adjoint_loop(filenames, adj)
 
         # 3) Write the updated adjoint field
-        WriteStruct(adj, self.emfile)
+        WriteStruct(adj.data, self.emfile)
 
     def _adjoint_loop_serial(self, filenames, adj):
         for filename in tqdm(filenames):
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
+            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy']].copy()
             adj = self.get(filename).run(obslist, adj, 'adjoint')
         return adj
 
@@ -295,10 +312,13 @@ class FootprintTransport:
         ray.init()
         workers = []
         for filename in filenames :
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
-            workers.append(ray_worker.remote(filename, obslist, adj, self.FootprintFileClass, 'adjoint'))
+            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy']].copy()
+            workers.append(ray_worker.remote(filename, obslist, adj, self.FootprintFileClass, 'adjoint', tmpdir=self.rcf.get('path.run')))
         for w in tqdm(workers):
-            adj += ray.get(w)
+            with open(ray.get(w), 'rb') as fid :
+                adj.data += pickle.load(fid)
+            #data = ReadStruct(ray.get(w))
+            #adj += ray.get(data)
         ray.shutdown()
         return adj
 
@@ -311,9 +331,9 @@ class FootprintTransport:
             workers.append(ray_worker.remote(filename, obslist, emis_id, self.FootprintFileClass))
         
         for w in tqdm(workers) :
-            obs = ray.get(w)
-            for field in obs.columns :
-                self.obs.observations.loc[obs.index, field] = obs.loc[:, field]
+            obslist = ray.get(w)
+            for field in obslist.columns :
+                self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
         ray.shutdown()
         return
 
@@ -322,7 +342,7 @@ class FootprintTransport:
             obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
             obslist = self.get(filename).run(obslist, self.emis, 'forward')
             for field in obslist.columns :
-                self.obs.observations.loc[obslist.index, field] = obslist.loc[:, field]
+                self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
 
     def get(self, filename):
         return self.FootprintFileClass(filename)
