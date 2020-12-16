@@ -83,7 +83,7 @@ class FlexpartFootprintFile(FootprintFile):
                 try :
                     logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
                 except ValueError :
-                    logger.info(f"footprint is empty!")
+                    logger.info("footprint is empty!")
                     pass
             return fp
             
