@@ -58,7 +58,7 @@ class LumiaFootprintFile(FootprintFile):
         fp.itims = self.ds[obsid]['itims'][:] + self.shift_t
         fp.ilats = self.ds[obsid]['ilats'][:]
         fp.ilons = self.ds[obsid]['ilons'][:]
-        fp.sensi = self.ds[obsid]['sensi'][:]
+        fp.sensi = self.ds[obsid]['sensi'][:] * 0.0002897
         fp.origin = self.origin
         valid = sum(fp.sensi) > 0
         if not valid :
@@ -112,7 +112,7 @@ class LumiaFootprintTransport(FootprintTransport):
         exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])
         self.obs.observations.loc[:, 'footprint'] = fnames 
-        self.obs.observations.loc[~exists] = nan
+        self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
         obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
@@ -153,7 +153,6 @@ if __name__ == '__main__':
 
     if args.forward :
         model.runForward()
-        model.obs.save_tar(args.db)
 
     if args.adjoint :
         model.runAdjoint()

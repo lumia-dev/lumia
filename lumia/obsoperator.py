@@ -4,7 +4,6 @@ import os
 import shutil
 import subprocess
 import logging
-import tempfile
 from lumia.Tools import checkDir, colorize
 from .obsdb import obsdb
 
@@ -72,11 +71,6 @@ class transport(object):
             logger.error("Forward run failed, exiting ...")
             raise subprocess.CalledProcessError
 
-        #pid.wait()
-
-        # Check that the run was successful:
-        # self.check_success(checkf, "Forward run failed, exiting ...")
-
         # Retrieve results :
         db = obsdb(filename=dbf)
         for cat in self.rcf.get('emissions.categories'):
@@ -87,14 +81,6 @@ class transport(object):
         self.db.observations.loc[:, 'mismatch'] = db.observations.loc[:, 'mix']-self.db.observations.loc[:,'obs']
 
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
-
-        # self.db.observations.loc[:, 'foreground'] = db.observations.loc[:, 'foreground']
-        # self.db.observations.loc[:, 'model'] = db.observations.loc[:, 'model']
-        # self.db.observations.loc[:, 'mismatch'] = \
-        #     self.db.observations.loc[:,'background'] + \
-        #     self.db.observations.loc[:,'foreground'] - \
-        #     self.db.observations.loc[:,'obs']
-        # self.db.observations.loc[:, step] = self.db.observations.loc[:, 'background']+self.db.observations.loc[:, 'foreground']
 
         # Output if needed:
         if self.rcf.get('transport.output'):
@@ -123,9 +109,6 @@ class transport(object):
         # Name of the adjoint output file
         adjf = os.path.join(rundir, 'adjoint.nc')
 
-        # Create temporary file
-        #checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'adjoint.ok')
-
         # Run the adjoint transport:
         cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
@@ -135,25 +118,5 @@ class transport(object):
             logger.error("Adjoint run failed, exiting ...")
             raise subprocess.CalledProcessError
 
-        #self.check_success(checkf, 'Adjoint run failed, exiting ...')
-
         # Collect the results :
         return self.readStruct(rundir, 'adjoint')
-
-    # def check_success(self, checkf, msg):
-
-    #     # Check that the run was successful
-    #     if os.path.exists(checkf) :
-    #         shutil.rmtree(os.path.dirname(checkf))
-    #     else :
-    #         logger.error(msg)
-    #         sys.exit()
-
-    # def check_init(self):
-    #     """
-    #     Initial checks to avoid performing computations if some critical input is missing:
-    #     - exits if no footprint file is present
-    #     """
-    #     if self.db.observations.footprint.count() == 0 :
-    #         logger.critical("No valid footprint files in the database. Aborting ...")
-    #         sys.exit()

@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
+import sys
 import os
 import logging
 from h5py import File
 from datetime import datetime
 from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from archive import Archive
+from numpy import int16, repeat, array, nan
+from tqdm import tqdm
 
 logger = logging.getLogger(os.path.basename(__file__))
 
@@ -33,25 +37,30 @@ class Interval:
 class LegacyFootprintFile(FootprintFile):
     def read(self):
         self.footprints = {}
+        self.sitecode, self.height, month = os.path.basename(self.filename).split('.')[:3]
+        logger.debug(f"opening file {self.filename}, with sitecode {self.sitecode}, height {self.height} and month {month}")
+        intervals = []
         with File(self.filename, 'r') as fid :
             for k, v in fid.items():
                 if k not in ['latitudes', 'longitudes']:
                     obstime = datetime.strptime(k, '%Y%m%d%H%M%S')
-                    obsid = f'{self.sitecode}.{self.height}m.{obstime.strftime("%Y%m%d-%H%M")}'
+                    obsid = f'{self.sitecode}.{self.height}.{obstime.strftime("%Y%m%d-%H%M%S")}'
                     self.footprints[obsid] = k
-            
-            # Store time and space coordinates :
-            sitecode, height, month = self.filename.split('.')[:3]
 
+                    for o in fid[k].keys():
+                        intervals.append(Interval(o))
+
+            # Store time and space coordinates :
             self.coordinates = SpatialCoordinates(
                 lats = fid['latitudes'][:],
                 lons = fid['longitudes'][:]
             )
+
             self.origin = datetime.strptime(month, '%Y-%m')
-            self.intervals = []
-            for k, v in h5group.items():
-                self.intervals.append(Interval(k))
-                self.dt = self.intervals[0].dt
+            if len(intervals) == 0 :
+                logger.error(f"Footprint file {self.filename} is empty. Delete it and run again")
+                sys.exit()
+            self.dt = intervals[0].dt
 
             # Copy them to the Footprint class 
             self.Footprint.lats = self.coordinates.lats
@@ -59,6 +68,7 @@ class LegacyFootprintFile(FootprintFile):
             self.Footprint.dlat = self.coordinates.dlat
             self.Footprint.dlon = self.coordinates.dlon
             self.Footprint.dt = self.dt
+            self.Footprint.origin = self.origin
 
             self._initialized = True
 
@@ -70,25 +80,36 @@ class LegacyFootprintFile(FootprintFile):
         assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
 
     def getFootprint(self, obsid, origin=None):
-        if origin is None :
-            origin = self.origin
-
         fp = self.Footprint()
         with File(self.filename, 'r') as fid :
             h5group = fid[self.footprints[obsid]]
-            for interv in sorted(self.intervals)[::-1]:
-                itim = interv.calc_index(origin)
+
+            intervals = []
+            for k, v in h5group.items():
+                interv = Interval(k)
+                intervals.append(interv)
+
+            for interv in sorted(intervals)[::-1]:
+                itim = interv.calc_index(self.origin)
                 resp = h5group[interv.key]['resp'][:]
                 fp.ilats.extend(h5group[interv.key]['ilats'][:].astype(int16))
                 fp.ilons.extend(h5group[interv.key]['ilons'][:].astype(int16))
                 fp.itims.extend(repeat(itim, resp.shape[0]).astype(int16))
                 fp.sensi.extend(resp)
-                fp.origin = origin
-                valid = sum(fp.sensi) > 0
-                if not valid :
-                    logger.info(f"No usable data found in footprint {obsid}")
-                    logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
-                return fp
+
+        fp.ilats = array(fp.ilats)
+        fp.ilons = array(fp.ilons)
+        fp.itims = array(fp.itims)
+        fp.sensi = array(fp.sensi)
+
+        if origin is not None :
+            fp.shift_origin(origin) 
+
+        valid = sum(fp.sensi) > 0
+        if not valid :
+            logger.info(f"No usable data found in footprint {obsid}")
+            #logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
+        return fp
 
     def writeFootprints(self, obs, footprint):
         raise NotImplementedError
@@ -98,15 +119,17 @@ class LegacyFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None):
         super().__init__(rcf, obs, emfile, LegacyFootprintFile, mp, checkfile)
 
-    def getFileNames(self):
-        return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.strftime('%Y-%m')}.hdf' for o in self.obs.observations.itertuples()]
+    def genFileNames(self):
+        return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.strftime("%Y-%m")}.h5' for o in self.obs.observations.itertuples()]
 
     def checkFootprints(self, path, archive=None):
         cache = Archive(path, parent=Archive(archive))
+
         fnames = array(self.genFileNames())
-        exists = array([cache.get(f, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
-        fnames[~exists] = nan
+        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
+        fnames = array([os.path.join(path, fname) for fname in fnames])
         self.obs.observations.loc[:, 'footprint'] = fnames
+        self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
         obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.itertuples()]
