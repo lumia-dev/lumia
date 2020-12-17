@@ -106,6 +106,7 @@ class FootprintFile:
 
         # 1st, check which obsids are present in the file:
         footprint_valid = [o in self.footprints for o in obslist.obsid]
+        #logger.debug(f"{sum(footprint_valid)} valid footprints of {obslist.shape[0]} in file {self.filename}")
         obslist = obslist.loc[footprint_valid].copy()
         if step == 'forward' :
             return self._runForward(obslist, emis)
@@ -210,12 +211,16 @@ class Footprint:
         # Here we assume that flux has the exact same shape and coordinates as the footprints
         # TODO: make this a bit more explicit ... 
         s = (self.itims >= 0) * (self.itims < flux.shape[0])
-        return (flux[self.itims[s], self.ilats[s], self.ilons[s]]*self.sensi[s]).sum()*0.0002897
+        if s.shape[0] == 0 :
+            return nan
+        return (flux[self.itims[s], self.ilats[s], self.ilons[s]]*self.sensi[s]).sum()
 
     def to_adj(self, dy, adjfield):
         # TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?
         s = (self.itims >= 0) * (self.itims < adjfield.shape[0])
-        adjfield[self.itims[s], self.ilats[s], self.ilons[s]] += self.sensi[s]*dy*0.0002897
+        if s.shape[0] == 0 :
+            return adjfield
+        adjfield[self.itims[s], self.ilats[s], self.ilons[s]] += self.sensi[s]*dy
         return adjfield
 
     def itime_to_times(self, it):
@@ -285,6 +290,8 @@ class FootprintTransport:
         self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
         for cat in self.emis.categories :
             self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat}'].values
+        
+        self.obs.save_tar(self.obsfile)
 
     def runAdjoint(self):
         # 1) Create an empty adjoint structure
