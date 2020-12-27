@@ -22,6 +22,7 @@ class Interval:
         self.start = min(t1, t2)
         self.end = max(t1, t2)
         self.dt = self.end-self.start
+        self.valid = t1 > t2
 
     def calc_index(self, origin):
         itim = (self.start-origin)/self.dt
@@ -40,15 +41,24 @@ class LegacyFootprintFile(FootprintFile):
         self.sitecode, self.height, month = os.path.basename(self.filename).split('.')[:3]
         logger.debug(f"opening file {self.filename}, with sitecode {self.sitecode}, height {self.height} and month {month}")
         intervals = []
+        self.data = {}
         with File(self.filename, 'r') as fid :
             for k, v in fid.items():
                 if k not in ['latitudes', 'longitudes']:
                     obstime = datetime.strptime(k, '%Y%m%d%H%M%S')
                     obsid = f'{self.sitecode}.{self.height}.{obstime.strftime("%Y%m%d-%H%M%S")}'
                     self.footprints[obsid] = k
+                    self.data[obsid] = {}
 
                     for o in fid[k].keys():
-                        intervals.append(Interval(o))
+                        intv = Interval(o)
+                        if intv.valid :
+                            intervals.append(intv)
+                    #        self.data[obsid][o] = {
+                    #            'ilats': fid[k][o]['ilats'][:].astype(int16),
+                    #            'ilons': fid[k][o]['ilons'][:].astype(int16),
+                    #            'resp': fid[k][o]['resp'][:]
+                    #        }
 
             # Store time and space coordinates :
             self.coordinates = SpatialCoordinates(
@@ -83,11 +93,13 @@ class LegacyFootprintFile(FootprintFile):
         fp = self.Footprint()
         with File(self.filename, 'r') as fid :
             h5group = fid[self.footprints[obsid]]
+        #h5group = self.data[obsid]
 
             intervals = []
             for k, v in h5group.items():
                 interv = Interval(k)
-                intervals.append(interv)
+                if interv.valid :
+                    intervals.append(interv)
 
             for interv in sorted(intervals)[::-1]:
                 itim = interv.calc_index(self.origin)
@@ -101,6 +113,7 @@ class LegacyFootprintFile(FootprintFile):
         fp.ilons = array(fp.ilons)
         fp.itims = array(fp.itims)
         fp.sensi = array(fp.sensi)
+        fp.intervals = intervals
 
         if origin is not None :
             fp.shift_origin(origin) 
@@ -151,14 +164,14 @@ if __name__ == '__main__':
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
     p.add_argument('--checkfile', '-c')
-    p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
+    p.add_argument('--no-check-footprints', action='store_false', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
     logger.setLevel(args.verbosity)
-    logger.info('test logger')
-    logger.debug('test logger')
-    logger.warning('test logger')
+#    logger.info('test logger')
+#    logger.debug('test logger')
+#    logger.warning('test logger')
 
     # Create the transport model
     model = LegacyFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)

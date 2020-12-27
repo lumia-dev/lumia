@@ -194,22 +194,25 @@ class Lagrange:
     def runAdjoint_sp(self):
         # Create an empty adjoint structure:
         region = Region(self.rcf)
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c) == 1]
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c, default=0) == 1]
         start = datetime(*self.rcf.get('time.start'))
         end = datetime(*self.rcf.get('time.end'))
-        dt = time_interval(self.rcf.get('emissions.*.interval'))
+        dt = time_interval(self.rcf.get('emissions.interval'))
         adj = CreateStruct(categories, region, start, end, dt)
 
         # Loop over the footprint files:
         db = self.obs.observations
         files = unique(db.footprint.dropna())
-        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=False, disable=self.batch):
+        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=True, disable=self.batch):
             fp = Footprint(fpfile)
             msg = f"Adjoint run {fpfile}"
 
             # Loop over the obs in the file
             for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=self.batch):
                 adj = fp.applyAdjoint(obs.time, obs.dy, adj, categories)
+                #print(obs.site, obs.time, obs.dy, adj['biosphere']['emis'].sum())
+                #if obs.time.day == 21 :
+                #    import pdb; pdb.set_trace()
             fp.close()
 
         # Write the adjoint field
