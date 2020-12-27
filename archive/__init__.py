@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 class RcloneArchive:
     def __init__(self, remote, ignore_existing=True):
-        remote = remote.strip('rclone:')
+        remote = remote.replace('rclone:', '')
         if ':' in remote :
             remote, path = remote.split(':')
         else :
@@ -50,11 +50,13 @@ class LocalArchive:
         self.max_attempts = max_attempts
     
     def get(self, file, dest='.'):
+        logger.debug(f"Try copying file {file} from path {self.remote}" )
         if not file.startswith('/'):
             file = os.path.join(self.remote, file)
         
         # If the file doesn't exist on the archive, stop here
         if not os.path.exists(file):
+            logger.debug(f"File {file} not found on archive {self.remote}")
             return False
         
         # If the file already exists in the destination, don't copy it (unless ignore_existing is
@@ -62,6 +64,7 @@ class LocalArchive:
         source, filename = os.path.split(file)
         outfile = os.path.join(dest, filename)
         if os.path.exists(outfile) and self.ignore_existing :
+            logger.debug(f"File {file} already present locally and will not be re-downloaded")
             return True
         
         # If the file needs to be retrieved, attempt it

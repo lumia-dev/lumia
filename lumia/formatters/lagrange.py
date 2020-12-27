@@ -209,6 +209,8 @@ def ReadArchive(prefix, start, end, **kwargs):
         archive = None
     localArchive = Archive(os.path.dirname(prefix), parent=archive)
 
+    dirname, prefix = os.path.split(prefix)
+
     for cat in tqdm(categories, leave=False) :
         field = categories[cat]
         ds = []
@@ -222,8 +224,8 @@ def ReadArchive(prefix, start, end, **kwargs):
             fname = f"{prefix}{field}.{year}.nc"
             tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
             # Make sure that the file is here:
-            localArchive.get(fname, os.path.dirname(prefix))
-            ds.append(xr.load_dataset(fname))
+            localArchive.get(fname, dirname)
+            ds.append(xr.load_dataset(os.path.join(dirname, fname)))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
 

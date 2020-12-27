@@ -120,6 +120,8 @@ class obsdb:
         logger.info("Writing observation database to %s", filename)
 
         # Create a unique temporary directory, save the current directory
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
         tmpdir = tempfile.mkdtemp(dir=os.path.dirname(filename))
         curdir = os.getcwd()
         os.chdir(tmpdir)
