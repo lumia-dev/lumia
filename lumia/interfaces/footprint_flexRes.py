@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 obsoperator = 'lagrange'
 invcontrol = 'flexRes'
 
+
 class Interface :
 
     def __init__(self, rcf, ancilliary=None):
@@ -29,21 +30,21 @@ class Interface :
         #TODO: Replace this by a proper module to handle the mapping
         import os, pickle
         mapping_file = os.path.join(self.rcf.get('path.run'), 'mapping.pickle')
-        if os.path.exists(mapping_file):
-            with open(mapping_file, 'rb') as fid:
-                self.temporal_mapping, self.spatial_mapping = pickle.load(fid)
-        else :
-            self.temporal_mapping = self.calc_temporal_coarsening(struct)
-            self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm)
-            with open(mapping_file, 'wb') as fid:
-                pickle.dump([self.temporal_mapping, self.spatial_mapping], fid)
+        #if os.path.exists(mapping_file):
+        #    with open(mapping_file, 'rb') as fid:
+        #        self.temporal_mapping, self.spatial_mapping = pickle.load(fid)
+        #else :
+        self.temporal_mapping = self.calc_temporal_coarsening(struct)
+        self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm)
+        with open(mapping_file, 'wb') as fid:
+            pickle.dump([self.temporal_mapping, self.spatial_mapping], fid)
 
         vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
         
         statevec, categ, lat, lon, time, ipos, lf, itime = [], [], [], [], [], [], [], []
         for cat in [x for x in self.categories if x.optimize]:
             for itopt, topt in enumerate(self.temporal_mapping[cat.name]['times_optim']):
-                for cluster in self.spatial_mapping['cluster_specs']:
+                for cluster in tqdm(self.spatial_mapping['cluster_specs']):
                     time_indices = flatnonzero(self.temporal_mapping[cat.name]['map'][itopt,:])
                     statevec.append(struct[cat.name]['emis'][time_indices,:,:][:,cluster.ilats, cluster.ilons].sum())
                     categ.append(cat.name)
@@ -74,10 +75,11 @@ class Interface :
         #for var in vector.itertuples():
             tind = flatnonzero(self.temporal_mapping[var.category]['map'][var.itime,:])
             cl = self.spatial_mapping['cluster_specs'][var.iloc]
-            f0 = self.ancilliary_data[cat.name]['emis'][tind, :, :][:,cl.ilats, cl.ilons]
+            f0 = self.ancilliary_data[var.category]['emis'][tind, :, :][:,cl.ilats, cl.ilons]
             nv = size(f0)
+            struct[var.category]['emis']
             for ipt in range(cl.size) :
-                struct[var.category]['emis'][tind, cl.ilats[ipt], cl.ilons[ipt]] = vector.loc[var.Index] / nv + f0[:, ipt] - f0.sum() / nv
+                struct[var.category]['emis'][tind, cl.ilats[ipt], cl.ilons[ipt]] = f0[:, ipt] + (vector.loc[var.Index] - f0.sum()) / nv
         return struct
 
     def VecToStruct_adj(self, adjstruct):
@@ -98,7 +100,6 @@ class Interface :
 #                    adjvec.append(adjf.sum()/nv)
         return adjvec
 
-
     def calc_spatial_coarsening(self, lsm=None):
         clusters = clusterize(
             self.ancilliary_data['sensi_map'],
@@ -115,7 +116,8 @@ class Interface :
         area = self.region.area.reshape(-1)
         lsm = lsm.reshape(-1)
         for icl, cl in enumerate(tqdm(clusters)) :
-            indices = cl.ind.reshape(-1)
+            #indices = cl.ind.reshape(-1)
+            indices = cl.ind[cl.mask]
             mapping['clusters_map'].reshape(-1)[indices] = icl
             cl.ind = icl
             cl.lats = lats[indices]
@@ -127,6 +129,7 @@ class Interface :
             cl.mean_lon = average(cl.lons, weights=cl.area)
             cl.area_tot = cl.area.sum()
             cl.land_fraction = average(lsm[indices], weights=cl.area)
+            cl.size = len(indices)
             mapping['cluster_specs'].append(cl)
         return mapping
 

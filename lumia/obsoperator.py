@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import logging
+from numpy import ones, array
 from lumia.Tools import checkDir, colorize
 from .obsdb import obsdb
 
@@ -120,3 +121,8 @@ class transport(object):
 
         # Collect the results :
         return self.readStruct(rundir, 'adjoint')
+
+    def calcSensitivityMap(self):
+        departures = ones(self.db.observations.shape[0])
+        adjfield = self.runAdjoint(departures)
+        return array([adjfield[cat]['emis'].sum(0) for cat in adjfield.keys()]).sum(0)
