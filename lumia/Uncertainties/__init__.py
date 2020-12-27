@@ -97,7 +97,8 @@ class Uncertainties:
 
     def checkCorFile_vres(self, hcor, cat):
         # Generate the correlation file name
-        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+#        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+        data = self.data.loc[(self.data.category == 'biosphere') & (self.data.time == self.data.iloc[0].time), ('lat', 'lon')]
         corlen, cortype = hcor.split('-')
         corlen = int(corlen)
         nclusters = data.shape[0] 
