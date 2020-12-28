@@ -142,17 +142,18 @@ class Interface :
             times_model = [tinterv(s, e) for (s, e) in zip(times_s_model, times_e_model)]
 
             # Read optimization time settings
-            factor = 1
-            unit = {
-                'y':relativedelta(years=1),
-                'm':relativedelta(months=1),
-                'd':relativedelta(days=1),
-                'h':relativedelta(hours=1),
-            }[cat.optimization_interval]
+            # factor = 1
+            # unit = {
+            #     'y':relativedelta(years=1),
+            #     'm':relativedelta(months=1),
+            #     'd':relativedelta(days=1),
+            #     'h':relativedelta(hours=1),
+            # }[cat.optimization_interval]
 
             # Find initial time 
             t0 = datetime(times_model[0].start.year, 1, 1)
-            dt = unit*factor
+            #dt = unit*factor
+            dt = cat.optimization_interval
             while t0 < times_s_model[0]:
                 t0 += dt
             
