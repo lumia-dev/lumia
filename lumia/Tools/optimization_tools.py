@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import re
+from dateutil.relativedelta import relativedelta
 from numpy import arange, ones_like, array, cumsum
 from lumia import tqdm
 
@@ -39,7 +41,22 @@ class Categories:
                 self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
                 self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
-                self[cat].optimization_interval = rcf.get('optimization.interval')
+                optint = rcf.get('optimization.interval')
+                if re.match('\d*y', optint):
+                    n = re.split('d', optint)
+                    u = relativedelta(years=1)
+                elif re.match('\d*m', optint):
+                    n = re.split('m', optint)
+                    u = relativedelta(months=1)
+                elif re.match('\d*d', optint):
+                    n = re.split('d', optint)
+                    u = relativedelta(days=1)
+                elif re.match('\d*h', optint):
+                    n = re.split('h', optint)
+                    u = relativedelta(hours=1)
+                n = int(n) if n != '' else 1
+                self[cat].optimization_interval = n*u 
+                #self[cat].optimization_interval = rcf.get('optimization.interval')
 
     def __len__(self):
         return len(self.list)

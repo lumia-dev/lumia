@@ -7,6 +7,7 @@ from numpy import dot, unique, array
 from lumia.Tools import Categories
 from lumia.Tools import Region
 from .tools import read_latlon, horcor, calc_temp_corr
+from dateutil.relativedelta import relativedelta
 logger = logging.getLogger(__name__)
 
 
@@ -71,7 +72,8 @@ class Uncertainties:
                     temp_corlen = float(cat.temporal_correlation[:3].strip())
 
                     # Time interval of the optimization
-                    dt = {'y':12., 'm':1, 'd':1/30.}[cat.optimization_interval]
+                    #dt = {'y':12., 'm':1, 'd':1/30.}[cat.optimization_interval]
+                    dt = cat.optimization_interval.months + 12*cat.optimization_interval.years + cat.optimization_interval.days/30. + cat.optimization_interval.hours/30/24
 
                     # Number of time steps :
                     times = self.data.loc[self.data.category == cat, 'time'].drop_duplicates()
