@@ -1,19 +1,33 @@
 #!/usr/bin/env python
+import os, pickle
 import logging
 from datetime import datetime
 from copy import deepcopy
-from numpy import zeros, meshgrid, average, flatnonzero, float64, array, size, nan
+from numpy import zeros, meshgrid, average, flatnonzero, float64, array, size, nan, unique, frombuffer
 from pandas import DataFrame
-from dateutil.relativedelta import relativedelta
 from lumia.Tools import Region, Categories
 from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
-from lumia import tqdm
+from lumia import tqdm, timer
+from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
 
 obsoperator = 'lagrange'
 invcontrol = 'flexRes'
+
+data = {}
+
+
+def stv_worker(itopt):
+    statevec, categ, ipos, itime = [], [], [], []
+    time_indices = flatnonzero(data['temporal_mapping'][itopt,:])
+    for cluster in data['clusters']:
+        statevec.append(data['emis'][time_indices, :, :][:,cluster.ilats, cluster.ilons].sum())
+        categ.append(data['cat'])
+        ipos.append(cluster.ind)
+        itime.append(itopt)
+    return (statevec, categ, ipos, itime)
 
 
 class Interface :
@@ -26,42 +40,41 @@ class Interface :
 
     def StructToVec(self, struct, lsm_from_file=False):
         lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
-
-        #TODO: Replace this by a proper module to handle the mapping
-        import os, pickle
-        mapping_file = os.path.join(self.rcf.get('path.run'), 'mapping.pickle')
-        #if os.path.exists(mapping_file):
-        #    with open(mapping_file, 'rb') as fid:
-        #        self.temporal_mapping, self.spatial_mapping = pickle.load(fid)
-        #else :
         self.temporal_mapping = self.calc_temporal_coarsening(struct)
         self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm)
-        with open(mapping_file, 'wb') as fid:
-            pickle.dump([self.temporal_mapping, self.spatial_mapping], fid)
 
         vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
         
-        statevec, categ, lat, lon, time, ipos, lf, itime = [], [], [], [], [], [], [], []
+        statevec, categ, ipos, itime = [], [], [], []
+        timer.info()
         for cat in [x for x in self.categories if x.optimize]:
-            for itopt, topt in enumerate(self.temporal_mapping[cat.name]['times_optim']):
-                for cluster in tqdm(self.spatial_mapping['cluster_specs']):
-                    time_indices = flatnonzero(self.temporal_mapping[cat.name]['map'][itopt,:])
-                    statevec.append(struct[cat.name]['emis'][time_indices,:,:][:,cluster.ilats, cluster.ilons].sum())
-                    categ.append(cat.name)
-                    time.append(topt)
-                    lat.append(cluster.mean_lat)
-                    lon.append(cluster.mean_lon)
-                    ipos.append(cluster.ind)
-                    lf.append(cluster.land_fraction)
-                    itime.append(itopt)
+
+            nt = len(self.temporal_mapping[cat.name]['times_optim'])
+            data['emis'] = struct[cat.name]['emis']
+            data['cat'] = cat.name
+            data['clusters'] = self.spatial_mapping['cluster_specs']
+            data['temporal_mapping'] = self.temporal_mapping[cat.name]['map']
+            with Pool() as pp :
+                res = pp.map(stv_worker, tqdm(range(nt)))
+
+            for rr in tqdm(res) :
+                statevec.extend(rr[0])
+                categ.extend(rr[1])
+                ipos.extend(rr[2])
+                itime.extend(rr[3])
+
+        timer.info()
         vec.loc[:, 'category'] = array(categ, dtype=str)
         vec.loc[:, 'value'] = array(statevec, dtype=float64)
         vec.loc[:, 'iloc'] = array(ipos, dtype=int)
-        vec.loc[:, 'time'] = array(time)
-        vec.loc[:, 'lat'] = array(lat, dtype=float64)
-        vec.loc[:, 'lon'] = array(lon, dtype=float64)
-        vec.loc[:, 'land_fraction'] = array(lf, dtype=float64)
         vec.loc[:, 'itime'] = array(itime, dtype=int)
+        for ipos in unique(vec.loc[:, 'iloc']):
+            vec.loc[vec.loc[:, 'iloc'] == ipos, 'lat'] = self.spatial_mapping['cluster_specs'][ipos].mean_lat
+            vec.loc[vec.loc[:, 'iloc'] == ipos, 'lon'] = self.spatial_mapping['cluster_specs'][ipos].mean_lon
+            vec.loc[vec.loc[:, 'iloc'] == ipos, 'land_fraction'] = self.spatial_mapping['cluster_specs'][ipos].land_fraction
+
+        for itopt, topt in enumerate(self.temporal_mapping[cat.name]['times_optim']):
+            vec.loc[vec.itime == itopt, 'time'] = topt
         self.ancilliary_data['vec2struct'] = vec.loc[:, ['category', 'iloc', 'itime']]
         return vec
 
