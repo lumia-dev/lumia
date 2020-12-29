@@ -43,16 +43,16 @@ class Categories:
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
                 optint = rcf.get('optimization.interval')
                 if re.match('\d*y', optint):
-                    n = re.split('d', optint)
+                    n = re.split('d', optint)[0]
                     u = relativedelta(years=1)
                 elif re.match('\d*m', optint):
-                    n = re.split('m', optint)
+                    n = re.split('m', optint)[0]
                     u = relativedelta(months=1)
                 elif re.match('\d*d', optint):
-                    n = re.split('d', optint)
+                    n = re.split('d', optint)[0]
                     u = relativedelta(days=1)
                 elif re.match('\d*h', optint):
-                    n = re.split('h', optint)
+                    n = re.split('h', optint)[0]
                     u = relativedelta(hours=1)
                 n = int(n) if n != '' else 1
                 self[cat].optimization_interval = n*u 

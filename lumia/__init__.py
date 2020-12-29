@@ -18,6 +18,9 @@ except :
 
     tqdm = fake_tqdm()
 
+from .timers import Timer
+timer = Timer("Main timer") 
+
 from .Tools import logging_tools
 from .obsdb import obsdb
 from lumia.Tools.rctools import rc
