@@ -2,6 +2,8 @@
 
 from datetime import datetime
 import logging
+import inspect
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +13,10 @@ class Timer:
         self.t0 = datetime.now()
         self.name = name
 
-    def info(self):
+    def info(self, msg=None):
+        stack = inspect.stack()
+        caller = inspect.getframeinfo(stack[1][0])
         t1 = datetime.now()
-        logger.info(f"{self.name}: {(t1-self.t0).total_seconds()} elapsed")
+        msg = '' if msg is None else f'({msg})'
+        logger.info(f"[{self.name}]{os.path.relpath(caller.filename)}:{caller.lineno}: {(t1-self.t0).total_seconds()} seconds elapsed {msg}")
         self.t0 = t1

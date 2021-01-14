@@ -129,8 +129,8 @@ class LegacyFootprintFile(FootprintFile):
 
 
 class LegacyFootprintTransport(FootprintTransport):
-    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None):
-        super().__init__(rcf, obs, emfile, LegacyFootprintFile, mp, checkfile)
+    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None, ncpus=None):
+        super().__init__(rcf, obs, emfile, LegacyFootprintFile, mp, checkfile, ncpus)
 
     def genFileNames(self):
         return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.strftime("%Y-%m")}.h5' for o in self.obs.observations.itertuples()]
@@ -159,6 +159,7 @@ if __name__ == '__main__':
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
+    p.add_argument('--ncpus', '-n', default=None)
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
@@ -174,7 +175,7 @@ if __name__ == '__main__':
 #    logger.warning('test logger')
 
     # Create the transport model
-    model = LegacyFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
+    model = LegacyFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile, ncpus=args.ncpus)
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))
