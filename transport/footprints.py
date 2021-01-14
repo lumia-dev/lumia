@@ -3,8 +3,9 @@
 import os
 import shutil
 from datetime import datetime
-from numpy import array_equal, nan, array, unique, nonzero
+from numpy import array_equal, nan, array, unique, nonzero, argsort
 import ray
+from multiprocessing import Pool
 from tqdm import tqdm
 from lumia.Tools import rctools, Categories
 from lumia import obsdb
@@ -19,6 +20,9 @@ from lumia.Tools.time_tools import time_interval
 
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
+
+
+common = {}
 
 
 def Observations(arg):
@@ -270,8 +274,32 @@ def ray_worker_adjoint(filename, obslist, categories, region, start, end, dt, Fo
     return fname_out
 
 
+def loop_forward(filename):
+    obslist = common['obslist'].loc[common['obslist'].footprint == filename, ['obsid']]#.copy()
+    fpf = common['fpclass'](filename, silent=True)
+    res = fpf.run(obslist, common['emis'], 'forward')
+    return res
+
+
+def loop_adjoint(filename):
+    obslist = common['obslist'].loc[common['obslist'].footprint == filename, ['obsid', 'dy']]
+    adj = Flux(CreateStruct(common['categories'], common['region'], common['start'], common['end'], common['tres']))
+    fpf = common['fpclass'](filename, silent=True)
+    res = fpf.run(obslist, adj, 'adjoint')
+
+    fname_out = os.path.join(common['tmpdir'], f'adj_{os.path.basename(fpf.filename)}.pickle')
+    with open(fname_out, 'wb') as fid :
+        compact = {}
+        for cat in res.data.keys():
+            nzi = nonzero(res.data[cat]['emis'])
+            nzv = res.data[cat]['emis'][nzi]
+            compact[cat] = (nzi, nzv)
+        pickle.dump(compact, fid)
+    return fname_out
+
+
 class FootprintTransport:
-    def __init__(self, rcf, obs, emfile=None, FootprintFileClass=FootprintFile, mp=False, checkfile=None):
+    def __init__(self, rcf, obs, emfile=None, FootprintFileClass=FootprintFile, mp=False, checkfile=None, ncpus=None):
         self.rcf = rctools.rc(rcf)
         self.obs = Observations(obs)
         self.obs.checkIndex(reindex=True)
@@ -283,7 +311,7 @@ class FootprintTransport:
 
         # Internals
         self.executable = __file__
-        self.ncpus = self.rcf.get('model.transport.split', default=os.cpu_count())
+        self.ncpus = ncpus# self.rcf.get('model.transport.split', default=os.cpu_count())
         self._set_parallelization(False)
         if mp :
             self._set_parallelization('ray')
@@ -297,11 +325,11 @@ class FootprintTransport:
 
     def _set_parallelization(self, mode=False):
         if not mode :
-            self._forward_loop = self._forward_loop_serial
-            self._adjoint_loop = self._adjoint_loop_serial
+            self._forward_loop = self._forward_loop_mp
+            self._adjoint_loop = self._adjoint_loop_mp
         elif mode == 'ray' :
-            self._forward_loop = self._forward_loop_ray
-            self._adjoint_loop = self._adjoint_loop_ray
+            self._forward_loop = self._forward_loop_mp
+            self._adjoint_loop = self._adjoint_loop_mp
 
     def runForward(self):
         # Read the emissions:
@@ -337,10 +365,38 @@ class FootprintTransport:
         # 3) Write the updated adjoint field
         WriteStruct(adj.data, self.emfile)
 
-    def _adjoint_loop_serial(self, filenames, adj):
-        for filename in tqdm(filenames):
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy', 'time', 'site']].copy()
-            adj = self.get(filename).run(obslist, adj, 'adjoint')
+    # def _adjoint_loop_serial(self, filenames, adj):
+    #     for filename in tqdm(filenames):
+    #         obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy', 'time', 'site']].copy()
+    #         adj = self.get(filename).run(obslist, adj, 'adjoint')
+    #     return adj
+
+    def _adjoint_loop_mp(self, filenames, adj):
+        t0 = datetime.now()
+        nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
+        filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
+
+        # I use the common because these are not iterable, but it would probably be cleaner to use apply_asinc and pass these as arguments to loop_adjoint 
+        common['categories'] = adj.categories
+        common['region'] = adj.region
+        common['start'] = adj.start
+        common['end'] = adj.end
+        common['tres'] = adj.tres
+        common['tmpdir'] = self.rcf.get('path.run')
+        common['obslist'] = self.obs.observations
+        common['fpclass'] = self.FootprintFileClass
+
+        with Pool(processes=self.ncpus) as pool :
+            res = list(tqdm(pool.imap(loop_adjoint, filenames, chunksize=1), total=len(nobs)))
+
+        for w in res:
+            with open(w, 'rb') as fid :
+                compact = pickle.load(fid)
+                for cat in compact.keys():
+                    nzi, nzv = compact[cat]
+                    adj.data[cat]['emis'][nzi] += nzv
+        
+        print(datetime.now()-t0)
         return adj
 
     def _adjoint_loop_ray(self, filenames, adj):
@@ -365,6 +421,7 @@ class FootprintTransport:
         return adj
 
     def _forward_loop_ray(self, filenames):
+#        t0 = datetime.now()
         ray.init()
         emis_id = ray.put(self.emis)
         workers = []
@@ -377,17 +434,29 @@ class FootprintTransport:
             for field in obslist.columns :
                 self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
         ray.shutdown()
+#        print(datetime.now()-t0)
         return
 
-    def _forward_loop_serial(self, filenames, write=False):
-        for filename in tqdm(filenames):
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
-            obslist = self.get(filename).run(obslist, self.emis, 'forward')
+    def _forward_loop_mp(self, filenames):
+        t0 = datetime.now()
+        nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
+        common['emis'] = self.emis
+        common['obslist'] = self.obs.observations
+        common['fpclass'] = self.FootprintFileClass
+
+        # To optimize CPU usage, process the largest files first
+        filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
+
+        with Pool(processes=self.ncpus) as pool :
+            res = list(tqdm(pool.imap(loop_forward, filenames, chunksize=1), total=len(nobs)))
+
+        for filename, obslist in zip(filenames, res):
             for field in obslist.columns :
                 self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
+        print(datetime.now()-t0)
 
-    def get(self, filename):
-        return self.FootprintFileClass(filename)
+    def get(self, filename, silent=None):
+        return self.FootprintFileClass(filename, silent)
 
     def writeFootprints(self, destpath, destclass=None, silent=False):
         """
