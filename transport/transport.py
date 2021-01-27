@@ -89,8 +89,8 @@ class LumiaFootprintFile(FootprintFile):
 
 
 class LumiaFootprintTransport(FootprintTransport):
-    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None):
-        super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, checkfile)
+    def __init__(self, rcf, obs, emfile=None, mp=False, ncpus=None):
+        super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, ncpus=ncpus)
 
     def genFileNames(self):
         return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
@@ -120,8 +120,6 @@ class LumiaFootprintTransport(FootprintTransport):
 
 
 if __name__ == '__main__':
-    print("start transport")
-
     import sys
     from argparse import ArgumentParser, REMAINDER
 
@@ -131,11 +129,11 @@ if __name__ == '__main__':
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
+    p.add_argument('--ncpus', '-n', default=None)
     p.add_argument('--verbosity', '-v', default='DEBUG')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
-    p.add_argument('--checkfile', '-c')
     p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
@@ -146,7 +144,7 @@ if __name__ == '__main__':
     logger.warning('test logger')
 
     # Create the transport model
-    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
+    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))
