@@ -58,6 +58,7 @@ class transport(object):
         executable = self.rcf.get("model.transport.exec")
         
         # Write model inputs:
+        struct.to_intensive()
         emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
         dbf = self.db.save_tar(os.path.join(rundir, 'observations.%s.tar.gz'%step))
         rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
@@ -120,7 +121,9 @@ class transport(object):
             raise subprocess.CalledProcessError
 
         # Collect the results :
-        return self.readStruct(rundir, 'adjoint')
+        adjstruct = self.readStruct(rundir, 'adjoint')
+        adjstruct.to_intensive()
+        return adjstruct
 
     def calcSensitivityMap(self):
         departures = ones(self.db.observations.shape[0])

@@ -9,6 +9,7 @@ from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
 from lumia import tqdm, timer
 from multiprocessing import Pool
+from lumia.formatters.lagrange import Struct
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,8 @@ class Interface :
 
     def VecToStruct(self, vector):
         timer.info()
-        struct = {}
+        struct = Struct()
+        struct.unit_type = self.ancilliary_data.unit_type
         for cat in self.categories:
             struct[cat.name] = deepcopy(self.ancilliary_data[cat.name])
             if cat.optimize :
