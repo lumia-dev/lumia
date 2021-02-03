@@ -75,11 +75,11 @@ class transport(object):
         # Retrieve results :
         db = obsdb(filename=dbf)
         for cat in self.rcf.get('emissions.categories'):
-            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}']
-        self.db.observations.loc[:, f'mix_{step}'] = db.observations.loc[:, 'mix']
-        self.db.observations.loc[:, 'mix_background'] = db.observations.loc[:, 'mix_background']
-        self.db.observations.loc[:, 'mix_foreground'] = db.observations.loc[:, 'mix']-db.observations.loc[:, 'mix_background']
-        self.db.observations.loc[:, 'mismatch'] = db.observations.loc[:, 'mix']-self.db.observations.loc[:,'obs']
+            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+        self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
+        self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
+        self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
+        self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
 
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
