@@ -130,7 +130,7 @@ if __name__ == '__main__':
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--ncpus', '-n', default=None)
-    p.add_argument('--verbosity', '-v', default='DEBUG')
+    p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)
