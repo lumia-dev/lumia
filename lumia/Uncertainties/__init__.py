@@ -20,6 +20,7 @@ class Uncertainties:
         self.rcf = rcf
         self.region = Region(self.rcf)
         self.interface = interface
+        self.corrfile = None
 
     def __call__(self, data, *args, **kwargs):
         self.calcPriorUncertainties(data, *args, **kwargs)
@@ -60,6 +61,7 @@ class Uncertainties:
             if cat.optimize :
                 if cat.horizontal_correlation not in self.horizontal_correlations :
                     fname = self.checkCorFile_vres(cat.horizontal_correlation, cat)
+                    self.corrfile = fname
                     P_h, D_h = read_latlon(fname)
                     Hor_L = P_h * D_h
                     self.horizontal_correlations[cat.horizontal_correlation] = Hor_L

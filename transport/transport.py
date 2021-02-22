@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
+from numpy import array_equal
 
 logger = logging.getLogger(os.path.basename(__file__))
 
@@ -38,12 +39,9 @@ class LumiaFootprintFile(FootprintFile):
         return True
 
     def setup(self, coords, origin, dt):
-        try :
-            assert self.coordinates == coords
-        except AssertionError :
-            logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
+        assert self.coordinates == coords
         assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
-
+        #    logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
         # Calculate the number of time steps between the Footprint class (i.e 
         # the data in the file) and the requested new origin
         shift_t = (self.origin-origin)/self.dt
