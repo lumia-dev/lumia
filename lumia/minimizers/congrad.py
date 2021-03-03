@@ -7,6 +7,7 @@ from lumia.Tools.logging_tools import colorize
 
 logger = logging.getLogger(__name__)
 
+
 class Minimizer:
     def __init__(self, rcf, nstate=None):
         self.rcf = rcf
@@ -27,6 +28,11 @@ class Minimizer:
         self.converged = False
         self.finished = False
 
+    def resume(self, trim=0):
+        self.commfile.resume(self.nstate, trim=trim)
+        self.iter = self.commfile.len_x
+        return self.commfile.readState()
+
     def init(self, nstate):
         self.nstate = nstate
         self.commfile.createFile(nstate)
@@ -37,8 +43,10 @@ class Minimizer:
         self.commfile.update(gradient_preco, J_tot)
         self.runMinimizer()
         status = self.commfile.checkUpdate()
-        if status > 0 : self.finished = True
-        if status == 2 : self.converged = True
+        if status > 0 : 
+            self.finished = True
+        if status == 2 : 
+            self.converged = True
         self.iter += 1
         return status
 
@@ -54,6 +62,7 @@ class Minimizer:
     def save(self, filename):
         if filename != self.commfile.filepath :
             shutil.copy(self.commfile.filepath, filename)
+        return filename
 
     def iter_states(self):
         traject = self.commfile.read_traject()
@@ -69,6 +78,66 @@ class CommFile(object):
         self.len_x = 0
         self.len_g = 0
         self.debug = False
+
+    def resume(self, nstate, trim=3):
+        """ This resumes the state of the CommFile object as it would be just before the call
+        to "checkUpdate". Optionally, it can remove some iterations, if the "trim" argument is 
+        set to a value > 0. If both the state vector and state vector gradient (g_c and x_c) have
+        the same number of iterations in the netCDF file itself, then the last gradient is erased
+        (this would happen if the inversion crashed during the call to the minimizer itself)"""
+        self.trim(trim)
+        with Dataset(self.filepath, 'r') as ds :
+            self.len_x = len(ds.dimensions['dim_x'])-1
+            self.len_g = len(ds.dimensions['dim_g'])
+            # if self.len_x == self.len_g :
+            #     self.trim(0)
+            #     with Dataset(f'{self.filepath}_2', 'w') as dsw :
+            #         # copy the attributes
+            #         dsw.congrad_finished = 0 
+            #         dsw.iter_max = ds.iter_max
+            #         dsw.iter_convergence = ds.iter_convergence
+            #         dsw.preduc = ds.preduc
+            #         dsw.J_tot = ds.J_tot
+
+            #         # copy the dimensions
+            #         dsw.createDimension('n_state', nstate)
+            #         dsw.createDimension('dim_x', 0)
+            #         dsw.createDimension('dim_g', 0)
+
+            #         # copy the variables
+            #         dsw.createVariable('x_c', 'd', ('n_state','dim_x'))
+            #         dsw['x_c'][:] = ds['x_c'][:,:]
+            #         dsw.createVariable('g_c', 'd', ('n_state','dim_g'))
+            #         dsw['g_c'][:] = ds['g_c'][:,:-1]
+            #     self.len_g -= 1
+            #     shutil.move(f'{self.filepath}_2', self.filepath)
+        self.initialized = True
+    
+    def trim(self, trim):
+        with Dataset(self.filepath, 'r') as ds :
+            ng = len(ds.dimensions['dim_g'])
+            nstate = len(ds.dimensions['n_state'])
+            ngnew = ng-trim
+            nxnew = ng-trim+1
+            with Dataset(f'{self.filepath}_2', 'w') as dsw :
+                # copy the attributes
+                dsw.congrad_finished = int(0)
+                dsw.iter_max = ds.iter_max
+                dsw.iter_convergence = ds.iter_convergence
+                dsw.preduc = ds.preduc
+                dsw.J_tot = ds.J_tot
+
+                # copy the dimensions
+                dsw.createDimension('n_state', nstate)
+                dsw.createDimension('dim_x', 0)
+                dsw.createDimension('dim_g', 0)
+
+                # copy the variables
+                dsw.createVariable('x_c', 'd', ('n_state','dim_x'))
+                dsw['x_c'][:] = ds['x_c'][:,:nxnew]
+                dsw.createVariable('g_c', 'd', ('n_state','dim_g'))
+                dsw['g_c'][:] = ds['g_c'][:,:ngnew]
+        shutil.move(f'{self.filepath}_2', self.filepath)
 
     def createFile(self, nstate):
         logger.info(self.filepath)
@@ -118,11 +187,7 @@ class CommFile(object):
                     )
                 )
             if len_g != self.len_g and not ds.congrad_finished :
-                raise RuntimeError(
-                    'The number of gradients should have remained unchanged at %i, instead it is %i'%(
-                    self.len_g, len_g
-                    )
-                )
+                raise RuntimeError(f'The number of gradients should have remained unchanged at {self.len_g}, instead it is {len_g}')
             else :
                 self.len_x = len_x
             status = ds.congrad_finished

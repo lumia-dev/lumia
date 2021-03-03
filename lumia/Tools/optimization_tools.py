@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import re
 from dateutil.relativedelta import relativedelta
 from numpy import arange, ones_like, array, cumsum
@@ -102,6 +103,9 @@ class costFunction:
         
         
 class Cluster:
+    minxsize = 1
+    minysize = 1
+
     def __init__(self, data, indices=None, mask=None, dy=None, crop=True):
         self.data = data
         self.shape = self.data.shape
@@ -120,6 +124,27 @@ class Cluster:
             self.rank = -1
         if crop: 
             self.crop()
+
+    # def reduce_res(self, ax, ay):
+        
+    #     # new dimensions:
+    #     new_ny = self.ny/ay
+    #     new_nx = self.nx/ax
+    #     assert new_ny == int(new_ny)
+    #     assert new_nx == int(new_nx)
+    #     new_nx = int(new_nx)
+    #     new_ny = int(new_ny)
+
+    #     newclusters = []
+    #     for xx in new_nx :
+    #         for yy in new_ny:
+    #             newclusters.append(Cluster(
+    #                 self.data[yy*ay:(yy+1)*ay, xx*ax:(xx+1)*ax],
+    #                 indices=self.ind[yy*ay:(yy+1)*ay, xx*ax:(xx+1)*ax],
+    #                 mask=self.mask[yy*ay:(yy+1)*ay, xx*ax:(xx+1)*ax],
+    #                 dy=self.dy)
+    #             )
+    #     return newclusters
 
     def splitx(self):
         self.transpose()
@@ -148,9 +173,9 @@ class Cluster:
         self.shape = self.data.shape
 
     def split(self):
-        if self.ny > self.nx :
+        if self.ny > self.nx or self.nx == self.minxsize :
             c1, c2 = self.splity()
-        elif self.nx > self.ny :
+        elif self.nx > self.ny or self.ny == self.minysize :
             c1, c2 = self.splitx()
         else :
             c11, c21 = self.splity()
@@ -210,9 +235,17 @@ class Cluster:
         return neighbours
 
 
-def clusterize(field, nmax, mask=None):
+def clusterize(field, nmax, mask=None, minxsize=1, minysize=1):
+    Cluster.minxsize = minxsize
+    Cluster.minysize = minysize
     clusters = [Cluster(field, mask=mask, crop=False)]
+    rlim = sys.getrecursionlimit()
+    sys.setrecursionlimit(clusters[0].size+1)
     clusters_final = []   # Offload the clusters that cannot be further divided to speed up the calculations
+
+    # if coarsen is not None :
+    #     clusters = clusters[0].reduce_res(coarsen)
+
     nclmax = min(nmax, (clusters[0].mask > 0).sum())
     with tqdm(total=nclmax, desc="spatial aggregation") as pbar:
         ncl = len(clusters+clusters_final)
@@ -223,7 +256,10 @@ def clusterize(field, nmax, mask=None):
             clusters.pop(ind)
             for cl in new_clusters :
                 if cl.mask.any() :
-                    if cl.size == 1 :
+                    #if cl.size == 1 or (cl.nx == cl.minxsize and cl.ny == cl.minysize) :
+                    if cl.nx <= cl.minxsize and cl.ny <= cl.minysize :
+                        #if cl.nx == 1:
+                        #    import pdb; pdb.set_trace()
                         clusters_final.append(cl)
                     else :
                         if mask is not None :
@@ -233,4 +269,6 @@ def clusterize(field, nmax, mask=None):
             inc = len(clusters+clusters_final)-ncl
             pbar.update(inc)
             ncl += inc
+
+    sys.setrecursionlimit(rlim)
     return clusters+clusters_final

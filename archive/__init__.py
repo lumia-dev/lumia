@@ -33,6 +33,17 @@ class RcloneArchive:
             success = os.path.exists(outfile)
             
         return success
+
+    def put(self, file, destpath, destfname):
+        cmd = ['rclone', 'copyto', file, f'{self.remote}:{destpath}/{destfname}']
+        logger.info(' '.join(cmd))
+        _ = subprocess.check_output(cmd)
+        try :
+            subprocess.check_output(['rclone', 'lsf' f'{self.remote}/{destpath}/{destfname}'])
+            return True
+        except subprocess.CalledProcessError :
+            logger.warning(f"Copy of file {file} to {self.remote}:{destpath}/{destfname} failed.")
+            return False
     
     def checkFile(self, filename):
         # Get the list of files in the rclone repo, in the same folder (only if we are in a new folder)
@@ -81,6 +92,16 @@ class LocalArchive:
         success = os.path.exists(outfile)
         
         return success
+
+    def put(self, file, destpath, destfname):
+        if not os.path.exists(destpath):
+            os.makedirs(destpath)
+        
+        cmd = ['rsync', '-ah', f"{file}", os.path.join(destpath, destfname)]
+        _ = subprocess.check_output(cmd)
+        success = os.path.exists(os.path.join(destpath, destfname))
+        
+        return success
             
             
 class Archive:
@@ -113,4 +134,14 @@ class Archive:
                     raise RuntimeError
                 else :
                     logger.info(msg)
+        return success
+
+    def put(self, file, dest='', destfname=None):
+        if destfname is None :
+            fname = os.path.basename(file)
+        if dest.startswith('/'):
+            dest = os.path.join(self.remote, dest[1:])
+        else :
+            dest = os.path.join(self.remote, dest)
+        success = self.archive.put(file, dest, fname)
         return success
