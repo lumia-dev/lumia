@@ -26,12 +26,12 @@ class Interface :
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
 
-    def StructToVec(self, struct, lsm_from_file=False):
+    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1):
         timer.info()
         lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
         if not hasattr(self, 'spatial_mapping'):
             self.temporal_mapping = self.calc_temporal_coarsening(struct)
-            self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm)
+            self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm, minxsize=minxsize, minysize=minysize)
             self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
         
         vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
@@ -115,11 +115,13 @@ class Interface :
         timer.info()
         return adjvec
 
-    def calc_spatial_coarsening(self, lsm=None):
+    def calc_spatial_coarsening(self, lsm=None, minxsize=1, minysize=1):
         clusters = clusterize(
             self.ancilliary_data['sensi_map'],
             self.rcf.get('optimize.ngridpoints'),
-            mask = lsm
+            mask = lsm,
+            minxsize=minxsize,
+            minysize=minysize
         )
         mapping = {
             'clusters_map': zeros((self.region.nlat, self.region.nlon))+nan,
