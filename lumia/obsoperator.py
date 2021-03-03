@@ -45,7 +45,7 @@ class transport(object):
             except shutil.SameFileError :
                 pass
 
-    def runForward(self, struct, step=None):
+    def runForward(self, struct, step=None, serial=False):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
@@ -56,6 +56,8 @@ class transport(object):
         # read model-specific info
         rundir = self.rcf.get('path.run')
         executable = self.rcf.get("model.transport.exec")
+        if self.rcf.get("model.transport.serial", default=False) :
+            serial = True
         
         # Write model inputs:
         emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
@@ -65,6 +67,8 @@ class transport(object):
         
         # Run the model
         cmd = [sys.executable, executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        if serial :
+            cmd.append('--serial')
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
         try :
             subprocess.run(cmd, close_fds=True)
