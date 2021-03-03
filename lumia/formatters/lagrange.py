@@ -229,7 +229,7 @@ def ReadArchive(prefix, start, end, **kwargs):
         archive = Archive(kwargs['archive'])
     else :
         archive = None
-    localArchive = Archive(os.path.dirname(prefix), parent=archive)
+    localArchive = Archive(os.path.dirname(prefix), parent=archive, mkdir=True)
 
     dirname, prefix = os.path.split(prefix)
 

@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 from netCDF4 import Dataset
 from datetime import datetime
-from numpy import zeros, array
+from numpy import zeros, array, nan, unique
 from footprints import FootprintFile, SpatialCoordinates, FootprintTransport
+from archive import Archive
+from tqdm import tqdm
+from lumia.timers import Timer
 
 # Main ==> move?
 import os
@@ -10,50 +13,55 @@ import os
 from datetime import timedelta
 import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel("DEBUG")
+#logger = logging.getLogger(__name__)
+logger = logging.getLogger(os.path.basename(__file__))
+#logger.setLevel("DEBUG")
 
 
 class StiltFootprintFile(FootprintFile):
-    def open(self):
-        if not self._initialized :
-            self.ds = Dataset(self.filename, 'r')
-            self.close = self.ds.close
+    def read(self):
+        if not os.path.exists(self.filename) :
+            return False
+        self.ds = Dataset(self.filename, 'r')
+        self.close = self.ds.close
 
-            # List of footprints/times availables:
-            sitecode = getattr(self.ds, 'Footprints_receptor').split(';')[0].split(':')[1].strip().lower()
-            height = int(getattr(self.ds, 'sampling_height').split()[0])
-            times = [x.split('_')[1] for x in self.ds.variables.keys() if x.endswith('val')]
-            times = [datetime.strptime(x, '%Y%m%d%H') for x in times]
-            self.footprints = {f'{sitecode}.{height:.0f}m.{t.strftime("%Y%m%d-%H%M%S")}' : t for t in times}
+        # List of footprints/times availables:
+        sitecode = getattr(self.ds, 'Footprints_receptor').split(';')[0].split(':')[1].strip().lower()
+        height = int(getattr(self.ds, 'sampling_height').split()[0])
+        times = [x.split('_')[1] for x in self.ds.variables.keys() if x.endswith('val')]
+        times = [datetime.strptime(x, '%Y%m%d%H') for x in times]
+        self.footprints = {f'{sitecode}.{height:.0f}m.{t.strftime("%Y%m%d-%H%M%S")}' : t for t in times}
 
-            coordinates = SpatialCoordinates(
-                lon0 = self.ds.lon_ll+self.ds.lon_res/2.,
-                dlon = self.ds.lon_res,
-                nlon = self.ds.numpix_x,
-                lat0 = self.ds.lat_ll+self.ds.lat_res/2.,
-                dlat = self.ds.lat_res,
-                nlat = self.ds.numpix_y,
-            )
-
-            # Initial setup of the Footprint class
-            self.Footprint.lats = coordinates.lats
-            self.Footprint.lons = coordinates.lons
-            self.Footprint.dlat = coordinates.dlat
-            self.Footprint.dlon = coordinates.dlon
-            self.Footprint.dt = timedelta(hours=1) 
-
-            self._initialized = True
+        # Store time and space coordinates
+        self.coordinates = SpatialCoordinates(
+            lon0 = self.ds.lon_ll+self.ds.lon_res/2.,
+            dlon = self.ds.lon_res,
+            nlon = int(self.ds.numpix_x),
+            lat0 = self.ds.lat_ll+self.ds.lat_res/2.,
+            dlat = self.ds.lat_res,
+            nlat = int(self.ds.numpix_y),
+        )
+        self.dt = timedelta(hours=1)
+        
+        # Initial setup of the Footprint class
+        self.Footprint.lats = self.coordinates.lats
+        self.Footprint.lons = self.coordinates.lons
+        self.Footprint.dlat = self.coordinates.dlat
+        self.Footprint.dlon = self.coordinates.dlon
+        self.Footprint.dt = self.dt
+        return True
 
     def setup(self, coords, origin, dt):
         # Make sure that the requested domain is within that of the footprints
-        assert coords <= SpatialCoordinates(obj=self.Footprint) 
+        assert coords <= self.coordinates 
 
         # Re-setup the "Footprint" object:
-        self.Footprint.lats = coords.lats
-        self.Footprint.lons = coords.lons
+        self.Footprint.lats = coords.lats.tolist()
+        self.Footprint.lons = coords.lons.tolist()
         self.Footprint.dlat = coords.dlat
         self.Footprint.dlon = coords.dlon
+        self.Footprint.lon0 = self.Footprint.lons[0]-self.Footprint.dlon/2.
+        self.Footprint.lat0 = self.Footprint.lats[0]-self.Footprint.dlat/2.
 
         self.origin = origin
 
@@ -61,24 +69,31 @@ class StiltFootprintFile(FootprintFile):
         time = self.footprints[obsid]
 
         # Read raw data
-        lons = self.ds[time.strftime('ftp_%Y%m%d%H_lon')][:]
-        lats = self.ds[time.strftime('ftp_%Y%m%d%H_lat')][:]
+        lons = self.ds[time.strftime('ftp_%Y%m%d%H_lon')][:] + self.Footprint.dlon/2.
+        lats = self.ds[time.strftime('ftp_%Y%m%d%H_lat')][:] + self.Footprint.dlat/2.
         npt = self.ds[time.strftime('ftp_%Y%m%d%H_indptr')][:]
-        sensi = self.ds[time.strftime('ftp_%Y%m%d%H_sensi')][:]
+        sensi = self.ds[time.strftime('ftp_%Y%m%d%H_val')][:]
 
         # Select :
-        select = array([l in self.Footprint.lats for l in lats])
-        select *= array([l in self.Footprint.lons for l in lons])
+        select = (lats >= self.Footprint.lats[0]) * (lats <= self.Footprint.lats[-1]) 
+        select *= (lons >= self.Footprint.lons[0]) * (lons <= self.Footprint.lons[-1])
+        #select = array([l in self.Footprint.lats for l in lats])
+        #select *= array([l in self.Footprint.lons for l in lons])
 
         # Reconstruct ilats/ilons :
-        ilats = [self.Footprint.lats.index(l) for l in lats[select]]
-        ilons = [self.Footprint.lons.index(l) for l in lons[select]]
+        ilats = (lats[select]-self.Footprint.lat0)/self.Footprint.dlat
+        ilons = (lons[select]-self.Footprint.lon0)/self.Footprint.dlon
+        ilats = ilats.astype(int)
+        ilons = ilons.astype(int)
+        #ilats = array([self.Footprint.lats.index(l) for l in lats[select]])
+        #ilons = array([self.Footprint.lons.index(l) for l in lons[select]])
 
         # Reconstruct itims
         itims = zeros(len(lons))
         prev = 0
-        for it, n in enumerate(npt[select]):
+        for it, n in enumerate(npt):
             itims[prev:prev+n] = -it
+        itims = itims.astype(int)[select]
 
         # Create the footprint
         fp = self.Footprint(origin=time)
@@ -97,8 +112,30 @@ class StiltFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emfile, mp, checkfile):
         super().__init__(rcf, obs, emfile, StiltFootprintFile, mp, checkfile)
 
-    def checkFootprints(self, path):
-        raise NotImplementedError
+    def genFileNames(self):
+        return [f'footprint_{o.sitecode_CSR}_{o.time.year}{o.time.month:02.0f}.nc' for o in self.obs.observations.itertuples()]
+
+    def checkFootprints(self, path, archive=None):
+        cache = Archive(path, parent=Archive(archive))
+
+        fnames = array(self.genFileNames())
+        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
+        fnames = array([os.path.join(path, fname) for fname in fnames])
+        self.obs.observations.loc[:, 'footprint'] = fnames 
+        self.obs.observations.loc[~exists, 'footprint'] = nan
+
+        # Construct the obs ids:
+        obsids = [f'{o.sitecode_CSR.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
+        self.obs.observations.loc[exists, 'obsid'] = obsids
+
+        # Check if the footprints actually exist in the files:
+        for filename in tqdm(unique(fnames), desc="check footprint files"):
+            fp = StiltFootprintFile(filename)
+            fp.read()
+            oids = self.obs.observations.loc[self.obs.observations.footprint == filename, 'obsid'].values
+            invalid = array([o not in fp.footprints for o in oids])
+            ind = self.obs.observations.loc[(self.obs.observations.footprint == filename)].loc[invalid].index
+            self.obs.observations.loc[ind, 'footprint'] = nan
 
 
 if __name__ == '__main__':
@@ -122,6 +159,9 @@ if __name__ == '__main__':
     args = p.parse_args(sys.argv[1:])
 
     logger.setLevel(args.verbosity)
+    logger.info('test logger')
+    logger.debug('test logger')
+    logger.warning('test logger')
 
     # Create the transport model
     model = StiltFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
@@ -136,7 +176,8 @@ if __name__ == '__main__':
         model.runForward()
         #model.write(args.obs)
 
-#    if args.adjoint :
-#        model.runAdjoint()
+    if args.adjoint :
+        model.runAdjoint()
+
     if args.checkfile is not None :
         open(args.checkfile, 'w').close()
