@@ -722,8 +722,6 @@ contains
 
         !--- calculate the solution
 
-        print*, 'toto'
-        print*, write_intermediate_states
         if (write_intermediate_states) allocate(xc_traject(iter+1,kvadim))
         px(:) = zx0(:)
         if (write_intermediate_states) xc_traject(1,:) = px(:)

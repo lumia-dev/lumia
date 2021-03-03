@@ -4,6 +4,7 @@ import logging
 from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
+from archive import Archive
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,21 @@ class Optimizer(object):
             state_preco, status = self._Var4D_step(state_preco, step)
             step = 'var4d'
 
+        # Finishup ...
+        dy, err = self._computeDepartures(state_preco, label)
+        self.J = self._computeCostFunction(state_preco, dy, err)
+        gradient_preco = self._ComputeGradient(state_preco, dy, err)
+        self.minimizer.update(gradient_preco, self.J.tot)
+        self._calcPosteriorUncertainties()
+        self.save(label)
+
+    def Var4D_resume(self, label='apos', trim=0):
+        state_preco = self.minimizer.resume(trim=trim)
+        self.iteration = self.minimizer.iter
+        status = self.minimizer.commfile.checkUpdate()
+        step = 'var4d'
+        while status == 0 :
+            state_preco, status = self._Var4D_step(state_preco, step)
         # Finishup ...
         dy, err = self._computeDepartures(state_preco, label)
         self.J = self._computeCostFunction(state_preco, dy, err)
@@ -91,9 +107,14 @@ class Optimizer(object):
     def save(self, step=None):
         step = '' if step is None else step+'.'
         path = self.rcf.get('path.output')
-        if not os.path.exists(path): 
-            os.makedirs(path)
+
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.obsop.save(path, step)
         #self.control.save(os.path.join(path, 'control.%shdf'%step))  # ==> The transport model saves itself
-        self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
+        #self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
+
+        # Copy to archive
+        arc = Archive(self.rcf.get('path.archive'))
+        for file in os.scandir(path):
+            if file.is_file:
+                arc.put(file.name)
