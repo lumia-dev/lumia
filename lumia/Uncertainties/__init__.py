@@ -32,29 +32,15 @@ class Uncertainties:
             'Tcor':self.temporal_correlations
         }
 
-#    def calcPriorUncertainties(self, data):
-#        """
-#        example method, but instead, use that of one of the derived classes
-#        """
-#        self.data = data
-#        for cat in self.categories :
-#            if cat.optimize :
-#                errfact = cat.uncertainty*0.01
-#                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
-#                min_unc = cat.min_uncertainty*errcat.max()/100.
-#                land_filter = self.data.land_fraction.values
-#                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
-#                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
-#
-    def setup_Hcor_old(self):
-        for cat in self.categories :
-            if cat.optimize :
-                if cat.horizontal_correlation not in self.horizontal_correlations :
-                    fname = self.checkCorFile(cat.horizontal_correlation, cat) # TODO: Move this to a completely external code/module?
-                    P_h, D_h = read_latlon(fname)
-                    Hor_L = P_h * D_h
-                    self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
-                    del P_h, D_h
+    # def setup_Hcor_old(self):
+    #     for cat in self.categories :
+    #         if cat.optimize :
+    #             if cat.horizontal_correlation not in self.horizontal_correlations :
+    #                 fname = self.checkCorFile(cat.horizontal_correlation, cat) # TODO: Move this to a completely external code/module?
+    #                 P_h, D_h = read_latlon(fname)
+    #                 Hor_L = P_h * D_h
+    #                 self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
+    #                 del P_h, D_h
 
     def setup_Hcor(self):
         for cat in self.categories :
@@ -84,20 +70,20 @@ class Uncertainties:
                     P_t, D_t = calc_temp_corr(temp_corlen, dt, nt)
                     self.temporal_correlations[cat.temporal_correlation] = dot(P_t, D_t)
 
-    def checkCorFile(self, hcor, cat):
-        # Generate the correlation file name
-        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
-        corlen, cortype = hcor.split('-')
-        corlen = int(corlen)
-        fname = 'Bh:%s:%5.5i_%s.nc'%(self.region.name, corlen, cortype)
-        fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
-        if not os.path.exists(fname):
-            logger.info("Correlation file <p:%s> not found. Computing it",fname)
-            hc = horcor(corlen, cortype, data)
-            hc.calc_latlon_covariance()
-            hc.write(fname)
-            del hc
-        return fname
+    # def checkCorFile(self, hcor, cat):
+    #     # Generate the correlation file name
+    #     data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+    #     corlen, cortype = hcor.split('-')
+    #     corlen = int(corlen)
+    #     fname = 'Bh:%s:%5.5i_%s.nc'%(self.region.name, corlen, cortype)
+    #     fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
+    #     if not os.path.exists(fname):
+    #         logger.info("Correlation file <p:%s> not found. Computing it",fname)
+    #         hc = horcor(corlen, cortype, data)
+    #         hc.calc_latlon_covariance()
+    #         hc.write(fname)
+    #         del hc
+    #     return fname
 
     def checkCorFile_vres(self, hcor, cat):
         # Generate the correlation file name
