@@ -38,14 +38,22 @@ class RcloneArchive:
         # Get the list of files in the rclone repo, in the same folder (only if we are in a new folder)
         path, file = os.path.split(filename)
         if path not in self.remote_structure :
-            logger.info("Retrieving list of files in rclone folder {self.remote:path})")
+            logger.info(f"Retrieving list of files in rclone folder {self.remote:path})")
             self.remote_structure[path] = subprocess.check_output(['rclone', 'lsf', f'{self.remote}/{path}'], universal_newlines=True).split('\n')
         return file in self.remote_structure[path]
     
     
 class LocalArchive:
-    def __init__(self, remote, ignore_existing=True, max_attempts=3):
-        self.remote = remote
+    def __init__(self, local, ignore_existing=True, max_attempts=3, mkdir=False):
+        local = local.replace('local:', '')
+        if not os.path.exists and mkdir :
+            try :
+                logger.info(f"Creating archive folder {local}")
+                os.makedirs(local)
+            except PermissionError:
+                logger.error(f"Insufficient permissions to create path '{local}'")
+                raise PermissionError
+        self.remote = local
         self.ignore_existing = ignore_existing
         self.max_attempts = max_attempts
     
@@ -76,18 +84,20 @@ class LocalArchive:
             
             
 class Archive:
-    def __init__(self, key, parent=None, *attrs, **kwattrs):
+    def __init__(self, key, parent=None, *args, **kwargs):
         self.key = key
         if parent is not None :
             if parent.key is not None :
                 self.parent = parent 
         if key is not None:
-            if os.path.isdir(key):
-                self.archive = LocalArchive(key, *attrs, **kwattrs)
-            elif key.startswith('rclone:'):
-                self.archive = RcloneArchive(key, *attrs, **kwattrs)
+            if key.startswith('rclone:'):
+                self.archive = RcloneArchive(key, *args, **kwargs)
+            elif key.startswith('local:'):
+                self.archive = LocalArchive(key, *args, **kwargs)
+            elif os.path.isdir(key):
+                self.archive = LocalArchive(key, *args, **kwargs)
             else : 
-                logger.error(f"Un-recognized meteo archive: {key}")
+                logger.error(f"Un-recognized meteo archive. Does the path '{key}' exist?")
                 raise RuntimeError
     
     def get(self, file, dest='.', fail=True):
