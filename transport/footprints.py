@@ -4,7 +4,7 @@ import os
 import shutil
 from datetime import datetime
 from numpy import array_equal, nan, array, unique, nonzero, argsort
-import ray
+#import ray
 from multiprocessing import Pool
 from tqdm import tqdm
 from lumia.Tools import rctools, Categories
@@ -238,45 +238,9 @@ class Footprint:
         return self.origin+it*self.dt
 
 
-@ray.remote
-def ray_worker(filename, obslist, emis, FootprintFileClass, step='forward', tmpdir='.'):
-    fpf = FootprintFileClass(filename, silent=True)
-    res = fpf.run(obslist, emis, step)
-    if step == 'forward':
-        return res
-    else :
-        fname_out = os.path.join(tmpdir, f'adj_{os.path.basename(filename)}.pickle')
-        logger.debug(f"writing adjoint file {fname_out}")
-        with open(fname_out, 'wb') as fid :
-            compact = {}
-            for cat in res.data.keys():
-                nzi = nonzero(res.data[cat]['emis'])
-                nzv = res.data[cat]['emis'][nzi]
-                compact[cat] = (nzi, nzv)
-            pickle.dump(compact, fid)
-    return fname_out
-
-
-@ray.remote
-def ray_worker_adjoint(filename, obslist, categories, region, start, end, dt, FootprintFileClass, tmpdir='.'):
-    fpf = FootprintFileClass(filename, silent=True)
-    adj = Flux(CreateStruct(categories, region, start, end, dt))
-    res = fpf.run(obslist, adj, 'adjoint')
-    fname_out = os.path.join(tmpdir, f'adj_{os.path.basename(filename)}.pickle')
-    #logger.debug(f"writing adjoint file {fname_out}")
-    with open(fname_out, 'wb') as fid :
-        compact = {}
-        for cat in res.data.keys():
-            nzi = nonzero(res.data[cat]['emis'])
-            nzv = res.data[cat]['emis'][nzi]
-            compact[cat] = (nzi, nzv)
-        pickle.dump(compact, fid)
-    return fname_out
-
-
-def loop_forward(filename):
+def loop_forward(filename, silent=True):
     obslist = common['obslist'].loc[common['obslist'].footprint == filename, ['obsid']]#.copy()
-    fpf = common['fpclass'](filename, silent=True)
+    fpf = common['fpclass'](filename, silent=silent)
     res = fpf.run(obslist, common['emis'], 'forward')
     return res
 
@@ -325,8 +289,8 @@ class FootprintTransport:
 
     def _set_parallelization(self, mode=False):
         if not mode :
-            self._forward_loop = self._forward_loop_mp
-            self._adjoint_loop = self._adjoint_loop_mp
+            self._forward_loop = self._forward_loop_serial
+            self._adjoint_loop = self._adjoint_loop_serial
         elif mode == 'ray' :
             self._forward_loop = self._forward_loop_mp
             self._adjoint_loop = self._adjoint_loop_mp
@@ -365,11 +329,12 @@ class FootprintTransport:
         # 3) Write the updated adjoint field
         WriteStruct(adj.data, self.emfile)
 
-    # def _adjoint_loop_serial(self, filenames, adj):
-    #     for filename in tqdm(filenames):
-    #         obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy', 'time', 'site']].copy()
-    #         adj = self.get(filename).run(obslist, adj, 'adjoint')
-    #     return adj
+    def _adjoint_loop_serial(self, filenames, adj):
+        for filename in tqdm(filenames):
+            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy', 'time', 'site']].copy()
+            fpf = self.get(filename)
+            adj = fpf.run(obslist, adj, 'adjoint')
+        return adj
 
     def _adjoint_loop_mp(self, filenames, adj):
         t0 = datetime.now()
@@ -399,43 +364,14 @@ class FootprintTransport:
         print(datetime.now()-t0)
         return adj
 
-    def _adjoint_loop_ray(self, filenames, adj):
-        ray.init()
-        workers = []
-        for filename in filenames :
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy']].copy()
-            #workers.append(ray_worker.remote(filename, obslist, adj, self.FootprintFileClass, 'adjoint', tmpdir=self.rcf.get('path.run')))
-            workers.append(ray_worker_adjoint.remote(
-                filename, obslist, adj.categories, adj.region, adj.start, adj.end, adj.tres, self.FootprintFileClass, tmpdir=self.rcf.get('path.run')
-            ))
-        for w in tqdm(workers):
-            with open(ray.get(w), 'rb') as fid :
-                compact = pickle.load(fid)
-                for cat in compact.keys():
-                    nzi, nzv = compact[cat]
-                    adj.data[cat]['emis'][nzi] += nzv
-                #adj.data[nzi] += nzv #pickle.load(fid)
-            #data = ReadStruct(ray.get(w))
-            #adj += ray.get(data)
-        ray.shutdown()
-        return adj
-
-    def _forward_loop_ray(self, filenames):
-#        t0 = datetime.now()
-        ray.init()
-        emis_id = ray.put(self.emis)
-        workers = []
-        for filename in filenames:
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid']].copy()
-            workers.append(ray_worker.remote(filename, obslist, emis_id, self.FootprintFileClass))
-        
-        for w in tqdm(workers) :
-            obslist = ray.get(w)
+    def _forward_loop_serial(self, filenames):
+        common['emis'] = self.emis
+        common['obslist'] = self.obs.observations
+        common['fpclass'] = self.FootprintFileClass
+        for filename in tqdm(filenames):
+            obslist = loop_forward(filename, silent=False)
             for field in obslist.columns :
                 self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
-        ray.shutdown()
-#        print(datetime.now()-t0)
-        return
 
     def _forward_loop_mp(self, filenames):
         t0 = datetime.now()
