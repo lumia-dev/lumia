@@ -117,4 +117,4 @@ class Optimizer(object):
         arc = Archive(self.rcf.get('path.archive'))
         for file in os.scandir(path):
             if file.is_file:
-                arc.put(file.name)
+                arc.put(os.path.join(path, file.name))
