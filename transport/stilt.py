@@ -69,6 +69,7 @@ class StiltFootprintFile(FootprintFile):
         time = self.footprints[obsid]
 
         # Read raw data
+        # The lat/lon coordinates in the file indicate the ll corner, but we want the center. So add half steps
         lons = self.ds[time.strftime('ftp_%Y%m%d%H_lon')][:] + self.Footprint.dlon/2.
         lats = self.ds[time.strftime('ftp_%Y%m%d%H_lat')][:] + self.Footprint.dlat/2.
         npt = self.ds[time.strftime('ftp_%Y%m%d%H_indptr')][:]
@@ -77,22 +78,19 @@ class StiltFootprintFile(FootprintFile):
         # Select :
         select = (lats >= self.Footprint.lats[0]) * (lats <= self.Footprint.lats[-1]) 
         select *= (lons >= self.Footprint.lons[0]) * (lons <= self.Footprint.lons[-1])
-        #select = array([l in self.Footprint.lats for l in lats])
-        #select *= array([l in self.Footprint.lons for l in lons])
 
         # Reconstruct ilats/ilons :
         ilats = (lats[select]-self.Footprint.lat0)/self.Footprint.dlat
         ilons = (lons[select]-self.Footprint.lon0)/self.Footprint.dlon
         ilats = ilats.astype(int)
         ilons = ilons.astype(int)
-        #ilats = array([self.Footprint.lats.index(l) for l in lats[select]])
-        #ilons = array([self.Footprint.lons.index(l) for l in lons[select]])
 
         # Reconstruct itims
         itims = zeros(len(lons))
         prev = 0
         for it, n in enumerate(npt):
             itims[prev:prev+n] = -it
+            prev = n
         itims = itims.astype(int)[select]
 
         # Create the footprint
