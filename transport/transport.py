@@ -60,8 +60,11 @@ class LumiaFootprintFile(FootprintFile):
         fp.origin = self.origin
         valid = sum(fp.sensi) > 0
         if not valid :
-            logger.info(f"No usable data found in footprint {obsid}")
-            logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
+            msg = f"No usable data found in footprint {obsid}"
+            if len(fp.itims) == 0 :
+                logger.info(msg+" (the footprint is empty)")
+            else :
+                logger.info(msg+ f": the footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
         return fp
     
     def writeFootprint(self, obs, footprint):

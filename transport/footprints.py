@@ -354,7 +354,7 @@ class FootprintTransport:
         common['start'] = adj.start
         common['end'] = adj.end
         common['tres'] = adj.tres
-        common['tmpdir'] = self.rcf.get('path.run')
+        common['tmpdir'] = self.rcf.get('path.temp')
         common['obslist'] = self.obs.observations
         common['fpclass'] = self.FootprintFileClass
 

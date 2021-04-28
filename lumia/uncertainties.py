@@ -77,7 +77,6 @@ class HorCor:
         distmat = calc_dist_matrix(self.lats, self.lons)
 
         # Calculate the correlations based on it
-#        import pdb; pdb.set_trace()
         corrmat = exp(-(distmat/self.corlen)**2)   # Gaussian covariances only for now
         corrmat[corrmat < minv] = 0.
         return corrmat
