@@ -110,7 +110,7 @@ class Optimizer(object):
 
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.obsop.save(path, step)
-        #self.control.save(os.path.join(path, 'control.%shdf'%step))  # ==> The transport model saves itself
+        self.control.save(os.path.join(path, 'control.%shdf'%step))
         #self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
 
         # Copy to archive

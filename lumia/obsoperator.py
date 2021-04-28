@@ -86,6 +86,10 @@ class transport(object):
         self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
         self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
 
+        # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
+        for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
+            self.db.observations.loc[:, key] = db.observations.loc[:, key].values
+
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
         # Output if needed:

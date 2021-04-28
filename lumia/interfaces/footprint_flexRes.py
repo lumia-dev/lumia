@@ -2,13 +2,12 @@
 import logging
 from datetime import datetime
 from copy import deepcopy
-from numpy import zeros, meshgrid, average, flatnonzero, float64, array, size, nan, unique, frombuffer, nonzero, float32, dot, array_equal
+from numpy import zeros, meshgrid, average, float64, array, nan, unique, float32, dot, array_equal
 from pandas import DataFrame
 from lumia.Tools import Region, Categories
 from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
-from lumia import tqdm, timer
-from multiprocessing import Pool
+from lumia import tqdm
 from lumia.formatters.lagrange import Struct
 
 logger = logging.getLogger(__name__)
@@ -27,17 +26,7 @@ class Interface :
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
 
-    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1):
-        timer.info()
-        lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
-        if not hasattr(self, 'spatial_mapping'):
-            self.temporal_mapping = self.calc_temporal_coarsening(struct)
-            self.spatial_mapping = self.calc_spatial_coarsening(lsm=lsm, minxsize=minxsize, minysize=minysize)
-            self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
-        
-        vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
-        timer.info("before regridding")
-
+    def Coarsen(self, struct):
         categ, statevec, ipos, itime = [], [], [], []
         for cat in self.temporal_mapping :
             tmap = self.temporal_mapping[cat]['map']
@@ -57,39 +46,63 @@ class Interface :
             # Store  
             statevec.extend(emvec.reshape(-1))
             categ.extend([cat]*emvec.size)
-        
-        timer.info('regridding done')
-        # TODO: check what variables are actually needed here
+        return categ, statevec, ipos, itime
+
+    def calcCoarsening(self, struct, minxsize=1, minysize=1, lsm_from_file=False):
+        # Calculate spatio/temporal coarsening
+        if not hasattr(self, 'spatial_mapping'):
+            self.temporal_mapping = self.calc_temporal_coarsening(struct)
+            self.spatial_mapping = self.calc_spatial_coarsening(minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
+            self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
+
+    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1):
+        # If needed, convert struct from umol/m2/s to umol (or similar ...)
+#        if struct.unit_type == 'intensive' :
+#            struct.to_extensive()
+
+        # 1. Calculate coarsening parameters
+        self.calcCoarsening(struct, minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
+
+        # 2. Apply the coarsening
+        categ, statevec, ipos, itime = self.Coarsen(struct)
+
+        # 3. Store the vectors
+        vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
         vec.loc[:, 'category'] = array(categ, dtype=str)
         vec.loc[:, 'value'] = array(statevec, dtype=float64)
         vec.loc[:, 'iloc'] = array(ipos, dtype=int)
         vec.loc[:, 'itime'] = array(itime, dtype=int)
-        timer.info()
+
+        # 4. Add coordinates
         for ipos in unique(vec.loc[:, 'iloc']):
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'lat'] = self.spatial_mapping['cluster_specs'][ipos].mean_lat
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'lon'] = self.spatial_mapping['cluster_specs'][ipos].mean_lon
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'land_fraction'] = self.spatial_mapping['cluster_specs'][ipos].land_fraction
 
-        timer.info()
+        cat = categ[0] # TODO: need to fix this line specifically to allow optimization of multiple categories (there are probably more lines to fix)
         for itopt, topt in enumerate(self.temporal_mapping[cat]['times_optim']):
             vec.loc[vec.itime == itopt, 'time'] = topt
+
+        # 4. Store ancilliary data (needed for the reverse operation)
         self.ancilliary_data['vec2struct'] = vec.loc[:, ['category', 'iloc', 'itime']]
         self.ancilliary_data['vec2struct'].loc[:, 'prior'] = vec.loc[:, 'value']
-
-        timer.info()
+        for cat in struct.keys():
+            self.ancilliary_data[cat] = struct[cat]
         return vec
 
     def VecToStruct(self, vector):
-        timer.info()
+
+        # 1. Create container structure, same as ancilliary data but with optimized cats set to zero 
         struct = Struct()
-        struct.unit_type = self.ancilliary_data.unit_type
         for cat in self.categories:
             struct[cat.name] = deepcopy(self.ancilliary_data[cat.name])
             if cat.optimize :
                 struct[cat.name]['emis'][:] = 0.
-        timer.info()
 
+        # 2. Retrieve the prior control vector
         prior = self.ancilliary_data['vec2struct'].prior.values
+
+        # 3. Disaggregate
         for cat in self.temporal_mapping :
             tmap = self.temporal_mapping[cat]['map']
             nt = tmap.shape[0]
@@ -101,11 +114,17 @@ class Interface :
                 # switch to model temporal resolution
                 struct[cat]['emis'][tmap[it, :], :, :] = self.ancilliary_data[cat]['emis'][tmap[it, :], :, :] + emcat
 
-        timer.info()
+        # 4. Convert to umol/m2/s
+        if self.rcf.get('optim.unit.convert', default=False):
+            struct.to_intensive()
         return struct
 
     def VecToStruct_adj(self, adjstruct):
-        timer.info()
+        # 1. Convert adj to umol (from umol/m2/s)
+        if self.rcf.get('optim.unit.convert', default=False):
+            adjstruct.to_intensive()
+
+        # 2. Aggregate
         adjvec = []
         for cat in self.temporal_mapping :
             tmap = self.temporal_mapping[cat]['map']
@@ -114,10 +133,11 @@ class Interface :
                 emcat = adjstruct[cat]['emis'][tmap[it, :], :, :].mean(0).reshape(-1)
                 emcat = dot(self.spatial_mapping['vts'], emcat)
                 adjvec.extend(emcat)
-        timer.info()
         return adjvec
 
-    def calc_spatial_coarsening(self, lsm=None, minxsize=1, minysize=1):
+    def calc_spatial_coarsening(self, minxsize=1, minysize=1, lsm_from_file=None):
+        lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
+
         clusters = clusterize(
             self.ancilliary_data['sensi_map'],
             self.rcf.get('optimize.ngridpoints'),

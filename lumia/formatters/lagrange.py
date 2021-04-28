@@ -60,7 +60,10 @@ class Struct(dict):
     def to_extensive(self):
         assert self.unit_type == 'intensive'
         for cat in self.keys():
-            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
+            try :
+                dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
+            except :
+                import pdb; pdb.set_trace()
             dt=array([t.total_seconds() for t in dt])
             area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
             self[cat]['emis'] *= area[None, :, :]
@@ -229,7 +232,7 @@ def ReadArchive(prefix, start, end, **kwargs):
         archive = Archive(kwargs['archive'])
     else :
         archive = None
-    localArchive = Archive(os.path.dirname(prefix), parent=archive, mkdir=True)
+    localArchive = Archive(os.path.dirname(f'local:{prefix}'), parent=archive, mkdir=True)
 
     dirname, prefix = os.path.split(prefix)
 
