@@ -13,6 +13,19 @@ from archive import Archive
 logger = logging.getLogger(__name__)
 
 
+class Emissions:
+    def __init__(self, rcf, start, end):
+        self.start = start
+        self.end = end
+        self.rcf = rcf
+        self.categories = dict.fromkeys(rcf.get('emissions.categories'))
+        for cat in self.categories :
+            self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
+        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive'))
+        if rcf.get('optim.unit.convert', default=False):
+            self.data.to_extensive()   # Convert to umol
+
+
 class Struct(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -60,10 +73,7 @@ class Struct(dict):
     def to_extensive(self):
         assert self.unit_type == 'intensive'
         for cat in self.keys():
-            try :
-                dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
-            except :
-                import pdb; pdb.set_trace()
+            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
             dt=array([t.total_seconds() for t in dt])
             area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
             self[cat]['emis'] *= area[None, :, :]
