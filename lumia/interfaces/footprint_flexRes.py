@@ -9,6 +9,8 @@ from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
 from lumia import tqdm
 from lumia.formatters.lagrange import Struct
+from lumia.control import flexRes
+from lumia.uncertainties import Uncertainties as unc 
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +22,24 @@ data = {}
 
 class Interface :
 
-    def __init__(self, rcf, ancilliary=None):
+    def __init__(self, rcf, ancilliary=None, emis=None):
         self.rcf = rcf
         self.categories = Categories(rcf)
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
+        self.data = flexRes.Control(rcf)
+        if emis is not None :
+            self.SetupPrior(emis)
+            self.SetupUncertainties()
+
+    def SetupPrior(self, emis):
+        # Calculate the initial control vector
+        vec = self.StructToVec(emis)
+        self.data.setupPrior(vec)
+
+    def SetupUncertainties(self, errclass=unc):
+        err = errclass(self)
+        self.data.setupUncertainties(err.dict)
 
     def Coarsen(self, struct):
         categ, statevec, ipos, itime = [], [], [], []
@@ -56,9 +71,6 @@ class Interface :
             self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
 
     def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1):
-        # If needed, convert struct from umol/m2/s to umol (or similar ...)
-#        if struct.unit_type == 'intensive' :
-#            struct.to_extensive()
 
         # 1. Calculate coarsening parameters
         self.calcCoarsening(struct, minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)

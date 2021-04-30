@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class Optimizer(object):
-    def __init__(self, rcf, control, obsop, interface, minimizer=congrad):
+    def __init__(self, rcf, model, interface, minimizer=congrad):
         self.rcf = rcf                        # Settings
-        self.obsop = obsop                    # Model interfaces instance (initialized!)
-        self.control = control                # modelData structure, containing the optimization data
+        self.model = model                    # Model interfaces instance (initialized!)
+        self.control = interface.data         # modelData structure, containing the optimization data
         self.minimizer = minimizer(self.rcf)  # minimizer object instance (initiated!)
         self.interface = interface
         self.iteration = 0
@@ -64,7 +64,7 @@ class Optimizer(object):
     def _computeDepartures(self, state_preco, step):
         state = self.control.xc_to_x(state_preco)
         struct = self.interface.VecToStruct(state)
-        departures = self.obsop.runForward(struct, step=step)
+        departures = self.model.runForward(struct, step=step)
         dy = departures.loc[:, 'mismatch']
         dye = departures.loc[:, 'err']
         return dy, dye
@@ -78,7 +78,7 @@ class Optimizer(object):
         return J
 
     def _ComputeGradient(self, state_preco, dy, dye):
-        adjoint_struct = self.obsop.runAdjoint(dy/dye**2)
+        adjoint_struct = self.model.runAdjoint(dy/dye**2)
         adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
         gradient_obs_preco = self.control.g_to_gc(adjoint_state)
         state_departures = state_preco-self.control.get('state_prior_preco')
@@ -109,7 +109,7 @@ class Optimizer(object):
         path = self.rcf.get('path.output')
 
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
-        self.obsop.save(path, step)
+        self.model.save(path, step)
         self.control.save(os.path.join(path, 'control.%shdf'%step))
         #self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
 
