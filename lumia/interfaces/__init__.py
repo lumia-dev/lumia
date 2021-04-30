@@ -10,6 +10,7 @@ for module in glob.glob(os.path.dirname(__file__)+'/*.py'):
         if hasattr(mod, 'invcontrol') and hasattr(mod, 'obsoperator'):
             Interfaces[mod.invcontrol, mod.obsoperator] = mod.Interface
 
+
 class Interface:
     def __init__(self, invcontrol, obsop, *args, **kwargs):
         self._interface = Interfaces[(invcontrol, obsop)](*args, **kwargs)
