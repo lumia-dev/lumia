@@ -2,7 +2,7 @@
 from netCDF4 import Dataset
 from datetime import datetime
 from numpy import zeros, array, nan, unique
-from footprints import FootprintFile, SpatialCoordinates, FootprintTransport
+from transport.footprints import FootprintFile, SpatialCoordinates, FootprintTransport
 from archive import Archive
 from tqdm import tqdm
 from lumia.timers import Timer

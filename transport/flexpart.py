@@ -109,12 +109,12 @@ class FlexpartFootprintTransport(FootprintTransport):
                 flist.append(gf[0])
             else :
                 # Take the gridfile that is both more recent than the header and older than the okfile
-                ages = array(flist.sort(key=os.path.getctime))
-                agemax = os.path.getctime(os.path.join(folders[igf], 'flexpart.ok'))
-                agemin = os.path.getctime(os.path.join(folders[igf], 'header'))
-                gf = array(gf)[(ages > agemin)*(ages < agemax)]
-                assert len(gf) == 0
-                flist.append(gf)
+                ages = array([os.path.getmtime(f) for f in gf])#gf.sort(key=os.path.getctime))
+                agemax = os.path.getmtime(os.path.join(folders[igf], 'flexpart.ok'))
+                agemin = os.path.getmtime(os.path.join(folders[igf], 'header'))
+                gf = array(gf)[(ages > agemin)*(ages <= agemax)]
+                assert len(gf) == 1
+                flist.append(gf[0])
 
         self.footprint_ids = {}
         for fname in tqdm(flist, disable=silent) :

@@ -4,7 +4,7 @@ import logging
 from h5py import File
 from numpy import nan, array, int32, float32
 from datetime import datetime, timedelta
-from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
 
