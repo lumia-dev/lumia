@@ -37,13 +37,14 @@ class transport(object):
             path = self.rcf.get('path.output')
         checkDir(path)
 
-        self.rcf.write(os.path.join(path, 'transport.%src'%tag))
-        self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
+        rcfile = self.rcf.write(os.path.join(path, 'transport.%src'%tag))
+        obsfile = self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
         if structf is not None :
             try :
                 shutil.copy(structf, path)
             except shutil.SameFileError :
                 pass
+        return rcfile, obsfile
 
     def runForward(self, struct, step=None, serial=False):
         """
@@ -54,15 +55,15 @@ class transport(object):
         # self.check_init()
 
         # read model-specific info
-        rundir = self.rcf.get('path.run')
+        tmpdir = self.rcf.get('path.temp')
         executable = self.rcf.get("model.transport.exec")
         if self.rcf.get("model.transport.serial", default=False) :
             serial = True
         
         # Write model inputs:
-        emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
-        dbf = self.db.save_tar(os.path.join(rundir, 'observations.%s.tar.gz'%step))
-        rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
+        emf = self.writeStruct(struct, tmpdir, 'modelData.%s'%step)
+        dbf = self.db.save_tar(os.path.join(tmpdir, 'observations.%s.tar.gz'%step))
+        rcf = self.rcf.write(os.path.join(tmpdir, f'forward.{step}.rc'))
         #checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
         
         # Run the model
@@ -79,11 +80,15 @@ class transport(object):
         # Retrieve results :
         db = obsdb(filename=dbf)
         for cat in self.rcf.get('emissions.categories'):
-            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}']
-        self.db.observations.loc[:, f'mix_{step}'] = db.observations.loc[:, 'mix']
-        self.db.observations.loc[:, 'mix_background'] = db.observations.loc[:, 'mix_background']
-        self.db.observations.loc[:, 'mix_foreground'] = db.observations.loc[:, 'mix']-db.observations.loc[:, 'mix_background']
-        self.db.observations.loc[:, 'mismatch'] = db.observations.loc[:, 'mix']-self.db.observations.loc[:,'obs']
+            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+        self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
+        self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
+        self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
+        self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
+
+        # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
+        for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
+            self.db.observations.loc[:, key] = db.observations.loc[:, key].values
 
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
@@ -102,17 +107,18 @@ class transport(object):
         """
         
         rundir = self.rcf.get('path.run')
+        tmpdir = self.rcf.get('path.temp')
         executable = self.rcf.get("model.transport.exec")
         #fields = self.rcf.get('model.adjoint.obsfields')
 
         self.db.observations.loc[:, 'dy'] = departures
-        dpf = self.db.save_tar(os.path.join(rundir, 'departures.tar.gz'))
+        dpf = self.db.save_tar(os.path.join(tmpdir, 'departures.tar.gz'))
         
         # Create an adjoint rc-file
         rcadj = self.rcf.write(os.path.join(rundir, 'adjoint.rc'))
 
         # Name of the adjoint output file
-        adjf = os.path.join(rundir, 'adjoint.nc')
+        adjf = os.path.join(tmpdir, 'adjoint.nc')
 
         # Run the adjoint transport:
         cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
@@ -124,7 +130,7 @@ class transport(object):
             raise subprocess.CalledProcessError
 
         # Collect the results :
-        return self.readStruct(rundir, 'adjoint')
+        return self.readStruct(tmpdir, 'adjoint')
 
     def calcSensitivityMap(self):
         departures = ones(self.db.observations.shape[0])

@@ -12,6 +12,8 @@ class RcloneArchive:
         else :
             remote, path = remote, ''
         self.remote = f'{remote}:{path}'
+        self.remote_root = remote
+        self.remote_path = path
         self.ignore_existing = ignore_existing
         self.remote_structure = {}
         
@@ -33,20 +35,36 @@ class RcloneArchive:
             success = os.path.exists(outfile)
             
         return success
+
+    def put(self, file, destpath, destfname):
+        destpath = os.path.join(self.remote_path, destpath)
+        cmd = ['rclone', 'copyto', file, f'{self.remote_root}:{destpath}/{destfname}']
+        logger.info(' '.join(cmd))
+        _ = subprocess.check_output(cmd)
+        try :
+            cmd = ['rclone', 'lsf', f'{self.remote_root}:{destpath}/{destfname}']
+            logger.info(' '.join(cmd))
+            subprocess.check_output(cmd)
+            return True
+        except subprocess.CalledProcessError :
+            logger.warning(f"Copy of file {file} to {self.remote_root}:{destpath}/{destfname} failed.")
+            return False
     
     def checkFile(self, filename):
         # Get the list of files in the rclone repo, in the same folder (only if we are in a new folder)
         path, file = os.path.split(filename)
         if path not in self.remote_structure :
-            logger.info(f"Retrieving list of files in rclone folder {self.remote:path})")
-            self.remote_structure[path] = subprocess.check_output(['rclone', 'lsf', f'{self.remote}/{path}'], universal_newlines=True).split('\n')
+            logger.info(f"Retrieving list of files in rclone folder {self.remote}:{path})")
+            cmd = ['rclone', 'lsf', f'{self.remote}/{path}']
+            logger.info(' '.join([c for c in cmd]))
+            self.remote_structure[path] = subprocess.check_output(cmd, universal_newlines=True).split('\n')
         return file in self.remote_structure[path]
     
     
 class LocalArchive:
     def __init__(self, local, ignore_existing=True, max_attempts=3, mkdir=False):
         local = local.replace('local:', '')
-        if not os.path.exists and mkdir :
+        if not os.path.exists(local) and mkdir :
             try :
                 logger.info(f"Creating archive folder {local}")
                 os.makedirs(local)
@@ -81,6 +99,16 @@ class LocalArchive:
         success = os.path.exists(outfile)
         
         return success
+
+    def put(self, file, destpath, destfname):
+        if not os.path.exists(destpath):
+            os.makedirs(destpath)
+        
+        cmd = ['rsync', '-ah', f"{file}", os.path.join(destpath, destfname)]
+        _ = subprocess.check_output(cmd)
+        success = os.path.exists(os.path.join(destpath, destfname))
+        
+        return success
             
             
 class Archive:
@@ -97,7 +125,7 @@ class Archive:
             elif os.path.isdir(key):
                 self.archive = LocalArchive(key, *args, **kwargs)
             else : 
-                logger.error(f"Un-recognized meteo archive. Does the path '{key}' exist?")
+                logger.error(f"Un-recognized archive. Does the path '{key}' exist?")
                 raise RuntimeError
     
     def get(self, file, dest='.', fail=True):
@@ -113,4 +141,11 @@ class Archive:
                     raise RuntimeError
                 else :
                     logger.info(msg)
+        return success
+
+    def put(self, file, dest='', destfname=None):
+        if destfname is None :
+            fname = os.path.basename(file)
+        #dest = os.path.join(self.key, dest)
+        success = self.archive.put(file, dest, fname)
         return success

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import re
-from numpy import unique
 import datetime
 import os
 import sys
@@ -9,12 +8,14 @@ from numpy import ndarray
 
 logger = logging.getLogger(__name__)
 
+
 class rc:
     def __init__(self, file=None, verbosity=1):
         self.verbosity=verbosity
         self.keys = {}
         self.includes = []
-        if file != None: self.read(file)
+        if file is not None: 
+            self.read(file)
 
     def setTime(self, attr, key, fail=False, fmt='%Y%m%d%H%M%S'):
         if self.haskey(key) :
@@ -37,8 +38,8 @@ class rc:
         self.filename = os.path.basename(file)
         self.dirname = os.path.dirname(file)
         self.curpath = os.getcwd()
-        if self.dirname == '': self.dirname = '.'
-        if self.curpath == '': self.curpath = '.'
+        if self.dirname == '' : self.dirname = '.'
+        if self.curpath == '' : self.curpath = '.'
         # save the current directory and change to the directory where the rc-file is located (to avoid errors with relative path of included rc-files)
         os.chdir(self.dirname)
         self.message('Parse rc-file %s'%os.path.join(self.dirname, self.filename))
@@ -79,7 +80,7 @@ class rc:
         matches = re.findall(r'\${[^}]+}', val)
         for match in matches:
             matched = self.get(match.replace('${', '').replace('}', ''), tolist=False, convert=False)
-            if type(matched) != str: matched = str(matched).strip()
+            if type(matched) != str : matched = str(matched).strip()
             val = val.replace(match, matched)
         return val
 
@@ -90,15 +91,15 @@ class rc:
             #self.setkey(key, rcobj.keys[key])  # don't use setkey here as we want to preserve the original keys!
 
     def getall(self):
-        for key in self.keys: setattr(self, key, self.get(key))
+        for key in self.keys : setattr(self, key, self.get(key))
 
-    def get(self, key, tolist=True, convert=True, default=None, todate=False, fmt=None, totype=None):
+    def get(self, key, tolist=False, convert=True, default=None, todate=False, fmt=None, totype=None):
         try:
             val = self.keys[key]
         except:
-            if default != None:
+            if default is not None:
                 return default
-            if self.findParent(key) != None :
+            if self.findParent(key) is not None :
                 val = self.get(self.findParent(key))
             else:
                 import os
@@ -115,8 +116,9 @@ class rc:
             #        if type(matched) != str : matched = str(matched).strip()
             #	val = val.replace(match, matched)
             # self.keys[key] = val
-            if tolist and ',' in val:
+            if tolist or ',' in val:
                 val = [z.strip() for z in val.split(',') if z.strip() != '']
+                tolist = True
             else:
                 tolist = False
             # try converting the value to a integer, logical or real type:
@@ -175,7 +177,7 @@ class rc:
             # 2nd, try replacing one more element:
             for cc in combinations:
                 res = self.findParent(cc)
-                if res != None: return res
+                if res is not None: return res
         else :
             return None
         return None
@@ -207,6 +209,9 @@ class rc:
 
     def write(self, path):
         self.message('Writing rc-file %s'%path)
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+
         rcfout = open(path, 'w')
 
         for incl in self.includes :

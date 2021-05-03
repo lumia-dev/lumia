@@ -57,8 +57,15 @@ class Flux:
         for cat in self.categories :
             assert array_equal(self.data[cat]['time_interval']['time_start'], self.data[cat0]['time_interval']['time_start'])
             assert array_equal(self.data[cat]['time_interval']['time_end'], self.data[cat0]['time_interval']['time_end'])
-            assert array_equal(self.data[cat]['lats'], self.data[cat0]['lats'])
-            assert array_equal(self.data[cat]['lons'], self.data[cat0]['lons'])
+            try :
+                assert array_equal(self.data[cat]['lats'], self.data[cat0]['lats'])
+                assert array_equal(self.data[cat]['lons'], self.data[cat0]['lons'])
+            except AssertionError :
+                print(cat)
+                print(self.data[cat]['lats'])
+                print(self.data[cat]['lons'])
+                print(self.data[cat0]['lats'])
+                print(self.data[cat0]['lons'])
 
         # Retrieve the dimensions
         # TODO: for now, we assume that lat and lon conform with those of the footprints. Ideally, we'd need a check on this
@@ -347,7 +354,7 @@ class FootprintTransport:
         common['start'] = adj.start
         common['end'] = adj.end
         common['tres'] = adj.tres
-        common['tmpdir'] = self.rcf.get('path.run')
+        common['tmpdir'] = self.rcf.get('path.temp')
         common['obslist'] = self.obs.observations
         common['fpclass'] = self.FootprintFileClass
 

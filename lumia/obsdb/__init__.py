@@ -40,6 +40,10 @@ class obsdb:
             self.extraFields = {}
         if filename is not None :
             self.load_tar(filename)
+            if self.start is None :
+                self.start = self.observations.time.min()
+            if self.end is None :
+                self.end = self.observations.time.max()
 
     def __getattr__(self, item):
         if '_parent' in vars(self):

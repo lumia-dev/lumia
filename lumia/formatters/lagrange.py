@@ -8,13 +8,28 @@ from tqdm import tqdm
 from numpy import unique, append
 import xarray as xr
 from pandas import Timestamp
+from lumia.Tools.regions import region
 from archive import Archive
 logger = logging.getLogger(__name__)
+
+
+class Emissions:
+    def __init__(self, rcf, start, end):
+        self.start = start
+        self.end = end
+        self.rcf = rcf
+        self.categories = dict.fromkeys(rcf.get('emissions.categories'))
+        for cat in self.categories :
+            self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
+        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive'))
+        if rcf.get('optim.unit.convert', default=False):
+            self.data.to_extensive()   # Convert to umol
 
 
 class Struct(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.unit_type = 'intensive'
 
     def __add__(self, other):
         allcats = set(list(self.keys())+list(other.keys()))
@@ -54,6 +69,26 @@ class Struct(dict):
                 'lons':self[cat]['lons']
             }
         return outstruct
+
+    def to_extensive(self):
+        assert self.unit_type == 'intensive'
+        for cat in self.keys():
+            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
+            dt=array([t.total_seconds() for t in dt])
+            area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
+            self[cat]['emis'] *= area[None, :, :]
+            self[cat]['emis'] *= dt[:, None, None]
+        self.unit_type = 'extensive'
+
+    def to_intensive(self):
+        #assert self.unit_type == 'extensive'
+        for cat in self.keys():
+            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
+            dt=array([t.total_seconds() for t in dt])
+            area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
+            self[cat]['emis'] /= area[None, :, :]
+            self[cat]['emis'] /= dt[:, None, None]
+        self.unit_type = 'intensive'
 
     def append(self, other, overwrite=True):
         """
@@ -207,7 +242,7 @@ def ReadArchive(prefix, start, end, **kwargs):
         archive = Archive(kwargs['archive'])
     else :
         archive = None
-    localArchive = Archive(os.path.dirname(prefix), parent=archive, mkdir=True)
+    localArchive = Archive(os.path.dirname(f'local:{prefix}'), parent=archive, mkdir=True)
 
     dirname, prefix = os.path.split(prefix)
 
@@ -246,4 +281,7 @@ def ReadArchive(prefix, start, end, **kwargs):
             'lats':ds.lat[:],
             'lons':ds.lon[:]
         }
+
+    if kwargs.get('extensive_units', False) : 
+        data.to_extensive()
     return data

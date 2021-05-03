@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
+from numpy import array_equal
 
 logger = logging.getLogger(os.path.basename(__file__))
 
@@ -38,12 +39,9 @@ class LumiaFootprintFile(FootprintFile):
         return True
 
     def setup(self, coords, origin, dt):
-        try :
-            assert self.coordinates == coords
-        except AssertionError :
-            logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
+        assert self.coordinates == coords
         assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
-
+        #    logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
         # Calculate the number of time steps between the Footprint class (i.e 
         # the data in the file) and the requested new origin
         shift_t = (self.origin-origin)/self.dt
@@ -62,8 +60,11 @@ class LumiaFootprintFile(FootprintFile):
         fp.origin = self.origin
         valid = sum(fp.sensi) > 0
         if not valid :
-            logger.info(f"No usable data found in footprint {obsid}")
-            logger.info(f"footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
+            msg = f"No usable data found in footprint {obsid}"
+            if len(fp.itims) == 0 :
+                logger.info(msg+" (the footprint is empty)")
+            else :
+                logger.info(msg+ f": the footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
         return fp
     
     def writeFootprint(self, obs, footprint):
@@ -130,7 +131,7 @@ if __name__ == '__main__':
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--ncpus', '-n', default=None)
-    p.add_argument('--verbosity', '-v', default='DEBUG')
+    p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True)

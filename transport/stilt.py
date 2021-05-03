@@ -6,6 +6,7 @@ from transport.footprints import FootprintFile, SpatialCoordinates, FootprintTra
 from archive import Archive
 from tqdm import tqdm
 from lumia.timers import Timer
+from multiprocessing import Pool
 
 # Main ==> move?
 import os
@@ -30,7 +31,10 @@ class StiltFootprintFile(FootprintFile):
         height = int(getattr(self.ds, 'sampling_height').split()[0])
         times = [x.split('_')[1] for x in self.ds.variables.keys() if x.endswith('val')]
         times = [datetime.strptime(x, '%Y%m%d%H') for x in times]
-        self.footprints = {f'{sitecode}.{height:.0f}m.{t.strftime("%Y%m%d-%H%M%S")}' : t for t in times}
+
+        # store the times for which valid footprints exist (if there is any "nan", mask.prod() will be True so the footprint won't be used)
+        # read only the indptr value for checking the nans as it is the smallest of the four variables
+        self.footprints = {f'{sitecode}.{t.strftime("%Y%m%d-%H%M%S")}' : t for t in times if not self.ds[t.strftime('ftp_%Y%m%d%H_indptr')][:].mask.prod()}
 
         # Store time and space coordinates
         self.coordinates = SpatialCoordinates(
@@ -69,6 +73,7 @@ class StiltFootprintFile(FootprintFile):
         time = self.footprints[obsid]
 
         # Read raw data
+        # The lat/lon coordinates in the file indicate the ll corner, but we want the center. So add half steps
         lons = self.ds[time.strftime('ftp_%Y%m%d%H_lon')][:] + self.Footprint.dlon/2.
         lats = self.ds[time.strftime('ftp_%Y%m%d%H_lat')][:] + self.Footprint.dlat/2.
         npt = self.ds[time.strftime('ftp_%Y%m%d%H_indptr')][:]
@@ -77,22 +82,19 @@ class StiltFootprintFile(FootprintFile):
         # Select :
         select = (lats >= self.Footprint.lats[0]) * (lats <= self.Footprint.lats[-1]) 
         select *= (lons >= self.Footprint.lons[0]) * (lons <= self.Footprint.lons[-1])
-        #select = array([l in self.Footprint.lats for l in lats])
-        #select *= array([l in self.Footprint.lons for l in lons])
 
         # Reconstruct ilats/ilons :
         ilats = (lats[select]-self.Footprint.lat0)/self.Footprint.dlat
         ilons = (lons[select]-self.Footprint.lon0)/self.Footprint.dlon
         ilats = ilats.astype(int)
         ilons = ilons.astype(int)
-        #ilats = array([self.Footprint.lats.index(l) for l in lats[select]])
-        #ilons = array([self.Footprint.lons.index(l) for l in lons[select]])
 
         # Reconstruct itims
         itims = zeros(len(lons))
         prev = 0
-        for it, n in enumerate(npt):
+        for it, n in enumerate(npt[1:]):
             itims[prev:prev+n] = -it
+            prev = n
         itims = itims.astype(int)[select]
 
         # Create the footprint
@@ -108,6 +110,14 @@ class StiltFootprintFile(FootprintFile):
         return fp 
 
 
+def loadFp(fname):
+    fp = StiltFootprintFile(fname)
+    if fp.read():
+        return {'filename':fp.filename, 'footprints':fp.footprints}
+    else :
+        return {'filename':fname}
+
+
 class StiltFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emfile, mp, checkfile):
         super().__init__(rcf, obs, emfile, StiltFootprintFile, mp, checkfile)
@@ -115,7 +125,11 @@ class StiltFootprintTransport(FootprintTransport):
     def genFileNames(self):
         return [f'footprint_{o.sitecode_CSR}_{o.time.year}{o.time.month:02.0f}.nc' for o in self.obs.observations.itertuples()]
 
-    def checkFootprints(self, path, archive=None):
+    def checkFootprints(self, path, archive=None, force=False):
+        # skip the whole checkFootprint thingie if the columns are already in the database (to save time)
+        if 'footprint' in self.obs.observations.columns and 'obsid' in self.obs.observations.columns and not force:
+            return
+
         cache = Archive(path, parent=Archive(archive))
 
         fnames = array(self.genFileNames())
@@ -125,17 +139,28 @@ class StiltFootprintTransport(FootprintTransport):
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
-        obsids = [f'{o.sitecode_CSR.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
+        obsids = [f'{o.sitecode_CSR.lower()}.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
         self.obs.observations.loc[exists, 'obsid'] = obsids
 
         # Check if the footprints actually exist in the files:
-        for filename in tqdm(unique(fnames), desc="check footprint files"):
-            fp = StiltFootprintFile(filename)
-            fp.read()
-            oids = self.obs.observations.loc[self.obs.observations.footprint == filename, 'obsid'].values
-            invalid = array([o not in fp.footprints for o in oids])
-            ind = self.obs.observations.loc[(self.obs.observations.footprint == filename)].loc[invalid].index
-            self.obs.observations.loc[ind, 'footprint'] = nan
+        with Pool() as pp :
+            fpts = tqdm(list(pp.imap(loadFp, unique(fnames), chunksize=1)), total=len(unique(fnames)))
+        
+        #fpts = []
+        #for fname in unique(fnames):
+        #    fpts.append(loadFp(fname))
+
+        #for filename in tqdm(unique(fnames), desc="check footprint files"):
+        #    fp = StiltFootprintFile(filename)
+        #    fp.read()
+
+        for fp in fpts :
+            if 'footprints' in fp :
+                filename = fp['filename']
+                oids = self.obs.observations.loc[self.obs.observations.footprint == filename, 'obsid'].values
+                invalid = array([o not in fp['footprints'] for o in oids])
+                ind = self.obs.observations.loc[(self.obs.observations.footprint == filename)].loc[invalid].index
+                self.obs.observations.loc[ind, 'footprint'] = nan
 
 
 if __name__ == '__main__':
