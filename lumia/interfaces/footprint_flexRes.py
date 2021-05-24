@@ -22,7 +22,7 @@ data = {}
 
 class Interface :
 
-    def __init__(self, rcf, ancilliary=None, emis=None):
+    def __init__(self, rcf, ancilliary=None, emis=None, **kwargs):
         self.rcf = rcf
         self.categories = Categories(rcf)
         self.region = Region(rcf)
@@ -30,7 +30,7 @@ class Interface :
         self.data = flexRes.Control(rcf)
         if emis is not None :
             self.SetupPrior(emis)
-            self.SetupUncertainties()
+            self.SetupUncertainties(**kwargs)
 
     def SetupPrior(self, emis):
         # Calculate the initial control vector
@@ -38,8 +38,8 @@ class Interface :
         self.data.setupPrior(vec)
 
     def SetupUncertainties(self, errclass=unc):
-        err = errclass(self)
-        self.data.setupUncertainties(err.dict)
+        self.err = errclass(self)
+        self.data.setupUncertainties(self.err.dict)
 
     def Coarsen(self, struct):
         categ, statevec, ipos, itime = [], [], [], []
@@ -90,6 +90,7 @@ class Interface :
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'lat'] = self.spatial_mapping['cluster_specs'][ipos].mean_lat
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'lon'] = self.spatial_mapping['cluster_specs'][ipos].mean_lon
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'land_fraction'] = self.spatial_mapping['cluster_specs'][ipos].land_fraction
+#            vec.loc[vec.loc[:, 'iloc'] == ipos, 'area'] = self.spatial_mapping['cluster_specs'][ipos].area
 
         cat = categ[0] # TODO: need to fix this line specifically to allow optimization of multiple categories (there are probably more lines to fix)
         for itopt, topt in enumerate(self.temporal_mapping[cat]['times_optim']):
