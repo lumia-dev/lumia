@@ -168,6 +168,8 @@ class Uncertainties:
             'Hcor':{},
             'Tcor':{}
         }
+        self.Ct = {}
+        self.Ch = {}
 
         self.CalcUncertaintyStructure()
         self.setup_Hcor()
@@ -206,6 +208,7 @@ class Uncertainties:
 
                     corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
                     self.dict['Hcor'][cat.horizontal_correlation] = corr()
+                    self.Ch[cat.horizontal_correlation] = corr
 
     def setup_Tcor(self):
         for cat in self.interface.categories :
@@ -222,6 +225,7 @@ class Uncertainties:
                     
                     corr = self.TempCor(temp_corlen, dt, nt)
                     self.dict['Tcor'][cat.temporal_correlation] = corr()
+                    self.Ct[cat.temporal_correlation] = corr
 
     def calcTotalUncertainty(self):
         errtot = {}
@@ -229,8 +233,8 @@ class Uncertainties:
             unitconv = {'PgC':12.e-21}[cat.unit]
             if cat.optimize :
                 #sig = (self.vectors.prior_uncertainty.values)
-                Lh = self.dict['Hcor'][cat.horizontal_correlation]
-                Lt = self.dict['Tcor'][cat.temporal_correlation]
+                Lh = self.Ch[cat.horizontal_correlation].mat
+                Lt = self.Ct[cat.temporal_correlation].mat
 
                 common['Ch'] = dot(Lh, Lh.transpose())
                 common['Ct'] = dot(Lt, Lt.transpose())
