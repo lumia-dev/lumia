@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import logging
-from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot
+from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
@@ -17,6 +17,37 @@ class Optimizer(object):
         self.minimizer = minimizer(self.rcf)  # minimizer object instance (initiated!)
         self.interface = interface
         self.iteration = 0
+
+    def GradientTest(self):
+        self.minimizer.reset()
+
+        # 1) Compute the reference cost function and gradient
+        state_preco1 = zeros(self.control.size)
+        dy1, err1 = self._computeDepartures(state_preco1, 'state1')
+        self.J = self._computeCostFunction(state_preco1, dy1, err1)
+        J0 = self.J.tot
+        gradient_preco = self._ComputeGradient(state_preco1, dy1, err1)
+        DJ1 = dot(gradient_preco, gradient_preco)
+
+        # 2) Compute the perturbed cost function
+        h = gradient_preco
+        alpha = 1.
+        while alpha > 1.e-15 :
+            alpha /= 10
+            state_preco2 = state_preco1 - alpha*h
+            dy2, err2 = self._computeDepartures(state_preco2, 'state2')
+            J1 = self._computeCostFunction(state_preco2, dy2, err2)
+            #gradtest = ((J1-J0)/(alpha * dot(h.transpose, gradient_preco)))
+            DJ2 = (J1.tot-J0)/alpha
+            print(alpha, 1-DJ2/DJ1)
+
+    def AdjointTest(self):
+        state_preco = random.rand(self.control.size)
+        dy, err = self._computeDepartures(state_preco, 'state1', add_prior=False)
+        adjoint_struct = self.model.runAdjoint(dy/err**2)
+        adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
+        gradient_preco = self.control.g_to_gc(adjoint_state)
+        print(dot(dy, dy)-dot(state_preco, gradient_preco))
 
     def Var4D(self, label='apos'):
         self.minimizer.reset()     # Just to make sure ...
@@ -61,8 +92,8 @@ class Optimizer(object):
         self.iteration += 1
         return state_preco, status
 
-    def _computeDepartures(self, state_preco, step):
-        state = self.control.xc_to_x(state_preco)
+    def _computeDepartures(self, state_preco, step, add_prior=True):
+        state = self.control.xc_to_x(state_preco, add_prior=add_prior)
         struct = self.interface.VecToStruct(state)
         departures = self.model.runForward(struct, step=step)
         dy = departures.loc[:, 'mismatch']
