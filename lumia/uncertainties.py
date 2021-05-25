@@ -261,7 +261,7 @@ class Uncertainties:
         data = deepcopy(self.interface.ancilliary_data)
         for cat in self.interface.categories :
             data[cat.name]['emis'] = data[cat.name]['emis']**2
-        self.data = self.interface.StructToVec(data)
+        self.data = self.interface.StructToVec(data, store_ancilliary=False)
         self.data.loc[:, 'prior_uncertainty'] = sqrt(self.data.loc[:, 'value'])
         self.data.drop(columns=['value'], inplace=True)
 

@@ -70,7 +70,7 @@ class Interface :
             self.spatial_mapping = self.calc_spatial_coarsening(minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
             self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
 
-    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1):
+    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1, store_ancilliary=True):
 
         # 1. Calculate coarsening parameters
         self.calcCoarsening(struct, minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
@@ -97,10 +97,11 @@ class Interface :
             vec.loc[vec.itime == itopt, 'time'] = topt
 
         # 4. Store ancilliary data (needed for the reverse operation)
-        self.ancilliary_data['vec2struct'] = vec.loc[:, ['category', 'iloc', 'itime']]
-        self.ancilliary_data['vec2struct'].loc[:, 'prior'] = vec.loc[:, 'value']
-        for cat in struct.keys():
-            self.ancilliary_data[cat] = struct[cat]
+        if store_ancilliary :
+            self.ancilliary_data['vec2struct'] = vec.loc[:, ['category', 'iloc', 'itime']]
+            self.ancilliary_data['vec2struct'].loc[:, 'prior'] = vec.loc[:, 'value']
+            for cat in struct.keys():
+                self.ancilliary_data[cat] = struct[cat]
         return vec
 
     def VecToStruct(self, vector):
