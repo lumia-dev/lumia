@@ -20,6 +20,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    scripts=['bin/lumia.py'],
+    scripts=['bin/lumia'],
     data_files=[]
 )

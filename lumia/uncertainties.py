@@ -11,6 +11,19 @@ logger = logging.getLogger(__name__)
 common = {}
 
 
+def _aggregate_uncertainty(it1):
+    itimes = common['itimes']
+    sig1 = common['sigmas'][itimes == it1]
+    Ct = common['Ct']
+    Ch = common['Ch']
+    nt = len(unique(itimes))
+    err = 0
+    for it2 in range(nt):
+        sig2 = common['sigmas'][itimes == it2]
+        err += (Ct[it1, it2] * Ch * sig1[None, :] * sig2[:, None]).sum()
+    return err
+
+
 def calc_dist(lon1, lat1, lon2, lat2, ae=6.371e6, stretch_ratio=1.):
     """ 
     Computes distance between two points on the globe
@@ -143,17 +156,6 @@ class TempCor:
         return P, D
 
 
-def aggregate_uncertainty(itime):
-    err = 0.
-    for ivar in range(len(common['std'])):
-        std1 = common['std'][ivar]
-        corr_t = common['Bt'][common['itime'][ivar], itime]
-        std2 = common['std'][common['itime'] == itime]
-        corr_h = common['Bh'][common['iloc'][ivar], :]
-        err += sum(std1*corr_t*(corr_h*std2))
-    return err
-
-
 class Uncertainties:
     def __init__(self, interface, horcor=HorCor, tempcor=TempCor):
         self.interface = interface
@@ -166,10 +168,13 @@ class Uncertainties:
             'Hcor':{},
             'Tcor':{}
         }
+        self.Ct = {}
+        self.Ch = {}
 
-        self.calcPriorUncertainties()
+        self.CalcUncertaintyStructure()
         self.setup_Hcor()
         self.setup_Tcor()
+        self.ScaleUncertainty()
 
     def errStructToVec(self, errstruct):
         data = self.interface.StructToVec(errstruct)
@@ -203,7 +208,7 @@ class Uncertainties:
 
                     corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
                     self.dict['Hcor'][cat.horizontal_correlation] = corr()
-                    self.hcov = corr.mat
+                    self.Ch[cat.horizontal_correlation] = corr
 
     def setup_Tcor(self):
         for cat in self.interface.categories :
@@ -220,19 +225,53 @@ class Uncertainties:
                     
                     corr = self.TempCor(temp_corlen, dt, nt)
                     self.dict['Tcor'][cat.temporal_correlation] = corr()
-                    self.tcov = corr.mat
+                    self.Ct[cat.temporal_correlation] = corr
 
-    def calcTotalError(self):
-        common['std'] = self.dict['prior_uncertainty'].values
-        common['Bh'] = self.hcov
-        common['Bt'] = self.tcov
-        common['itime'] = self.data.loc[:, 'itime'].values
-        common['iloc'] = self.data.loc[:, 'iloc'].values
+    def calcTotalUncertainty(self):
+        errtot = {}
+        for cat in self.interface.categories :
+            unitconv = {'PgC':12.e-21}[cat.unit]
+            if cat.optimize :
+                #sig = (self.vectors.prior_uncertainty.values)
+                Lh = self.Ch[cat.horizontal_correlation].mat
+                Lt = self.Ct[cat.temporal_correlation].mat
 
-        with Pool() as pp :
-            err = [e for e in tqdm(pp.imap(aggregate_uncertainty, unique(common['itime'])), total=self.tcov.shape[0])]
+                common['Ch'] = dot(Lh, Lh.transpose())
+                common['Ct'] = dot(Lt, Lt.transpose())
+                common['sigmas'] = self.data.prior_uncertainty
+                common['itimes'] = self.data.itime.values
 
-        for key in ['std','Bh','Bt','itime','iloc'] :
-            del common[key]
+                nt = len(unique(common['itimes']))
 
-        return sum(err)
+                with Pool() as pp :
+                    errm = pp.imap(_aggregate_uncertainty, range(nt))
+                    err = sum(tqdm(errm, total=nt))
+
+                errtot[cat.name] = sqrt(err) * unitconv
+
+                for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
+                    del common[key]
+        return errtot
+
+    def CalcUncertaintyStructure(self):
+        """
+        Uncertainties set to a specified value (in PgC)
+        """
+        # Calculate the spatio-temporal structure of the uncertainty
+        data = deepcopy(self.interface.ancilliary_data)
+        for cat in self.interface.categories :
+            data[cat.name]['emis'] = data[cat.name]['emis']**2
+        self.data = self.interface.StructToVec(data, store_ancilliary=False)
+        self.data.loc[:, 'prior_uncertainty'] = sqrt(self.data.loc[:, 'value'])
+        self.data.drop(columns=['value'], inplace=True)
+
+    def ScaleUncertainty(self):
+        # Scale the whole array to reach the desired total uncertainty value:
+        errtot = self.calcTotalUncertainty()
+        for cat in self.interface.categories :
+            if cat.optimize :
+                scalef = cat.uncertainty / errtot[cat.name]
+                self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
+                logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit}")
+
+        self.dict['prior_uncertainty'] = self.data.prior_uncertainty

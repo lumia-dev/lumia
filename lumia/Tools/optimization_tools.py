@@ -36,9 +36,9 @@ class Categories:
             self.add(cat)
             self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
             self[cat].is_ocean = rcf.get('emissions.%s.is_ocean'%cat, totype=bool, default=False)
+            self[cat].unit = rcf.get('emissions.%s.unit', default='PgC')
             if self[cat].optimize :
                 self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
-#                self[cat].uncertainty_type = rcf.get('emissions.%s.error_type'%cat, default='tot')
                 self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
                 self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)

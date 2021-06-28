@@ -134,5 +134,9 @@ class transport(object):
 
     def calcSensitivityMap(self):
         departures = ones(self.db.observations.shape[0])
-        adjfield = self.runAdjoint(departures)
+        try :
+            tmpdir = self.rcf.get('path.temp')
+            adjfield = self.readStruct(tmpdir, 'adjoint')
+        except :
+            adjfield = self.runAdjoint(departures)
         return array([adjfield[cat]['emis'].sum(0) for cat in adjfield.keys()]).sum(0)
