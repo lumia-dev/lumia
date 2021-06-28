@@ -28,7 +28,7 @@ class obsdb(obsdb):
             source, dest = field.split(':')
             self.observations.loc[:, dest] = self.observations.loc[:, source]
 
-        if setupUncertainties:
+        if self.rcf.get('obs.uncertainty.setup', default=setupUncertainties):
             self.SetupUncertainties()
 
     def SetupUncertainties(self):
