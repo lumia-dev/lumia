@@ -8,6 +8,7 @@ from numpy import array_equal, linspace, float64, zeros, diff, pi, sin, array, i
 from pandas import Timestamp, ExcelWriter
 from lumia.obsdb import obsdb
 
+
 class RegularHgrid:
     def __init__(self, lats, lons):
         self.lats = lats
@@ -138,6 +139,7 @@ class Observations(obsdb):
         with ExcelWriter(filename) as xls :
             obs.to_excel(xls, sheet_name='observations')
             self.sites.to_excel(xls, sheet_name='sites')
+
 
 class Postprocessor:
     def __init__(self, folder, flux=True, obs=False):
