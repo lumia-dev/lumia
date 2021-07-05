@@ -7,6 +7,16 @@ from lumia.Tools.logging_tools import logger
 from multiprocessing import Pool
 
 
+infokeys = {
+    'time.start' : 'Earliest date for the observations in the database.',
+    'time.end'   : 'Latest date for the observations in the database.',
+    'obs.file'   : 'Path to the observation file (in tar.gz format).',
+    'obs.fields.rename':'List of columns of the observation file that need to be renamed on import, in the form of "oldname:newname" (where "oldname" is the name of the column in the file. If necessary, a list of fields can be provided (e.g. "colA:colX, colB:colY, colC:colZ".',
+    'obs.uncertainty.setup': 'Determines whether the observation uncertainties need to be computed (default True).',
+    'obs.uncertainty':'Approach used to compute the observation uncertainties. Possible values: "cst" (the observation uncertainties are constant, at each site, and taken after the "err" value in the "sites" table), or "weekly" (the observation uncertainty is set so that the aggregated uncertainties of all the observations in a week matches the "err" value in the "sites" table.'
+}
+
+
 def _calc_weekly_uncertainty(site, times, err):
     err = zeros(len(times)) + err
     nobs = zeros((len(times)))
@@ -19,20 +29,19 @@ def _calc_weekly_uncertainty(site, times, err):
 class obsdb(obsdb):
     def __init__(self, rcf, setupUncertainties=True):
         self.rcf = rcf
-        start = datetime(*self.rcf.get('time.start'))
-        end = datetime(*self.rcf.get('time.end'))
+        start = datetime(*self.rcf.get('time.start', info=infokeys))
+        end = datetime(*self.rcf.get('time.end', info=infokeys))
+        super().__init__(self.rcf.get('obs.file', info=infokeys), start=start, end=end)
 
-        super().__init__(self.rcf.get('obs.file'), start=start, end=end)
-
-        for field in self.rcf.get('obs.fields.rename', tolist=True, default=[]):
+        for field in self.rcf.get('obs.fields.rename', tolist='force', default=[], info=infokeys):
             source, dest = field.split(':')
             self.observations.loc[:, dest] = self.observations.loc[:, source]
 
-        if self.rcf.get('obs.uncertainty.setup', default=setupUncertainties):
+        if self.rcf.get('obs.uncertainty.setup', default=setupUncertainties, info=infokeys):
             self.SetupUncertainties()
 
     def SetupUncertainties(self):
-        errtype = self.rcf.get('obs.uncertainty')
+        errtype = self.rcf.get('obs.uncertainty', info=infokeys)
         if errtype == 'weekly':
             self.SetupUncertainties_weekly()
         elif errtype == 'cst':
