@@ -6,6 +6,7 @@ import inspect
 from datetime import datetime
 from numpy import ndarray
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +49,6 @@ class RcFile:
                 self.parse(l, il)
 
         # Finally, go through the "#include":
-        print(includes)
         for incl in includes :
             self.read(os.path.join(self.dirname, self.matchval(incl)), level=level+1)
 
@@ -106,6 +106,8 @@ class RcFile:
             sys.exit(1)
         
         if info is not None :
+            if isinstance(info, dict):
+                info = info[key]
             self.setInfo(key, info)
 
         if convert and type(val) == str :
@@ -119,7 +121,7 @@ class RcFile:
         val = self.matchval(val)
 
         # Convert to a list if a comma is found, unless specifically requested to do otherwise
-        if tolist and ',' in val :
+        if (tolist and ',' in val) or (tolist == 'force') :
             val = [z.strip() for z in val.split(',') if z.strip() != '']
             tolist = True
         else :
@@ -216,7 +218,7 @@ class RcFile:
                 oldprefix = prefix
             # retrieve the value of the key and print it
             val = self.get(key)
-            if type(val) == datetime.datetime: 
+            if type(val) == datetime: 
                 val = val.strftime('%Y%m%d%H%M%S')
             if isinstance(val, (list, tuple, ndarray)):
                 val = ', '.join([str(x) for x in val])

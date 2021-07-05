@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
-from numpy import array_equal
 
 logger = logging.getLogger(os.path.basename(__file__))
 

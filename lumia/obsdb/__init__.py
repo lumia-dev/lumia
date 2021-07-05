@@ -40,6 +40,7 @@ class obsdb:
             self.extraFields = {}
         if filename is not None :
             self.load_tar(filename)
+            self.filename = filename
             if self.start is None :
                 self.start = self.observations.time.min()
             if self.end is None :

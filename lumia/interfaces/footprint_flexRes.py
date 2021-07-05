@@ -22,7 +22,7 @@ data = {}
 
 class Interface :
 
-    def __init__(self, rcf, ancilliary=None, emis=None, **kwargs):
+    def __init__(self, rcf, ancilliary={}, emis=None, **kwargs):
         self.rcf = rcf
         self.categories = Categories(rcf)
         self.region = Region(rcf)
@@ -151,6 +151,9 @@ class Interface :
 
     def calc_spatial_coarsening(self, minxsize=1, minysize=1, lsm_from_file=None):
         lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
+
+        if 'sensi_map' not in self.ancilliary_data :
+            self.ancilliary_data['sensi_map'] = zeros((self.region.nlat, self.region.nlon))
 
         clusters = clusterize(
             self.ancilliary_data['sensi_map'],
