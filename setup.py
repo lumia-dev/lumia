@@ -13,7 +13,7 @@ setuptools.setup(
     description=long_description,
     long_description_content_type="text/markdown",
     url="https://www.geosci-model-dev-discuss.net/gmd-2019-227/#discussion",
-    packages=['lumia', 'transport', 'archive'],
+    packages=['lumia', 'transport', 'archive', 'rctools'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",

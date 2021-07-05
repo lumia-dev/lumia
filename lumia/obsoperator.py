@@ -11,6 +11,18 @@ from .obsdb import obsdb
 logger = logging.getLogger(__name__)
 
 
+def runcmd(cmd):
+    logger.info(colorize(' '.join([x for x in cmd]), 'g'))
+    try :
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError :
+        logger.error("external command failed, exiting ...")
+        raise subprocess.CalledProcessError
+    for line in p.stdout:
+        sys.stdout.buffer.write(line)
+        sys.stdout.buffer.flush()
+
+
 class transport(object):
     name = 'lagrange'
 
@@ -64,23 +76,18 @@ class transport(object):
         emf = self.writeStruct(struct, tmpdir, 'modelData.%s'%step)
         dbf = self.db.save_tar(os.path.join(tmpdir, 'observations.%s.tar.gz'%step))
         rcf = self.rcf.write(os.path.join(tmpdir, f'forward.{step}.rc'))
-        #checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
         
         # Run the model
-        cmd = [sys.executable, executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        cmd = [sys.executable, '-u', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
         if serial :
             cmd.append('--serial')
-        logger.info(colorize(' '.join([x for x in cmd]), 'g'))
-        try :
-            subprocess.run(cmd, close_fds=True)
-        except subprocess.CalledProcessError :
-            logger.error("Forward run failed, exiting ...")
-            raise subprocess.CalledProcessError
+        runcmd(cmd)
 
         # Retrieve results :
         db = obsdb(filename=dbf)
-        for cat in self.rcf.get('emissions.categories'):
-            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+        if self.rcf.get('model.split.categories', default=True):
+            for cat in self.rcf.get('emissions.categories'):
+                self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
         self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
@@ -121,13 +128,8 @@ class transport(object):
         adjf = os.path.join(tmpdir, 'adjoint.nc')
 
         # Run the adjoint transport:
-        cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
-        logger.info(colorize(' '.join([x for x in cmd]), 'g'))
-        try :
-            subprocess.run(cmd, close_fds=True)
-        except subprocess.CalledProcessError :
-            logger.error("Adjoint run failed, exiting ...")
-            raise subprocess.CalledProcessError
+        cmd = [sys.executable, '-u', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        runcmd(cmd)
 
         # Collect the results :
         return self.readStruct(tmpdir, 'adjoint')
