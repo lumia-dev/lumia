@@ -211,7 +211,7 @@ class region:
             return False
 
     def __ne__(self, other):
-        return True-self.__eq__(other)
+        return not self.__eq__(other)
 
     def __lt__(self, other):
         return self.is_contained_by(other)

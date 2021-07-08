@@ -10,6 +10,7 @@ import xarray as xr
 from pandas import Timestamp
 from lumia.Tools.regions import region
 from archive import Archive
+from lumia.Tools.geographical_tools import GriddedData
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +26,17 @@ class Emissions:
         if rcf.get('optim.unit.convert', default=False):
             self.data.to_extensive()   # Convert to umol
             self.print_summary()
+
+        # Coarsen the data if needed:
+        reg = region(
+            lon0=self.rcf.get('region.lon0'),
+            lon1=self.rcf.get('region.lon1'),
+            lat0=self.rcf.get('region.lat0'),
+            lat1=self.rcf.get('region.lat1'),
+            dlat=self.rcf.get('region.dlat'),
+            dlon=self.rcf.get('region.dlon')
+        )
+        self.data.coarsen(reg)
 
     def print_summary(self, unit='PgC'):
         scaling_factor = {
@@ -91,6 +103,18 @@ class Struct(dict):
                 'lons':self[cat]['lons']
             }
         return outstruct
+
+    def coarsen(self, destreg):
+        """
+        Coarsen the data to a lower resolution
+        """
+        for cat in self.keys():
+            sourcereg = region(latitudes=self[cat]['lats'], longitudes=self[cat]['lons'])
+            if sourcereg != destreg :
+                data = GriddedData(self[cat]['emis'], sourcereg)
+                self[cat]['emis'] = data.regrid(destreg, weigh_by_area=self.unit_type == 'intensive')
+                self[cat]['lats'] = destreg.lats
+                self[cat]['lons'] = destreg.lons
 
     def to_extensive(self):
         assert self.unit_type == 'intensive'
