@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from .regions import region
-from numpy import expand_dims, array, squeeze, repeat
+from numpy import expand_dims, array, squeeze, repeat, zeros
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,16 +18,17 @@ class Region(region):
         )
 
 class GriddedData:
-    def __init__(self, data, reg):
-        self.data = data
+    def __init__(self, data, reg, padding=None):
+        self.data = data.copy()
         self.region = reg
+        if padding is not None :
+            self.Pad(padding)
+        if len(self.data.shape) == 2 :
+            # Add a dummy vertical dimension if we deal with surface data
+            self.data = expand_dims(self.data, 0)
 
     def regrid(self, newreg, weigh_by_area=False):
         assert newreg <= self.region
-
-        if len(self.data.shape) == 2 :
-            # Add a dummy vertical dimension if we deal with surface data
-            data = expand_dims(self.data, 0)
 
         if self.region.dlon == newreg.dlon and self.region.dlat == newreg.dlat :
             data_out = self.crop(newreg)
@@ -41,6 +42,20 @@ class GriddedData:
             raise NotImplementedError
 
         return data_out
+
+    def Pad(self, padding):
+        logger.debug(f"Pad with {padding:.1f}")
+
+        # Create a global grid with the same resolution as the original grid:
+        reg_out = region(lon0=-180, lon1=180, dlon=self.region.dlon,
+                         lat0=-90, lat1=90, dlat=self.region.dlat)
+
+        data_out = zeros((self.data.shape[0], reg_out.nlat, reg_out.nlon)) + padding
+        lat0 = reg_out.lat0.tolist().index(self.region.latmin)
+        lon0 = reg_out.lon0.tolist().index(self.region.lonmin)
+        data_out[:, lat0:lat0+self.region.nlat, lon0:lon0+self.region.nlon] = self.data
+        self.data = data_out
+        self.region = reg_out
 
     def refine(self, newreg, weigh_by_area):
         logger.debug("Refine grid, %s weigh by area" % (["don't", "do"][weigh_by_area]))

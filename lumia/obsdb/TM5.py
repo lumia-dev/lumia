@@ -6,6 +6,10 @@ from netCDF4 import Dataset
 from numpy import unique
 from collections import defaultdict
 from pandas import DataFrame
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class obsdb(base):
@@ -20,6 +24,40 @@ class obsdb(base):
             for isite, site in enumerate(self.sites.itertuples()):
                 fid.write(f' {isite:3.0f} {site.code} {site.lat:6.2f} {site.lon:7.2f} {site.alt:7.1f} FM {site.name}\n')
 
+    def to_departures(self, filename, regions):
+        tracers = unique(self.observations.tm5_tracer.values)
+        with Dataset(filename, 'w') as ds :
+            ds.createDimension('tracer', len(tracers))
+            ds.createDimension('idate', 6)
+            for region in regions :
+                ds.createGroup(region)
+                dbr = self.observations.loc[self.observations.tm5_region == region]
+                nobs = dbr.shape[0]
+                logger.debug(f"Write {nobs} departures for region {region}")
+                if nobs > 0 :
+                    for tracer in tracers :
+                        gr = ds[region].createGroup(tracer)
+                        gr.createDimension('samples', nobs)
+                        gr.createVariable('date_components', 'i', ('samples', 'idate'))
+                        gr.createVariable('lat', 'd', ('samples',))
+                        gr.createVariable('lon', 'd', ('samples',))
+                        gr.createVariable('alt', 'd', ('samples',))
+                        gr.createVariable('total_weight', 'd', ('samples',))
+                        gr.createVariable('forcing', 'd', ('samples',))              # (mod-obs)/variance
+                        gr.createVariable('nsamples', 'i', ('samples',))
+                        gr.createVariable('sampling_strategy', 'i', ('samples',))
+                        gr.createVariable('time_window_length', 'i', ('samples',))
+
+                        gr['lat'][:] = dbr.lat.values
+                        gr['lon'][:] = dbr.lon.values
+                        gr['alt'][:] = dbr.alt.values
+                        gr['total_weight'][:] = dbr.tm5_total_weight.values
+                        gr['forcing'][:] = dbr.dy.values
+                        gr['nsamples'][:] = dbr.tm5_nsamples.values
+                        gr['sampling_strategy'][:] = dbr.tm5_sampling_strategy.values
+                        gr['time_window_length'][:] = 0.
+                        gr['date_components'][:] = [t.timetuple()[:6] for t in dbr.time]
+
     def to_point_input(self, filename):
         """
         Dimensions:
@@ -32,7 +70,8 @@ class obsdb(base):
         nobs = self.observations.shape[0]
 
         if 'uid_TM5' not in self.observations.columns :
-            self.observations.loc[:, 'uid_TM5'] = range(nobs)
+            self.checkIndex(reindex=True)
+            self.observations.loc[:, 'uid_TM5'] = self.observations.index.values
 
         if 'station_id_TM5' not in self.sites.columns :
             self.sites.loc[:, 'station_id_TM5'] = range(self.sites.shape[0])
@@ -60,18 +99,22 @@ class obsdb(base):
             gr['sampling_strategy'][:] = 2
 
     def read_point_output(self, filename):
+        logger.debug(filename)
         with Dataset(filename, 'r') as ds :
             data = defaultdict(list)
             for region in ds.groups :
+                logger.debug(region)
                 for tracer in ds[region].groups:
+                    logger.debug(tracer)
                     nobs = ds[region][tracer].dimensions['samples'].size
                     data['tm5_region'].extend([region]*nobs)
                     data['tm5_tracer'].extend([tracer]*nobs)
                     for var in ds[region][tracer].variables :
+                        logger.debug(var)
                         data[f'tm5_{var}'].extend(ds[region][tracer][var][:])
                     if 'meteo' in ds[region][tracer].groups :
-                        print(region, tracer)
                         for var in ds[region][tracer]['meteo'].variables :
+                            logger.debug(var)
                             data[f'tm5_{var}'].extend(ds[region][tracer]['meteo'][var][:])
             df = DataFrame(data).set_index('tm5_id')
 
@@ -89,4 +132,8 @@ class obsdb(base):
 
         else :
             for var in df.columns :
-                self.observations.loc[df.index, var] = df.loc[:, var].values
+                logger.debug(var)
+                try :
+                    self.observations.loc[df.index, var] = df.loc[:, var].values
+                except :
+                    import pdb; pdb.set_trace()

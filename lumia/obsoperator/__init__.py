@@ -6,21 +6,10 @@ import subprocess
 import logging
 from numpy import ones, array
 from lumia.Tools import checkDir, colorize
-from .obsdb import obsdb
+from lumia.obsdb import obsdb
+from lumia.Tools.system_tools import runcmd
 
 logger = logging.getLogger(__name__)
-
-
-def runcmd(cmd):
-    logger.info(colorize(' '.join([x for x in cmd]), 'g'))
-    try :
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    except subprocess.CalledProcessError :
-        logger.error("external command failed, exiting ...")
-        raise subprocess.CalledProcessError
-    for line in p.stdout:
-        sys.stdout.buffer.write(line)
-        sys.stdout.buffer.flush()
 
 
 class transport(object):
