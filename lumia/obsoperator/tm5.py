@@ -20,8 +20,8 @@ class transport(object):
         self.rcf = rcf
         self.tm5rc = RcFile(self.rcf.get('model.tm5.rcfile'))
         self.struct = Struct()
-        self.start = self.rcf.get('time.start', todate=True, fmt='%Y, %m, %d', tolist=False)
-        self.end = self.rcf.get('time.end', todate=True, fmt='%Y, %m, %d', tolist=False)
+        self.start = self.rcf.get('time.start', todate=True, fmt='%Y,%m,%d', tolist=False)
+        self.end = self.rcf.get('time.end', todate=True, fmt='%Y,%m,%d', tolist=False)
 
         if obs is not None :
             self.setupObs(obs)

@@ -4,7 +4,7 @@ import logging
 from h5py import File
 from numpy import nan, array, int32, float32
 from datetime import datetime, timedelta
-from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
 
@@ -20,10 +20,14 @@ class LumiaFootprintFile(FootprintFile):
         self.footprints = [x for x in self.ds.keys()]
 
         # Store time and space coordinates
-        self.coordinates = SpatialCoordinates(
-            lats=self.ds['latitudes'][:],
-            lons=self.ds['longitudes'][:]
-        )
+        try :
+            self.coordinates = SpatialCoordinates(
+                lats=self.ds['latitudes'][:],
+                lons=self.ds['longitudes'][:]
+            )
+        except :
+            print(self.filename)
+            raise RuntimeError
         self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
         self.dt = timedelta(seconds=self.ds.attrs['tres'])
 

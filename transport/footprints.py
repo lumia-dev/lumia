@@ -7,7 +7,8 @@ from numpy import array_equal, nan, array, unique, nonzero, argsort
 #import ray
 from multiprocessing import Pool
 from tqdm import tqdm
-from lumia.Tools import rctools, Categories
+from lumia.Tools import Categories
+import rctools
 from lumia import obsdb
 from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct, CreateStruct
 from lumia.Tools import regions
@@ -133,7 +134,10 @@ class FootprintFile:
             for cat in emis.categories :
                 obslist.loc[iobs, cat] = fpt.to_conc(emis.data[cat]['emis'])
         self.close()
-        return obslist.loc[:, emis.categories]
+        try :
+            return obslist.loc[:, emis.categories]
+        except KeyError :
+            return None
 
     def _runAdjoint(self, obslist, adjstruct):
         for iobs, obs in tqdm(obslist.iterrows(), desc=self.filename, total=obslist.shape[0], disable=self.silent):
@@ -271,7 +275,7 @@ def loop_adjoint(filename):
 
 class FootprintTransport:
     def __init__(self, rcf, obs, emfile=None, FootprintFileClass=FootprintFile, mp=False, checkfile=None, ncpus=None):
-        self.rcf = rctools.rc(rcf)
+        self.rcf = rctools.RcFile(rcf)
         self.obs = Observations(obs)
         self.obs.checkIndex(reindex=True)
         self.emfile = emfile
@@ -394,8 +398,9 @@ class FootprintTransport:
             res = list(tqdm(pool.imap(loop_forward, filenames, chunksize=1), total=len(nobs)))
 
         for filename, obslist in zip(filenames, res):
-            for field in obslist.columns :
-                self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
+            if obslist is not None :
+                for field in obslist.columns :
+                    self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
         print(datetime.now()-t0)
 
     def get(self, filename, silent=None):

@@ -218,7 +218,7 @@ class RcFile:
                 oldprefix = prefix
             # retrieve the value of the key and print it
             val = self.get(key)
-            if type(val) == datetime: 
+            if isinstance(val, datetime): 
                 val = val.strftime('%Y%m%d%H%M%S')
             if isinstance(val, (list, tuple, ndarray)):
                 val = ', '.join([str(x) for x in val])

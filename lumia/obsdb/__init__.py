@@ -84,7 +84,7 @@ class obsdb:
         )]
         sites = self.sites.loc[unique(self.observations.site), :]
         if copy :
-            new = obsdb(start=tmin, end=tmax)
+            new = self.__class__(start=tmin, end=tmax)
             new.observations = observations
             new.sites = sites
             new.files = self.files
