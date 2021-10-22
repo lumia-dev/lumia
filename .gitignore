@@ -22,4 +22,4 @@ dist/
 scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 .vscode/settings.json
 /singularity/lumia
-.idea/
+/.idea/*
