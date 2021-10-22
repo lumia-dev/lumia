@@ -24,3 +24,4 @@ scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 /singularity/lumia
 /.idea/*
 .idea/
+.idea

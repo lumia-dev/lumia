@@ -1,0 +1,73 @@
+Bootstrap: library
+From: default/ubuntu:20.04
+
+%post
+    apt-get -y update
+    apt-get -y upgrade
+
+    # Universe is needed for python packages:
+    apt -y install software-properties-common
+    add-apt-repository universe
+
+    apt -y install vim htop
+    apt -y install git
+    apt -y install python3-pip python3-cartopy python3-matplotlib python3-h5py python3-pandas python3-netcdf4 python3-tqdm python3-xarray ipython3
+    apt -y install rclone
+    apt -y install netcdf-bin libnetcdff-dev libgeos-dev
+
+    echo "export SINGULARITY_ENVIRONMENT=$SINGULARITY_ENVIRONMENT" >> $SINGULARITY_ENVIRONMENT
+
+    # Add aliases to $SINGULARITY_ENVIRONMENT (which is used as a bashrc replacement):
+    echo "alias ls='ls --color=auto'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias lh='ls -lh'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias lt='ls -ltrh'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias la='ls -lthra'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias ll='ls -lh'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias l='ls -CF'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias rm='rm -i'" >> $SINGULARITY_ENVIRONMENT
+    echo "alias grep='grep -i --color'" >> $SINGULARITY_ENVIRONMENT
+
+    # Make sure we get a decent default vim:
+    echo "set noopt" >> /etc/vim/vimrc
+    echo "set nocompatible" /etc/vim/vimrc
+    echo "set backspace=2" /etc/vim/vimrc
+    echo "filetype plugin indent on" /etc/vim/vimrc
+    echo "let fortran_free_source=1" /etc/vim/vimrc
+    echo "filetype on" /etc/vim/vimrc
+    echo "filetype plugin on" /etc/vim/vimrc
+    echo "filetype indent on" /etc/vim/vimrc
+    echo "set sw=4" /etc/vim/vimrc
+    echo "let fortran_do_enddo=1" /etc/vim/vimrc
+    echo "set hlsearch" /etc/vim/vimrc
+    echo "set tw=0" /etc/vim/vimrc
+    echo "set ttyfast" /etc/vim/vimrc
+    echo "set smartcase" /etc/vim/vimrc
+    echo "set t_Co=256" /etc/vim/vimrc
+    echo "set tabstop=4" /etc/vim/vimrc
+    echo "set shiftwidth=4" /etc/vim/vimrc
+
+    # Fix libgeos path:
+    ln -s /usr/lib/x86_64-linux-gnu/libgeos_c.so /usr/lib/
+
+    # Install LUMIA
+    cd /lumia
+    pip install -e .
+
+    # Make congrad
+    cd /lumia/src/congrad
+    rm -f *.{mod,o}
+    make congrad.exe
+    mv congrad.exe /lumia/bin
+
+%files
+    ../. /lumia
+
+%environment
+    export machine=singularity
+
+%runscript
+    cd $HOME
+    bash --init-file $SINGULARITY_ENVIRONMENT
+
+%apprun inversion
+    /usr/bin/lumia --rc $1
