@@ -4,7 +4,6 @@ import os
 import shutil
 from datetime import datetime
 from numpy import array_equal, nan, array, unique, nonzero, argsort
-#import ray
 from multiprocessing import Pool
 from tqdm import tqdm
 from lumia.Tools import rctools, Categories
