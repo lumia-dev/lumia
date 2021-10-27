@@ -8,7 +8,7 @@ from numpy import float64, zeros_like
 from pandas import DataFrame, read_hdf
 from lumia.Tools.rctools import rc
 from lumia.precon import preconditioner as precon
-from lumia.Tools import Region, Categories
+from lumia.Tools import Region, Categories, Tracers
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class Control:
             'state',
             'state_preco',
             'land_fraction',
+            'tracer',
             'category',
             'lat',
             'lon',
@@ -48,13 +49,14 @@ class Control:
 
     def loadrc(self, rcf):
         self.rcf = rcf
-        self.categories = Categories(rcf)
+        # self.categories = Categories(rcf)
+        self.tracers = Tracers(rcf)
         self.region = Region(self.rcf)
         self.start = datetime(*self.rcf.get('time.start'))
         self.end = datetime(*self.rcf.get('time.end'))
 
     def setupPrior(self, prior):
-        self.vectors.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']]
+        self.vectors.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']]
         self.vectors.loc[:, 'state_prior'] = prior.value
         self.vectors.loc[:, 'state_prior_preco'] = 0.
         self.vectors.loc[:, 'iloc'] = prior.loc[:, 'iloc']
@@ -68,13 +70,14 @@ class Control:
     def xc_to_x(self, state_preco, add_prior=True):
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
-        catIndex = self.vectors.category.tolist()
-        for cat in self.categories :
-            if cat.optimize :
-                Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
-                Temp_L = self.temporal_correlations[cat.temporal_correlation]
-                ipos = catIndex.index(cat.name)
-                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
+        catIndex = list(zip(self.vectors.tracer.tolist(), self.vectors.category.tolist()))
+        for tr in self.tracers.list:
+            for cat in self.tracers[tr].categories:
+                if cat.optimize :
+                    Hor_L = self.horizontal_correlations[tr][cat.name][cat.horizontal_correlation]
+                    Temp_L = self.temporal_correlations[tr][cat.name][cat.temporal_correlation]
+                    ipos = catIndex.index((tr, cat.name))
+                    state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
         if add_prior: 
             state += self.vectors.loc[:, 'state_prior']
 
@@ -87,13 +90,14 @@ class Control:
     def g_to_gc(self, g):
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
-        catIndex = self.vectors.category.tolist()
-        for cat in self.categories:
-            if cat.optimize :
-                Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
-                Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
-                ipos = catIndex.index(cat.name)
-                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.run'))
+        catIndex = list(zip(self.vectors.tracer.tolist(), self.vectors.category.tolist()))
+        for tr in self.tracers.list:
+            for cat in self.tracers[tr].categories:
+                if cat.optimize :
+                    Hor_Lt = self.horizontal_correlations[tr][cat.name][cat.horizontal_correlation].transpose()
+                    Temp_Lt = self.temporal_correlations[tr][cat.name][cat.temporal_correlation].transpose()
+                    ipos = catIndex.index((tr, cat.name))
+                    g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.run'))
         return g_c
         
     def _to_hdf(self, filename):

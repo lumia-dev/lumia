@@ -59,7 +59,7 @@ class transport(object):
         executable = self.rcf.get("model.transport.exec")
         if self.rcf.get("model.transport.serial", default=False) :
             serial = True
-        
+
         # Write model inputs:
         emf = self.writeStruct(struct, tmpdir, 'modelData.%s'%step)
         dbf = self.db.save_tar(os.path.join(tmpdir, 'observations.%s.tar.gz'%step))
@@ -79,8 +79,9 @@ class transport(object):
 
         # Retrieve results :
         db = obsdb(filename=dbf)
-        for cat in self.rcf.get('emissions.categories'):
-            self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+        for tr in list(self.rcf.get('obs.tracers')):
+            for cat in self.rcf.get(f'emissions.{tr}.categories'):
+                self.db.observations.loc[:, f'mix_{tr}_{cat}'] = db.observations.loc[:, f'mix_{tr}_{cat}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
         self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
@@ -133,6 +134,7 @@ class transport(object):
         return self.readStruct(tmpdir, 'adjoint')
 
     def calcSensitivityMap(self):
+        
         departures = ones(self.db.observations.shape[0])
         adjfield = self.runAdjoint(departures)
-        return array([adjfield[cat]['emis'].sum(0) for cat in adjfield.keys()]).sum(0)
+        return array([adjfield[tr][cat]['emis'].sum(0) for tr in adjfield.keys() for cat in adjfield[tr].keys()]).sum(0)

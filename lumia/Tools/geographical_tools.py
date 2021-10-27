@@ -6,6 +6,8 @@ from .regions import region
 class Region(region):
     def __init__(self, rcf):
         rname = rcf.get('region')
+
+
         region.__init__(
             self,
             name=rname,

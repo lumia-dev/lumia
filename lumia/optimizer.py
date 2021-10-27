@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import logging
-from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot
+from numpy import nan, zeros, zeros_like, sqrt, inner, nan_to_num, dot
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
@@ -72,6 +72,7 @@ class Optimizer(object):
     def _computeCostFunction(self, state_preco, dy, dye):
         dstate = state_preco-self.control.get('state_prior_preco')   # TODO: check if state_prior_preco is ever non-zero
         J_bg = 0.5*dot(dstate, dstate)
+        import pdb; pdb.set_trace()
         J_obs = 0.5*dot(dy/dye, dy/dye)
         J = costFunction(bg=J_bg, obs=J_obs)
         logger.info(f"Iteration {self.iteration}: J_bg={J_bg:.2f}; J_obs={J_obs:.2f}")
@@ -85,7 +86,8 @@ class Optimizer(object):
         gradient_preco = gradient_obs_preco + state_departures
         mode = 'w' if self.iteration == 0 else 'a'
         with open(os.path.join(self.rcf.get('path.output'), 'costFunction.txt'), mode=mode) as fid :
-            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)}; x_adj={sum(adjoint_state), sum(adjoint_struct['biosphere']['emis']).sum()} \n")
+            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)}; \
+                    x_adj={sum(adjoint_state), sum(adjoint_struct[tr][cat]['emis'] for tr in adjoint_struct.keys() for cat in adjoint_struct[tr].keys()).sum()} \n")
         return gradient_preco
 
     def _calcPosteriorUncertainties(self, store_eigenvec=False):
