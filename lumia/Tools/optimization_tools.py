@@ -7,11 +7,52 @@ from numpy import arange, ones_like, array, cumsum
 from lumia import tqdm
 
 
-class Categories:
+class Tracers:
     def __init__(self, rcf=None):
         self.list = []
         if rcf is not None :
             self.setup(rcf)
+
+    def add(self, name):
+        if name not in self.list :
+            setattr(self, name, Tracer(name))
+            self.list.append(name)
+        else :
+            raise RuntimeError("Tracer %s already exists!"%name)
+
+    def __getitem__(self, item):
+        if item in self.list :
+            return getattr(self, item)
+        else :
+            raise KeyError("Tracer %s not initialized yet!"%item)
+
+    def __iter__(self):
+        for item in self.list :
+            yield getattr(self, item)
+
+    def setup(self, rcf):
+        trlist = list(rcf.get('obs.tracers'))
+        for tr in trlist :
+            self.add(tr)
+            self[tr].categories = Categories(rcf, tr)
+
+
+class Tracer:
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+    def __eq__(self, other):
+        return self.name == other
+
+
+class Categories:
+    def __init__(self, rcf=None, tr=None):
+        self.list = []
+        if rcf is not None :
+            self.setup(rcf, tr)
 
     def add(self, name):
         if name not in self.list :
@@ -30,18 +71,18 @@ class Categories:
         for item in self.list :
             yield getattr(self, item)
 
-    def setup(self, rcf):
-        catlist = rcf.get('emissions.categories')
+    def setup(self, rcf, tr):
+        catlist = rcf.get(f'emissions.{tr}.categories')
         for cat in catlist :
             self.add(cat)
-            self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
-            self[cat].is_ocean = rcf.get('emissions.%s.is_ocean'%cat, totype=bool, default=False)
+            self[cat].optimize = rcf.get(f'emissions.{tr}.{cat}.optimize', totype=bool, default=False)
+            self[cat].is_ocean = rcf.get(f'emissions.{tr}.{cat}.is_ocean', totype=bool, default=False)
             if self[cat].optimize :
-                self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
+                self[cat].uncertainty = rcf.get(f'emissions.{tr}.{cat}.error')
 #                self[cat].uncertainty_type = rcf.get('emissions.%s.error_type'%cat, default='tot')
-                self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
-                self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
-                self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
+                self[cat].min_uncertainty = rcf.get(f'emissions.{tr}.{cat}.error_min', default=0)
+                self[cat].horizontal_correlation = rcf.get(f'emissions.{tr}.{cat}.corr')
+                self[cat].temporal_correlation = rcf.get(f'emissions.{tr}.{cat}.tcorr')
                 optint = rcf.get('optimization.interval')
                 if re.match('\d*y', optint):
                     n = re.split('d', optint)[0]
@@ -259,7 +300,6 @@ def clusterize(field, nmax, mask=None, minxsize=1, minysize=1):
                     #if cl.size == 1 or (cl.nx == cl.minxsize and cl.ny == cl.minysize) :
                     if cl.nx <= cl.minxsize and cl.ny <= cl.minysize :
                         #if cl.nx == 1:
-                        #    import pdb; pdb.set_trace()
                         clusters_final.append(cl)
                     else :
                         if mask is not None :

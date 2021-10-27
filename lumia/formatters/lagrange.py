@@ -18,12 +18,17 @@ class Emissions:
         self.start = start
         self.end = end
         self.rcf = rcf
-        self.categories = dict.fromkeys(rcf.get('emissions.categories'))
-        for cat in self.categories :
-            self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
-        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive'))
-        if rcf.get('optim.unit.convert', default=False):
-            self.data.to_extensive()   # Convert to umol
+        self.tracers = dict.fromkeys(rcf.get('obs.tracers'))
+        self.categories = {}
+        self.data = {}
+        for tr in self.tracers:
+            # import pdb; pdb.set_trace()
+            self.categories[tr] = dict.fromkeys(rcf.get(f'emissions.{tr}.categories'))
+            for cat in self.categories[tr]:
+                self.categories[tr][cat] = rcf.get(f'emissions.{tr}.{cat}.origin')
+            self.data[tr] = ReadArchive(rcf.get(f'emissions.{tr}.prefix'), self.start, self.end, categories=self.categories[tr], archive=rcf.get('emissions.archive'))
+            if rcf.get('optim.unit.convert', default=False):
+                self.data[tr].to_extensive()   # Convert to umol
 
 
 class Struct(dict):

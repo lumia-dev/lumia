@@ -51,7 +51,8 @@ class Minimizer:
         return status
 
     def runMinimizer(self):
-        exec_name = self.rcf.get('var4d.conGrad.exec', default='/home/lumia/var4d/bin/congrad.exe')
+        #exec_name = self.rcf.get('var4d.conGrad.exec', default='/home/lumia/var4d/bin/congrad.exe')
+        exec_name = self.rcf.get('var4d.conGrad.exec', default='/home/x_cagom/lumia/bin/congrad.exe')
         cmd = [exec_name, '--write-traject', '--state-file', self.commfile.filepath]
         logger.info(colorize(' '.join([*cmd]), 'g'))
         subprocess.check_call(cmd)

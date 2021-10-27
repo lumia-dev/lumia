@@ -167,6 +167,14 @@ class Uncertainties:
             'Tcor':{}
         }
 
+        for tr in self.interface.tracers.list:
+            self.dict['Hcor'][tr] = {}
+            self.dict['Tcor'][tr] = {}
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize:
+                    self.dict['Hcor'][tr][cat.name] = {}
+                    self.dict['Tcor'][tr][cat.name] = {}
+
         self.calcPriorUncertainties()
         self.setup_Hcor()
         self.setup_Tcor()
@@ -182,45 +190,48 @@ class Uncertainties:
         """
         data = deepcopy(self.interface.ancilliary_data)
         data = self.errStructToVec(data)
-        for cat in self.interface.categories :
-            if cat.optimize :
-                errfact = cat.uncertainty*0.01
-                errcat = abs(data.loc[data.category == cat, 'prior_uncertainty'].values)*errfact
-                errcat[(errcat < 0.01*errcat.max())*(data.loc[:, 'land_fraction']>0)] = errcat.max()/100
-                data.loc[data.category == cat, 'prior_uncertainty'] = errcat
+
+        for tr in self.interface.tracers.list:
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize :
+                    errfact = cat.uncertainty*0.01
+                    errcat = abs(data.loc[(data.tracer == tr) & (data.category == cat), 'prior_uncertainty'].values)*errfact
+                    errcat[(errcat < 0.01*errcat.max())*(data.loc[(data.tracer == tr) & (data.category == cat), 'land_fraction']>0)] = errcat.max()/100
+                    data.loc[(data.tracer == tr) & (data.category == cat), 'prior_uncertainty'] = errcat
         self.data = data
         self.dict['prior_uncertainty'] = data.prior_uncertainty
 
     def setup_Hcor(self):
-        for cat in self.interface.categories :
-            if cat.optimize :
-                if cat.horizontal_correlation not in self.dict['Hcor'] :
+        for tr in self.interface.tracers.list:
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize :
+                    if cat.horizontal_correlation not in self.dict['Hcor'][tr][cat.name]:
+                        corlen, cortype = cat.horizontal_correlation.split('-')
+                        corlen = int(corlen)
+                        vec = self.data.loc[(self.data.tracer == tr) & (self.data.category == cat)]
+                        vec = vec.loc[vec.time == vec.iloc[0].time]
 
-                    corlen, cortype = cat.horizontal_correlation.split('-')
-                    corlen = int(corlen)
-                    vec = self.data.loc[(self.data.category == cat)]
-                    vec = vec.loc[vec.time == vec.iloc[0].time]
-
-                    corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
-                    self.dict['Hcor'][cat.horizontal_correlation] = corr()
-                    self.hcov = corr.mat
+                        corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
+                        self.dict['Hcor'][tr][cat.name][cat.horizontal_correlation] = corr()
+                        self.hcov = corr.mat
 
     def setup_Tcor(self):
-        for cat in self.interface.categories :
-            if cat.optimize :
-                if cat.temporal_correlation not in self.dict['Tcor'] :
-                    temp_corlen = float(cat.temporal_correlation[:3].strip())
+        for tr in self.interface.tracers.list:
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize :
+                    if cat.temporal_correlation not in self.dict['Tcor'][tr][cat.name]:
+                        temp_corlen = float(cat.temporal_correlation[:3].strip())
 
-                    # Time interval of the optimization
-                    dt = cat.optimization_interval.months + 12*cat.optimization_interval.years + cat.optimization_interval.days/30. + cat.optimization_interval.hours/30/24
+                        # Time interval of the optimization
+                        dt = cat.optimization_interval.months + 12*cat.optimization_interval.years + cat.optimization_interval.days/30. + cat.optimization_interval.hours/30/24
 
-                    # Number of time steps :
-                    times = self.data.loc[self.data.category == cat, 'time'].drop_duplicates()
-                    nt = times.shape[0]
-                    
-                    corr = self.TempCor(temp_corlen, dt, nt)
-                    self.dict['Tcor'][cat.temporal_correlation] = corr()
-                    self.tcov = corr.mat
+                        # Number of time steps :
+                        times = self.data.loc[(self.data.tracer == tr) & (self.data.category == cat), 'time'].drop_duplicates()
+                        nt = times.shape[0]
+                        
+                        corr = self.TempCor(temp_corlen, dt, nt)
+                        self.dict['Tcor'][tr][cat.name][cat.temporal_correlation] = corr()
+                        self.tcov = corr.mat
 
     def calcTotalError(self):
         common['std'] = self.dict['prior_uncertainty'].values

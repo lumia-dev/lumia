@@ -4,11 +4,11 @@ from datetime import datetime
 from copy import deepcopy
 from numpy import zeros, meshgrid, average, float64, array, nan, unique, float32, dot, array_equal
 from pandas import DataFrame
-from lumia.Tools import Region, Categories
+from lumia.Tools import Region, Tracers
 from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
 from lumia import tqdm
-from lumia.formatters.lagrange import Struct
+from lumia.formatters.structure import Struct
 from lumia.control import flexRes
 from lumia.uncertainties import Uncertainties as unc 
 
@@ -24,7 +24,7 @@ class Interface :
 
     def __init__(self, rcf, ancilliary=None, emis=None):
         self.rcf = rcf
-        self.categories = Categories(rcf)
+        self.tracers = Tracers(rcf)
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
         self.data = flexRes.Control(rcf)
@@ -42,26 +42,30 @@ class Interface :
         self.data.setupUncertainties(err.dict)
 
     def Coarsen(self, struct):
-        categ, statevec, ipos, itime = [], [], [], []
-        for cat in self.temporal_mapping :
-            tmap = self.temporal_mapping[cat]['map']
-            nt = tmap.shape[0]
-            # Temporal coarsening
-            emcat = zeros((nt, self.region.nlat, self.region.nlon))
-            for it in range(nt):
-                emcat[it, :, :] = struct[cat]['emis'][tmap[it, :], :, :].sum(0)
+        trac, categ, statevec, ipos, itime = [], [], [], [], []
 
-            # Spatial coarsening
-            emvec = zeros((nt, self.spatial_mapping['stv'].shape[0]))
-            for it in range(nt):
-                emvec[it, :] = dot(self.spatial_mapping['stv'], emcat[it, :].reshape(-1))
-                ipos.extend([cl.ipos for cl in self.spatial_mapping['cluster_specs']])
-                itime.extend([it]*emvec[it,:].size)
+        for tr in self.temporal_mapping.keys():
+            for cat in self.temporal_mapping[tr].keys():
+                tmap = self.temporal_mapping[tr][cat]['map']
+                nt = tmap.shape[0]
+                # Temporal coarsening
+                emcat = zeros((nt, self.region.nlat, self.region.nlon))
+                for it in range(nt):
+                    emcat[it, :, :] = struct[tr][cat]['emis'][tmap[it, :], :, :].sum(0)
 
-            # Store  
-            statevec.extend(emvec.reshape(-1))
-            categ.extend([cat]*emvec.size)
-        return categ, statevec, ipos, itime
+                # Spatial coarsening
+                emvec = zeros((nt, self.spatial_mapping['stv'].shape[0]))
+                for it in range(nt):
+                    emvec[it, :] = dot(self.spatial_mapping['stv'], emcat[it, :].reshape(-1))
+                    ipos.extend([cl.ipos for cl in self.spatial_mapping['cluster_specs']])
+                    itime.extend([it]*emvec[it,:].size)
+
+                # Store
+                statevec.extend(emvec.reshape(-1))
+                categ.extend([cat]*emvec.size)
+                trac.extend([tr]*emvec.size)
+
+        return trac, categ, statevec, ipos, itime
 
     def calcCoarsening(self, struct, minxsize=1, minysize=1, lsm_from_file=False):
         # Calculate spatio/temporal coarsening
@@ -76,10 +80,11 @@ class Interface :
         self.calcCoarsening(struct, minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
 
         # 2. Apply the coarsening
-        categ, statevec, ipos, itime = self.Coarsen(struct)
+        trac, categ, statevec, ipos, itime = self.Coarsen(struct)
 
         # 3. Store the vectors
-        vec = DataFrame(columns=['category', 'value', 'iloc', 'time'])
+        vec = DataFrame(columns=['tracer', 'category', 'value', 'iloc', 'time'])
+        vec.loc[:, 'tracer'] = array(trac, dtype=str)
         vec.loc[:, 'category'] = array(categ, dtype=str)
         vec.loc[:, 'value'] = array(statevec, dtype=float64)
         vec.loc[:, 'iloc'] = array(ipos, dtype=int)
@@ -90,41 +95,50 @@ class Interface :
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'lat'] = self.spatial_mapping['cluster_specs'][ipos].mean_lat
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'lon'] = self.spatial_mapping['cluster_specs'][ipos].mean_lon
             vec.loc[vec.loc[:, 'iloc'] == ipos, 'land_fraction'] = self.spatial_mapping['cluster_specs'][ipos].land_fraction
-
-        cat = categ[0] # TODO: need to fix this line specifically to allow optimization of multiple categories (there are probably more lines to fix)
-        for itopt, topt in enumerate(self.temporal_mapping[cat]['times_optim']):
-            vec.loc[vec.itime == itopt, 'time'] = topt
+        
+        # cat = categ[0] # TODO: need to fix this line specifically to allow optimization of multiple categories (there are probably more lines to fix)
+        
+        for tr in self.temporal_mapping.keys():
+            for cat in self.temporal_mapping[tr].keys():
+                for itopt, topt in enumerate(self.temporal_mapping[tr][cat]['times_optim']):
+                    vec.loc[vec.itime == itopt, 'time'] = topt
 
         # 4. Store ancilliary data (needed for the reverse operation)
-        self.ancilliary_data['vec2struct'] = vec.loc[:, ['category', 'iloc', 'itime']]
+        self.ancilliary_data['vec2struct'] = vec.loc[:, ['tracer', 'category', 'iloc', 'itime']]
         self.ancilliary_data['vec2struct'].loc[:, 'prior'] = vec.loc[:, 'value']
-        for cat in struct.keys():
-            self.ancilliary_data[cat] = struct[cat]
+
+        for tr in self.temporal_mapping.keys():
+            self.ancilliary_data[tr] = {}
+            for cat in struct[tr].keys():
+                self.ancilliary_data[tr][cat] = struct[tr][cat]
         return vec
 
     def VecToStruct(self, vector):
 
         # 1. Create container structure, same as ancilliary data but with optimized cats set to zero 
         struct = Struct()
-        for cat in self.categories:
-            struct[cat.name] = deepcopy(self.ancilliary_data[cat.name])
-            if cat.optimize :
-                struct[cat.name]['emis'][:] = 0.
+        for tr in self.tracers.list:
+            struct[tr] = {}
+            for cat in self.tracers[tr].categories:
+                struct[tr][cat.name] = deepcopy(self.ancilliary_data[tr][cat.name])
+                if cat.optimize:
+                    struct[tr][cat.name]['emis'][:] = 0.
 
         # 2. Retrieve the prior control vector
         prior = self.ancilliary_data['vec2struct'].prior.values
 
         # 3. Disaggregate
-        for cat in self.temporal_mapping :
-            tmap = self.temporal_mapping[cat]['map']
-            nt = tmap.shape[0]
-            for it in range(nt):
-                sel = (self.ancilliary_data['vec2struct'].category == cat) & (self.ancilliary_data['vec2struct'].itime == it)
-                dx = (vector-prior).loc[sel].values
-                emcat = dot(dx, self.spatial_mapping['vts']).reshape((self.region.nlat, self.region.nlon))
-
-                # switch to model temporal resolution
-                struct[cat]['emis'][tmap[it, :], :, :] = self.ancilliary_data[cat]['emis'][tmap[it, :], :, :] + emcat
+        for tr in self.temporal_mapping.keys():
+            for cat in self.temporal_mapping[tr].keys():
+                tmap = self.temporal_mapping[tr][cat]['map']
+                nt = tmap.shape[0]
+                for it in range(nt):
+                    sel = (self.ancilliary_data['vec2struct'].tracer == tr) & (self.ancilliary_data['vec2struct'].category == cat) & (self.ancilliary_data['vec2struct'].itime == it)
+                    dx = (vector-prior).loc[sel].values
+                    emcat = dot(dx, self.spatial_mapping['vts']).reshape((self.region.nlat, self.region.nlon)) #TODO: check this
+                    
+                    # switch to model temporal resolution
+                    struct[tr][cat]['emis'][tmap[it, :], :, :] = self.ancilliary_data[tr][cat]['emis'][tmap[it, :], :, :] + emcat
 
         # 4. Convert to umol/m2/s
         if self.rcf.get('optim.unit.convert', default=False):
@@ -138,13 +152,14 @@ class Interface :
 
         # 2. Aggregate
         adjvec = []
-        for cat in self.temporal_mapping :
-            tmap = self.temporal_mapping[cat]['map']
-            nt = tmap.shape[0]
-            for it in range(nt):
-                emcat = adjstruct[cat]['emis'][tmap[it, :], :, :].mean(0).reshape(-1)
-                emcat = dot(self.spatial_mapping['vts'], emcat)
-                adjvec.extend(emcat)
+        for tr in self.temporal_mapping.keys():
+            for cat in self.temporal_mapping[tr].keys():
+                tmap = self.temporal_mapping[tr][cat]['map']
+                nt = tmap.shape[0]
+                for it in range(nt):
+                    emcat = adjstruct[tr][cat]['emis'][tmap[it, :], :, :].mean(0).reshape(-1)
+                    emcat = dot(self.spatial_mapping['vts'], emcat)
+                    adjvec.extend(emcat)
         return adjvec
 
     def calc_spatial_coarsening(self, minxsize=1, minysize=1, lsm_from_file=None):
@@ -202,35 +217,39 @@ class Interface :
 
     def calc_temporal_coarsening(self, struct):
         mapping = {}
-        for cat in [x for x in self.categories if x.optimize]:
-            # Model times
-            times_s_model = struct[cat.name]['time_interval']['time_start']
-            times_e_model = struct[cat.name]['time_interval']['time_end']
-            times_model = [tinterv(s, e) for (s, e) in zip(times_s_model, times_e_model)]
 
-            # Find initial time 
-            t0 = datetime(times_model[0].start.year, 1, 1)
-            #dt = unit*factor
-            dt = cat.optimization_interval
-            while t0 < times_s_model[0]:
-                t0 += dt
-            
-            # Optimization times
-            times_optim = []
-            while t0 < times_s_model[-1]:
-                times_optim.append(tinterv(t0, t0+dt))
-                t0 += dt
+        for tr in self.tracers.list:
+            for cat in self.tracers[tr].categories:
+                if cat.optimize:
+                    # Model times
+                    times_s_model = struct[tr][cat.name]['time_interval']['time_start']
+                    times_e_model = struct[tr][cat.name]['time_interval']['time_end']
+                    times_model = [tinterv(s, e) for (s, e) in zip(times_s_model, times_e_model)]
 
-            # Mapping:
-            nt_optim = len(times_optim)
-            nt_model = len(times_model)
-            mapping[cat.name] = {'map':zeros((nt_optim, nt_model)), 'times_model':times_model, 'times_optim':times_optim}
-            for imod, tmod in enumerate(times_model):
-                for iopt, topt in enumerate(times_optim):
-                    mapping[cat.name]['map'][iopt, imod] = tmod.overlap_percent(topt)
+                    # Find initial time 
+                    t0 = datetime(times_model[0].start.year, 1, 1)
+                    dt = cat.optimization_interval 
 
-            # Make sure we don't split model time steps
-            assert array_equal(mapping[cat.name]['map'], mapping[cat.name]['map'].astype(bool)), "Splitting model time steps it technically possible but not implemented"
-            mapping[cat.name]['map'] = mapping[cat.name]['map'].astype(bool)
+                    while t0 < times_s_model[0]:
+                        t0 += dt
+                    
+                    # Optimization times
+                    times_optim = []
+                    while t0 < times_s_model[-1]:
+                        times_optim.append(tinterv(t0, t0+dt))
+                        t0 += dt
+
+                    # Mapping:
+                    nt_optim = len(times_optim)
+                    nt_model = len(times_model)
+                    mapping[tr] = {}
+                    mapping[tr][cat.name] = {'map':zeros((nt_optim, nt_model)), 'times_model':times_model, 'times_optim':times_optim}
+                    for imod, tmod in enumerate(times_model):
+                        for iopt, topt in enumerate(times_optim):
+                            mapping[tr][cat.name]['map'][iopt, imod] = tmod.overlap_percent(topt)
+
+                    # Make sure we don't split model time steps
+                    assert array_equal(mapping[tr][cat.name]['map'], mapping[tr][cat.name]['map'].astype(bool)), "Splitting model time steps it technically possible but not implemented"
+                    mapping[tr][cat.name]['map'] = mapping[tr][cat.name]['map'].astype(bool)
 
         return mapping            
