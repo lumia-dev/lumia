@@ -47,7 +47,7 @@ class obsdb(obsdb):
         def update_fig(i):
             site = self.sites.iloc[i]
             dbs = self.observations.loc[self.observations.site == site.code]
-            ax.set_title(site.get('name'))
+            ax.set_title(f'{site.get("name")} ({site.get("code")})')
             #ax.set_xlim(dbs.time.min(), dbs.time.max())
             ymin, ymax = inf, -inf
             for ivar, var in enumerate(y1) :

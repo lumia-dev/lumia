@@ -125,14 +125,16 @@ class obsdb:
         logger.info("Writing observation database to %s", filename)
 
         # Create a unique temporary directory, save the current directory
-        if not os.path.exists(os.path.dirname(filename)):
-            os.makedirs(os.path.dirname(filename))
-        tmpdir = tempfile.mkdtemp(dir=os.path.dirname(filename))
+        dirname, filename = os.path.split(filename)
+        dirname = './' if dirname == '' else dirname
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        tmpdir = tempfile.mkdtemp(dir=dirname)
         curdir = os.getcwd()
         os.chdir(tmpdir)
 
         # Create a tar file (and the intermediate files that go in the tar) in that temporary directory
-        tmpfile = os.path.basename(filename)
+        tmpfile = filename
         with tarfile.open(tmpfile, 'w:gz') as tar :
             for field in self.io :
                 method, kwargs = self.io[field]['write']
@@ -142,7 +144,7 @@ class obsdb:
 
         # Move back to the original directory, and move the tarfile in it
         os.chdir(curdir)
-        os.rename(os.path.join(tmpdir, tmpfile), filename)
+        os.rename(os.path.join(tmpdir, tmpfile), os.path.join(dirname, filename))
 
         # Delete the temporary directory
         shutil.rmtree(tmpdir)
