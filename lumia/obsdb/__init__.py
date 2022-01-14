@@ -148,7 +148,7 @@ class obsdb:
 
         # Delete the temporary directory
         shutil.rmtree(tmpdir)
-        return filename
+        return os.path.join(dirname, filename)
 
     def load_tar(self, filename):
         with tarfile.open(filename, 'r:gz') as tar:

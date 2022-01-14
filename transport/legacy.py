@@ -59,6 +59,7 @@ class LegacyFootprintFile(FootprintFile):
                     #            'ilons': fid[k][o]['ilons'][:].astype(int16),
                     #            'resp': fid[k][o]['resp'][:]
                     #        }
+                            coords_with_s = 'ilats' in fid[k][o]
 
             # Store time and space coordinates :
             self.coordinates = SpatialCoordinates(
@@ -79,6 +80,10 @@ class LegacyFootprintFile(FootprintFile):
             self.Footprint.dlon = self.coordinates.dlon
             self.Footprint.dt = self.dt
             self.Footprint.origin = self.origin
+
+            # read if the coordinate fields are ilat/ilon or ilats/ilons:
+            self.ilat_field = 'ilats' if coords_with_s else 'ilat'
+            self.ilon_field = 'ilons' if coords_with_s else 'ilon'
 
             self._initialized = True
 
@@ -104,8 +109,8 @@ class LegacyFootprintFile(FootprintFile):
             for interv in sorted(intervals)[::-1]:
                 itim = interv.calc_index(self.origin)
                 resp = h5group[interv.key]['resp'][:]
-                fp.ilats.extend(h5group[interv.key]['ilats'][:].astype(int16))
-                fp.ilons.extend(h5group[interv.key]['ilons'][:].astype(int16))
+                fp.ilats.extend(h5group[interv.key][self.ilat_field][:].astype(int16))
+                fp.ilons.extend(h5group[interv.key][self.ilon_field][:].astype(int16))
                 fp.itims.extend(repeat(itim, resp.shape[0]).astype(int16))
                 fp.sensi.extend(resp)
 
@@ -144,6 +149,10 @@ class LegacyFootprintTransport(FootprintTransport):
         self.obs.observations.loc[:, 'footprint'] = fnames
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
+    def genObsIDs(self):
+        exists = array([os.path.exists(fname) for fname in self.obs.observations.footprint])
+        self.obs.observations.loc[~exists, 'footprint'] = nan
+
         # Construct the obs ids:
         obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.itertuples()]
         self.obs.observations.loc[:, 'obsid'] = obsids
@@ -169,15 +178,16 @@ if __name__ == '__main__':
     args = p.parse_args(sys.argv[1:])
 
     logger.setLevel(args.verbosity)
-#    logger.info('test logger')
-#    logger.debug('test logger')
-#    logger.warning('test logger')
+    logger.info('test logger')
+    logger.debug('test logger')
+    logger.warning('test logger')
 
     # Create the transport model
     model = LegacyFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))
+    model.genObsIDs()
 
     if args.forward :
         model.runForward()

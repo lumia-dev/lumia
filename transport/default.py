@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import os
 import logging
+import pdb
+
 from h5py import File
 from numpy import nan, array, int32, float32
 from datetime import datetime, timedelta
-from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
 
@@ -42,7 +44,7 @@ class LumiaFootprintFile(FootprintFile):
         return True
 
     def setup(self, coords, origin, dt):
-        assert self.coordinates == coords
+        #assert self.coordinates == coords, pdb.set_trace()
         assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
         #    logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
         # Calculate the number of time steps between the Footprint class (i.e 
@@ -74,7 +76,7 @@ class LumiaFootprintFile(FootprintFile):
         obsid = f'{obs.code}.{obs.height:.0f}m.{obs.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}'
         with File(self.filename, 'a') as ds :
             if obsid in ds :
-                logger.warn(f"Footprint {obsid} already in {self.filename}. Passing ...")
+                logger.warning(f"Footprint {obsid} already in {self.filename}. Passing ...")
             else :
                 if "tres" in ds.attrs :
                     self.origin = datetime.strptime(ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
