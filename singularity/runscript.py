@@ -6,13 +6,12 @@ import shutil
 import subprocess
 from argparse import ArgumentParser
 import configparser
-import logging
+from lumia.Tools.logging_tools import logger
 
-logger = logging.getLogger(__name__)
 
 p = ArgumentParser()
 authorized_commands = ['python3', 'ipython3', 'bash']
-p.add_argument('action', choices=['run', 'extract', 'install']+authorized_commands)
+p.add_argument('action', choices=['f', 'fwd', 'forward', 'i', 'inv', 'inversion', 'extract', 'install']+authorized_commands, default='bash')
 p.add_argument('--bin', default=os.path.join(os.environ['HOME'], '.local/bin'))
 p.add_argument('--scratch', default=None)
 p.add_argument('--footprints', default=None)
@@ -27,8 +26,11 @@ if args.action == 'extract':
 elif args.action in authorized_commands :
     subprocess.run([args.action] + remainder)
 
-elif args.action == 'run':
-    subprocess.run(['python3', '/lumia/singularity/run.py'] + remainder)
+elif args.action in ['f', 'fwd', 'forward']:
+    subprocess.run(['python3', '/lumia/singularity/run.py', '--forward'] + remainder)
+
+elif args.action in ['i', 'inv', 'inversion']:
+    subprocess.run(['python3', '/lumia/singularity/run.py', '--optimize'] + remainder)
 
 elif args.action == 'install':
     # Copy the lumia script to the host ~/.local/bin

@@ -40,7 +40,7 @@ From: default/ubuntu:20.04
 %runscript
     if [ $# -ne 0 ]
     then
-        python3 /runflex/singularity/runscript.py $@
+        python3 /lumia/singularity/runscript.py $@
     else
         /bin/bash
     fi
