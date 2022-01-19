@@ -156,7 +156,7 @@ class obsdb:
                 method, kwargs = self.io[field]['read']
                 data = method(tar.extractfile(self.io[field]['filename']), **kwargs)
                 setattr(self, field, data)
-        self.SelectTimes(self.start, self.end)
+        self.SelectTimes(self.start, self.end, copy=False)
         logger.info(f"{self.observations.shape[0]} observation read from {filename}")
 
     def checkIndex(self, reindex=False):
