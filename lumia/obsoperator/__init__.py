@@ -56,15 +56,15 @@ class transport(object):
         # self.check_init()
 
         # read model-specific info
-        tmpdir = self.rcf.get('path.temp')
+        rundir = self.rcf.get('path.output')
         executable = self.rcf.get("model.transport.exec")
         if self.rcf.get("model.transport.serial", default=False) :
             serial = True
         
         # Write model inputs:
-        emf = self.writeStruct(struct, tmpdir, 'modelData.%s'%step)
-        dbf = self.db.save_tar(os.path.join(tmpdir, 'observations.%s.tar.gz'%step))
-        rcf = self.rcf.write(os.path.join(tmpdir, f'forward.{step}.rc'))
+        emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
+        dbf = self.db.save_tar(os.path.join(rundir, 'observations.%s.tar.gz'%step))
+        rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
         
         # Run the model
         cmd = [sys.executable, '-u', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
@@ -102,26 +102,25 @@ class transport(object):
         The eventual parallelization is handled by the subprocess directly
         """
         
-        rundir = self.rcf.get('path.run')
-        tmpdir = self.rcf.get('path.temp')
+        outputdir = self.rcf.get('path.output')
         executable = self.rcf.get("model.transport.exec")
         #fields = self.rcf.get('model.adjoint.obsfields')
 
         self.db.observations.loc[:, 'dy'] = departures
-        dpf = self.db.save_tar(os.path.join(tmpdir, 'departures.tar.gz'))
+        dpf = self.db.save_tar(os.path.join(outputdir, 'departures.tar.gz'))
         
         # Create an adjoint rc-file
-        rcadj = self.rcf.write(os.path.join(rundir, 'adjoint.rc'))
+        rcadj = self.rcf.write(os.path.join(outputdir, 'adjoint.rc'))
 
         # Name of the adjoint output file
-        adjf = os.path.join(tmpdir, 'adjoint.nc')
+        adjf = os.path.join(outputdir, 'adjoint.nc')
 
         # Run the adjoint transport:
         cmd = [sys.executable, '-u', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
         runcmd(cmd)
 
         # Collect the results :
-        return self.readStruct(tmpdir, 'adjoint')
+        return self.readStruct(outputdir, 'adjoint')
 
     def calcSensitivityMap(self):
         departures = ones(self.db.observations.shape[0])

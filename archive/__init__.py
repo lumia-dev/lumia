@@ -33,7 +33,7 @@ class RcloneArchive:
             logger.info(' '.join(cmd))
             _ = subprocess.check_output(cmd)
             success = os.path.exists(outfile)
-            
+
         return success
 
     def put(self, file, destpath, destfname):
