@@ -1,0 +1,50 @@
+Bootstrap: library
+From: default/ubuntu:20.04
+
+%post
+
+    # Install packages
+
+    apt-get -y update
+    apt-get -y upgrade
+
+    # Universe is needed for python packages:
+    apt -y install software-properties-common
+    add-apt-repository universe
+
+    apt -y install vim htop
+    apt -y install git
+    apt -y install python3-pip python3-cartopy python3-matplotlib python3-h5py python3-pandas python3-netcdf4 python3-tqdm python3-xarray ipython3
+    apt -y install rclone
+    apt -y install netcdf-bin libnetcdff-dev libgeos-dev
+
+    # Fix libgeos path:
+    ln -s /usr/lib/x86_64-linux-gnu/libgeos_c.so /usr/lib/
+
+    # Make directories
+    mkdir /lumia
+
+    # Make congrad
+    cd /congrad
+    rm -f *.{mod,o}
+    make congrad.exe
+    mv congrad.exe /usr/bin
+
+    # Pre-install python package:
+    mkdir -p /usr/local/lib/python3.8/dist-packages/
+    echo /lumia >> /usr/local/lib/python3.8/dist-packages/easy-install.pth
+    echo /lumia >> /usr/local/lib/python3.8/dist-packages/runflex.egg-link
+
+%files
+    ../src/congrad /congrad
+
+%environment
+    export machine=singularity
+
+%runscript
+    if [ $# -ne 0 ]
+    then
+        python3 /lumia/singularity/runscript.py $@
+    else
+        /bin/bash
+    fi
