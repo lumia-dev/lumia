@@ -23,6 +23,7 @@ class Emissions:
         for cat in self.categories :
             self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
         self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive'))
+
         if rcf.get('optim.unit.convert', default=False):
             self.data.to_extensive()   # Convert to umol
             self.print_summary()
@@ -39,25 +40,28 @@ class Emissions:
         self.data.coarsen(reg)
 
     def print_summary(self, unit='PgC'):
-        scaling_factor = {
-            'PgC':12 * 1.e-21,
-            'PgCO2': 44 * 1.e-21,
-        }[unit]
-        for cat in self.categories :
-            tstart = self.data[cat]['time_interval']['time_start']
-            years = unique([t.year for t in tstart])
-            logger.info("===============================")
-            logger.info(f"{cat}:")
-            logger.info('')
-            for year in years :
-                logger.info(f'{year}:')
-                for month in unique([t.month for t in tstart if t.year == year]):
-                    tot = self.data[cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scaling_factor
-                    logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
-                tot = self.data[cat]['emis'][[t.year == year for t in tstart]].sum()*scaling_factor
-                logger.info("    --------------------------")
-                logger.info(f"   Total : {tot:7.2f} {unit}")
-                logger.info('')
+        self.data.print_summary(unit)
+
+    # def print_summary(self, unit='PgC'):
+    #     scaling_factor = {
+    #         'PgC':12 * 1.e-21,
+    #         'PgCO2': 44 * 1.e-21,
+    #     }[unit]
+    #     for cat in self.categories :
+    #         tstart = self.data[cat]['time_interval']['time_start']
+    #         years = unique([t.year for t in tstart])
+    #         logger.info("===============================")
+    #         logger.info(f"{cat}:")
+    #         logger.info('')
+    #         for year in years :
+    #             logger.info(f'{year}:')
+    #             for month in unique([t.month for t in tstart if t.year == year]):
+    #                 tot = self.data[cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scaling_factor
+    #                 logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
+    #             tot = self.data[cat]['emis'][[t.year == year for t in tstart]].sum()*scaling_factor
+    #             logger.info("    --------------------------")
+    #             logger.info(f"   Total : {tot:7.2f} {unit}")
+    #             logger.info('')
 
 
 class Struct(dict):
@@ -187,6 +191,28 @@ class Struct(dict):
         end = [self[cat]['time_interval']['time_end'].max() for cat in self.keys()]
         assert all([b == beg[0] for b in beg] + [e == end[0] for e in end]), f"All categories do not share the same time boundaries, cannot append {beg}, {end}"
         return beg[0], end[0]
+
+    def print_summary(self, unit='PgC'):
+        scaling_factor = {
+            'PgC':12 * 1.e-21,
+            'PgCO2': 44 * 1.e-21,
+        }[unit]
+        for cat in self.keys() :
+            tstart = self[cat]['time_interval']['time_start']
+            years = unique([t.year for t in tstart])
+            logger.info("===============================")
+            logger.info(f"{cat}:")
+            logger.info('')
+            for year in years :
+                logger.info(f'{year}:')
+                for month in unique([t.month for t in tstart if t.year == year]):
+                    tot = self[cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scaling_factor
+                    logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
+                tot = self[cat]['emis'][[t.year == year for t in tstart]].sum()*scaling_factor
+                logger.info("    --------------------------")
+                logger.info(f"   Total : {tot:7.2f} {unit}")
+                logger.info('')
+
 
 
 def WriteStruct(data, path, prefix=None):

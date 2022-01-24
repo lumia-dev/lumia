@@ -6,7 +6,6 @@ from datetime import datetime
 from argparse import ArgumentParser
 import lumia
 from lumia.Tools.logging_tools import logger
-#from lumia.obsdb import obsdb
 from lumia.obsdb.InversionDb import obsdb
 from lumia.formatters import lagrange
 
@@ -56,17 +55,18 @@ categories = dict.fromkeys(rcf.get('emissions.categories'))
 for cat in categories :
     categories[cat] = rcf.get(f'emissions.{cat}.origin')
 
-emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories, archive=rcf.get('emissions.archive'))
+#emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories, archive=rcf.get('emissions.archive'))
+emis = lagrange.Emissions(rcf, start, end)
 
 model = lumia.transport(rcf, obs=db, formatter=lagrange)
 
 if args.forward :
-    model.runForward(emis, 'forward')
+    model.runForward(emis.data, 'forward')
 
 elif args.optimize :
     from lumia.interfaces.footprint_flexRes import Interface
 
     sensi = model.calcSensitivityMap()
-    control = Interface(rcf, ancilliary={'sensi_map':sensi}, emis=emis)
+    control = Interface(rcf, ancilliary={'sensi_map':sensi}, emis=emis.data)
     opt = lumia.optimizer.Optimizer(rcf, model, control)
     opt.Var4D()
