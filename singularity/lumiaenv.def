@@ -1,9 +1,6 @@
 Bootstrap: docker
 From: ubuntu:20.04
 
-#Bootstrap: library
-#From: default/ubuntu:20.04
-
 %post
 
     # Install packages
@@ -15,14 +12,23 @@ From: ubuntu:20.04
     apt -y install software-properties-common
     add-apt-repository universe
 
-    apt -y install vim htop
-    apt -y install git
-    apt -y install python3-pip python3-cartopy python3-matplotlib python3-h5py python3-pandas python3-netcdf4 python3-tqdm python3-xarray ipython3
-    apt -y install rclone
+    apt -y install git rclone wget vim htop make gfortran
     apt -y install netcdf-bin libnetcdff-dev libgeos-dev
 
-    # Fix libgeos path:
-    ln -s /usr/lib/x86_64-linux-gnu/libgeos_c.so /usr/lib/
+    # Install conda
+    cd /opt
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    chmod +x miniconda.sh
+    ./miniconda.sh -b -p /opt/conda
+
+    # Create a conda environment and make sure it is automatically activated
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -y -n lumia
+    conda activate lumia
+    conda install -y cartopy matplotlib h5py pandas netcdf4 tqdm xarray ipython pytables
+    export LC_ALL=C
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
+    echo "conda activate lumia" >> $SINGULARITY_ENVIRONMENT
 
     # Make directories
     mkdir /lumia
@@ -34,9 +40,10 @@ From: ubuntu:20.04
     mv congrad.exe /usr/bin
 
     # Pre-install python package:
-    mkdir -p /usr/local/lib/python3.8/dist-packages/
-    echo /lumia >> /usr/local/lib/python3.8/dist-packages/easy-install.pth
-    echo /lumia >> /usr/local/lib/python3.8/dist-packages/lumia.egg-link
+    export PYPTH=/opt/conda/envs/lumia/lib/python3.9/site-packages
+    echo /lumia >> $PYPTH/easy-install.pth
+    echo /lumia >> $PYPTH/lumia.egg-link
+
 
 %files
     ../src/congrad /congrad
