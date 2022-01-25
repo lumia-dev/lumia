@@ -11,7 +11,7 @@ from lumia.Tools.logging_tools import logger
 
 p = ArgumentParser()
 authorized_commands = ['python3', 'ipython3', 'bash']
-p.add_argument('action', choices=['f', 'fwd', 'forward', 'i', 'inv', 'inversion', 'extract', 'install']+authorized_commands, default='bash')
+p.add_argument('action', choices=['f', 'fwd', 'forward', 'i', 'inv', 'inversion', 'extract', 'install', 'e', 'emis']+authorized_commands, default='bash')
 p.add_argument('--bin', default=os.path.join(os.environ['HOME'], '.local/bin'))
 p.add_argument('--scratch', default=None)
 p.add_argument('--footprints', default=None)
@@ -31,6 +31,9 @@ elif args.action in ['f', 'fwd', 'forward']:
 
 elif args.action in ['i', 'inv', 'inversion']:
     subprocess.run(['python3', '/lumia/singularity/run.py', '--optimize'] + remainder)
+
+elif args.action in ['e', 'emis']:
+    subprocess.run(['python3', '/lumia/singularity/run.py', '--prepare_emis'] + remainder)
 
 elif args.action == 'install':
     # Copy the lumia script to the host ~/.local/bin

@@ -12,6 +12,9 @@ from lumia.formatters import lagrange
 p = ArgumentParser()
 p.add_argument('--forward', default=False, action='store_true')
 p.add_argument('--optimize', default=False, action='store_true')
+p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
+p.add_argument('--start', default=None, help="Start of the simulation. Overwrites the value in the rc-file")
+p.add_argument('--end', default=None, help="End of the simulation. Overwrites the value in the rc-file")
 p.add_argument('--tag', default='')
 p.add_argument('--rcf')
 p.add_argument('--verbosity', '-v', default='INFO')
@@ -43,20 +46,24 @@ for k, v in defaults.items():
         rcf.setkey(k, v)
 
 # Read simulation time
-start = datetime(*rcf.get('time.start'))
-end = datetime(*rcf.get('time.end'))
+if args.start is None :
+    args.start = datetime(*rcf.get('time.start'))
+if args.end is None :
+    args.end = datetime(*rcf.get('time.end'))
 
 # Load observations
-db = obsdb(rcf)
-db.SetupUncertainties()
+if args.forward or args.optimize :
+    db = obsdb(rcf)
+    db.SetupUncertainties()
+else :
+    db = None
 
 # Load the pre-processed emissions:
 categories = dict.fromkeys(rcf.get('emissions.categories'))
 for cat in categories :
     categories[cat] = rcf.get(f'emissions.{cat}.origin')
 
-#emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories, archive=rcf.get('emissions.archive'))
-emis = lagrange.Emissions(rcf, start, end)
+emis = lagrange.Emissions(rcf, args.start, args.end)
 
 model = lumia.transport(rcf, obs=db, formatter=lagrange)
 
@@ -67,6 +74,9 @@ elif args.optimize :
     from lumia.interfaces.footprint_flexRes import Interface
 
     sensi = model.calcSensitivityMap()
-    control = Interface(rcf, ancilliary={'sensi_map':sensi}, emis=emis.data)
+    control = Interface(rcf, ancilliary={'sensi_map': sensi}, emis=emis.data)
     opt = lumia.optimizer.Optimizer(rcf, model, control)
     opt.Var4D()
+
+elif args.emis :
+    model.writeStruct(emis.data, rcf.get('path.output'), 'modelData')
