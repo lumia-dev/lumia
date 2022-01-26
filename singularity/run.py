@@ -40,16 +40,31 @@ defaults = {
     'emissions.archive': 'rclone:lumia:fluxes/nc/${region}/${emissions.interval}',
     'emissions.prefix': '/data/fluxes/nc/${region}/${emissions.interval}/flux_co2.',
     'model.transport.exec': '/lumia/transport/default.py',
+    'transport.output': 'T',
+    'transport.output.steps': 'apri, apos'
 }
+
+
+# Read simulation time
+if args.start is None :
+    start = datetime(*rcf.get('time.start'))
+else :
+    start = datetime.strptime(args.start, '%Y%m%d')
+    rcf.setkey('time.start', start.strftime('%Y,%m,%d'))
+if args.end is None :
+    end = datetime(*rcf.get('time.end'))
+else :
+    end = datetime.strptime(args.end, '%Y%m%d')
+    rcf.setkey('time.end', end.strftime('%Y,%m,%d'))
+
+
+# Create subfolder based on the inversion time:
+defaults['path.output'] = os.path.join(defaults['path.output'], f'{start.strftime("%Y%m%d")}-{end.strftime("%Y%m%d")}')
+
 for k, v in defaults.items():
     if k not in rcf.keys :
         rcf.setkey(k, v)
 
-# Read simulation time
-if args.start is None :
-    args.start = datetime(*rcf.get('time.start'))
-if args.end is None :
-    args.end = datetime(*rcf.get('time.end'))
 
 # Load observations
 if args.forward or args.optimize :
@@ -58,15 +73,19 @@ if args.forward or args.optimize :
 else :
     db = None
 
+
 # Load the pre-processed emissions:
 categories = dict.fromkeys(rcf.get('emissions.categories'))
 for cat in categories :
     categories[cat] = rcf.get(f'emissions.{cat}.origin')
+emis = lagrange.Emissions(rcf, start, end)
 
-emis = lagrange.Emissions(rcf, args.start, args.end)
 
+# Create model instance
 model = lumia.transport(rcf, obs=db, formatter=lagrange)
 
+
+# Do a model run (or something else ...).
 if args.forward :
     model.runForward(emis.data, 'forward')
 

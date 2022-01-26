@@ -70,6 +70,7 @@ class transport(object):
         cmd = [sys.executable, '-u', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
         if serial :
             cmd.append('--serial')
+        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
         runcmd(cmd)
 
         # Retrieve results :
@@ -117,6 +118,7 @@ class transport(object):
 
         # Run the adjoint transport:
         cmd = [sys.executable, '-u', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
         runcmd(cmd)
 
         # Collect the results :
