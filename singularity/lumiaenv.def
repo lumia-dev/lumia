@@ -25,7 +25,7 @@ From: ubuntu:20.04
     . /opt/conda/etc/profile.d/conda.sh
     conda create -y -n lumia
     conda activate lumia
-    conda install -y cartopy matplotlib h5py pandas netcdf4 tqdm xarray ipython pytables
+    conda install -y cartopy matplotlib h5py pandas netcdf4 tqdm xarray ipython pytables loguru
     export LC_ALL=C
     echo ". /opt/conda/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
     echo "conda activate lumia" >> $SINGULARITY_ENVIRONMENT

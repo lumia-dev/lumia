@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-import os, logging
+import os#, logging
 from lumia.Tools.logging_tools import colorize
 import inspect
 import sys
 import subprocess
-logger = logging.getLogger(__name__)
+from loguru import logger
+#logger = logging.getLogger(__name__)
 
 
 def checkDir(dirname, silent=False):

@@ -5,12 +5,14 @@ import sys
 from datetime import datetime
 from argparse import ArgumentParser
 import lumia
-from lumia.Tools.logging_tools import logger
+#from lumia.Tools.logging_tools import logger
+from loguru import logger
 from lumia.obsdb.InversionDb import obsdb
 from lumia.formatters import lagrange
 
 p = ArgumentParser()
 p.add_argument('--forward', default=False, action='store_true')
+p.add_argument('--noobs', default=False, action='store_true', help="Run without an observations database, on the basis of the footprints available.")
 p.add_argument('--optimize', default=False, action='store_true')
 p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
 p.add_argument('--start', default=None, help="Start of the simulation. Overwrites the value in the rc-file")
@@ -20,7 +22,7 @@ p.add_argument('--rcf')
 p.add_argument('--verbosity', '-v', default='INFO')
 args = p.parse_args(sys.argv[1:])
 
-logger.setLevel(args.verbosity)
+#ogger.setLevel(args.verbosity)
 
 rcf = lumia.rc(args.rcf)
 
@@ -67,7 +69,10 @@ for k, v in defaults.items():
 
 
 # Load observations
-if args.forward or args.optimize :
+if args.noobs :
+    from lumia.obsdb.runflex import obsdb
+    db = obsdb(rcf.get('path.footprints'))
+elif args.forward or args.optimize :
     db = obsdb(rcf)
     db.SetupUncertainties()
 else :
@@ -79,7 +84,7 @@ categories = dict.fromkeys(rcf.get('emissions.categories'))
 for cat in categories :
     categories[cat] = rcf.get(f'emissions.{cat}.origin')
 emis = lagrange.Emissions(rcf, start, end)
-
+emis.print_summary()
 
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=lagrange)

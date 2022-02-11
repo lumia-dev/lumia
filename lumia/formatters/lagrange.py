@@ -3,7 +3,6 @@ from netCDF4 import Dataset
 from numpy import array, zeros, arange, array_equal
 from datetime import datetime
 from lumia.Tools.system_tools import checkDir
-import logging
 from tqdm import tqdm
 from numpy import unique, append
 import xarray as xr
@@ -11,7 +10,7 @@ from pandas import Timestamp
 from lumia.Tools.regions import region
 from archive import Archive
 from lumia.Tools.geographical_tools import GriddedData
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class Emissions:
@@ -25,6 +24,7 @@ class Emissions:
         self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive'))
 
         if rcf.get('optim.unit.convert', default=False):
+            logger.info("Trying to convert fluxes to umol (from umol/m2/s")
             self.data.to_extensive()   # Convert to umol
             self.print_summary()
 
@@ -108,6 +108,7 @@ class Struct(dict):
             self[cat]['emis'] *= area[None, :, :]
             self[cat]['emis'] *= dt[:, None, None]
         self.unit_type = 'extensive'
+        logger.info("Converted fluxes to extensive units (i.e. umol)")
 
     def to_intensive(self):
         #assert self.unit_type == 'extensive'
@@ -118,6 +119,7 @@ class Struct(dict):
             self[cat]['emis'] /= area[None, :, :]
             self[cat]['emis'] /= dt[:, None, None]
         self.unit_type = 'intensive'
+        logger.info("Converted fluxes to intensive units (i.e. umol/m2/s)")
 
     def append(self, other, overwrite=True):
         """
@@ -172,6 +174,9 @@ class Struct(dict):
         return beg[0], end[0]
 
     def print_summary(self, unit='PgC'):
+        unit_type = self.unit_type + ''
+        if self.unit_type == 'intensive':
+            self.to_extensive()
         scaling_factor = {
             'PgC':12 * 1.e-21,
             'PgCO2': 44 * 1.e-21,
@@ -191,6 +196,8 @@ class Struct(dict):
                 logger.info("    --------------------------")
                 logger.info(f"   Total : {tot:7.2f} {unit}")
                 logger.info('')
+        if unit_type != self.unit_type :
+            self.to_intensive()
 
 
 

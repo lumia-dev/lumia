@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from argparse import ArgumentParser
 import configparser
-from lumia.Tools.logging_tools import logger
+from loguru import logger
 
 
 p = ArgumentParser()
@@ -21,19 +21,19 @@ p.add_argument('--extra-mount-path', action='append', dest='extras')
 args, remainder = p.parse_known_args(sys.argv[1:])
 
 if args.action == 'extract':
-    shutil.copytree('/runflex', remainder[0], dirs_exist_ok=True)
+    shutil.copytree('/lumia', remainder[0], dirs_exist_ok=True)
 
 elif args.action in authorized_commands :
     subprocess.run([args.action] + remainder)
 
 elif args.action in ['f', 'fwd', 'forward']:
-    subprocess.run(['python3', '/lumia/singularity/run.py', '--forward'] + remainder)
+    subprocess.run(['python3', '-u', '/lumia/singularity/run.py', '--forward'] + remainder)
 
 elif args.action in ['i', 'inv', 'inversion']:
-    subprocess.run(['python3', '/lumia/singularity/run.py', '--optimize'] + remainder)
+    subprocess.run(['python3', '-u', '/lumia/singularity/run.py', '--optimize'] + remainder)
 
 elif args.action in ['e', 'emis']:
-    subprocess.run(['python3', '/lumia/singularity/run.py', '--prepare_emis'] + remainder)
+    subprocess.run(['python3', '-u', '/lumia/singularity/run.py', '--prepare_emis'] + remainder)
 
 elif args.action == 'install':
     # Copy the lumia script to the host ~/.local/bin
