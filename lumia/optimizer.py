@@ -95,7 +95,7 @@ class Optimizer(object):
     def _computeDepartures(self, state_preco, step, add_prior=True):
         state = self.control.xc_to_x(state_preco, add_prior=add_prior)
         struct = self.interface.VecToStruct(state)
-        departures = self.model.runForward(struct, step=step)
+        departures = self.model.calcDepartures(struct, step=step)
         dy = departures.loc[:, 'mismatch']
         dye = departures.loc[:, 'err']
         return dy, dye

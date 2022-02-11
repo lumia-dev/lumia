@@ -2,14 +2,15 @@
 import sys
 import os
 import shutil
-import subprocess
-import logging
+#import subprocess
+#import logging
 from numpy import ones, array
 from lumia.Tools import checkDir, colorize
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 
 class transport(object):
@@ -47,6 +48,31 @@ class transport(object):
                 pass
         return rcfile, obsfile
 
+    def calcDepartures(self, struct, step=None, serial=False):
+        dbf = self.runForward(struct, step, serial)
+        db = obsdb(filename=dbf)
+        if self.rcf.get('model.split.categories', default=True):
+            for cat in self.rcf.get('emissions.categories'):
+                self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+        self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
+        self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
+        self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
+        self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
+
+        # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
+        for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
+            self.db.observations.loc[:, key] = db.observations.loc[:, key].values
+
+        self.db.observations.dropna(subset=['mismatch'], inplace=True)
+
+        # Output if needed:
+        if self.rcf.get('transport.output'):
+            if step in self.rcf.get('transport.output.steps'):
+                self.save(tag=step, structf=emf)
+
+        # Return model-data mismatches
+        return self.db.observations.loc[:, ('mismatch', 'err')]
+
     def runForward(self, struct, step=None, serial=False):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
@@ -74,28 +100,29 @@ class transport(object):
         runcmd(cmd)
 
         # Retrieve results :
-        db = obsdb(filename=dbf)
-        if self.rcf.get('model.split.categories', default=True):
-            for cat in self.rcf.get('emissions.categories'):
-                self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
-        self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
-        self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
-        self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
-        self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
+        return dbf
 
-        # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
-        for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
-            self.db.observations.loc[:, key] = db.observations.loc[:, key].values
-
-        self.db.observations.dropna(subset=['mismatch'], inplace=True)
-
-        # Output if needed:
-        if self.rcf.get('transport.output'):
-            if step in self.rcf.get('transport.output.steps'):
-                self.save(tag=step, structf=emf)
-
-        # Return model-data mismatches
-        return self.db.observations.loc[:, ('mismatch', 'err')]
+        # if self.rcf.get('model.split.categories', default=True):
+        #     for cat in self.rcf.get('emissions.categories'):
+        #         self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+        # self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
+        # self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
+        # self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
+        # self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
+        #
+        # # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
+        # for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
+        #     self.db.observations.loc[:, key] = db.observations.loc[:, key].values
+        #
+        # self.db.observations.dropna(subset=['mismatch'], inplace=True)
+        #
+        # # Output if needed:
+        # if self.rcf.get('transport.output'):
+        #     if step in self.rcf.get('transport.output.steps'):
+        #         self.save(tag=step, structf=emf)
+        #
+        # # Return model-data mismatches
+        # return self.db.observations.loc[:, ('mismatch', 'err')]
     
     def runAdjoint(self, departures):
         """

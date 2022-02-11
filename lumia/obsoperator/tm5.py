@@ -29,7 +29,7 @@ class transport(object):
     def setupObs(self, obsdb):
         self.db = obsdb
 
-    def runForward(self, struct, step=None, serial=False):
+    def calcDepartures(self, struct, step=None, serial=False):
         tmpdir = self.rcf.get('path.temp')
 
         # Make sure emissions are in umol:
