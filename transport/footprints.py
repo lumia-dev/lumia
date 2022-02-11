@@ -318,10 +318,14 @@ class FootprintTransport:
         self._forward_loop(filenames)
 
         # Combine the flux components:
-        self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
+        try :
+            self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
+        except AttributeError :
+            logger.warning("Missing background concentrations. Assuming mix_background=0")
+            self.obs.observations.loc[:, 'mix'] = 0.
         for cat in self.emis.categories :
             self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat}'].values
-        
+
         self.obs.save_tar(self.obsfile)
 
     def runAdjoint(self):
