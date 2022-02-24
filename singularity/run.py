@@ -5,7 +5,6 @@ import sys
 from datetime import datetime
 from argparse import ArgumentParser
 import lumia
-#from lumia.Tools.logging_tools import logger
 from loguru import logger
 from lumia.obsdb.InversionDb import obsdb
 from lumia.formatters import lagrange
@@ -30,7 +29,8 @@ rcf = lumia.rc(args.rcf)
 defaults = {
     # Global paths
     'path.data': '/data',
-    'path.temp': '/tmp',
+    'path.temp': os.path.join('/tmp', args.tag),
+    #'path.temp': f'/tmp/{datetime.now().isoformat()}',
     'path.footprints': '/footprints',
     'correlation.inputdir': '/data/corr',
 
@@ -43,9 +43,8 @@ defaults = {
     'emissions.prefix': '/data/fluxes/nc/${region}/${emissions.interval}/flux_co2.',
     'model.transport.exec': '/lumia/transport/default.py',
     'transport.output': 'T',
-    'transport.output.steps': 'apri, apos'
+    'transport.output.steps': 'apri, apos, forward'
 }
-
 
 # Read simulation time
 if args.start is None :
@@ -61,12 +60,14 @@ else :
 
 
 # Create subfolder based on the inversion time:
-defaults['path.output'] = os.path.join(defaults['path.output'], f'{start.strftime("%Y%m%d")}-{end.strftime("%Y%m%d")}')
+defaults['path.output'] = os.path.join(defaults['path.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
+defaults['path.temp'] = os.path.join(defaults['path.temp'], f'{start:%Y%m%d}-{end:%Y%m%d}')
 
 for k, v in defaults.items():
     if k not in rcf.keys :
         rcf.setkey(k, v)
 
+logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
 
 # Load observations
 if args.noobs :

@@ -201,7 +201,7 @@ class Struct(dict):
 
 
 
-def WriteStruct(data, path, prefix=None):
+def WriteStruct(data, path, prefix=None, zlib=False, complevel=1):
     """
     Write the model input (control parameters)
     """
@@ -221,7 +221,7 @@ def WriteStruct(data, path, prefix=None):
             gr.createDimension('nt', data[cat]['emis'].shape[0])
             gr.createDimension('nlat', data[cat]['emis'].shape[1])
             gr.createDimension('nlon', data[cat]['emis'].shape[2])
-            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
+            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'), zlib=zlib, complevel=complevel)
             gr['emis'][:] = data[cat]['emis']
             gr.createVariable('times_start', 'i', ('nt', 'time_components'))
             gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])

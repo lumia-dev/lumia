@@ -15,7 +15,7 @@ class obsdb:
             self._parent = db
         else :
             self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
-            self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt', 'file'])
+            self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt'])
             self.files = DataFrame(columns=['filename'])
             self.start = start
             self.end = end

@@ -2,15 +2,11 @@
 import sys
 import os
 import shutil
-#import subprocess
-#import logging
 from numpy import ones, array
 from lumia.Tools import checkDir, colorize
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
 from loguru import logger
-
-#logger = logging.getLogger(__name__)
 
 
 class transport(object):
@@ -49,7 +45,7 @@ class transport(object):
         return rcfile, obsfile
 
     def calcDepartures(self, struct, step=None, serial=False):
-        dbf = self.runForward(struct, step, serial)
+        emf, dbf = self.runForward(struct, step, serial)
         db = obsdb(filename=dbf)
         if self.rcf.get('model.split.categories', default=True):
             for cat in self.rcf.get('emissions.categories'):
@@ -81,16 +77,20 @@ class transport(object):
         # #if struct is None : struct = self.controlstruct
         # self.check_init()
 
+        # Emission files saved in the tempdir or in outputdir, depending on whether we requested output for that step or not
+        outputdir = self.rcf.get('path.output')
+        tempdir = self.rcf.get('path.temp', outputdir)
+
         # read model-specific info
-        rundir = self.rcf.get('path.output')
         executable = self.rcf.get("model.transport.exec")
         if self.rcf.get("model.transport.serial", default=False) :
             serial = True
         
         # Write model inputs:
-        emf = self.writeStruct(struct, rundir, 'modelData.%s'%step)
-        dbf = self.db.save_tar(os.path.join(rundir, 'observations.%s.tar.gz'%step))
-        rcf = self.rcf.write(os.path.join(rundir, f'forward.{step}.rc'))
+        compression = step in self.rcf.get('transport.output.steps') # Do not compress during 4DVAR loop, for better speed.
+        emf = self.writeStruct(struct, tempdir, 'modelData.%s'%step, zlib=compression)
+        dbf = self.db.save_tar(os.path.join(tempdir, 'observations.%s.tar.gz'%step))
+        rcf = self.rcf.write(os.path.join(tempdir, f'forward.{step}.rc'))
         
         # Run the model
         cmd = [sys.executable, '-u', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
@@ -100,30 +100,8 @@ class transport(object):
         runcmd(cmd)
 
         # Retrieve results :
-        return dbf
+        return emf, dbf
 
-        # if self.rcf.get('model.split.categories', default=True):
-        #     for cat in self.rcf.get('emissions.categories'):
-        #         self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
-        # self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
-        # self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
-        # self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
-        # self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
-        #
-        # # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
-        # for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
-        #     self.db.observations.loc[:, key] = db.observations.loc[:, key].values
-        #
-        # self.db.observations.dropna(subset=['mismatch'], inplace=True)
-        #
-        # # Output if needed:
-        # if self.rcf.get('transport.output'):
-        #     if step in self.rcf.get('transport.output.steps'):
-        #         self.save(tag=step, structf=emf)
-        #
-        # # Return model-data mismatches
-        # return self.db.observations.loc[:, ('mismatch', 'err')]
-    
     def runAdjoint(self, departures):
         """
         Prepare input for the adjoint run, launch the actual transport model in a subprocess and retrieve the results
@@ -131,17 +109,18 @@ class transport(object):
         """
         
         outputdir = self.rcf.get('path.output')
+        tempdir = self.rcf.get('path.temp', outputdir)
         executable = self.rcf.get("model.transport.exec")
         #fields = self.rcf.get('model.adjoint.obsfields')
 
         self.db.observations.loc[:, 'dy'] = departures
-        dpf = self.db.save_tar(os.path.join(outputdir, 'departures.tar.gz'))
+        dpf = self.db.save_tar(os.path.join(tempdir, 'departures.tar.gz'))
         
         # Create an adjoint rc-file
-        rcadj = self.rcf.write(os.path.join(outputdir, 'adjoint.rc'))
+        rcadj = self.rcf.write(os.path.join(tempdir, 'adjoint.rc'))
 
         # Name of the adjoint output file
-        adjf = os.path.join(outputdir, 'adjoint.nc')
+        adjf = os.path.join(tempdir, 'adjoint.nc')
 
         # Run the adjoint transport:
         cmd = [sys.executable, '-u', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
@@ -149,7 +128,7 @@ class transport(object):
         runcmd(cmd)
 
         # Collect the results :
-        return self.readStruct(outputdir, 'adjoint')
+        return self.readStruct(tempdir, 'adjoint')
 
     def calcSensitivityMap(self):
         departures = ones(self.db.observations.shape[0])
