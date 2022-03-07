@@ -1,4 +1,6 @@
 import os
+import pdb
+
 from netCDF4 import Dataset
 from numpy import array, zeros, arange, array_equal
 from datetime import datetime
@@ -111,7 +113,7 @@ class Struct(dict):
         logger.info("Converted fluxes to extensive units (i.e. umol)")
 
     def to_intensive(self):
-        #assert self.unit_type == 'extensive'
+        #assert self.unit_type == 'extensive', pdb.set_trace()
         for cat in self.keys():
             dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
             dt=array([t.total_seconds() for t in dt])
@@ -215,6 +217,8 @@ def WriteStruct(data, path, prefix=None, zlib=False, complevel=1):
 
     # Write to a netCDF format
     with Dataset(filename, 'w') as ds:
+        if zlib:
+            logger.info(f"Writing model data to {filename}, with compression.")
         ds.createDimension('time_components', 6)
         for cat in [c for c in data.keys() if 'cat_list' not in c]:
             gr = ds.createGroup(cat)
@@ -235,13 +239,14 @@ def WriteStruct(data, path, prefix=None, zlib=False, complevel=1):
     return filename
 
 
-def ReadStruct(path, prefix=None, structClass=Struct):
+def ReadStruct(path, prefix=None, structClass=Struct, categories=None):
     if prefix is None :
         filename = path
     else :
         filename = os.path.join(path, '%s.nc' % prefix)
     with Dataset(filename) as ds:
-        categories = ds.groups.keys()
+        if categories is None :
+            categories = ds.groups.keys()
         data = structClass()
         for cat in categories:
             data[cat] = {

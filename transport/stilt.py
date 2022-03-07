@@ -12,12 +12,7 @@ from multiprocessing import Pool
 import os
 
 from datetime import timedelta
-import logging
-
-#logger = logging.getLogger(__name__)
-logger = logging.getLogger(os.path.basename(__file__))
-#logger.setLevel("DEBUG")
-
+from loguru import logger
 
 class StiltFootprintFile(FootprintFile):
     def read(self):
@@ -135,7 +130,7 @@ class StiltFootprintTransport(FootprintTransport):
         fnames = array(self.genFileNames())
         exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])
-        self.obs.observations.loc[:, 'footprint'] = fnames 
+        self.obs.observations.loc[:, 'footprint'] = fnames
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
@@ -146,14 +141,6 @@ class StiltFootprintTransport(FootprintTransport):
         with Pool() as pp :
             fpts = tqdm(list(pp.imap(loadFp, unique(fnames), chunksize=1)), total=len(unique(fnames)))
         
-        #fpts = []
-        #for fname in unique(fnames):
-        #    fpts.append(loadFp(fname))
-
-        #for filename in tqdm(unique(fnames), desc="check footprint files"):
-        #    fp = StiltFootprintFile(filename)
-        #    fp.read()
-
         for fp in fpts :
             if 'footprints' in fp :
                 filename = fp['filename']
@@ -166,8 +153,6 @@ class StiltFootprintTransport(FootprintTransport):
 if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
-
-    logger = logging.getLogger(os.path.basename(__file__))
 
     # Read arguments:
     p = ArgumentParser()
@@ -182,11 +167,6 @@ if __name__ == '__main__':
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
-
-    logger.setLevel(args.verbosity)
-    logger.info('test logger')
-    logger.debug('test logger')
-    logger.warning('test logger')
 
     # Create the transport model
     model = StiltFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)

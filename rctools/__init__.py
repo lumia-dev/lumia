@@ -1,13 +1,10 @@
 import os
-import logging
 import sys
 import re
 import inspect
 from datetime import datetime
 from numpy import ndarray
-
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class RcFile:
@@ -60,11 +57,11 @@ class RcFile:
             val = val.strip()
             key = key.strip()
             if key in self.keys:
-                logging.info(f"redefining value of key {key} from {self.keys[key]} to {val}")
+                logger.info(f"redefining value of key {key} from {self.keys[key]} to {val}")
             self.keys[key] = val
         except Exception as e:
-            logging.error(f"error parsing line {ln +1}: {self.lines[ln]}")
-            logging.exception(e)
+            logger.error(f"error parsing line {ln +1}: {self.lines[ln]}")
+            logger.exception(e)
             sys.exit(1)
 
     def setkey(self, key, val):
@@ -102,7 +99,7 @@ class RcFile:
             val = os.environ[key]
             
         else :
-            logging.error(f"key {key} not found in rc-file {os.path.join(self.dirname, self.filename)}")
+            logger.error(f"key {key} not found in rc-file {os.path.join(self.dirname, self.filename)}")
             sys.exit(1)
         
         if info is not None :
@@ -199,7 +196,7 @@ class RcFile:
                 print(f'{key} : {self.get(key)} : {info}')
 
     def write(self, dest):
-        logging.info(f"Writing rc-file {dest}")
+        logger.info(f"Writing rc-file {dest}")
         if not os.path.exists(os.path.dirname(dest)):
             os.makedirs(os.path.dirname(dest))
 
