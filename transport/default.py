@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 import os
-import logging
-import pdb
-
 from h5py import File
-from numpy import nan, array, int32, float32
+from numpy import nan, array, int32, float32, random, dot
 from datetime import datetime, timedelta
 from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
-
-logger = logging.getLogger(os.path.basename(__file__))
+from lumia.formatters.lagrange import WriteStruct
+from loguru import logger
 
 
 class LumiaFootprintFile(FootprintFile):
@@ -112,12 +109,10 @@ class LumiaFootprintTransport(FootprintTransport):
         cache = Archive(path, parent=Archive(archive))
 
         # Add the footprint files
-        #fnames = [os.path.join(path, f) for f in self.genFileNames()]
-        #fnames = [f if os.path.exists(f) else nan for f in fnames]
         fnames = array(self.genFileNames())
         exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])
-        self.obs.observations.loc[:, 'footprint'] = fnames 
+        self.obs.observations.loc[:, 'footprint'] = fnames
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
@@ -129,11 +124,10 @@ if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
 
-    logger = logging.getLogger(os.path.basename(__file__))
-
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
+    p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--ncpus', '-n', default=None)
     p.add_argument('--verbosity', '-v', default='INFO')
@@ -144,11 +138,6 @@ if __name__ == '__main__':
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
-    logger.setLevel(args.verbosity)
-    logger.info('test logger')
-    logger.debug('test logger')
-    logger.warning('test logger')
-
     # Create the transport model
     model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
 
@@ -157,6 +146,11 @@ if __name__ == '__main__':
 
     if args.forward :
         model.runForward()
+        model.obs.save_tar(model.obsfile)
 
-    if args.adjoint :
-        model.runAdjoint()
+    elif args.adjoint :
+        adj = model.runAdjoint()
+        WriteStruct(adj.data, model.emfile)
+
+    elif args.adjtest :
+        model.adjoint_test()

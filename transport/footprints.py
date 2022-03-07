@@ -3,8 +3,7 @@
 import os
 import shutil
 from datetime import datetime
-from numpy import array_equal, nan, array, unique, nonzero, argsort
-#import ray
+from numpy import array_equal, nan, array, unique, nonzero, argsort, append, random, dot, finfo
 from multiprocessing import Pool
 from tqdm import tqdm
 from lumia.Tools import Categories
@@ -12,15 +11,12 @@ import rctools
 from lumia import obsdb
 from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct, CreateStruct
 from lumia.Tools import regions
-import logging
+from loguru import logger
 import pickle
 
 # Cleanup needed in the following ...
 from lumia.Tools import Region
 from lumia.Tools.time_tools import time_interval
-
-logger = logging.getLogger(__name__)
-logger.setLevel("DEBUG")
 
 
 common = {}
@@ -33,6 +29,8 @@ def Observations(arg):
     """
     if isinstance(arg, obsdb):
         return arg
+    elif arg is None :
+        return obsdb()
     else :
         return obsdb(arg)
 
@@ -46,11 +44,12 @@ class Flux:
     TODO: this should be directly part of the "Struct" class itself ==> yes, but after the class is adapted for
           standard netCDF format
     """
-    def __init__(self, fluxfile):
+    def __init__(self, fluxfile, categories=None):
         if isinstance(fluxfile, Struct) :
             self.data = fluxfile
         else :
-            self.data = ReadStruct(fluxfile)
+            self.data = ReadStruct(fluxfile, categories=categories)
+
         self.categories = list(self.data.keys())
 
         # Make sure that all categories have the same coordinates (this is a requirement):
@@ -87,6 +86,16 @@ class Flux:
 
     def between_times(self, start, end):
         Flux(self.data.between_times(start, end))
+
+    def asvec(self):
+        """
+        Returns a vector representation of the data (primarily for adjoint test purpose)
+        """
+        vec = array(())
+        for cat in sorted(self.categories) :
+            logger.debug(cat)
+            vec = append(vec, self.data[cat]['emis'].reshape(-1))
+        return vec
 
 
 class FootprintFile:
@@ -306,9 +315,9 @@ class FootprintTransport:
             self._forward_loop = self._forward_loop_mp
             self._adjoint_loop = self._adjoint_loop_mp
 
-    def runForward(self):
+    def runForward(self, categories=None):
         # Read the emissions:
-        self.emis = Flux(self.emfile)
+        self.emis = Flux(self.emfile, categories=categories)
 
         # Add the flux columns to the observations dataframe:
         for cat in self.emis.categories:
@@ -322,11 +331,12 @@ class FootprintTransport:
             self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
         except AttributeError :
             logger.warning("Missing background concentrations. Assuming mix_background=0")
+            self.obs.observations.loc[:, 'mix_background'] = 0.
             self.obs.observations.loc[:, 'mix'] = 0.
         for cat in self.emis.categories :
             self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat}'].values
 
-        self.obs.save_tar(self.obsfile)
+        # self.obs.save_tar(self.obsfile) # ==> moved to __main__
 
     def runAdjoint(self):
         # 1) Create an empty adjoint structure
@@ -342,7 +352,30 @@ class FootprintTransport:
         adj = self._adjoint_loop(filenames, adj)
 
         # 3) Write the updated adjoint field
-        WriteStruct(adj.data, self.emfile)
+        # WriteStruct(adj.data, self.emfile)  # ==> moved to __main__
+        return adj
+
+    def adjoint_test(self):
+        # 1) Get the list of categories to be optimized:
+        self.obs.observations.loc[:, 'mix_background'] = 0.
+        #self.obs.observations = self.obs.observations.loc[:0]
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', totype=bool, default=False) is True]
+        self.runForward(categories=categories)
+        x1 = self.emis.asvec()
+        self.obs.observations.dropna(subset=['mix'], inplace=True)
+        y1 = self.obs.observations.loc[:, 'mix'].values
+        y2 = y1 # random.randn(y1.shape[0])
+        self.obs.observations.loc[:, 'dy'] = y2
+        adj = self.runAdjoint()
+        x2 = adj.asvec()
+        adjtest = 1 - dot(x1, x2)/dot(y1, y2)
+        logger.info(f"Adjoint test: {dot(x1, x2)-dot(y1, y2) = }")
+        logger.info(f"Adjoint test: {1 - dot(x1, x2)/dot(y1, y2) = }")
+        if abs(adjtest) < finfo('float32').eps :
+            logger.info("Success")
+        else :
+            logger.warning(f"Adjoint test failed")
+        logger.info(f"Assumed machine precision of: {finfo('float32').eps = }")
 
     def _adjoint_loop_serial(self, filenames, adj):
         for filename in tqdm(filenames):
@@ -352,7 +385,6 @@ class FootprintTransport:
         return adj
 
     def _adjoint_loop_mp(self, filenames, adj):
-        t0 = datetime.now()
         nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
         filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
 
@@ -376,7 +408,6 @@ class FootprintTransport:
                     nzi, nzv = compact[cat]
                     adj.data[cat]['emis'][nzi] += nzv
         
-        print(datetime.now()-t0)
         return adj
 
     def _forward_loop_serial(self, filenames):
