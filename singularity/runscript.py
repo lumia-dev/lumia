@@ -3,15 +3,15 @@
 import sys
 import os
 import shutil
-import subprocess
 from argparse import ArgumentParser
 import configparser
 from loguru import logger
+from lumia.Tools.system_tools import runcmd
 
 
 p = ArgumentParser()
 authorized_commands = ['python3', 'ipython3', 'bash']
-p.add_argument('action', choices=['f', 'fwd', 'forward', 'i', 'inv', 'inversion', 'extract', 'install', 'e', 'emis']+authorized_commands, default='bash')
+p.add_argument('action', choices=['f', 'fwd', 'forward', 'i', 'inv', 'inversion', 'extract', 'install', 'e', 'emis', 'adjtest', 'adjtest2', 'gradtest']+authorized_commands, default='bash')
 p.add_argument('--bin', default=os.path.join(os.environ['HOME'], '.local/bin'))
 p.add_argument('--scratch', default=None)
 p.add_argument('--footprints', default=None)
@@ -24,16 +24,25 @@ if args.action == 'extract':
     shutil.copytree('/lumia', remainder[0], dirs_exist_ok=True)
 
 elif args.action in authorized_commands :
-    subprocess.run([args.action] + remainder)
+    runcmd([args.action] + remainder)
 
 elif args.action in ['f', 'fwd', 'forward']:
-    subprocess.run(['python3', '-u', '/lumia/singularity/run.py', '--forward'] + remainder)
+    runcmd(['python3', '-u', '/lumia/singularity/run.py', '--forward'] + remainder)
 
 elif args.action in ['i', 'inv', 'inversion']:
-    subprocess.run(['python3', '-u', '/lumia/singularity/run.py', '--optimize'] + remainder)
+    runcmd(['python3', '-u', '/lumia/singularity/run.py', '--optimize'] + remainder)
 
 elif args.action in ['e', 'emis']:
-    subprocess.run(['python3', '-u', '/lumia/singularity/run.py', '--prepare_emis'] + remainder)
+    runcmd(['python3', '-u', '/lumia/singularity/run.py', '--prepare_emis'] + remainder)
+
+elif args.action in ['adjtest2']:
+    runcmd(['python3', '-u', '/lumia/singularity/run.py', '--model-adjtest'] + remainder)
+
+elif args.action in ['adjtest'] :
+    runcmd(['python3', '-u', '/lumia/singularity/run.py', '--adjtest'] + remainder)
+
+elif args.action in ['gradtest'] :
+    runcmd(['python3', '-u', '/lumia/singularity/run.py', '--gradtest'] + remainder)
 
 elif args.action == 'install':
     # Copy the lumia script to the host ~/.local/bin

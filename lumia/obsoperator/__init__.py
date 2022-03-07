@@ -3,7 +3,7 @@ import sys
 import os
 import shutil
 from numpy import ones, array
-from lumia.Tools import checkDir, colorize
+from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
 from loguru import logger
@@ -14,6 +14,13 @@ class transport(object):
 
     def __init__(self, rcf, obs=None, formatter=None):
         self.rcf = rcf
+
+        # Set paths :
+        self.outputdir = self.rcf.get('path.output')
+        self.tempdir = self.rcf.get('path.temp', self.outputdir)
+        self.executable = self.rcf.get("model.transport.exec")
+        self.serial = self.rcf.get("model.transport.serial", default=False)
+
         # Initialize the obs if needed
         if obs is not None : 
             self.setupObs(obs)
@@ -74,27 +81,16 @@ class transport(object):
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
-        # #if struct is None : struct = self.controlstruct
-        # self.check_init()
 
-        # Emission files saved in the tempdir or in outputdir, depending on whether we requested output for that step or not
-        outputdir = self.rcf.get('path.output')
-        tempdir = self.rcf.get('path.temp', outputdir)
-
-        # read model-specific info
-        executable = self.rcf.get("model.transport.exec")
-        if self.rcf.get("model.transport.serial", default=False) :
-            serial = True
-        
         # Write model inputs:
         compression = step in self.rcf.get('transport.output.steps') # Do not compress during 4DVAR loop, for better speed.
-        emf = self.writeStruct(struct, tempdir, 'modelData.%s'%step, zlib=compression)
-        dbf = self.db.save_tar(os.path.join(tempdir, 'observations.%s.tar.gz'%step))
-        rcf = self.rcf.write(os.path.join(tempdir, f'forward.{step}.rc'))
+        emf = self.writeStruct(struct, self.tempdir, 'modelData.%s'%step, zlib=compression)
+        dbf = self.db.save_tar(os.path.join(self.tempdir, 'observations.%s.tar.gz'%step))
+        rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.{step}.rc'))
         
         # Run the model
-        cmd = [sys.executable, '-u', executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
-        if serial :
+        cmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]
+        if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
         runcmd(cmd)
@@ -108,33 +104,67 @@ class transport(object):
         The eventual parallelization is handled by the subprocess directly
         """
         
-        outputdir = self.rcf.get('path.output')
-        tempdir = self.rcf.get('path.temp', outputdir)
-        executable = self.rcf.get("model.transport.exec")
-        #fields = self.rcf.get('model.adjoint.obsfields')
-
         self.db.observations.loc[:, 'dy'] = departures
-        dpf = self.db.save_tar(os.path.join(tempdir, 'departures.tar.gz'))
+        dpf = self.db.save_tar(os.path.join(self.tempdir, 'departures.tar.gz'))
         
         # Create an adjoint rc-file
-        rcadj = self.rcf.write(os.path.join(tempdir, 'adjoint.rc'))
+        rcadj = self.rcf.write(os.path.join(self.tempdir, 'adjoint.rc'))
 
         # Name of the adjoint output file
-        adjf = os.path.join(tempdir, 'adjoint.nc')
+        adjf = os.path.join(self.tempdir, 'adjoint.nc')
 
         # Run the adjoint transport:
-        cmd = [sys.executable, '-u', executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]
+        if self.serial :
+            cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
         runcmd(cmd)
 
         # Collect the results :
-        return self.readStruct(tempdir, 'adjoint')
+        return self.readStruct(self.tempdir, 'adjoint')
 
     def calcSensitivityMap(self):
         departures = ones(self.db.observations.shape[0])
         try :
-            tmpdir = self.rcf.get('path.temp')
-            adjfield = self.readStruct(tmpdir, 'adjoint')
+            adjfield = self.readStruct(self.tempdir, 'adjoint')
         except :
             adjfield = self.runAdjoint(departures)
         return array([adjfield[cat]['emis'].sum(0) for cat in adjfield.keys()]).sum(0)
+
+    # def adjoint_test_(self, struct):
+    #     # Write model inputs:
+    #     emf = self.writeStruct(struct, self.tempdir, 'modelData.adjtest', zlib=True)
+    #     dbf = self.db.save_tar(os.path.join(self.tempdir, 'observations.adjtest.tar.gz'))
+    #     rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.adjtest.rc'))
+    #
+    #     # Run the model
+    #     cmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--adjtest', '--emis', emf, '--db', dbf]
+    #     if self.serial :
+    #         cmd.append('--serial')
+    #     cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
+    #     runcmd(cmd)
+
+    def adjoint_test(self, struct):
+        from numpy import dot, random
+
+        # 1) Do a first forward run with these emissions:
+        _, dbf = self.runForward(struct, step='adjtest1')
+        db = obsdb(filename=dbf)
+        y1 = db.observations.loc[:, 'mix'].dropna().values
+
+        # 2) Do a second forward run, with perturbed emissions :
+        x1 = struct['biosphere']['emis'].reshape(-1)
+        dx = random.randn(x1.shape[0])
+        struct['biosphere']['emis'] += dx.reshape(*struct['biosphere']['emis'].shape)
+        _, dbf = self.runForward(struct, step='adjtest2')
+        db = obsdb(filename=dbf)
+        y2 = db.observations.loc[:, 'mix'].dropna().values
+        dy = y2-y1
+
+        # 3) Do an adjoint run :
+        adj = self.runAdjoint(db.observations.loc[:, 'mix_biosphere'])
+
+        # 4) Convert to vectors:
+        y2 = self.db.observations.loc[:, 'dy'].dropna().values
+        x2 = adj['biosphere']['emis'].reshape(-1)
+        logger.info(f"Adjoint test value: { 1 - dot(dy, y2) / dot(dx, x2) = }")

@@ -11,6 +11,9 @@ from lumia.formatters import lagrange
 
 p = ArgumentParser()
 p.add_argument('--forward', default=False, action='store_true')
+p.add_argument('--model-adjtest', default=False, action='store_true', dest='adjtestmod')
+p.add_argument('--adjtest', default=False, action='store_true', dest='adjtest')
+p.add_argument('--gradtest', default=False, action='store_true', dest='gradtest')
 p.add_argument('--noobs', default=False, action='store_true', help="Run without an observations database, on the basis of the footprints available.")
 p.add_argument('--optimize', default=False, action='store_true')
 p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
@@ -29,7 +32,7 @@ rcf = lumia.rc(args.rcf)
 defaults = {
     # Global paths
     'path.data': '/data',
-    'path.temp': os.path.join('/tmp', args.tag),
+    'path.temp': os.path.join('/temp', args.tag),
     #'path.temp': f'/tmp/{datetime.now().isoformat()}',
     'path.footprints': '/footprints',
     'correlation.inputdir': '/data/corr',
@@ -38,7 +41,7 @@ defaults = {
     'tag': args.tag,
     'path.output': os.path.join('/output', args.tag),
     'var4d.communication.file': '${path.output}/comm_file.nc4',
-    'path.archive': 'rclone:results:${project}/${tag}',
+#    'path.archive': 'rclone:results:${project}/${tag}',
     'emissions.archive': 'rclone:lumia:fluxes/nc/${region}/${emissions.interval}',
     'emissions.prefix': '/data/fluxes/nc/${region}/${emissions.interval}/flux_co2.',
     'model.transport.exec': '/lumia/transport/default.py',
@@ -72,7 +75,7 @@ logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
 # Load observations
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
-    db = obsdb(rcf.get('path.footprints'))
+    db = obsdb(rcf.get('path.footprints'), start, end)
 elif args.forward or args.optimize :
     db = obsdb(rcf)
     db.SetupUncertainties()
@@ -95,13 +98,22 @@ model = lumia.transport(rcf, obs=db, formatter=lagrange)
 if args.forward :
     model.runForward(emis.data, 'forward')
 
-elif args.optimize :
+elif args.optimize or args.adjtest or args.gradtest :
     from lumia.interfaces.footprint_flexRes import Interface
 
     sensi = model.calcSensitivityMap()
     control = Interface(rcf, ancilliary={'sensi_map': sensi}, emis=emis.data)
     opt = lumia.optimizer.Optimizer(rcf, model, control)
-    opt.Var4D()
+    if args.optimize :
+        opt.Var4D()
+    elif args.adjtest :
+        opt.AdjointTest()
+    elif args.gradtest :
+        opt.GradientTest()
 
 elif args.emis :
     model.writeStruct(emis.data, rcf.get('path.output'), 'modelData')
+
+elif args.adjtestmod :
+    # Test only the adjoint of the CTM (skip the lumia stuff ...).
+    model.adjoint_test(emis.data)

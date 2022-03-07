@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import os
-import logging
-from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random
+from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random, ones
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
-
-logger = logging.getLogger(__name__)
+from loguru import logger
+import logging
 
 
 class Optimizer(object):
@@ -19,35 +18,52 @@ class Optimizer(object):
         self.iteration = 0
 
     def GradientTest(self):
+
         self.minimizer.reset()
 
-        # 1) Compute the reference cost function and gradient
-        state_preco1 = zeros(self.control.size)
+        # 1) Compute the gradient and cost function for a (random) control vector:
+        state_preco1 = random.randn(self.control.size)
         dy1, err1 = self._computeDepartures(state_preco1, 'state1')
         self.J = self._computeCostFunction(state_preco1, dy1, err1)
         J0 = self.J.tot
         gradient_preco = self._ComputeGradient(state_preco1, dy1, err1)
-        DJ1 = dot(gradient_preco, gradient_preco)
 
-        # 2) Compute the perturbed cost function
-        h = gradient_preco
-        alpha = 1.
-        while alpha > 1.e-15 :
-            alpha /= 10
-            state_preco2 = state_preco1 - alpha*h
-            dy2, err2 = self._computeDepartures(state_preco2, 'state2')
-            J1 = self._computeCostFunction(state_preco2, dy2, err2)
-            #gradtest = ((J1-J0)/(alpha * dot(h.transpose, gradient_preco)))
-            DJ2 = (J1.tot-J0)/alpha
-            print(alpha, 1-DJ2/DJ1)
+        # 2) Compute the cost function for the same state + a small random perturbation
+        dx = random.randn(self.control.size)
+        alpha = 0.01
+
+        with open(os.path.join(self.rcf.get('path.output'), 'gradient_test.log'), 'w') as fid :
+            fid.write(f' alpha ;                DJ1 ;                DJ2 ;      DJ1/DJ2 ;    1-DJ1/DJ2\n')
+            while alpha > 1.e-15 :
+                alpha /= 10
+                state_preco2 = state_preco1 - alpha * dx
+                dy2, err2 = self._computeDepartures(state_preco2, 'state2')
+                J1 = self._computeCostFunction(state_preco2, dy2, err2)
+
+                # 3) Compute the gradient test itself: (J(x+dt) - J(x)) / dot(J', alpha * dx)
+                DJ1 = abs(J1.tot - J0)
+                DJ2 = abs(dot(gradient_preco, alpha * dx))
+                logger.info(f'Gradient test: {alpha =}; {DJ1/DJ2 = :.10f}; {1-DJ1/DJ2 = :.10f}; ')
+                fid.write(f'{alpha:6.0e} ; {DJ1:16.8e} ; {DJ2:16.8e} ; {DJ1/DJ2:.10f} ; {1-DJ1/DJ2:.10f}\n')
 
     def AdjointTest(self):
-        state_preco = random.rand(self.control.size)
-        dy, err = self._computeDepartures(state_preco, 'state1', add_prior=False)
-        adjoint_struct = self.model.runAdjoint(dy/err**2)
-        adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
-        gradient_preco = self.control.g_to_gc(adjoint_state)
-        print(dot(dy, dy)-dot(state_preco, gradient_preco))
+
+        # 1) Do a first (prior) forward run:
+        state_preco1 = zeros(self.control.size)
+        fwd1, _ = self._computeDepartures(state_preco1, step='adjtest1')
+
+        # 2) Do a second (altered) forward run:
+        state_preco2 = random.randn(self.control.size)
+        fwd2, _ = self._computeDepartures(state_preco2, step='adjtest1')
+
+        dx1 = state_preco2
+        dy1 = fwd2 - fwd1  # substract the prior/background fluxes
+
+        # 3) Do an adjoint run, with random departures
+        dy2 = random.randn(fwd2.shape[0])
+        dx2 = self._compute_adjoint(dy2)
+
+        logger.info(f"Adjoint test result (value should be < machine precision) : { 1 - dot(dy1, dy2) / dot(dx1, dx2) }")
 
     def Var4D(self, label='apos'):
         self.minimizer.reset()     # Just to make sure ...
@@ -109,15 +125,22 @@ class Optimizer(object):
         return J
 
     def _ComputeGradient(self, state_preco, dy, dye):
-        adjoint_struct = self.model.runAdjoint(dy/dye**2)
-        adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
-        gradient_obs_preco = self.control.g_to_gc(adjoint_state)
+ #       adjoint_struct = self.model.runAdjoint(dy/dye**2)
+ #       adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
+        gradient_obs_preco = self._compute_adjoint(dy/dye**2)
+#            self.control.g_to_gc(adjoint_state)
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
         mode = 'w' if self.iteration == 0 else 'a'
         with open(os.path.join(self.rcf.get('path.output'), 'costFunction.txt'), mode=mode) as fid :
-            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)}; x_adj={sum(adjoint_state), sum(adjoint_struct['biosphere']['emis']).sum()} \n")
+            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)} \n")
         return gradient_preco
+
+    def _compute_adjoint(self, departures):
+        adjoint_struct = self.model.runAdjoint(departures)
+        adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
+        gradient_obs_preco = self.control.g_to_gc(adjoint_state)
+        return gradient_obs_preco
 
     def _calcPosteriorUncertainties(self, store_eigenvec=False):
         converged_eigvals, converged_eigvecs = self.minimizer.read_eigsys()

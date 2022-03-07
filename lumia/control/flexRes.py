@@ -77,6 +77,8 @@ class Control:
                 state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.temp'))
         if add_prior: 
             state += self.vectors.loc[:, 'state_prior']
+        else :
+            state += self.vectors.loc[:, 'state_prior'] * 0.  # we still need it converted to a dataframe
 
         # Store the current state and state_preco
         self.vectors.loc[:,'state'] = state
