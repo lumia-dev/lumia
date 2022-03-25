@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 import os
-import logging
 from h5py import File
-from numpy import nan, array, int32, float32
+from numpy import nan, array, int32, float32, random, dot
 from datetime import datetime, timedelta
-from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
-
-logger = logging.getLogger(os.path.basename(__file__))
+from lumia.formatters.lagrange import WriteStruct
+from loguru import logger
 
 
 class LumiaFootprintFile(FootprintFile):
@@ -20,10 +19,14 @@ class LumiaFootprintFile(FootprintFile):
         self.footprints = [x for x in self.ds.keys()]
 
         # Store time and space coordinates
-        self.coordinates = SpatialCoordinates(
-            lats=self.ds['latitudes'][:],
-            lons=self.ds['longitudes'][:]
-        )
+        try :
+            self.coordinates = SpatialCoordinates(
+                lats=self.ds['latitudes'][:],
+                lons=self.ds['longitudes'][:]
+            )
+        except :
+            print(self.filename)
+            raise RuntimeError
         self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
         self.dt = timedelta(seconds=self.ds.attrs['tres'])
 
@@ -38,9 +41,8 @@ class LumiaFootprintFile(FootprintFile):
         return True
 
     def setup(self, coords, origin, dt):
-        assert self.coordinates == coords
-        assert self.Footprint.dt == dt
-        
+        #assert self.coordinates == coords, pdb.set_trace()
+        assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
         #    logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
         # Calculate the number of time steps between the Footprint class (i.e 
         # the data in the file) and the requested new origin
@@ -71,7 +73,7 @@ class LumiaFootprintFile(FootprintFile):
         obsid = f'{obs.code}.{obs.height:.0f}m.{obs.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}'
         with File(self.filename, 'a') as ds :
             if obsid in ds :
-                logger.warn(f"Footprint {obsid} already in {self.filename}. Passing ...")
+                logger.warning(f"Footprint {obsid} already in {self.filename}. Passing ...")
             else :
                 if "tres" in ds.attrs :
                     self.origin = datetime.strptime(ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
@@ -94,7 +96,7 @@ class LumiaFootprintTransport(FootprintTransport):
         super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, ncpus=ncpus)
 
     def genFileNames(self):
-        return [f'{o.tracer}/{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()] 
+        return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
 
     def checkFootprints(self, path, archive=None):
         """
@@ -107,51 +109,48 @@ class LumiaFootprintTransport(FootprintTransport):
         cache = Archive(path, parent=Archive(archive))
 
         # Add the footprint files
-        #fnames = [os.path.join(path, f) for f in self.genFileNames()]
-        #fnames = [f if os.path.exists(f) else nan for f in fnames]
         fnames = array(self.genFileNames())
-        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(fnames, desc="Check footprints")])
+        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])
         self.obs.observations.loc[:, 'footprint'] = fnames 
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
-        obsids = [f'{o.tracer}/{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
+        obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
         self.obs.observations.loc[exists, 'obsid'] = obsids
-        
+
 
 if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
 
-    logger = logging.getLogger(os.path.basename(__file__))
-
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
+    p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--ncpus', '-n', default=None)
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
-    p.add_argument('--db', required=False)
-    p.add_argument('--emis', required=False)
+    p.add_argument('--db', required=True)
+    p.add_argument('--emis', required=True)
     p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
-    logger.setLevel(args.verbosity)
-    logger.info('test logger')
-    logger.debug('test logger')
-    logger.warning('test logger')
-
-    # Create the transport model-
-    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus) #mp=False
+    # Create the transport model
+    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))
 
     if args.forward :
         model.runForward()
+        model.obs.save_tar(model.obsfile)
 
-    if args.adjoint :
-        model.runAdjoint()
+    elif args.adjoint :
+        adj = model.runAdjoint()
+        WriteStruct(adj.data, model.emfile)
+
+    elif args.adjtest :
+        model.adjoint_test()

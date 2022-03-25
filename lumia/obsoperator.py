@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from email.policy import default
 import sys
 import os
 import shutil
@@ -46,7 +47,7 @@ class transport(object):
                 pass
         return rcfile, obsfile
 
-    def runForward(self, struct, step=None, serial=False):
+    def runForward(self, struct, atmos_del=None, step=None, serial=False):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
@@ -62,12 +63,19 @@ class transport(object):
 
         # Write model inputs:
         emf = self.writeStruct(struct, tmpdir, 'modelData.%s'%step)
-        dbf = self.db.save_tar(os.path.join(tmpdir, 'observations.%s.tar.gz'%step))
+        if atmos_del is not None:
+            self.atmdf = self.writeStruct(atmos_del, tmpdir, 'atmosDelta', atmos_del=True)
+        else:
+            self.atmdf = None
+        dbf = self.db.save_tar(os.path.join(tmpdir, 'observations.%s.tar.gz'%step)) #TODO: clean
         rcf = self.rcf.write(os.path.join(tmpdir, f'forward.{step}.rc'))
         #checkf = os.path.join(tempfile.mkdtemp(dir=rundir), 'forward.ok')
-        
+
         # Run the model
-        cmd = [sys.executable, executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        if self.atmdf is not None:
+            cmd = [sys.executable, executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf, '--atmdel', self.atmdf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        else:
+            cmd = [sys.executable, executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]#, '--atmdel', atmdf]#, '--serial']#, '--checkfile', checkf, '--serial']
         if serial :
             cmd.append('--serial')
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
@@ -79,13 +87,16 @@ class transport(object):
 
         # Retrieve results :
         db = obsdb(filename=dbf)
-        for tr in list(self.rcf.get('obs.tracers')):
-            for cat in self.rcf.get(f'emissions.{tr}.categories'):
-                self.db.observations.loc[:, f'mix_{tr}_{cat}'] = db.observations.loc[:, f'mix_{tr}_{cat}'].values
+
+        for tr in db.observations.tracer.unique():#list(self.rcf.get('obs.tracers')): #TODO: be careful, adding 14C forcings
+            for cat in db.observations.columns:#self.rcf.get(f'emissions.{tr}.categories'):
+                if tr in cat:
+                    self.db.observations.loc[:, cat] = db.observations.loc[:, cat].values
+
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
-        self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
         self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
+        self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
 
         # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
         for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
@@ -101,7 +112,7 @@ class transport(object):
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
     
-    def runAdjoint(self, departures):
+    def runAdjoint(self, departures, atmdel=None):
         """
         Prepare input for the adjoint run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly
@@ -113,16 +124,23 @@ class transport(object):
         #fields = self.rcf.get('model.adjoint.obsfields')
 
         self.db.observations.loc[:, 'dy'] = departures
+
         dpf = self.db.save_tar(os.path.join(tmpdir, 'departures.tar.gz'))
-        
+
         # Create an adjoint rc-file
         rcadj = self.rcf.write(os.path.join(rundir, 'adjoint.rc'))
 
         # Name of the adjoint output file
         adjf = os.path.join(tmpdir, 'adjoint.nc')
 
-        # Run the adjoint transport:
-        cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--serial']#, '--checkfile', checkf, '--serial']
+        if atmdel is not None:
+            # Name of the atmospheric delta file
+            atmdel = os.path.join(tmpdir, 'atmosDelta.nc')
+
+            # Run the adjoint transport:
+            cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf, '--atmdel', atmdel]#, '--serial']#, '--checkfile', checkf, '--serial']
+        else:
+            cmd = [sys.executable, executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]#, '--atmdel', atmdel]#, '--serial']#, '--checkfile', checkf, '--serial']
         logger.info(colorize(' '.join([x for x in cmd]), 'g'))
         try :
             subprocess.run(cmd, close_fds=True)
@@ -131,10 +149,10 @@ class transport(object):
             raise subprocess.CalledProcessError
 
         # Collect the results :
-        return self.readStruct(tmpdir, 'adjoint')
+        return self.readStruct(tmpdir, prefix='adjoint')
 
     def calcSensitivityMap(self):
         
         departures = ones(self.db.observations.shape[0])
-        adjfield = self.runAdjoint(departures)
+        adjfield = self.runAdjoint(departures, self.atmdf)
         return array([adjfield[tr][cat]['emis'].sum(0) for tr in adjfield.keys() for cat in adjfield[tr].keys()]).sum(0)

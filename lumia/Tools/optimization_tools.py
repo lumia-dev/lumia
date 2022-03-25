@@ -31,7 +31,7 @@ class Tracers:
             yield getattr(self, item)
 
     def setup(self, rcf):
-        trlist = list(rcf.get('obs.tracers'))
+        trlist = rcf.get('obs.tracers') if isinstance(rcf.get('obs.tracers'), list) else [rcf.get('obs.tracers')]
         for tr in trlist :
             self.add(tr)
             self[tr].categories = Categories(rcf, tr)
@@ -72,7 +72,7 @@ class Categories:
             yield getattr(self, item)
 
     def setup(self, rcf, tr):
-        catlist = rcf.get(f'emissions.{tr}.categories')
+        catlist = rcf.get(f'emissions.{tr}.categories') if isinstance(rcf.get(f'emissions.{tr}.categories'), list) else [rcf.get(f'emissions.{tr}.categories')] #TODO: Make the rcf class to always return list
         for cat in catlist :
             self.add(cat)
             self[cat].optimize = rcf.get(f'emissions.{tr}.{cat}.optimize', totype=bool, default=False)

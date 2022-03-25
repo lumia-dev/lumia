@@ -104,8 +104,8 @@ class LegacyFootprintFile(FootprintFile):
             for interv in sorted(intervals)[::-1]:
                 itim = interv.calc_index(self.origin)
                 resp = h5group[interv.key]['resp'][:]
-                fp.ilats.extend(h5group[interv.key]['ilats'][:].astype(int16))
-                fp.ilons.extend(h5group[interv.key]['ilons'][:].astype(int16))
+                fp.ilats.extend(h5group[interv.key]['ilat'][:].astype(int16))
+                fp.ilons.extend(h5group[interv.key]['ilon'][:].astype(int16))
                 fp.itims.extend(repeat(itim, resp.shape[0]).astype(int16))
                 fp.sensi.extend(resp)
 
@@ -129,8 +129,8 @@ class LegacyFootprintFile(FootprintFile):
 
 
 class LegacyFootprintTransport(FootprintTransport):
-    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None, ncpus=None):
-        super().__init__(rcf, obs, emfile, LegacyFootprintFile, mp, checkfile, ncpus)
+    def __init__(self, rcf, obs, emfile=None, atmdel=None, mp=False, checkfile=None, ncpus=None):
+        super().__init__(rcf, obs, emfile, atmdel, LegacyFootprintFile, mp, checkfile, ncpus)
 
     def genFileNames(self):
         return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.strftime("%Y-%m")}.h5' for o in self.obs.observations.itertuples()]
@@ -139,6 +139,7 @@ class LegacyFootprintTransport(FootprintTransport):
         cache = Archive(path, parent=Archive(archive))
 
         fnames = array(self.genFileNames())
+
         exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])
         self.obs.observations.loc[:, 'footprint'] = fnames
@@ -158,12 +159,15 @@ if __name__ == '__main__':
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
+    p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform an adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
-    p.add_argument('--ncpus', '-n', default=None)
+    p.add_argument('--ncpus', '-n', default=8)
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
-    p.add_argument('--emis', required=True)
+    p.add_argument('--emis', required=True) # TODO:
+    p.add_argument('--atmdel')#, required=True) # TODO:
+    # p.add_argument('--ffdel', required=True) # TODO:
     p.add_argument('--no-check-footprints', action='store_false', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
@@ -174,7 +178,7 @@ if __name__ == '__main__':
 #    logger.warning('test logger')
 
     # Create the transport model
-    model = LegacyFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
+    model = LegacyFootprintTransport(args.rc, args.db, args.emis, args.atmdel, mp=not args.serial, ncpus=args.ncpus) #mp=not args.serial
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))
@@ -182,5 +186,8 @@ if __name__ == '__main__':
     if args.forward :
         model.runForward()
 
-    if args.adjoint :
+    elif args.adjoint :
         model.runAdjoint()
+
+    elif args.adjtest :
+        model.adjoint_test()
