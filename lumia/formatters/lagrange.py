@@ -23,7 +23,7 @@ class Emissions:
         self.categories = dict.fromkeys(rcf.get('emissions.categories'))
         for cat in self.categories :
             self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
-        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive'))
+        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None))
 
         if rcf.get('optim.unit.convert', default=False):
             logger.info("Trying to convert fluxes to umol (from umol/m2/s")
@@ -323,7 +323,7 @@ def ReadArchive(prefix, start, end, **kwargs):
             tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
             # Make sure that the file is here:
             localArchive.get(fname, dirname)
-            ds.append(xr.load_dataset(os.path.join(dirname, fname)))
+            ds.append(xr.load_dataarray(os.path.join(dirname, fname)))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
 
@@ -331,9 +331,9 @@ def ReadArchive(prefix, start, end, **kwargs):
         # hasn't been loaded, so there is nothing to trim
         if times[-1] == end :
             times = times[:-1]
-            emis = ds.co2flux.values[:-1,:,:]
+            emis = ds.values[:-1,:,:]
         else :
-            emis = ds.co2flux.values
+            emis = ds.values
             
         data[cat] = {
             'emis':emis,

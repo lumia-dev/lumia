@@ -79,7 +79,7 @@ class RcFile:
         else :
             return val
     
-    def get(self, key, tolist=True, convert=True, default=None, todate=False, fmt=None, totype=None, info=None):
+    def get(self, key, tolist=True, convert=True, todate=False, fmt=None, totype=None, info=None, **kwargs):
         key = self.matchval(key)
         
         # Check if the key is there
@@ -87,8 +87,8 @@ class RcFile:
             val = self.keys[key]
             
         # Otherwise, check if it has a default value
-        elif default is not None :
-            val = default
+        elif 'default' in kwargs :
+            val = kwargs['default']
             
         # Otherwise, check if a parent key exists
         elif self.findParent(key) is not None :
@@ -97,11 +97,13 @@ class RcFile:
         # Finally, look for matching environment variables
         elif key in os.environ :
             val = os.environ[key]
-            
+
         else :
-            logger.error(f"key {key} not found in rc-file {os.path.join(self.dirname, self.filename)}")
-            sys.exit(1)
-        
+            msg = f"key {key} not found in rc-file"
+            if self.filename is not None :
+                msg += f" {os.path.join(self.dirname, self.filename)}"
+            raise KeyError(msg)
+
         if info is not None :
             if isinstance(info, dict):
                 info = info[key]

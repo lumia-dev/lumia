@@ -1,7 +1,6 @@
 import os
-import logging
 import subprocess
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class RcloneArchive:
@@ -113,6 +112,8 @@ class LocalArchive:
             
 class Archive:
     def __init__(self, key, parent=None, *args, **kwargs):
+        logger.debug(key)
+        logger.debug(parent)
         self.key = key
         if parent is not None :
             if parent.key is not None :
