@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import logging
+from loguru import logger
 from copy import deepcopy
 from multiprocessing import Pool
 from tqdm import tqdm
 from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique
 
-logger = logging.getLogger(__name__)
 
 common = {}
 
@@ -230,7 +229,7 @@ class Uncertainties:
     def calcTotalUncertainty(self):
         errtot = {}
         for cat in self.interface.categories :
-            unitconv = {'PgC':12.e-21}[cat.unit]
+            unitconv = dict(PgC=12.e-21, TgCH4=16.e-21)[cat.unit]
             if cat.optimize :
                 #sig = (self.vectors.prior_uncertainty.values)
                 Lh = self.Ch[cat.horizontal_correlation].mat
@@ -238,7 +237,7 @@ class Uncertainties:
 
                 common['Ch'] = dot(Lh, Lh.transpose())
                 common['Ct'] = dot(Lt, Lt.transpose())
-                common['sigmas'] = self.data.prior_uncertainty
+                common['sigmas'] = self.data.prior_uncertainty * unitconv
                 common['itimes'] = self.data.itime.values
 
                 nt = len(unique(common['itimes']))
@@ -247,7 +246,7 @@ class Uncertainties:
                     errm = pp.imap(_aggregate_uncertainty, range(nt))
                     err = sum(tqdm(errm, total=nt))
 
-                errtot[cat.name] = sqrt(err) * unitconv
+                errtot[cat.name] = err
 
                 for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
                     del common[key]
@@ -268,10 +267,15 @@ class Uncertainties:
     def ScaleUncertainty(self):
         # Scale the whole array to reach the desired total uncertainty value:
         errtot = self.calcTotalUncertainty()
+
+        # Divide by the simulation length:
+        nsec = (self.interface.time.end - self.interface.time.start).total_seconds()
+        nsec_year = 365*86400.
+
         for cat in self.interface.categories :
             if cat.optimize :
-                scalef = cat.uncertainty / errtot[cat.name]
+                scalef = sqrt(cat.uncertainty / errtot[cat.name]) * nsec / nsec_year
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
-                logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit}")
+                logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (scaling factor {scalef = })")
 
         self.dict['prior_uncertainty'] = self.data.prior_uncertainty

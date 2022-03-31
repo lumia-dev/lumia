@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 import os
 from copy import deepcopy
-import logging
 from datetime import datetime
 from numpy import dot, unique, array
 from lumia.Tools import Categories
 from lumia.Tools import Region
 from .tools import read_latlon, horcor, calc_temp_corr
-from dateutil.relativedelta import relativedelta
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class Uncertainties:

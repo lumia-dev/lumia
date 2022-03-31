@@ -84,9 +84,6 @@ else :
 
 
 # Load the pre-processed emissions:
-categories = dict.fromkeys(rcf.get('emissions.categories'))
-for cat in categories :
-    categories[cat] = rcf.get(f'emissions.{cat}.origin')
 emis = lagrange.Emissions(rcf, start, end)
 emis.print_summary()
 

@@ -13,6 +13,7 @@ from lumia.Tools.regions import region
 from archive import Archive
 from lumia.Tools.geographical_tools import GriddedData
 from loguru import logger
+from pandas import date_range
 
 
 class Emissions:
@@ -23,7 +24,10 @@ class Emissions:
         self.categories = dict.fromkeys(rcf.get('emissions.categories'))
         for cat in self.categories :
             self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
-        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None))
+        resample = None
+        if rcf.get('emissions.resample', default=False):
+            resample = rcf.get('emissions.interval')
+        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None), freq=resample)
 
         if rcf.get('optim.unit.convert', default=False):
             logger.info("Trying to convert fluxes to umol (from umol/m2/s")
@@ -182,6 +186,7 @@ class Struct(dict):
         scaling_factor = {
             'PgC':12 * 1.e-21,
             'PgCO2': 44 * 1.e-21,
+            'TgCH4': 16.0425 * 1.e-18
         }[unit]
         for cat in self.keys() :
             tstart = self[cat]['time_interval']['time_start']
@@ -280,7 +285,7 @@ def CreateStruct(categories, region, start, end, dt):
     return data
 
 
-def ReadArchive(prefix, start, end, **kwargs):
+def ReadArchive(prefix, start, end, freq=None, **kwargs):
     """
     Create an internal model data structure (i.e. Struct() instance) from a set of netCDF files.
     The files are loaded using xarray, the file name follows the format {prefix}{field}.{year}.nc, with prefix provided
@@ -294,7 +299,6 @@ def ReadArchive(prefix, start, end, **kwargs):
     :return:
     """
 
-    # TODO: remove the dependency to xarray
     data = Struct()
     if kwargs.get('categories',False):
         categories = kwargs.get('categories')
@@ -325,6 +329,18 @@ def ReadArchive(prefix, start, end, **kwargs):
             localArchive.get(fname, dirname)
             ds.append(xr.load_dataarray(os.path.join(dirname, fname)))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
+
+        # Resample to a higher frequency?
+        if freq is not None :
+            times_dest = date_range(start, end, freq=freq, closed='left')
+            tres1 = Timestamp(ds.time.data[1])-Timestamp(ds.time.data[0])
+            tres2 = times_dest[1]-times_dest[0]
+            if tres1 != tres2 :
+                assert tres1 > tres2
+                assert (tres1 % tres2).total_seconds() == 0
+                logger.info(f"Increase the resolution of the emissions from {tres1.total_seconds()/3600:.0f}h to {tres2.total_seconds()/3600:.0f}h")
+                ds = ds.reindex(time=times_dest).ffill('time')
+
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
 
         # The DataArray.sel command includes the time step starting at "end", so we normally would need to trim the last time step. But if it is a 1st january at 00:00, then the corresponding file
