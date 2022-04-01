@@ -11,7 +11,8 @@ from lumia.Tools.time_tools import tinterv
 from lumia import tqdm
 from lumia.formatters.lagrange import Struct
 from lumia.control import flexRes
-from lumia.uncertainties import Uncertainties as unc 
+from lumia.uncertainties import Uncertainties as unc
+from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class Interface :
         if emis is not None :
             self.SetupPrior(emis)
             self.SetupUncertainties(**kwargs)
+            self.time = SimpleNamespace(start = emis.start, end=emis.end)
 
     def SetupPrior(self, emis):
         if self.rcf.get('optim.unit.convert', default=True):

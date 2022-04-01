@@ -33,7 +33,6 @@ defaults = {
     # Global paths
     'path.data': '/data',
     'path.temp': os.path.join('/temp', args.tag),
-    #'path.temp': f'/tmp/{datetime.now().isoformat()}',
     'path.footprints': '/footprints',
     'correlation.inputdir': '/data/corr',
 
@@ -41,12 +40,12 @@ defaults = {
     'tag': args.tag,
     'path.output': os.path.join('/output', args.tag),
     'var4d.communication.file': '${path.output}/comm_file.nc4',
-#    'path.archive': 'rclone:results:${project}/${tag}',
-    'emissions.archive': 'rclone:lumia:fluxes/nc/${region}/${emissions.interval}',
-    'emissions.prefix': '/data/fluxes/nc/${region}/${emissions.interval}/flux_co2.',
+    'emissions.archive': 'rclone:lumia:fluxes/nc/${region}/${emissions.convert_from.interval}',
+    'emissions.prefix': '/data/fluxes/nc/${region}/${emissions.convert_from.interval}',
     'model.transport.exec': '/lumia/transport/default.py',
     'transport.output': 'T',
-    'transport.output.steps': 'apri, apos, forward'
+    'transport.output.steps': 'apri, apos, forward',
+    'emissions.convert_from.interval': '${emissions.interval}',
 }
 
 # Read simulation time
@@ -85,7 +84,7 @@ else :
 
 # Load the pre-processed emissions:
 emis = lagrange.Emissions(rcf, start, end)
-emis.print_summary()
+emis.print_summary(unit=rcf.get(f'emissions.{rcf.get("tracer")}.unit'))
 
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=lagrange)
@@ -93,7 +92,7 @@ model = lumia.transport(rcf, obs=db, formatter=lagrange)
 
 # Do a model run (or something else ...).
 if args.forward :
-    model.runForward(emis.data, 'forward')
+    model.calcDepartures(emis.data, 'forward')
 
 elif args.optimize or args.adjtest or args.gradtest :
     from lumia.interfaces.footprint_flexRes import Interface

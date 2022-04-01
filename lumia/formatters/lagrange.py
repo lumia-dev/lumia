@@ -22,17 +22,19 @@ class Emissions:
         self.end = end
         self.rcf = rcf
         self.categories = dict.fromkeys(rcf.get('emissions.categories'))
+        self.tracer = rcf.get('tracer')
         for cat in self.categories :
             self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
         resample = None
         if rcf.get('emissions.resample', default=False):
             resample = rcf.get('emissions.interval')
-        self.data = ReadArchive(rcf.get('emissions.prefix'), self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None), freq=resample)
+        prefix = os.path.join(rcf.get('emissions.prefix'), f'flux_{self.tracer}.')
+        self.data = ReadArchive(prefix, self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None), freq=resample)
 
         if rcf.get('optim.unit.convert', default=False):
             logger.info("Trying to convert fluxes to umol (from umol/m2/s")
             self.data.to_extensive()   # Convert to umol
-            self.print_summary()
+            self.print_summary(unit=self.rcf.get(f'emissions.{self.tracer}.unit'))
 
         # Coarsen the data if needed:
         reg = region(
@@ -190,6 +192,11 @@ class Struct(dict):
         }[unit]
         for cat in self.keys() :
             tstart = self[cat]['time_interval']['time_start']
+            unit_source = self[cat].get('unit', 'umol/m2/s')
+            scf = scaling_factor * {
+                'umol/m2/s':1.,
+                'nmol/m2/s':1.e-3
+            }[unit_source]
             years = unique([t.year for t in tstart])
             logger.info("===============================")
             logger.info(f"{cat}:")
@@ -197,9 +204,9 @@ class Struct(dict):
             for year in years :
                 logger.info(f'{year}:')
                 for month in unique([t.month for t in tstart if t.year == year]):
-                    tot = self[cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scaling_factor
+                    tot = self[cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scf
                     logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
-                tot = self[cat]['emis'][[t.year == year for t in tstart]].sum()*scaling_factor
+                tot = self[cat]['emis'][[t.year == year for t in tstart]].sum()*scf
                 logger.info("    --------------------------")
                 logger.info(f"   Total : {tot:7.2f} {unit}")
                 logger.info('')
@@ -360,6 +367,8 @@ def ReadArchive(prefix, start, end, freq=None, **kwargs):
             'lats':ds.lat[:],
             'lons':ds.lon[:]
         }
+
+        data[cat]['unit'] = ds.unit
 
     if kwargs.get('extensive_units', False) : 
         data.to_extensive()
