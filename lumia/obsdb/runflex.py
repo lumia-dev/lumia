@@ -6,6 +6,7 @@ import h5py
 from datetime import datetime
 from pandas import DataFrame
 from loguru import logger
+from tqdm import tqdm
 
 
 class obsdb(obsdb):
@@ -21,7 +22,7 @@ class obsdb(obsdb):
         else :
             pattern = path_or_pattern
         files = glob.glob(pattern)
-        for file in files :
+        for file in tqdm(files, desc=f"Defining obs from footprint files in {path_or_pattern}") :
             df = self.read_footprintFile(file)
             df.loc[:, 'footprint'] = file
             self.observations = self.observations.append(df, ignore_index=True)
@@ -33,6 +34,7 @@ class obsdb(obsdb):
         self.sites.loc[:, 'site'] = sites.site
         self.sites.loc[:, 'lat'] = sites.lat
         self.sites.loc[:, 'lon'] = sites.lon
+        self.sites.loc[:, 'alt'] = sites.alt
         self.sites.loc[:, 'height'] = sites.height
         self.sites.set_index('site', inplace=True)
 
@@ -53,5 +55,9 @@ class obsdb(obsdb):
             data['time'] = [datetime.strptime(fid[o].attrs['release_time'], '%Y-%m-%d %H:%M:%S') for o in obs]
             data['lat'] = [float(fid[o].attrs['release_lat']) for o in obs]
             data['lon'] = [float(fid[o].attrs['release_lon']) for o in obs]
-            data['height'] = [float(fid[o].attrs['release_height']) for o in obs]
+            data['alt'] = [float(fid[o].attrs['release_height']) for o in obs]
+            data['obsid'] = [fid[o].attrs['release_id'] for o in obs]
+            data['kindz'] = [int(fid[o].attrs['release_kindz']) for o in obs]
+            data['height'] = [int(o.split('.')[1][:-1]) for o in data['obsid']]
+
         return DataFrame.from_dict(data)
