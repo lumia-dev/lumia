@@ -32,8 +32,8 @@ class Interface :
         self.data = flexRes.Control(rcf)
         if emis is not None :
             self.SetupPrior(emis)
+            self.time = SimpleNamespace(start=self.data.start, end=self.data.end)
             self.SetupUncertainties(**kwargs)
-            self.time = SimpleNamespace(start = emis.start, end=emis.end)
 
     def SetupPrior(self, emis):
         if self.rcf.get('optim.unit.convert', default=True):

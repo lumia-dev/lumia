@@ -368,7 +368,11 @@ def ReadArchive(prefix, start, end, freq=None, **kwargs):
             'lons':ds.lon[:]
         }
 
-        data[cat]['unit'] = ds.unit
+        try :
+            data[cat]['unit'] = ds.unit
+        except AttributeError :
+            data[cat]['unit'] = 'umol/m2/s'
+            logger.warning(f'"unit" attribute missing in files {prefix}{field}.YYYY.nc. Assuming {data[cat]["unit"]}')
 
     if kwargs.get('extensive_units', False) : 
         data.to_extensive()
