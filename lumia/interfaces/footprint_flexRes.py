@@ -49,7 +49,7 @@ class Interface :
     def Coarsen(self, struct):
         categ, statevec, ipos, itime = [], [], [], []
         for cat in self.temporal_mapping :
-            tmap = self.temporal_mapping[cat]['map']
+            tmap = self.temporal_mapping[cat]['map'].astype(bool) # Here we just want True if model tstep is in optim time step and false otherwise
             nt = tmap.shape[0]
             # Temporal coarsening
             emcat = zeros((nt, self.region.nlat, self.region.nlon))
@@ -351,9 +351,6 @@ class Interface :
             for imod, tmod in enumerate(times_model):
                 for iopt, topt in enumerate(times_optim):
                     mapping[cat.name]['map'][iopt, imod] = tmod.overlap_percent(topt)
+            mapping[cat.name]['map'] = (mapping[cat.name]['map'].transpose()/mapping[cat.name]['map'].sum(1)).transpose()
 
-            # Make sure we don't split model time steps
-            assert array_equal(mapping[cat.name]['map'], mapping[cat.name]['map'].astype(bool)), "Splitting model time steps it technically possible but not implemented"
-            mapping[cat.name]['map'] = mapping[cat.name]['map'].astype(bool)
-
-        return mapping            
+        return mapping
