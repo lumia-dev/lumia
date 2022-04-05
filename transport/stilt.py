@@ -179,6 +179,7 @@ if __name__ == '__main__':
 
     if args.forward :
         model.runForward()
+        model.obs.save_tar(model.obsfile)
         #model.write(args.obs)
 
     if args.adjoint :
