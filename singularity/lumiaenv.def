@@ -50,11 +50,17 @@ From: ubuntu:20.04
 
 %environment
     export machine=singularity
+    export CONDA_ENVS_PATH=/opt/conda/envs
+
 
 %runscript
     if [ $# -ne 0 ]
     then
+        . /opt/conda/etc/profile.d/conda.sh
+        conda activate /opt/conda/envs/lumia
         python3 /lumia/singularity/runscript.py $@
     else
-        /bin/bash
+        . /opt/conda/etc/profile.d/conda.sh
+        conda activate /opt/conda/envs/lumia
+        bash
     fi
