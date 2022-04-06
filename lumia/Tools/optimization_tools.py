@@ -40,6 +40,7 @@ class Categories:
             if self[cat].optimize :
                 self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
                 self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
+                self[cat].error_structure = rcf.get(f'emissions.{cat}.error_structure')
                 self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
                 optint = rcf.get('optimization.interval')

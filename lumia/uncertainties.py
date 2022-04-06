@@ -179,21 +179,21 @@ class Uncertainties:
         data = self.interface.StructToVec(errstruct)
         data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
         return data.drop(columns=['value'])
-
-    def calcPriorUncertainties(self):
-        """
-        Uncertainties set to a percentage of the prior control vector
-        """
-        data = deepcopy(self.interface.ancilliary_data)
-        data = self.errStructToVec(data)
-        for cat in self.interface.categories :
-            if cat.optimize :
-                errfact = cat.uncertainty*0.01
-                errcat = abs(data.loc[data.category == cat, 'prior_uncertainty'].values)*errfact
-                errcat[(errcat < 0.01*errcat.max())*(data.loc[:, 'land_fraction']>0)] = errcat.max()/100
-                data.loc[data.category == cat, 'prior_uncertainty'] = errcat
-        self.data = data
-        self.dict['prior_uncertainty'] = data.prior_uncertainty
+    #
+    # def calcPriorUncertainties(self):
+    #     """
+    #     Uncertainties set to a percentage of the prior control vector
+    #     """
+    #     data = deepcopy(self.interface.ancilliary_data)
+    #     data = self.errStructToVec(data)
+    #     for cat in self.interface.categories :
+    #         if cat.optimize :
+    #             errfact = cat.uncertainty*0.01
+    #             errcat = abs(data.loc[data.category == cat, 'prior_uncertainty'].values)*errfact
+    #             errcat[(errcat < 0.01*errcat.max())*(data.loc[:, 'land_fraction']>0)] = errcat.max()/100
+    #             data.loc[data.category == cat, 'prior_uncertainty'] = errcat
+    #     self.data = data
+    #     self.dict['prior_uncertainty'] = data.prior_uncertainty
 
     def setup_Hcor(self):
         for cat in self.interface.categories :
@@ -250,6 +250,7 @@ class Uncertainties:
 
                 for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
                     del common[key]
+                logger.debug(f"Original uncertainty for category {cat}: {err:.3f} {cat.unit}")
         return errtot
 
     def CalcUncertaintyStructure(self):
@@ -259,8 +260,16 @@ class Uncertainties:
         # Calculate the spatio-temporal structure of the uncertainty
         data = deepcopy(self.interface.ancilliary_data)
         for cat in self.interface.categories :
-            data[cat.name]['emis'] = data[cat.name]['emis']**2
+            if cat.optimize :
+                # In the following code, we set the variances of the fluxes at the transport scale
+                if cat.error_structure == 'linear':
+                    data[cat.name]['emis'] = data[cat.name]['emis']**2
+                elif cat.error_structure == 'flat':
+                    data[cat.name]['emis'][:] = 1.
+        # Aggregate the variances into a control vector
         self.data = self.interface.StructToVec(data, store_ancilliary=False)
+
+        # Store the square root of this (standard deviations). They are re-converted to variances later
         self.data.loc[:, 'prior_uncertainty'] = sqrt(self.data.loc[:, 'value'])
         self.data.drop(columns=['value'], inplace=True)
 
@@ -274,8 +283,8 @@ class Uncertainties:
 
         for cat in self.interface.categories :
             if cat.optimize :
-                scalef = sqrt(cat.uncertainty / errtot[cat.name]) * nsec / nsec_year
+                scalef = sqrt(cat.uncertainty / errtot[cat.name] * nsec / nsec_year )
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
-                logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (scaling factor {scalef = })")
+                logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
 
         self.dict['prior_uncertainty'] = self.data.prior_uncertainty

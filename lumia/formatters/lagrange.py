@@ -214,7 +214,6 @@ class Struct(dict):
             self.to_intensive()
 
 
-
 def WriteStruct(data, path, prefix=None, zlib=False, complevel=1):
     """
     Write the model input (control parameters)
