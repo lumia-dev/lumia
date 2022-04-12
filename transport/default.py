@@ -96,7 +96,7 @@ class LumiaFootprintTransport(FootprintTransport):
         super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, ncpus=ncpus)
 
     def genFileNames(self):
-        return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
+        return [f'{o.code.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
 
     def checkFootprints(self, path, archive=None):
         """
@@ -116,7 +116,7 @@ class LumiaFootprintTransport(FootprintTransport):
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
-        obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
+        obsids = [f'{o.code.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
         self.obs.observations.loc[exists, 'obsid'] = obsids
 
 
