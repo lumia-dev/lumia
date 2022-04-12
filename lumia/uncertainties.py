@@ -4,7 +4,7 @@ from loguru import logger
 from copy import deepcopy
 from multiprocessing import Pool
 from tqdm import tqdm
-from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique
+from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log
 
 
 common = {}
@@ -78,6 +78,8 @@ class HorCor:
             self.genCovarMat = self.genGaussianCovarMat
         elif cortype == 'h' :
             self.genCovarMat = self.genHyperbolicCovariances
+        elif cortype == 'e' :
+            self.genCovarMat = self.genExponentialCovariances
 
     def __call__(self):
         self.mat = self.genCovarMat()
@@ -90,6 +92,13 @@ class HorCor:
 
         # Calculate the correlations based on it
         corrmat = exp(-(distmat/self.corlen)**2)   # Gaussian covariances only for now
+        corrmat[corrmat < minv] = 0.
+        return corrmat
+
+    def genExponentialCovariances(self, minv=1.e-7):
+        distmat = calc_dist_matrix(self.lats, self.lons)
+
+        corrmat = exp(-(distmat/self.corlen))
         corrmat[corrmat < minv] = 0.
         return corrmat
 
@@ -229,6 +238,7 @@ class Uncertainties:
     def calcTotalUncertainty(self):
         errtot = {}
         for cat in self.interface.categories :
+            # TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone
             unitconv = dict(PgC=12.e-21, TgCH4=16.e-21)[cat.unit]
             if cat.optimize :
                 #sig = (self.vectors.prior_uncertainty.values)
@@ -237,8 +247,8 @@ class Uncertainties:
 
                 common['Ch'] = dot(Lh, Lh.transpose())
                 common['Ct'] = dot(Lt, Lt.transpose())
-                common['sigmas'] = self.data.prior_uncertainty * unitconv
-                common['itimes'] = self.data.itime.values
+                common['sigmas'] = self.data.loc[self.data.category == cat].prior_uncertainty * unitconv
+                common['itimes'] = self.data.loc[self.data.category == cat].itime.values
 
                 nt = len(unique(common['itimes']))
 
@@ -246,11 +256,12 @@ class Uncertainties:
                     errm = pp.imap(_aggregate_uncertainty, range(nt))
                     err = sum(tqdm(errm, total=nt))
 
-                errtot[cat.name] = err
+                # here "err" is the variance, in units of [flux_unit]^2. We want something in [flux_unit] so take the square root.
+                errtot[cat.name] = sqrt(err)
 
                 for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
                     del common[key]
-                logger.debug(f"Original uncertainty for category {cat}: {err:.3f} {cat.unit}")
+                logger.debug(f"Original uncertainty for category {cat}: {errtot[cat.name]:.3f} {cat.unit}")
         return errtot
 
     def CalcUncertaintyStructure(self):
@@ -264,6 +275,16 @@ class Uncertainties:
                 # In the following code, we set the variances of the fluxes at the transport scale
                 if cat.error_structure == 'linear':
                     data[cat.name]['emis'] = data[cat.name]['emis']**2
+                elif cat.error_structure == 'log':
+                    em = data[cat.name]['emis'] ** 2
+                    em = em.reshape(-1, 24, em.shape[1], em.shape[2])
+                    daily_tot = em.sum((1,2,3))
+                    em = (em.swapaxes(0, -1) * log(daily_tot) / daily_tot).swapaxes(0, -1)
+                    data[cat.name]['emis'] = em.reshape(-1, em.shape[2], em.shape[3])
+                elif cat.error_structure == 'abs':
+                    data[cat.name]['emis'] = abs(data[cat.name]['emis'])
+                elif cat.error_structure == 'sqrt':
+                    data[cat.name]['emis'] = abs(data[cat.name]['emis'])**.5
                 elif cat.error_structure == 'flat':
                     data[cat.name]['emis'][:] = 1.
         # Aggregate the variances into a control vector

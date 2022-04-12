@@ -43,6 +43,7 @@ class Categories:
                 self[cat].error_structure = rcf.get(f'emissions.{cat}.error_structure')
                 self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
+                self[cat].apply_lsm = rcf.get(f'emissions.{cat}.apply_lsm', default=True)
                 optint = rcf.get('optimization.interval')
                 if re.match('\d*y', optint):
                     n = re.split('d', optint)[0]
@@ -236,7 +237,7 @@ class Cluster:
         return neighbours
 
 
-def clusterize(field, nmax, mask=None, minxsize=1, minysize=1):
+def clusterize(field, nmax, mask=None, minxsize=1, minysize=1, cat=''):
     Cluster.minxsize = minxsize
     Cluster.minysize = minysize
     clusters = [Cluster(field, mask=mask, crop=False)]
@@ -248,7 +249,7 @@ def clusterize(field, nmax, mask=None, minxsize=1, minysize=1):
     #     clusters = clusters[0].reduce_res(coarsen)
 
     nclmax = min(nmax, (clusters[0].mask > 0).sum())
-    with tqdm(total=nclmax, desc="spatial aggregation") as pbar:
+    with tqdm(total=nclmax, desc=f"spatial aggregation {cat}") as pbar:
         ncl = len(clusters+clusters_final)
         while ncl < nclmax :  # and len(Cluster) > 0 :
             ranks = [c.rank for c in clusters]
