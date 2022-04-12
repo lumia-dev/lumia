@@ -86,10 +86,6 @@ class RcFile:
         if key in self.keys:
             val = self.keys[key]
             
-        # Otherwise, check if it has a default value
-        elif 'default' in kwargs :
-            val = kwargs['default']
-            
         # Otherwise, check if a parent key exists
         elif self.findParent(key) is not None :
             val = self.get(self.findParent(key))
@@ -97,6 +93,10 @@ class RcFile:
         # Finally, look for matching environment variables
         elif key in os.environ :
             val = os.environ[key]
+
+        # Otherwise, check if it has a default value
+        elif 'default' in kwargs:
+            val = kwargs['default']
 
         else :
             msg = f"key {key} not found in rc-file"
