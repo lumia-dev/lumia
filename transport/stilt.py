@@ -7,6 +7,8 @@ from archive import Archive
 from tqdm import tqdm
 from lumia.timers import Timer
 from multiprocessing import Pool
+from lumia.formatters.lagrange import WriteStruct
+
 
 # Main ==> move?
 import os
@@ -183,7 +185,8 @@ if __name__ == '__main__':
         #model.write(args.obs)
 
     if args.adjoint :
-        model.runAdjoint()
+        adj = model.runAdjoint()
+        WriteStruct(adj.data, model.emfile)
 
     if args.checkfile is not None :
         open(args.checkfile, 'w').close()

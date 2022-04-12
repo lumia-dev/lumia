@@ -341,7 +341,7 @@ class FootprintTransport:
     def runAdjoint(self):
         # 1) Create an empty adjoint structure
         region = Region(self.rcf)
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', totype=bool, default=False) is True]
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', default=False)]
         start = datetime(*self.rcf.get('time.start'))
         end = datetime(*self.rcf.get('time.end'))
         dt = time_interval(self.rcf.get('emissions.interval'))
