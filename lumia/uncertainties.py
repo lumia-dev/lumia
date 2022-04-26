@@ -286,7 +286,7 @@ class Uncertainties:
                 elif cat.error_structure == 'sqrt':
                     data[cat.name]['emis'] = abs(data[cat.name]['emis'])**.5
                 elif cat.error_structure == 'flat':
-                    data[cat.name]['emis'][:] = 1.
+                    data[cat.name]['emis'][:] = self.interface.region.area
         # Aggregate the variances into a control vector
         self.data = self.interface.StructToVec(data, store_ancilliary=False)
 
@@ -304,8 +304,9 @@ class Uncertainties:
 
         for cat in self.interface.categories :
             if cat.optimize :
-                scalef = sqrt(cat.uncertainty / errtot[cat.name] * nsec / nsec_year )
+                scalef = cat.uncertainty / errtot[cat.name] * nsec / nsec_year
                 self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
                 logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
 
+        _ = self.calcTotalUncertainty()
         self.dict['prior_uncertainty'] = self.data.prior_uncertainty
