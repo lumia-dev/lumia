@@ -52,6 +52,11 @@ class obsdb(obsdb):
 
     def SetupUncertainties_weekly(self):
         res = []
+        if 'obs.default_weekly_error' in self.rcf.keys :
+            default_error = self.rcf.get('obs.default_weekly_error')
+            if 'err' not in self.sites.columns :
+                self.sites.loc[:, 'err'] = default_error
+                
         with Pool() as pp :
             for site in self.sites.itertuples():
                 dbs = self.observations.loc[self.observations.site == site.Index]

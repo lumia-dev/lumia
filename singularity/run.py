@@ -77,7 +77,8 @@ if args.noobs :
     db = obsdb(rcf.get('path.footprints'), start, end)
 elif args.forward or args.optimize :
     db = obsdb(rcf)
-    db.SetupUncertainties()
+    if args.optimize :
+        db.SetupUncertainties()
 else :
     db = None
 

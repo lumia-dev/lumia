@@ -81,6 +81,7 @@ class Optimizer(object):
         self.J = self._computeCostFunction(state_preco, dy, err)
         gradient_preco = self._ComputeGradient(state_preco, dy, err)
         self.minimizer.update(gradient_preco, self.J.tot)
+        self.save(label) # TODO: save before calcposterr since it crashes, but it needs to be fixed ...
         self._calcPosteriorUncertainties()
         self.save(label)
 
