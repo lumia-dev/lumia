@@ -46,7 +46,7 @@ class tinterv:
     def overlaps(self, other):
         return self.start < other.end and self.end > other.start
 
-    def overlap_percent(self, other):
+    def overlap_percent(self, other, dtype='float64'):
         if self.within(other):
             return 1.
         elif self.overlaps(other):

@@ -268,6 +268,13 @@ class Uncertainties:
         """
         Uncertainties set to a specified value (in PgC)
         """
+
+        # The code belows first sets the standard deviations (sig_i) of the flux in each model grid cell i.
+        # The standard deviation sig_x of the control vector element x that aggregates n grid cells is then given by:
+        # sig_x = sqrt(\sum_i^n \sum_j^n sig_i*sig_j*corr_i_j)
+        # with corr_i_j the correlation coefficient between i and j.
+        # Here, since we optimize the aggregated pixels together, the correlation coefficients are by definition 1, and therefore sig_x = \sum_i^n sig_i
+
         # Calculate the spatio-temporal structure of the uncertainty
         data = deepcopy(self.interface.ancilliary_data)
         for cat in self.interface.categories :
@@ -291,7 +298,7 @@ class Uncertainties:
         self.data = self.interface.StructToVec(data, store_ancilliary=False)
 
         # Store the square root of this (standard deviations). They are re-converted to variances later
-        self.data.loc[:, 'prior_uncertainty'] = sqrt(self.data.loc[:, 'value'])
+        self.data.loc[:, 'prior_uncertainty'] = self.data.loc[:, 'value']
         self.data.drop(columns=['value'], inplace=True)
 
     def ScaleUncertainty(self):

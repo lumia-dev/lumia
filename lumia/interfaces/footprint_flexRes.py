@@ -32,7 +32,6 @@ class Interface :
         self.data = flexRes.Control(rcf)
         if emis is not None :
             self.SetupPrior(emis)
-            self.time = SimpleNamespace(start=self.data.start, end=self.data.end)
             self.SetupUncertainties(**kwargs)
 
     def SetupPrior(self, emis):
@@ -41,6 +40,7 @@ class Interface :
         # Calculate the initial control vector
         vec = self.StructToVec(emis)
         self.data.setupPrior(vec)
+        self.time = SimpleNamespace(start=self.data.start, end=self.data.end)
 
     def SetupUncertainties(self, errclass=unc):
         self.err = errclass(self)
@@ -96,7 +96,7 @@ class Interface :
                 vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'lat'] = self.spatial_mapping[cat]['cluster_specs'][ipos].mean_lat
                 vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'lon'] = self.spatial_mapping[cat]['cluster_specs'][ipos].mean_lon
                 vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'land_fraction'] = self.spatial_mapping[cat]['cluster_specs'][ipos].land_fraction
-#            vec.loc[vec.loc[:, 'iloc'] == ipos, 'area'] = self.spatial_mapping['cluster_specs'][ipos].area
+                vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'area'] = self.spatial_mapping[cat]['cluster_specs'][ipos].area_tot
 
             for itopt, topt in enumerate(self.temporal_mapping[cat]['times_optim']):
                 vec.loc[(vec.itime == itopt) & selection, 'time'] = topt
@@ -363,7 +363,11 @@ class Interface :
             # Mapping:
             nt_optim = len(times_optim)
             nt_model = len(times_model)
-            mapping[cat.name] = {'map':zeros((nt_optim, nt_model)), 'times_model':times_model, 'times_optim':times_optim}
+            mapping[cat.name] = {
+                'map':zeros((nt_optim, nt_model), dtype=float32), 
+                'times_model':times_model, 
+                'times_optim':times_optim
+            }
             for imod, tmod in enumerate(times_model):
                 for iopt, topt in enumerate(times_optim):
                     mapping[cat.name]['map'][iopt, imod] = tmod.overlap_percent(topt)
