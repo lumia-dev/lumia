@@ -241,12 +241,8 @@ class Uncertainties:
             # TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone
             unitconv = dict(PgC=12.e-21, TgCH4=16.e-21)[cat.unit]
             if cat.optimize :
-                #sig = (self.vectors.prior_uncertainty.values)
-                Lh = self.Ch[cat.horizontal_correlation].mat
-                Lt = self.Ct[cat.temporal_correlation].mat
-
-                common['Ch'] = dot(Lh, Lh.transpose())
-                common['Ct'] = dot(Lt, Lt.transpose())
+                common['Ch'] = self.Ch[cat.horizontal_correlation].mat
+                common['Ct'] = self.Ct[cat.temporal_correlation].mat
                 common['sigmas'] = self.data.loc[self.data.category == cat].prior_uncertainty * unitconv
                 common['itimes'] = self.data.loc[self.data.category == cat].itime.values
 
