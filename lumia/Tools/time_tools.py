@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from numpy import array, ndarray
+from pandas import PeriodIndex, Timedelta, period_range
 
 
 class tinterv:
@@ -8,7 +10,7 @@ class tinterv:
         self.dt = self.end - self.start
 
     def __repr__(self):
-        return "%s to %s"%(self.start.strftime("%d %b %Y %H:%M"), self.end.strftime("%d %b %Y %H:%M"))
+        return f'{self.start:%d %b %Y %H:%M} to {self.end:%d %b %Y %H:%M}'
 
     def __ge__(self, other):
         if isinstance(other, datetime) :
@@ -72,8 +74,21 @@ class tinterv:
         )
         return line
 
+
 def time_interval(tstr):
     if 'h' in tstr:
         return timedelta(hours=int(tstr.strip('h')))
     else :
         raise NotImplemented
+
+
+def periods_to_intervals(periods:PeriodIndex) -> ndarray:
+    start = periods.start_time
+    end = periods.end_time + Timedelta(1)
+    start.freq = None
+    end.freq = None
+    return array([tinterv(s, e) for (s, e) in zip(start, end)])
+
+
+def interval_range(*args, **kwargs):
+    return periods_to_intervals(period_range(*args, **kwargs))
