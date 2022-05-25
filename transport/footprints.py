@@ -3,19 +3,24 @@
 import os
 import shutil
 from datetime import datetime
-from numpy import array_equal, nan, array, unique, nonzero, argsort, append, random, dot, finfo
+from types import SimpleNamespace
+from numpy import array_equal, nan, array, unique, nonzero, argsort, append, dot, finfo
 from multiprocessing import Pool
 from tqdm import tqdm
-from lumia.Tools import Categories
+#from lumia.Tools import Categories
 import rctools
 from lumia import obsdb
-from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct, CreateStruct
+#from lumia.formatters.lagrange import ReadStruct, WriteStruct, Struct
+from lumia.formatters.xr import CreateStruct_adj, TracerEmis, Data, ReadStruct, WriteStruct
 from lumia.Tools import regions
+from lumia.units import units_registry as ureg
 from loguru import logger
 import pickle
 
+from gridtools import grid_from_rc
+
 # Cleanup needed in the following ...
-from lumia.Tools import Region
+#from lumia.Tools import Region
 from lumia.Tools.time_tools import time_interval
 
 
@@ -45,44 +50,33 @@ class Flux:
           standard netCDF format
     """
     def __init__(self, fluxfile, categories=None):
-        if isinstance(fluxfile, Struct) :
+        if isinstance(fluxfile, Data) :
             self.data = fluxfile
         else :
             self.data = ReadStruct(fluxfile, categories=categories)
 
-        self.categories = list(self.data.keys())
-
-        # Make sure that all categories have the same coordinates (this is a requirement):
-        cat0 = self.categories[0]
-        for cat in self.categories :
-            assert array_equal(self.data[cat]['time_interval']['time_start'], self.data[cat0]['time_interval']['time_start'])
-            assert array_equal(self.data[cat]['time_interval']['time_end'], self.data[cat0]['time_interval']['time_end'])
-            try :
-                assert array_equal(self.data[cat]['lats'], self.data[cat0]['lats'])
-                assert array_equal(self.data[cat]['lons'], self.data[cat0]['lons'])
-            except AssertionError :
-                print(cat)
-                print(self.data[cat]['lats'])
-                print(self.data[cat]['lons'])
-                print(self.data[cat0]['lats'])
-                print(self.data[cat0]['lons'])
-
-        # Retrieve the dimensions
-        # TODO: for now, we assume that lat and lon conform with those of the footprints. Ideally, we'd need a check on this
-        tstart = self.data[cat0]['time_interval']['time_start']
-        tend = self.data[cat0]['time_interval']['time_end']
-        self.start = tstart[0]
-        self.end = tend[-1]
-        self.times_start = tstart
-        self.times_end = tend
-        self.tres = tstart[1]-tstart[0]
-        self.nt, self.nlat, self.nlon = self.data[cat0]['emis'].shape
-        self.region = regions.region(longitudes=self.data[cat]['lons'], latitudes=self.data[cat]['lats'])
-        self.coordinates = SpatialCoordinates(obj=self.region)
-        self.origin = self.start
+        for tracer in self.data.tracers:
+            self.data[tracer].attrs['coordinates'] = SpatialCoordinates(obj=self.data[tracer].grid)
+            self.data[tracer].attrs['origin'] = self.data[tracer].start
 
     def write(self, outfile):
+        for tracer in self.data.tracers :
+            del self.data[tracer].attrs['coordinates']
+            del self.data[tracer].attrs['origin']
         WriteStruct(self.data, outfile)
+
+    @property
+    def categories(self):
+        for cat in self.data.categories : 
+            yield cat
+
+    @property
+    def tracers(self):
+        for tracer in self.data.tracers :
+            yield tracer
+
+    def __getitem__(self, name):
+        return self.data[name]
 
     def between_times(self, start, end):
         Flux(self.data.between_times(start, end))
@@ -123,7 +117,7 @@ class FootprintFile:
 
     def run(self, obslist, emis, step):
         self.read()  # Read basic information from the file itself
-        self.setup(emis.coordinates, emis.origin, emis.tres)
+        self.setup(emis.coordinates, emis.origin, emis.period)
 
         # 1st, check which obsids are present in the file:
         footprint_valid = [o in self.footprints for o in obslist.obsid]
@@ -141,7 +135,7 @@ class FootprintFile:
         for iobs, obs in tqdm(obslist.iterrows(), desc=self.filename, total=obslist.shape[0], disable=self.silent):
             fpt = self.getFootprint(obs.obsid, origin=emis.origin)
             for cat in emis.categories :
-                obslist.loc[iobs, cat] = fpt.to_conc(emis.data[cat]['emis'])
+                obslist.loc[iobs, cat] = fpt.to_conc(emis[cat].data)
         self.close()
         try :
             return obslist.loc[:, emis.categories]
@@ -152,7 +146,7 @@ class FootprintFile:
         for iobs, obs in tqdm(obslist.iterrows(), desc=self.filename, total=obslist.shape[0], disable=self.silent):
             fpt = self.getFootprint(obs.obsid, origin=adjstruct.origin)
             for cat in adjstruct.categories :
-                adjstruct.data[cat]['emis'] = fpt.to_adj(obs.dy, adjstruct.data[cat]['emis'])#.copy())
+                adjstruct[cat].data = fpt.to_adj(obs.dy, adjstruct[cat].data)#.copy())
             #print(obs.site, obs.time, obs.dy, adjstruct.data['biosphere']['emis'].sum())
             #if obs.time.day == 21 :
             #    import pdb; pdb.set_trace()
@@ -228,8 +222,7 @@ class Footprint:
     def shift_origin(self, origin):
         shift_t = (self.origin-origin)/self.dt
         if shift_t - int(shift_t) != 0:
-            import pdb
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
         assert shift_t - int(shift_t) == 0
         self.itims += int(shift_t)
         self.origin = origin
@@ -265,19 +258,27 @@ def loop_forward(filename, silent=True):
     return res
 
 
-def loop_adjoint(filename):
-    obslist = common['obslist'].loc[common['obslist'].footprint == filename, ['obsid', 'dy']]
-    adj = Flux(CreateStruct(common['categories'], common['region'], common['start'], common['end'], common['tres']))
-    fpf = common['fpclass'](filename, silent=True)
-    res = fpf.run(obslist, adj, 'adjoint')
+def loop_adjoint(filename, silent=True):
+    compact = {}
+    for tracer in common['obslist'].loc[:, 'tracer'].drop_duplicates():
+        obslist = common['obslist'].loc[common['obslist'].footprint == filename, ['obsid', 'dy']]
+        adj = Data()
+        adj.add_tracer(CreateStruct_adj(tracer, common['categories'], common['region'], common['start'], common['end'], common['tres']))
+        adj = Flux(adj).data[tracer]
 
-    fname_out = os.path.join(common['tmpdir'], f'adj_{os.path.basename(fpf.filename)}.pickle')
+        fpf = common['fpclass'](filename, silent)
+
+        res = fpf.run(obslist, adj, 'adjoint')
+
+        fname_out = os.path.join(common['tmpdir'], f'adj_{os.path.basename(fpf.filename)}.{tracer}.pickle')
+
+        compact[tracer] = {}
+        for cat in res.categories:
+            nzi = nonzero(res[cat].data)
+            compact[tracer][cat] = SimpleNamespace()
+            compact[tracer][cat].indices = nzi
+            compact[tracer][cat].values = res[cat].data[nzi]
     with open(fname_out, 'wb') as fid :
-        compact = {}
-        for cat in res.data.keys():
-            nzi = nonzero(res.data[cat]['emis'])
-            nzv = res.data[cat]['emis'][nzi]
-            compact[cat] = (nzi, nzv)
         pickle.dump(compact, fid)
     return fname_out
 
@@ -288,6 +289,7 @@ class FootprintTransport:
         self.obs = Observations(obs)
         self.obs.checkIndex(reindex=True)
         self.emfile = emfile
+        self.tracers = self.rcf.get('tracers', tolist='force')
 
         # Just in case ...
         self.obsfile = obs
@@ -301,10 +303,10 @@ class FootprintTransport:
             self._set_parallelization('ray')
         self.FootprintFileClass = FootprintFileClass
 
-        if emfile is not None :
-            self.categories = Categories(self.rcf)
-        else :
-            logger.warn("No emission files has been provided. Ignore this warning if it's on purpose")
+        #if emfile is not None :
+        #    self.categories = Categories(self.rcf)
+        #else :
+        #    logger.warn("No emission files has been provided. Ignore this warning if it's on purpose")
         self.checkfile=checkfile
 
     def _set_parallelization(self, mode=False):
@@ -319,40 +321,91 @@ class FootprintTransport:
         # Read the emissions:
         self.emis = Flux(self.emfile, categories=categories)
 
-        # Add the flux columns to the observations dataframe:
-        for cat in self.emis.categories:
-            self.obs.observations.loc[:, f'mix_{cat}'] = nan
+        for tracer in self.emis.tracers :
+            region = self.emis[tracer].grid
 
-        filenames = self.obs.observations.footprint.dropna().drop_duplicates()
-        self._forward_loop(filenames)
+            # Add the flux columns to the observations dataframe:
+            for cat in self.emis[tracer].categories:
+                self.obs.observations.loc[self.obs.observations.tracer == tracer, f'mix_{cat}'] = nan
 
-        # Combine the flux components:
-        try :
-            self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
-        except AttributeError :
-            logger.warning("Missing background concentrations. Assuming mix_background=0")
-            self.obs.observations.loc[:, 'mix_background'] = 0.
-            self.obs.observations.loc[:, 'mix'] = 0.
-        for cat in self.emis.categories :
-            self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat}'].values
+            filenames = self.obs.observations.footprint.loc[self.obs.observations.tracer == tracer]
+            filenames = filenames.dropna().drop_duplicates()
+
+            common['emis'] = self.emis[tracer]
+            common['obslist'] = self.obs.observations
+            common['fpclass'] = self.FootprintFileClass
+
+            # To optimize CPU usage in parallell simulations, process the largest files first
+            nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
+            filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
+
+
+            res = self._forward_loop(filenames)
+
+            # Combine the results:
+            for obslist in res:
+                if obslist is not None :
+                    for field in obslist.columns :
+                        self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
+
+            # Combine the flux components:
+            try :
+                self.obs.observations.loc[:, 'mix'] = self.obs.observations.mix_background.copy()
+            except AttributeError :
+                logger.warning("Missing background concentrations. Assuming mix_background=0")
+                self.obs.observations.loc[:, 'mix_background'] = 0.
+                self.obs.observations.loc[:, 'mix'] = 0.
+            for cat in self.emis.categories :
+                self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat.name}'].values
 
         # self.obs.save_tar(self.obsfile) # ==> moved to __main__
 
     def runAdjoint(self):
         # 1) Create an empty adjoint structure
-        region = Region(self.rcf)
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', default=False)]
+        #region = Region(self.rcf)
         start = datetime(*self.rcf.get('time.start'))
         end = datetime(*self.rcf.get('time.end'))
-        dt = time_interval(self.rcf.get('emissions.interval'))
-        adj = Flux(CreateStruct(categories, region, start, end, dt))
 
-        # 2) Loop over the footprint files
-        filenames = self.obs.observations.footprint.dropna().drop_duplicates()
-        adj = self._adjoint_loop(filenames, adj)
+        adj = Data()
+        for tracer in self.tracers :
+            region = grid_from_rc(self.rcf, name=tracer)
+            categories = [c for c in self.rcf.get(f'emissions.{tracer}.categories') if self.rcf.get(f'emissions.{tracer}.{c}.optimize', default=False)]
+            dt = time_interval(self.rcf.get(f'emissions.{tracer}.interval'))
+            adj.add_tracer(CreateStruct_adj(tracer, categories, region, start, end, dt))
+        adj = Flux(adj)
 
-        # 3) Write the updated adjoint field
-        # WriteStruct(adj.data, self.emfile)  # ==> moved to __main__
+        for tracer in adj.tracers :
+
+            # 2) Loop over the footprint files
+            filenames = self.obs.observations.loc[self.obs.observations.tracer == tracer]
+            filenames = filenames.footprint.dropna().drop_duplicates()
+    #        filenames = self.obs.observations.footprint.dropna().drop_duplicates()
+
+            nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
+            filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
+
+            # I use the common because these are not iterable, but it would probably be cleaner to use apply_asinc and pass these as arguments to loop_adjoint 
+            common['categories'] = adj[tracer].categories
+            common['region'] = adj[tracer].grid
+            common['start'] = adj[tracer].start
+            common['end'] = adj[tracer].end
+            common['tres'] = adj[tracer].period
+            common['tmpdir'] = self.rcf.get('path.temp')
+            common['obslist'] = self.obs.observations
+            common['fpclass'] = self.FootprintFileClass
+
+            res = self._adjoint_loop(filenames)
+
+            for w in res:
+                with open(w, 'rb') as fid :
+                    compact = pickle.load(fid)
+                    for cat in compact[tracer]:
+                        adjfield = compact[tracer][cat]
+                        adj[tracer][cat].data[adjfield.indices] += adjfield.values
+            
+            #adj.add_tracer(adj[tracer].data)
+            # 3) Write the updated adjoint field
+            # WriteStruct(adj.data, self.emfile)  # ==> moved to __main__
         return adj
 
     def adjoint_test(self):
@@ -374,69 +427,30 @@ class FootprintTransport:
         if abs(adjtest) < finfo('float32').eps :
             logger.info("Success")
         else :
-            logger.warning(f"Adjoint test failed")
+            logger.warning("Adjoint test failed")
         logger.info(f"Assumed machine precision of: {finfo('float32').eps = }")
 
-    def _adjoint_loop_serial(self, filenames, adj):
+    def _adjoint_loop_serial(self, filenames):
+        res = []
         for filename in tqdm(filenames):
-            obslist = self.obs.observations.loc[self.obs.observations.footprint == filename, ['obsid', 'dy', 'time', 'site']].copy()
-            fpf = self.get(filename)
-            adj = fpf.run(obslist, adj, 'adjoint')
-        return adj
+            res.append(loop_adjoint(filename, silent=False))
+        return res
 
-    def _adjoint_loop_mp(self, filenames, adj):
-        nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
-        filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
-
-        # I use the common because these are not iterable, but it would probably be cleaner to use apply_asinc and pass these as arguments to loop_adjoint 
-        common['categories'] = adj.categories
-        common['region'] = adj.region
-        common['start'] = adj.start
-        common['end'] = adj.end
-        common['tres'] = adj.tres
-        common['tmpdir'] = self.rcf.get('path.temp')
-        common['obslist'] = self.obs.observations
-        common['fpclass'] = self.FootprintFileClass
-
+    def _adjoint_loop_mp(self, filenames):
         with Pool(processes=self.ncpus) as pool :
-            res = list(tqdm(pool.imap(loop_adjoint, filenames, chunksize=1), total=len(nobs)))
-
-        for w in res:
-            with open(w, 'rb') as fid :
-                compact = pickle.load(fid)
-                for cat in compact.keys():
-                    nzi, nzv = compact[cat]
-                    adj.data[cat]['emis'][nzi] += nzv
-        
-        return adj
+            res = list(tqdm(pool.imap(loop_adjoint, filenames, chunksize=1), total=len(filenames)))
+        return res 
 
     def _forward_loop_serial(self, filenames):
-        common['emis'] = self.emis
-        common['obslist'] = self.obs.observations
-        common['fpclass'] = self.FootprintFileClass
+        res = []
         for filename in tqdm(filenames):
-            obslist = loop_forward(filename, silent=False)
-            for field in obslist.columns :
-                self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
+            res.append(loop_forward(filename, silent=False))
+        return res
 
     def _forward_loop_mp(self, filenames):
-        t0 = datetime.now()
-        nobs = array([self.obs.observations.loc[self.obs.observations.footprint == f].shape[0] for f in filenames])
-        common['emis'] = self.emis
-        common['obslist'] = self.obs.observations
-        common['fpclass'] = self.FootprintFileClass
-
-        # To optimize CPU usage, process the largest files first
-        filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
-
         with Pool(processes=self.ncpus) as pool :
-            res = list(tqdm(pool.imap(loop_forward, filenames, chunksize=1), total=len(nobs)))
-
-        for filename, obslist in zip(filenames, res):
-            if obslist is not None :
-                for field in obslist.columns :
-                    self.obs.observations.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, field]
-        print(datetime.now()-t0)
+            res = list(tqdm(pool.imap(loop_forward, filenames, chunksize=1), total=len(filenames)))
+        return res
 
     def get(self, filename, silent=None):
         return self.FootprintFileClass(filename, silent)
