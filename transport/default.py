@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import os
 from h5py import File
-from numpy import nan, array, int32, float32, random, dot
+from numpy import nan, array, int32, float32
 from datetime import datetime, timedelta
 from transport.footprints import FootprintTransport, FootprintFile, SpatialCoordinates
 from archive import Archive
 from tqdm import tqdm
-from lumia.formatters.lagrange import WriteStruct
 from loguru import logger
+import logging
 
 
 class LumiaFootprintFile(FootprintFile):
@@ -24,7 +24,7 @@ class LumiaFootprintFile(FootprintFile):
                 lats=self.ds['latitudes'][:],
                 lons=self.ds['longitudes'][:]
             )
-        except :
+        except Exception :
             print(self.filename)
             raise RuntimeError
         self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
@@ -124,6 +124,8 @@ if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
 
+    logging.captureWarnings(True)
+
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
@@ -150,7 +152,7 @@ if __name__ == '__main__':
 
     elif args.adjoint :
         adj = model.runAdjoint()
-        WriteStruct(adj.data, model.emfile)
+        adj.write(model.emfile)
 
     elif args.adjtest :
         model.adjoint_test()
