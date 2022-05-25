@@ -31,7 +31,7 @@ class Categories:
             yield getattr(self, item)
 
     def setup(self, rcf):
-        catlist = rcf.get('emissions.categories')
+        catlist = rcf.get(f'emissions.categories')
         for cat in catlist :
             self.add(cat)
             self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
@@ -237,10 +237,10 @@ class Cluster:
         return neighbours
 
 
-def clusterize(field, nmax, mask=None, minxsize=1, minysize=1, cat=''):
+def clusterize(field, nmax, mask=None, minxsize=1, minysize=1, cat='', indices=None):
     Cluster.minxsize = minxsize
     Cluster.minysize = minysize
-    clusters = [Cluster(field, mask=mask, crop=False)]
+    clusters = [Cluster(field, mask=mask, crop=False, indices=indices)]
     rlim = sys.getrecursionlimit()
     sys.setrecursionlimit(clusters[0].size+1)
     clusters_final = []   # Offload the clusters that cannot be further divided to speed up the calculations

@@ -1,5 +1,4 @@
 import os
-import pdb
 
 from netCDF4 import Dataset
 from numpy import array, zeros, arange, array_equal

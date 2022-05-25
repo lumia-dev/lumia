@@ -1,12 +1,42 @@
 #!/usr/bin/env python
 
 from dataclasses import dataclass, field
-from numpy import ndarray, linspace, pi, zeros, float64, sin, diff, searchsorted, put_along_axis, array, pad, dot, moveaxis
+from numpy import meshgrid, ndarray, linspace, pi, zeros, float64, sin, diff, searchsorted, array, pad, moveaxis, arange
 from types import SimpleNamespace
 from loguru import logger
 from tqdm import tqdm
-import inspect
+from h5py import File
 import xarray as xr
+from cartopy.io import shapereader
+from shapely.geometry import Point
+from shapely.ops import unary_union
+from shapely.prepared import prep
+
+
+class LandMask:
+    def __init__(self) -> None:
+        self.initialized = False
+
+    def init(self):
+        land_shp_fname = shapereader.natural_earth(resolution='50m', category='physical', name='land')
+        land_geom = unary_union(list(shapereader.Reader(land_shp_fname).geometries()))
+        self.land = prep(land_geom)
+        self.initialized = True
+    
+    def is_land(self, lat: float, lon: float) -> bool :
+        if not self.initialized :
+            self.init()
+        return self.land.contains(Point(lat, lon))
+
+    def get_mask(self, grid):
+        lsm = zeros((grid.nlat, grid.nlon))
+        for ilat, lat in enumerate(grid.latc):
+            for ilon, lon in enumerate(grid.lonc):
+                lsm[ilat, ilon] = self.is_land(lon, lat)
+        return GriddedData(lsm.astype(float), grid, density=True)
+
+
+land_mask = LandMask()
 
 
 @dataclass
@@ -25,7 +55,6 @@ class Grid:
     lonc : ndarray = field(default=None, repr=False)
     area : ndarray = field(default=None, repr=False)
     radius_earth : float = field(default=6_378_100.0, repr=False)
-    shape : tuple = field(default=(None, None), repr=False)
 
     def __post_init__(self):
         """
@@ -107,7 +136,6 @@ class Grid:
             self.latc = linspace(self.lat0 + self.dlat/2., self.lat1 - self.dlat/2., self.nlat)
 
         self.area = self.calc_area()
-        self.shape = self.area.shape
 
     def calc_area(self):
         dlon_rad = self.dlon * pi / 180.
@@ -116,6 +144,33 @@ class Grid:
         for ilat, lat in enumerate(lats):
             area[ilat, :] = self.radius_earth**2 * dlon_rad * sin(lat)
         return diff(area, axis=0)
+
+    def get_land_mask(self, refine_factor=1, from_file=False):
+        """ Returns the proportion (from 0 to 1) of land in each pixel
+        By default, if the type (land or ocean) of the center of the pixel determines the land/ocean type of the whole pixel.
+        If the optional argument "refine_factor" is > 1, the land/ocean mask is first computed on the refined grid, and then averaged on the region grid (accounting for grid box area differences)"""
+        if from_file :
+            with File(from_file, 'r') as df :
+                return df['lsm'][:]
+        assert isinstance(refine_factor, int), f"refine factor must be an integer ({refine_factor=})"
+
+        # 1. Create a finer resolution grid
+        r2 = Grid(lon0=self.lon0, lat0=self.lat0, lon1=self.lon1, lat1=self.lat1, dlon=self.dlon/refine_factor, dlat=self.dlat/refine_factor)
+        return land_mask.get_mask(r2).transform(self).data
+
+    def mesh(self, reshape=None):
+        lons, lats = meshgrid(self.lonc, self.latc)
+        lons = lons.reshape(reshape)
+        lats = lats.reshape(reshape)
+        return lons, lats
+
+    @property
+    def indices(self):
+        return arange(self.area.size)
+
+    @property
+    def shape(self):
+        return (self.nlat, self.nlon)
 
     def __getitem__(self, item):
         """
@@ -186,17 +241,19 @@ def calc_overlap_matrices(reg1, reg2):
 
 
 #TODO: class below can be simplified a lot using some decorators (for axes swaps and inplace switch)
+@dataclass
 class GriddedData:
-    def __init__(self, data: ndarray, grid: Grid, axis=None, density=False, dims=None) :
-        self.data = data
-        self.grid = grid
-        self.axis = axis
-        self.is_density = density
-        if dims is not None :
-            self.dims = dims
-            self.axis = [dims.index('lat'), dims.index('lon')]
+    data    : ndarray
+    grid    : Grid
+    axis    : list = None
+    density : bool = False
+    dims    : list = None
+
+    def __post_init__(self):
+        if self.dims is not None :
+            self.axis = [self.dims.index('lat'), self.dims.index('lon')]
         if self.axis is None :
-            self.axis = (0,1)
+            self.axis = (0, 1)
 
     def to_quantity(self, inplace=False):
 
@@ -228,7 +285,7 @@ class GriddedData:
         # Return
         if inplace :
             self.data = data
-            self.is_density = False
+            self.density = False
             return self
         else :
             return GriddedData(data, self.grid, self.axis, density=False, dims=self.dims)
@@ -263,7 +320,7 @@ class GriddedData:
         # Return
         if inplace :
             self.data = data
-            self.is_density = True
+            self.density = True
             return self
         else :
             return GriddedData(data, self.grid, self.axis, density=True, dims=self.dims)
@@ -272,7 +329,7 @@ class GriddedData:
         data = self
 
         density = False
-        if self.is_density :
+        if self.density :
             data = data.to_quantity(inplace=inplace)
             density = True
 
@@ -338,7 +395,7 @@ class GriddedData:
             self.grid = destgrid
             return self
         else :
-            return GriddedData(coarsened, destgrid, axis=self.axis, density=self.is_density, dims=self.dims)
+            return GriddedData(coarsened, destgrid, axis=self.axis, density=self.density, dims=self.dims)
 
     def refine(self, destgrid : Grid, inplace=False) :
         raise NotImplementedError
@@ -414,7 +471,7 @@ class GriddedData:
             self.grid = destgrid
             return self
         else :
-            return GriddedData(data, destgrid, self.axis, density=self.is_density, dims=self.dims)
+            return GriddedData(data, destgrid, self.axis, density=self.density, dims=self.dims)
 
     def pad(self, boundaries : Grid, padding, inplace=False):
         """
@@ -452,7 +509,7 @@ class GriddedData:
 
         # 4) Return or modify self, based in the requested "inplace"
         if inplace :
-            return GriddedData(data, newgrid, self.axis, density=self.is_density, dims=self.dims)
+            return GriddedData(data, newgrid, self.axis, density=self.density, dims=self.dims)
         else :
             self.data = data
             self.grid = newgrid
@@ -480,7 +537,7 @@ def grid_from_rc(rcf, name=None):
     if name is not None :
         pfx0 = f'grid.{name}.'
     else :
-        pfx0 = pxf1
+        pfx0 = pfx1
     lon0 = rcf.get(f'{pfx0}lon0', default=rcf.get(f'{pfx1}lon0', default=None))
     lon1 = rcf.get(f'{pfx0}lon1', default=rcf.get(f'{pfx1}lon1', default=None))
     dlon = rcf.get(f'{pfx0}dlon', default=rcf.get(f'{pfx1}dlon', default=None))
@@ -490,3 +547,4 @@ def grid_from_rc(rcf, name=None):
     dlat = rcf.get(f'{pfx0}dlat', default=rcf.get(f'{pfx1}dlat', default=None))
     nlat = rcf.get(f'{pfx0}nlat', default=rcf.get(f'{pfx1}nlat', default=None))
     return Grid(lon0=lon0, lat0=lat0, lon1=lon1, lat1=lat1, dlon=dlon, dlat=dlat, nlon=nlon, nlat=nlat)
+
