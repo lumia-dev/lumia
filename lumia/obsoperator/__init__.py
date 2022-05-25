@@ -28,7 +28,7 @@ class transport(object):
         if formatter is not None :
             self.writeStruct = formatter.WriteStruct
             self.readStruct = formatter.ReadStruct
-            self.createStruct = formatter.CreateStruct
+            #self.createStruct = formatter.CreateStruct
 
     def setupObs(self, obsdb):
         self.db = obsdb
@@ -55,8 +55,9 @@ class transport(object):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb(filename=dbf)
         if self.rcf.get('model.split.categories', default=True):
-            for cat in self.rcf.get('emissions.categories'):
-                self.db.observations.loc[:, f'mix_{cat}'] = db.observations.loc[:, f'mix_{cat}'].values
+            for cat in struct.categories:
+            #for cat in self.rcf.get('emissions.categories'):
+                self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
         self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
@@ -129,7 +130,11 @@ class transport(object):
             adjfield = self.readStruct(self.tempdir, 'adjoint')
         except :
             adjfield = self.runAdjoint(departures)
-        return array([adjfield[cat]['emis'].sum(0) for cat in adjfield.keys()]).sum(0)
+
+        sensi = {}
+        for tracer in adjfield.tracers :
+            sensi[tracer] = array([adjfield[tracer][cat].data.sum(0) for cat in adjfield[tracer].categories]).sum(0)
+        return sensi
 
     # def adjoint_test_(self, struct):
     #     # Write model inputs:

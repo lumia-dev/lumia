@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import logging
 from datetime import datetime
 import h5py
 from numpy import float64, zeros_like
@@ -9,27 +8,20 @@ from pandas import DataFrame, read_hdf
 from rctools import RcFile as rc
 from lumia.precon import preconditioner as precon
 from lumia.Tools import Region, Categories
-
-logger = logging.getLogger(__name__)
+from loguru import logger
+from lumia import paths
 
 
 class Control:
     name = 'flexRes'
 
-    def __init__(self, rcf=None, filename=None, preconditioner=precon):
+    def __init__(self, rcf=None, filename=None, preconditioner=precon, optimized_categories=None):
         # Data containers :
         self.horizontal_correlations = {}
         self.temporal_correlations = {}
         self.vectors = DataFrame(columns=[
-            'state_prior',
-            'state_prior_preco',
-            'state',
-            'state_preco',
-            'land_fraction',
-            'category',
-            'lat',
-            'lon',
-            'time',
+            'category', 'tracer', 'ipos', 'itime', 'lat', 'lon', 'time', 'area', 'land_fraction', 
+            'state_prior', 'state_prior_preco', 'state', 'state_preco',
         ], dtype=float64)   #TODO: check if the float64 here could be avoided
 
         # Interfaces :
@@ -40,18 +32,21 @@ class Control:
         self.preco = preconditioner
         self.preco.init()
 
-        if rcf is not None :
-            self.loadrc(rcf)
-        elif filename is not None :
-            rcf = self.load(filename, loadrc=True)
-            self.loadrc(rcf)
+        #if rcf is not None :
+        #    self.loadrc(rcf)
+        #elif filename is not None :
+        #    rcf = self.load(filename, loadrc=True)
+        #    self.loadrc(rcf)
 
-    def loadrc(self, rcf):
-        self.rcf = rcf
-        self.categories = Categories(rcf)
-        self.region = Region(self.rcf)
-        self.start = datetime(*self.rcf.get('time.start'))
-        self.end = datetime(*self.rcf.get('time.end'))
+        if optimized_categories is not None :
+            self.optimized_categories = optimized_categories
+
+    # def loadrc(self, rcf):
+    #     self.rcf = rcf
+    #     #self.categories = Categories(rcf)
+    #     #self.region = Region(self.rcf)
+    #     self.start = datetime(*self.rcf.get('time.start'))
+    #     self.end = datetime(*self.rcf.get('time.end'))
 
     def setupPrior(self, prior):
         self.vectors.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']]
@@ -69,12 +64,11 @@ class Control:
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
         catIndex = self.vectors.category.tolist()
-        for cat in self.categories :
-            if cat.optimize :
-                Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
-                Temp_L = self.temporal_correlations[cat.temporal_correlation]
-                ipos = catIndex.index(cat.name)
-                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.temp'))
+        for cat in self.optimized_categories :
+            Hor_L = self.horizontal_correlations[(cat.tracer, cat.name)]
+            Temp_L = self.temporal_correlations[(cat.tracer, cat.name)]
+            ipos = catIndex.index(cat.name)
+            state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=paths.temp)
         if add_prior: 
             state += self.vectors.loc[:, 'state_prior']
         else :
@@ -90,12 +84,11 @@ class Control:
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         catIndex = self.vectors.category.tolist()
-        for cat in self.categories:
-            if cat.optimize :
-                Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
-                Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
-                ipos = catIndex.index(cat.name)
-                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.temp'))
+        for cat in self.optimized_categories:
+            Hor_Lt = self.horizontal_correlations[(cat.tracer, cat.name)].transpose()
+            Temp_Lt = self.temporal_correlations[(cat.tracer, cat.name)].transpose()
+            ipos = catIndex.index(cat.name)
+            g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=paths.temp)
         return g_c
         
     def _to_hdf(self, filename):

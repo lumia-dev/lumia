@@ -1,27 +1,40 @@
 #!/usr/bin/env python
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from lumia.units import units_registry as units
 from pint import Unit
 
 
 @dataclass
-class Tracer:
-    unit_emis : Unit
-    unit_mix  : Unit
+class Specie:
+    unit_emis   : Unit
+    unit_mix    : Unit
+    unit_budget : Unit
+    unit_optim  : Unit
 
 
-CO2 = Tracer(unit_emis=units('umol/m**2/s'), unit_mix=units('ppm'))
-CH4 = Tracer(unit_emis=units('nmol/m**2/s'), unit_mix=units('ppb'))
+CO2 = Specie(
+    unit_emis=units('umol/m**2/s').units, 
+    unit_mix=units('ppm').units,
+    unit_budget=units('PgC').units,
+    unit_optim=units('umol').units
+)
+
+CH4 = Specie(
+    unit_emis=units('nmol/m**2/s').units, 
+    unit_mix=units('ppb').units,
+    unit_budget=units('TgCH4').units,
+    unit_optim=units('nmol').units
+)
 
 
 @dataclass
-class Tracers:
-    co2 : Tracer = CO2
-    ch4 : Tracer = CH4
+class Species:
+    co2 : Specie = CO2
+    ch4 : Specie = CH4
 
-    def get(self, tracer_name):
-        return getattr(self, tracer_name.lower())
+    def __getitem__(self, tracer_name):
+        return getattr(Species, tracer_name.lower())
 
 
-tracers = Tracers()
+species = Species()

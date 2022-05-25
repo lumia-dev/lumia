@@ -5,6 +5,9 @@ from copy import deepcopy
 from multiprocessing import Pool
 from tqdm import tqdm
 from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log
+from pandas import DataFrame, concat
+from pandas.tseries.frequencies import to_offset
+from types import SimpleNamespace
 
 
 common = {}
@@ -80,11 +83,13 @@ class HorCor:
             self.genCovarMat = self.genHyperbolicCovariances
         elif cortype == 'e' :
             self.genCovarMat = self.genExponentialCovariances
+        self.mat = self.genCovarMat()
+        self.p, self.lam = self.eigenDecompose(self.mat)
 
     def __call__(self):
-        self.mat = self.genCovarMat()
-        p, lam = self.eigenDecompose(self.mat)
-        return p*lam   # TODO: check why this is not a dot product
+        #self.mat = self.genCovarMat()
+        #p, lam = self.eigenDecompose(self.mat)
+        return self.p * self.lam   # TODO: check why this is not a dot product
     
     def genGaussianCovarMat(self, minv=1.e-7):
         # Get a matrix of distances
@@ -122,8 +127,11 @@ class HorCor:
             min_eigval = self.min_eigval
 
         n_neg = sum(lam < min_eigval)
+        n_neg2 = sum(abs(lam) < min_eigval)
         lam[lam < min_eigval] = min_eigval
         logger.info(f"Maximum eigenvalue = {lam.max():10.3e}, minimum eigenvalue = {lam.min():10.3e}")
+        if n_neg != n_neg2 :
+            logger.error(f"{n_neg - n_neg2} large negative eigen values set to 0. Maybe it's a bug?")
         if n_neg > 0 :
             logger.info(f"Set {n_neg} eigenvalues to {min_eigval:15.11f}")
 
@@ -135,14 +143,14 @@ class TempCor:
         self.corlen = corlen
         self.dt = dt
         self.n = n
-
-    def __call__(self):
         if self.corlen < 1.e-20 :
             self.mat = eye(self.n)
             return self.mat
         self.mat = self.calcMatrix()
-        P, D = self.eigenDecompose(self.mat)
-        return dot(P, D)
+        self.P, self.D = self.eigenDecompose(self.mat)
+
+    def __call__(self):
+        return dot(self.P, self.D)
 
     def calcMatrix(self):
         if self.corlen < 1.e-20 :
@@ -162,6 +170,106 @@ class TempCor:
         col_sign = where(P[0]<0.0, -1.0, 1.0)
         P = P*col_sign
         return P, D
+
+
+# Note: The code below is kind of a hack to use a class as a function. This should probably be coverted to a self-standing module ...
+class Uncertainties_mt:
+    def __init__(self, horcor=HorCor, tempcor=TempCor):
+        self.HorCor = horcor
+        self.TempCor = tempcor
+        self.horizontal_correlations = dict()
+        self.temporal_correlations = dict()
+
+    def setup_horizontal_correlations(self, cat, errvec):
+        if (cat.horizontal_correlation, cat.n_optim_points) not in self.horizontal_correlations :
+            corlen, cortype = cat.horizontal_correlation.split('-')
+            corlen = int(corlen)
+            vec = errvec.loc[(errvec.category == cat.name)]
+            vec = vec.loc[vec.time == vec.iloc[0].time]
+
+            corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
+            self.horizontal_correlations[(cat.horizontal_correlation, cat.n_optim_points)] = corr
+
+    def setup_temporal_correlations(self, cat, errvec):
+        if cat.temporal_correlation not in self.temporal_correlations :
+            corlen = to_offset(cat.temporal_correlation)
+            dt = to_offset(cat.optimization_interval)
+            assert dt.base == corlen.base
+
+            # Number of time steps :
+            times = errvec.loc[:, 'time'].drop_duplicates()
+            nt = times.shape[0]
+            
+            corr = self.TempCor(corlen.n / dt.n, 1., nt)
+            self.temporal_correlations[cat.temporal_correlation] = corr
+    
+    def scale_uncertainty(self, cat, errvec):
+        # Scale the whole array to reach the desired total uncertainty value:
+        errtot = self.calc_total_uncertainty(errvec, cat)
+
+        # Divide by the simulation length:
+        nsec = errvec.loc[:, ['itime', 'dt']].drop_duplicates().dt.sum().total_seconds()
+        nsec_year = 365.25*86400
+
+        scalef = cat.total_uncertainty / errtot * nsec / nsec_year
+        errvec.loc[:, 'prior_uncertainty'] *= scalef
+        logger.info(f"Uncertainty for category {cat.name} set to {cat.total_uncertainty} {cat.unit_budget} (standard deviations scaled by {scalef = })")
+
+        _ = self.calc_total_uncertainty(errvec, cat)
+        return errvec
+
+    def calc_total_uncertainty(self, errvec:DataFrame, cat):
+        unitconv = (1 * cat.unit_optim).to(cat.unit_budget).magnitude 
+
+        common['Ch'] = self.horizontal_correlations[(cat.horizontal_correlation, cat.n_optim_points)].mat
+        common['Ct'] = self.temporal_correlations[cat.temporal_correlation].mat
+        common['sigmas'] = errvec.prior_uncertainty.values * unitconv
+        common['itimes'] = errvec.itime.values
+
+        nt = len(unique(common['itimes']))
+
+        with Pool() as pp :
+            errm = pp.imap(_aggregate_uncertainty, range(nt))
+            err = sum(tqdm(errm, total=nt))
+
+        # here "err" is the variance, in units of [flux_unit]^2. We want something in [flux_unit] so take the square root.
+        errtot = sqrt(err)
+
+        for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
+            del common[key]
+        logger.debug(f"Original uncertainty for category {cat.name}: {errtot:.3f} {cat.unit_budget}")
+        return errtot
+
+    @classmethod
+    def setup(cls, interface, horcor=HorCor, tempcor=TempCor):
+        unc = cls(horcor, tempcor)
+
+        err = []
+        for cat in interface.optimized_categories :
+            errmap = abs(interface.model_data[cat.tracer][cat.name])
+            errvec = interface.coarsen_cat(cat, data=errmap.data, value_field='prior_uncertainty')
+            unc.setup_horizontal_correlations(cat, errvec)
+            unc.setup_temporal_correlations(cat, errvec)
+            unc.scale_uncertainty(cat, errvec)
+            err.append(errvec)
+        errvec = concat(err, ignore_index=True)
+
+        # Prepare outputs:
+
+        # 1) Control vector + prior uncertainty
+        control = interface.control_vector()
+        control.vectors = control.vectors.merge(errvec)
+
+        # 2) Correlations :
+        Lh, Lt = dict(), dict()
+        for cat in interface.optimized_categories :
+            Lh[cat.tracer, cat.name] = unc.horizontal_correlations[(cat.horizontal_correlation, cat.n_optim_points)]()
+            Lt[cat.tracer, cat.name] = unc.temporal_correlations[cat.temporal_correlation]()
+
+        # 3) Return :
+        control.horizontal_correlations = Lh
+        control.temporal_correlations = Lt
+        return control
 
 
 class Uncertainties:
@@ -184,10 +292,10 @@ class Uncertainties:
         self.setup_Tcor()
         self.ScaleUncertainty()
 
-    def errStructToVec(self, errstruct):
-        data = self.interface.StructToVec(errstruct)
-        data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
-        return data.drop(columns=['value'])
+    # def errStructToVec(self, errstruct):
+    #     data = self.interface.StructToVec(errstruct)
+    #     data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
+    #     return data.drop(columns=['value'])
     #
     # def calcPriorUncertainties(self):
     #     """

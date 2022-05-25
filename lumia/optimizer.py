@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 import os
-from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random, ones
+from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
 from loguru import logger
-import logging
+from lumia.uncertainties import Uncertainties_mt as Uncertainties
 
 
 class Optimizer(object):
     def __init__(self, rcf, model, interface, minimizer=congrad):
         self.rcf = rcf                        # Settings
         self.model = model                    # Model interfaces instance (initialized!)
-        self.control = interface.data         # modelData structure, containing the optimization data
+#        self.control = interface.data         # modelData structure, containing the optimization data
         self.minimizer = minimizer(self.rcf)  # minimizer object instance (initiated!)
-        self.interface = interface
+        self.interface = interface               # transitions between model data and control vector
+        #self.precon = ...                       # (TODO) transisions between optimization space and model space
+        self.control = Uncertainties().setup(interface)  # TODO: create a proper "Precon" module to handle the uncertainties
         self.iteration = 0
 
     def GradientTest(self):
