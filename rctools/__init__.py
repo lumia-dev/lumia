@@ -98,6 +98,9 @@ class RcFile:
         elif 'default' in kwargs:
             val = kwargs['default']
 
+        elif 'fallback' in kwargs:
+            val = self.get(kwargs.get('fallback'), convert=False)
+
         else :
             msg = f"key {key} not found in rc-file"
             if self.filename is not None :
