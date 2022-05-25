@@ -17,6 +17,32 @@ except ModuleNotFoundError :
 
     tqdm = fake_tqdm()
 
+class Paths:
+    _initialized : bool = False
+
+    def __init__(self):
+        self._temp = None
+
+    def setup(self, rcf):
+        self._temp = rcf.get('path.temp')
+        self._initialized = True
+
+    @property
+    def temp(self):
+        if self._initialized :
+            return self._temp
+        else :
+            raise RuntimeError(f'{__name__}.paths has been instantiated but has yet to be initialized')
+
+
+_data = {}
+_data['paths'] = Paths()
+
+
+def __getattr__(name):
+    if name in _data :
+        return _data[name]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 from .timers import Timer
 
 from .Tools import logging_tools
