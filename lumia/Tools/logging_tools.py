@@ -5,6 +5,18 @@ import shutil
 columns = shutil.get_terminal_size().columns
 
 
+# from loguru import logger as logurulogger
+# def log(func):
+#     def wrapper(*args, **kwargs):
+#         logurulogger.info(f"Called function {func}")
+#         return func(*args, **kwargs)
+#
+# # use with:
+# # @log
+# # def func(*args, **kwargs):
+# #     """ ...
+
+
 def colorize(msg, color=None):
     if color is not None :
         msg = f'<{color}>{msg}</{color}>'

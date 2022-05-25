@@ -79,7 +79,7 @@ def time_interval(tstr):
     if 'h' in tstr:
         return timedelta(hours=int(tstr.strip('h')))
     else :
-        raise NotImplemented
+        raise NotImplementedError
 
 
 def periods_to_intervals(periods:PeriodIndex) -> ndarray:

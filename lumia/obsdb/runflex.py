@@ -4,7 +4,7 @@ import re
 from lumia.obsdb import obsdb
 import h5py
 from datetime import datetime
-from pandas import DataFrame
+from pandas import DataFrame, concat
 from loguru import logger
 from tqdm import tqdm
 
@@ -22,12 +22,16 @@ class obsdb(obsdb):
         else :
             pattern = path_or_pattern
         files = glob.glob(pattern)
+
+        dfs = []
         for file in tqdm(files, desc=f"Defining obs from footprint files in {path_or_pattern}") :
             df = self.read_footprintFile(file)
             df.loc[:, 'footprint'] = file
-            self.observations = self.observations.append(df, ignore_index=True)
+            dfs.append(df)
+        self.observations = concat(dfs, ignore_index=True)
         self.observations.loc[:, 'obs'] = 0.
         self.observations.loc[:, 'err'] = 1.
+        self.observations.loc[:, 'code'] = self.observations.site
         sites = self.observations.drop_duplicates(subset=['site', 'lat', 'lon', 'height'])
         self.sites.loc[:, 'code'] = sites.site
         self.sites.loc[:, 'name'] = sites.site
