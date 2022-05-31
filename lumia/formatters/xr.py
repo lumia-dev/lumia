@@ -1,6 +1,4 @@
 import os
-from sys import settrace
-from types import SimpleNamespace
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
@@ -60,7 +58,7 @@ def offset_to_pint(offset: DateOffset):
 class TracerEmis(xr.Dataset):
     __slots__ = 'shape', 'grid', '_mapping'
 
-    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: DateOffset, attrs=None):
+    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: DateOffset, attrs=None, categories: dict=None):
         # Ensure we have the correct data types:
         time = DatetimeIndex(time)
         timestep = to_offset(timestep)
@@ -81,6 +79,14 @@ class TracerEmis(xr.Dataset):
         self.attrs['timestep'] = timestep 
         self['timestep_length'] = xr.DataArray((time + timestep - time).total_seconds().values, dims=['time',], attrs={'units': ureg.s})
         self.attrs['units'] = units
+
+        # If any field has been passed to the constructor, add it here:
+        if categories is not None :
+            for cat, value in categories.items() :
+                if isinstance(value, dict) :
+                    self.add_cat(cat, value['data'], value.get('attrs', None))
+                else :
+                    self.add_cat(cat, value)
 
     def iter_cats(self):
         for cat in self.attrs['categories'] :
@@ -262,6 +268,12 @@ class Data:
     def __getitem__(self, item):
         return self._tracers[item]
 
+    def __setitem__(self, key, value):
+        if isinstance(value, TracerEmis):
+            self._tracers[key] = value
+        else :
+            raise TypeError(f"can only set an instance of {TracerEmis} as class item")
+
     def to_extensive(self):
         """
         Convert the data to extensive units (e.g. umol, PgC)
@@ -312,11 +324,10 @@ class Data:
             for cat in self[tracer].iter_cats() :
                 yield cat
 
-    def new(self, tracers, copy_emis=True):
+    def new(self, copy_emis=True):
         """
         This returns a copy of the object, possibly without all the attributes
         """
-        new = Data(self._tracers)
         new = Data()
         for tr in self._tracers.values() :
             new.add_tracer(TracerEmis(tr.tracer, tr.grid, tr.timestamp, tr.units, tr.period))
@@ -326,6 +337,20 @@ class Data:
                 new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data)
         
         return new
+
+    @classmethod
+    def from_file(cls, filename : str):
+        em = cls()
+        with Dataset(filename, 'r') as fid :
+            for tracer in fid.groups:
+                with xr.open_dataset(filename, group=tracer) as ds :
+                    grid = Grid(latc=ds.lat, lonc=ds.lon)
+                    em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), to_offset(ds.timestep)))
+                    if isinstance(ds.categories, str):
+                        ds.attrs['categories'] = [ds.categories]
+                    for cat in ds.categories :
+                        em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
+        return em
 
 
 def CreateEmis(rcf: RcFile, start: datetime, end: datetime) -> Data:
@@ -388,28 +413,27 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
     return data.data
 
 
-def read_nc(filename):
-    logger.warning(filename)
-    em = Data()
-    with Dataset(filename, 'r') as fid :
-        for tracer in fid.groups:
-            with xr.open_dataset(filename, group=tracer) as ds :
-                grid = Grid(latc=ds.lat, lonc=ds.lon)
-                em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), to_offset(ds.timestep)))
-                if isinstance(ds.categories, str):
-                    ds.attrs['categories'] = [ds.categories]
-                for cat in ds.categories :
-                    em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
-
-                #em[tracer]._variables = ds._variables
-                #import pdb; pdb.set_trace()
-                #for var in em[tracer].variables :
-                #    if 'units' in em[tracer][var].attrs :
-                #        em[tracer][var].data = em[tracer][var].data * ureg(em[tracer][var].units)
-                #    if em[tracer][var].dims == ('time', 'lat', 'lon'):
-                #        #TODO: integrate this as metadata instead ==> maybe this has been done already?
-                #        em[tracer].categories.append(var)
-    return em
+# def read_nc(filename):
+#     logger.warning(filename)
+#     em = Data()
+#     with Dataset(filename, 'r') as fid :
+#         for tracer in fid.groups:
+#             with xr.open_dataset(filename, group=tracer) as ds :
+#                 grid = Grid(latc=ds.lat, lonc=ds.lon)
+#                 em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), to_offset(ds.timestep)))
+#                 if isinstance(ds.categories, str):
+#                     ds.attrs['categories'] = [ds.categories]
+#                 for cat in ds.categories :
+#                     em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
+#
+#                 #em[tracer]._variables = ds._variables
+#                 #import pdb; pdb.set_trace()
+#                 #for var in em[tracer].variables :
+#                 #    if 'units' in em[tracer][var].attrs :
+#                 #        em[tracer][var].data = em[tracer][var].data * ureg(em[tracer][var].units)
+#                 #    if em[tracer][var].dims == ('time', 'lat', 'lon'):
+#                 #        em[tracer].categories.append(var)
+#     return em
 
 
 # Interfaces:
@@ -428,7 +452,7 @@ def ReadStruct(path, prefix=None, categories=None):
     filename = path
     if prefix is not None :
         filename = os.path.join(path, f'{prefix}.nc')
-    return read_nc(filename)
+    return Data.from_file(filename)
 
 
 # def CreateStruct(tracer, categories, grid, start, end, dt):
@@ -440,11 +464,11 @@ def ReadStruct(path, prefix=None, categories=None):
 #     return em
 
 
-#TODO: the following is only required by the transport model ==> move it there! (and merge with its internal "Flux" class)
-def CreateStruct_adj(tracer, categories, grid, start, end, dt):
-    tr = species[tracer]
-    time = date_range(start, end, freq=dt, inclusive='left')
-    em = TracerEmis(tracer, grid, time, tr.unit_mix / tr.unit_emis, dt)
-    for cat in categories :
-        em.add_cat(cat, 0)
-    return em
+#
+# def CreateStruct_adj(tracer, categories, grid, start, end, dt):
+#     tr = species[tracer]
+#     time = date_range(start, end, freq=dt, inclusive='left')
+#     em = TracerEmis(tracer, grid, time, tr.unit_mix / tr.unit_emis, dt)
+#     for cat in categories :
+#         em.add_cat(cat, 0)
+#     return em
