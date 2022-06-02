@@ -49,11 +49,11 @@ class Grid:
     dlat : float = None
     nlon : int = None
     nlat : int = None
-    latb : ndarray = field(default=None, repr=False)
-    latc : ndarray = field(default=None, repr=False)
-    lonb : ndarray = field(default=None, repr=False)
-    lonc : ndarray = field(default=None, repr=False)
-    area : ndarray = field(default=None, repr=False)
+    latb : ndarray = field(default=None, repr=False, compare=False)
+    latc : ndarray = field(default=None, repr=False, compare=False)
+    lonb : ndarray = field(default=None, repr=False, compare=False)
+    lonc : ndarray = field(default=None, repr=False, compare=False)
+    area : ndarray = field(default=None, repr=False, compare=False)
     radius_earth : float = field(default=6_378_100.0, repr=False)
 
     def __post_init__(self):
