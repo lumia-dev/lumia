@@ -23,6 +23,10 @@ class obsdb(obsdb):
             pattern = path_or_pattern
         files = glob.glob(pattern)
 
+        if len(files) == 0:
+             logger.error(f"No footprint files matching pattern {path_or_pattern} found")
+             raise RuntimeError
+
         dfs = []
         for file in tqdm(files, desc=f"Defining obs from footprint files in {path_or_pattern}") :
             df = self.read_footprintFile(file)
