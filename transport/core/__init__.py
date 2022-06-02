@@ -1,1 +1,1 @@
-from model import Model, Footprint, Emissions
+from .model import Model, Footprint, Emissions

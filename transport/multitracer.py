@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 import os
 import logging
-from transport.core import Model, Footprint, Emissions
+from transport.core import Model
+from transport.emis import Emissions
 from lumia.obsdb import obsdb
-from netCDF4 import Dataset
+import h5py
 from typing import List
 from types import SimpleNamespace
 from pandas import Timedelta, Timestamp, DataFrame
 from gridtools import Grid
 from numpy import array, nan
+from dataclasses import asdict
+from loguru import logger
 
 
 class Observations(DataFrame):
@@ -29,25 +32,34 @@ class Observations(DataFrame):
         self.loc[exists, 'obsid'] = obsids
 
 
-class LumiaFootprintFile(Dataset):
+class LumiaFootprintFile(h5py.File):
     __slots__ = ['shift_t']
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, mode='r', **kwargs)
         self.shift_t = 0
+        try :
+            assert self['latitudes'].dtype == 'f4'
+            self.grid = Grid(latc=self['latitudes'][:], lonc=self['longitudes'][:])
+        except AssertionError :
+            self.grid = Grid(
+                lon0=self.attrs['outlon0'], dlon=self.attrs['dxout'], nlon=len(self['longitudes'][:]),
+                lat0=self.attrs['outlat0'], dlat=self.attrs['dyout'], nlat=len(self['latitudes'][:])
+            )
 
     @property
-    def footprints(self) -> List[Footprint]:
-        return list(self.groups.keys())
+    def footprints(self) -> List[str]:
+        return [k for k in self.keys() if isinstance(self[k], h5py.Group)]
 
     def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
-        assert Grid(latc=grid.latc, lonc=grid.lonc) == Grid(latc=self.variables['latitudes'][:], lonc=self.variables['longitudes'][:])
-        assert timestep == Timedelta(seconds=self.tres)
-        shift_t = (self.origin - origin)/timestep
-        assert int(shift_t) - shift_t == 0
+        assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
+        assert timestep == Timedelta(seconds=self.attrs['tres']), "Temporal grid mismatch"
+        shift_t = (Timestamp(self.attrs['origin']) - origin)/timestep
+        assert int(shift_t) - shift_t == 0, "trolololo"
         self.shift_t = int(shift_t)
 
-    def __getitem__(self, obsid) -> SimpleNamespace :
+
+    def get(self, obsid) -> SimpleNamespace :
         itims = self[obsid]['itims'][:] + self.shift_t
         ilons = self[obsid]['ilons'][:]
         ilats = self[obsid]['ilats'][:]
@@ -77,11 +89,11 @@ if __name__ == '__main__':
     p.add_argument('--footprints', '-p', help="Path where the footprints are stored")
     p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
-    p.add_argument('--ncpus', '-n', default=None)
+    p.add_argument('--ncpus', '-n', default=os.cpu_count())
     p.add_argument('--verbosity', '-v', default='INFO')
-    p.add_argument('--db', required=True)
+    p.add_argument('--obs', required=True)
     p.add_argument('--emis', required=True)
-    p.add_argument('--check-footprints', action='store_true', help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
+    p.add_argument('--check-footprints', action='store_true', help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file")
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 

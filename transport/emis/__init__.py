@@ -1,14 +1,28 @@
 #!/usr/bin/env python
 
-from typing import Union, Iterator, List
+from typing import Dict, Union, Iterator, List
 from pandas import DataFrame, Timedelta, Timestamp
 from pandas.tseries.frequencies import to_offset
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from h5py import File
 import netCDF4 as nc
 import xarray as xr
 from numpy import ndarray, array, append
 from types import SimpleNamespace
+
+
+@dataclass
+class Grid:
+    lonc: ndarray
+    latc: ndarray
+
+    @property
+    def nlon(self) -> int:
+        return len(self.lonc)
+
+    @property
+    def nlat(self) -> int:
+        return len(self.latc)
 
 
 @dataclass
@@ -20,50 +34,17 @@ class Times:
     def min(self) -> Timestamp:
         return Timestamp(self.time_start.min())
 
-
-class EmissionField(xr.DataArray):
-    __slots__ = []
-
-    def __init__(self, grid=None, time=None, tracer=None):
-        super().__init__(
-            dims=['time', 'lat', 'lon'],
-            coords={'time': time.time_start, 'lat': grid.latc, 'lon': grid.lonc},
-            attrs={'tracer': tracer})
-
     @property
-    def grid(self) -> SimpleNamespace:
-        return SimpleNamespace(
-            lonc=self.lon.data,
-            latc=self.lat.data
-        )
-
-    @property
-    def times(self) -> Times:
-        return Times(
-            time_start=array(self.time.to_dict()['data']),
-            timestep=Timedelta(to_offset(self.timestep))
-        )
-
-    def save(self, fname: str, field: str) -> None:
-        with File(fname, 'w') as fid :
-            fid[field] = self.data.values
-
-    def __setitem__(self, indices, value):
-        self.data.values[indices] = value
-
-    def __getitem__(self, indices) -> ndarray :
-        return self.data.values[indices]
+    def nt(self) -> int:
+        return len(self.time_start)
 
 
 class EmissionFields(xr.Dataset):
     __slots__ = []
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @property
     def grid(self) -> SimpleNamespace:
-        return SimpleNamespace(
+        return Grid(
             lonc=self.lon.data,
             latc=self.lat.data
         )
@@ -83,31 +64,24 @@ class EmissionFields(xr.Dataset):
     def tracer(self) -> str:
         return self.attrs['tracer']
 
-    def __setitem__(self, key, value):
-        self[key].data = value
-
-    def __getitem__(self, key):
-        return self[key].data
-
     def setzero(self) -> None:
         for cat in self.categories :
             self[cat].data *= 0.
 
     @classmethod
-    def open_dataset(cls, source: Union[str, nc.Group]):
-        if isinstance(source, str):
-            source = nc.Dataset(source, 'r')
-        ds = xr.open_dataset(xr.backends.NetCDF4DataStore(source))
-        return cls(data_vars=ds.data_vars, coords=ds.coords, attrs=ds.attrs)
+    def open_dataset(cls, source: str, group: str=None):
+        with xr.open_dataset(source, group=group) as ds :
+            obj = cls(data_vars=ds.data_vars, coords=ds.coords, attrs=ds.attrs)
+            obj.load()
+        return obj
 
 
-@dataclass
 class Emissions(dict):
 
     @property
     def tracers(self) -> Iterator[EmissionFields]:
         for tracer in self.values():
-            return tracer
+            yield tracer
 
     @classmethod
     def read(cls, filename) -> "Emissions":
@@ -117,8 +91,8 @@ class Emissions(dict):
                 tracers = fid.tracers
             else :
                 tracers = list(fid.groups.keys())
-            for tracer in tracers :
-                obj[tracer] = EmissionFields.open_dataset(fid[tracer])
+        for tracer in tracers :
+            obj[tracer] = EmissionFields.open_dataset(filename, group=tracer)
         return obj
 
     def write(self, fname: str) -> None:

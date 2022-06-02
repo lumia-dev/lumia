@@ -1,89 +1,18 @@
 #!/usr/bin/env python
 from abc import ABC, abstractmethod
-from numpy import array, argsort, dot, finfo, ndarray
-from typing import List, Iterator, Protocol
+from html.entities import html5
+from numpy import array, argsort, dot, finfo, ndarray, zeros, arange
+from typing import List, Protocol, Type
 from tqdm import tqdm
 from loguru import logger
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from dataclasses import dataclass
 from h5py import File
 import tempfile
 import os
 from pandas import Timestamp, Timedelta
 from pandas import DataFrame as Observations
-
-
-class Grid(Protocol):
-    lonc: ndarray
-    latc: ndarray
-
-
-class Time(Protocol):
-    timestep: Timedelta
-    min: Timestamp
-    time_start: ndarray
-
-
-class EmissionField(Protocol):
-    grid: Grid
-    times: Time
-    tracer: str
-
-    def __init__(self, grid: Grid = None, time: Time = None) -> None:
-        ...
-
-    def save(self, filename, field) -> None:
-        ...
-
-    def __setitem__(self, key, value) -> None:
-        ...
-
-    def __getitem__(self, indices) -> ndarray:
-        ...
-
-
-class EmissionFields(Protocol):
-    grid: Grid
-    times: Time
-    categories: List[str]
-    tracer: str
-
-    def __setitem__(self, key, value) -> None:
-        ...
-
-    def __getitem__(self, indices) -> ndarray:
-        ...
-
-    def setzero(self) -> None:
-        ...
-
-
-class Emissions(Protocol):
-    """
-    The Emissions class should be a dict-like structure, each item corresponding to a tracer (and containing an EmissionFields-like instance for that tracer).
-    In addition, it contains the following methods:
-    - read (classmethod): construct a new Emissions structure from a file
-    - write: write itself to a file
-    - asvec: returns a vector based on the data, for adjoint test purpose.
-    """
-
-    tracers: Iterator[EmissionFields]
-
-    def __getitem__(self, item) -> EmissionFields:
-        ...
-
-    def __setitem__(self, key, value) -> None:
-        ...
-
-    @classmethod
-    def read(cls, filename) -> "Emissions" :
-        ...
-
-    def write(self, filename) -> None:
-        ...
-
-    def asvec(self) -> ndarray:
-        ...
+from transport.emis import EmissionFields, Emissions, Grid
 
 
 class Footprint(Protocol):
@@ -105,9 +34,10 @@ class FootprintFile(Protocol):
 
 @dataclass
 class SharedMemory:
-    footprint_class: type(FootprintFile) = None
+    footprint_class: Type[FootprintFile] = None
     emis: EmissionFields = None
     obs: Observations = None
+    grid: Grid = None
 
     def clear(self, *args):
         if len(args) == 0:
@@ -120,9 +50,9 @@ shared_memory = SharedMemory()
 
 @dataclass
 class BaseTransport:
-    footprint_class: type(FootprintFile)
+    footprint_class: Type[FootprintFile]
     parallel: bool = False
-    ncpus: int = None
+    ncpus: int = cpu_count()
     _silent: bool = None
 
     def __post_init__(self):
@@ -180,7 +110,7 @@ class Forward(BaseTransport):
             for field in obslist.columns:
                 obs.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, f'mix_{field}']
 
-        shared_memory.clear()
+        shared_memory.clear(['emis', 'obs'])
 
         # Combine the flux components :
         try:
@@ -220,9 +150,9 @@ class Forward(BaseTransport):
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
 
             for iobs, obs in tqdm(obs.iterrows(), desc=fpf.filename, total=obs.shape[0]):
-                fp = fpf[obs.obsid]
+                fp = fpf.get(obs.obsid)
                 for cat in emis.categories :
-                    obs.loc[iobs, f'mix_{cat}'] = (emis[cat][fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
+                    obs.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
         return obs
 
 
@@ -260,10 +190,10 @@ class Adjoint(BaseTransport):
         for adjfile in self.run_files(filenames):
             with File(adjfile, 'r') as ds :
                 for cat in adjemis.categories :
-                    adjemis[cat] += ds['adjoint_field'][:]
+                    adjemis[cat].data += ds['adjoint_field'][:]
             os.remove(adjfile)
 
-        shared_memory.clear(['grid', 'time', 'obs'])
+        shared_memory.clear('grid', 'time', 'obs')
 
         return adjemis
 
@@ -273,34 +203,41 @@ class Adjoint(BaseTransport):
     def run_files_mp(self, filenames: List[str]) -> List[str]:
 
         # Distribute the files equally amongst the processes. Start with the larger files, to balance the load:
-        buckets = [[]*self.ncpus]
-        iproc = 0
-        for filename in filenames:
-            buckets[iproc].append(filename)
-            iproc += 1
-            if iproc == self.ncpus :
-                iproc = 0
+        icpu = arange(len(filenames))
+        while icpu.max() >= self.ncpus :
+            icpu[icpu >= self.ncpus] -= self.ncpus
+        buckets = []
+        filenames = array(filenames)
+        for cpu in range(self.ncpus):
+            bucket = filenames[icpu == cpu]
+            if len(bucket) > 0 :
+                buckets.append(bucket)
 
         with Pool(processes=self.ncpus) as pool :
             return list(tqdm(pool.imap(self.run_subset, buckets, chunksize=1), total=self.ncpus))
 
     @staticmethod
     def run_subset(filenames: List[str], silent: bool = True) -> str :
-        obs = shared_memory['obs']
+        #observations = shared_memory.obs
+        times = shared_memory.time
+        grid = shared_memory.grid
 
-        adj_emis = EmissionField(grid=shared_memory['grid'], time=shared_memory['time'])
+        adj_emis = zeros((times.nt, grid.nlat, grid.nlon))
 
-        for file in tqdm(filenames, silent=silent) :
-            with shared_memory['fpclass'](file, silent) as fpf :
-                fpf.align(adj_emis.grid, adj_emis.times.timestep, adj_emis.times.min)
+        for file in tqdm(filenames, disable=silent) :
+            observations = shared_memory.obs.loc[shared_memory.obs.footprint == file]
 
-                for iobs, obs in tqdm(obs.iterrows(), desc=fpf.filename, total=obs.shape[0]):
-                    fp = fpf[obs.obsid]
+            with shared_memory.footprint_class(file) as fpf :
+                fpf.align(grid, times.timestep, times.min)
+
+                for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0]):
+                    fp = fpf.get(obs.obsid)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] = obs.dy * fp.sensi
 
         with tempfile.NamedTemporaryFile(dir='.', prefix='adjoint_', suffix='.nc') as fid :
             fname = fid.name
-        adj_emis.save(fname, 'adjoint_field')
+        with File(fname, 'w') as fid :
+            fid['adjoint_field'] = adj_emis
 
         return fname
 
@@ -308,7 +245,7 @@ class Adjoint(BaseTransport):
 @dataclass
 class Model(ABC):
     parallel : bool = False
-    ncpus : int = None
+    ncpus : int = cpu_count()
 
     def run_forward(self, obs: Observations, emis: Emissions) -> Observations :
         return Forward(self.footprint_class, self.parallel, self.ncpus).run(emis, obs)
@@ -316,8 +253,8 @@ class Model(ABC):
     def run_adjoint(self, obs: Observations, adj_emis: Emissions) -> Emissions:
         return Adjoint(self.footprint_class, self.parallel, self.ncpus).run(adj_emis, obs)
 
-    @abstractmethod
     @property
+    @abstractmethod
     def footprint_class(self) -> FootprintFile:
         """
         This should return the class used to read the footprint files (i.e. a derived instance of transport.base.files.FootprintsFile
