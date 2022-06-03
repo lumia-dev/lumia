@@ -3,6 +3,7 @@ import sys
 import os
 import shutil
 from numpy import ones, array
+from lumia import paths
 from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
@@ -53,7 +54,7 @@ class transport(object):
 
     def calcDepartures(self, struct, step=None, serial=False):
         emf, dbf = self.runForward(struct, step, serial)
-        db = obsdb(filename=dbf)
+        db = obsdb.from_hdf(dbf)
         if self.rcf.get('model.split.categories', default=True):
             for cat in struct.categories:
             #for cat in self.rcf.get('emissions.categories'):
@@ -85,12 +86,14 @@ class transport(object):
 
         # Write model inputs:
         compression = step in self.rcf.get('transport.output.steps') # Do not compress during 4DVAR loop, for better speed.
-        emf = self.writeStruct(struct, self.tempdir, 'modelData.%s'%step, zlib=compression)
-        dbf = self.db.save_tar(os.path.join(self.tempdir, 'observations.%s.tar.gz'%step))
-        rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.{step}.rc'))
+        emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression)
+        #emf = self.writeStruct(struct, self.tempdir, 'modelData.%s'%step, zlib=compression)
+        #dbf = self.db.save_tar(os.path.join(self.tempdir, 'observations.%s.tar.gz'%step))
+        dbf = self.db.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
+        #rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.{step}.rc'))
         
         # Run the model
-        cmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--forward', '--db', dbf, '--emis', emf]
+        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf]
         if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
@@ -106,30 +109,32 @@ class transport(object):
         """
         
         self.db.observations.loc[:, 'dy'] = departures
-        dpf = self.db.save_tar(os.path.join(self.tempdir, 'departures.tar.gz'))
+        dpf = self.db.to_hdf(os.path.join(self.tempdir, 'departures.hdf'))
+        #dpf = self.db.save_tar(os.path.join(self.tempdir, 'departures.tar.gz'))
         
         # Create an adjoint rc-file
-        rcadj = self.rcf.write(os.path.join(self.tempdir, 'adjoint.rc'))
+        # rcadj = self.rcf.write(os.path.join(self.tempdir, 'adjoint.rc'))
 
         # Name of the adjoint output file
-        adjf = os.path.join(self.tempdir, 'adjoint.nc')
+        adjf = os.path.join(self.tempdir, 'emissions.nc')
 
         # Run the adjoint transport:
-        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf]
+        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf]
         if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
         runcmd(cmd)
 
         # Collect the results :
-        return self.readStruct(self.tempdir, 'adjoint')
+        return self.readStruct(path=adjf)
 
-    def calcSensitivityMap(self):
+    def calcSensitivityMap(self, struct):
         departures = ones(self.db.observations.shape[0])
-        try :
-            adjfield = self.readStruct(self.tempdir, 'adjoint')
-        except :
-            adjfield = self.runAdjoint(departures)
+#        try :
+#            adjfield = self.readStruct(self.tempdir, 'adjoint')
+#        except :
+        self.writeStruct(struct, os.path.join(paths.temp, 'emissions.nc'), zlib=True)
+        adjfield = self.runAdjoint(departures)
 
         sensi = {}
         for tracer in adjfield.tracers :

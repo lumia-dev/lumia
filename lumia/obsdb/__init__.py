@@ -4,7 +4,7 @@ import logging
 import tarfile
 import tempfile
 from numpy import unique, nan
-from pandas import DataFrame, read_csv
+from pandas import DataFrame, read_csv, read_hdf
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +158,46 @@ class obsdb:
                 setattr(self, field, data)
         self.SelectTimes(self.start, self.end, copy=False)
         logger.info(f"{self.observations.shape[0]} observation read from {filename}")
+
+    def to_dataframe(self) -> DataFrame:
+        """
+        Combine the "sites" and "observations" dataframes in a single dataframe
+        The columns of the "sites" dataframe are added to the "observations" dataframe if they are not already present
+        """
+        obs = self.observations.copy()
+        for site in self.sites.itertuples():
+            for field in set(self.sites.columns) - set(self.observations.columns) :
+                try :
+                    obs.loc[self.observations.site == site.Index, field] = getattr(site, field)
+                except AttributeError:
+                    import pdb; pdb.set_trace()
+        return obs
+    
+    @classmethod
+    def from_dataframe(cls, df: DataFrame) -> "obsdb":
+        obs = cls()
+        for site in df.site.drop_duplicates():
+            dfs = df.loc[df.site == site]
+            site = {}
+            for col in dfs.columns:
+                values = dfs.loc[:, col].drop_duplicates().values
+                if len(values) == 1 :
+                    site[col] = values[0]
+            obs.sites.loc[site['site']] = site
+
+        # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondance
+        obs.observations = df.loc[:, ['site'] + list(set(df.columns) - set(obs.sites.columns))]
+
+        return obs
+
+    def to_hdf(self, filename: str) -> str :
+        self.to_dataframe().to_hdf(filename, key='observations')
+        return filename
+
+    @classmethod
+    def from_hdf(cls, filename: str) -> "obsdb":
+        df = read_hdf(filename, key='observations')
+        return cls.from_dataframe(df)
 
     def checkIndex(self, reindex=False):
         if True in self.observations.index.duplicated():

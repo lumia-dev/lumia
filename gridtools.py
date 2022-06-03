@@ -53,7 +53,6 @@ class Grid:
     latc : ndarray = field(default=None, repr=False, compare=False)
     lonb : ndarray = field(default=None, repr=False, compare=False)
     lonc : ndarray = field(default=None, repr=False, compare=False)
-    area : ndarray = field(default=None, repr=False, compare=False)
     radius_earth : float = field(default=6_378_100.0, repr=False)
 
     def __post_init__(self):
@@ -135,7 +134,11 @@ class Grid:
         if self.latc is None :
             self.latc = linspace(self.lat0 + self.dlat/2., self.lat1 - self.dlat/2., self.nlat)
 
-        self.area = self.calc_area()
+#        self.area = self.calc_area()
+
+    @property
+    def area(self) -> ndarray :
+        return self.calc_area()
 
     def calc_area(self):
         dlon_rad = self.dlon * pi / 180.

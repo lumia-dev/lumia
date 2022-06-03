@@ -334,7 +334,7 @@ class Data:
         
         if copy_emis :
             for cat in self.categories :
-                new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data)
+                new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy())
         
         return new
 
