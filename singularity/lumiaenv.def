@@ -30,6 +30,9 @@ From: ubuntu:20.04
     echo ". /opt/conda/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
     echo "conda activate lumia" >> $SINGULARITY_ENVIRONMENT
 
+    # Install additional libraries with pip
+    pip install pint
+
     # Make directories
     mkdir /lumia
 

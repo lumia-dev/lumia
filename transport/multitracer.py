@@ -7,18 +7,30 @@ from lumia.obsdb import obsdb
 import h5py
 from typing import List
 from types import SimpleNamespace
-from pandas import Timedelta, Timestamp, DataFrame
+from pandas import Timedelta, Timestamp, DataFrame, read_hdf
 from gridtools import Grid
 from numpy import array, nan
 from dataclasses import asdict
-from loguru import logger
 
 
 class Observations(DataFrame):
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
     @classmethod
-    def read(cls, filename) -> "Observations":
-        return cls(obsdb(filename).observations)
+    def read(cls, filename: str) -> "Observations":
+        return cls(read_hdf(filename))
+
+    @property
+    def _constructor(self):
+        """
+        Ensures that the parent's (DataFrame) methods return an instance of Observations and not DataFrame
+        """
+        return Observations
+    
+    def write(self, filename: str) -> None:
+        self.to_hdf(filename, key='observations')
 
     def check_footprints(self, path: str) -> None:
         # Create the file names:
@@ -63,7 +75,7 @@ class LumiaFootprintFile(h5py.File):
         itims = self[obsid]['itims'][:] + self.shift_t
         ilons = self[obsid]['ilons'][:]
         ilats = self[obsid]['ilats'][:]
-        sensi = self[obsid]['sensi'][:]
+        sensi = self[obsid]['sensi'][:] * 0.0002897
         sel = itims >= 0
         return SimpleNamespace(itims=itims[sel], ilons=ilons[sel], ilats=ilats[sel], sensi=sensi[sel])
 
@@ -107,7 +119,7 @@ if __name__ == '__main__':
 
     if args.forward:
         obs = model.run_forward(obs, emis)
-        obs.write(args.db)
+        obs.write(args.obs)
 
     elif args.adjoint :
         adj = model.run_adjoint(obs, emis)

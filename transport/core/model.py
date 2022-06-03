@@ -107,10 +107,10 @@ class Forward(BaseTransport):
         shared_memory.obs = obs
 
         for obslist in self.run_files(filenames):
-            for field in obslist.columns:
+            for field in emis.categories:
                 obs.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, f'mix_{field}']
 
-        shared_memory.clear(['emis', 'obs'])
+        shared_memory.clear('emis', 'obs')
 
         # Combine the flux components :
         try:
@@ -141,19 +141,19 @@ class Forward(BaseTransport):
         Do a forward run on the selected footprint file. Set silent to False to enable progress bar
         """
 
-        obs = shared_memory.obs
-        obs = obs.loc[obs.footprint == filename].obsid
+        obslist = shared_memory.obs
+        obslist = obslist.loc[obslist.footprint == filename, ['obsid',]]
         emis = shared_memory.emis
-        with shared_memory.footprint_class(filename, silent=silent) as fpf :
+        with shared_memory.footprint_class(filename) as fpf :
 
             # Align the coordinates
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
 
-            for iobs, obs in tqdm(obs.iterrows(), desc=fpf.filename, total=obs.shape[0]):
-                fp = fpf.get(obs.obsid)
+            for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0]):
+                fp = fpf.get(obs)
                 for cat in emis.categories :
-                    obs.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
-        return obs
+                    obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
+        return obslist
 
 
 class Adjoint(BaseTransport):

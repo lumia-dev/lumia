@@ -222,8 +222,8 @@ class Interface:
         5. Convert the flux to umol/m2/s
         """
 
-        struct = self.model_data.new(tracers=self.tracers, copy_emis=True)
-        emdiff = (vector - self.optim_data.state_prior).values   # TODO: vector should directly be an increment
+        struct = self.model_data.new(copy_emis=True)
+        emdiff = (vector - self.optim_data.state_prior).values
         tracer = self.optim_data.tracer
         categ = self.optim_data.category
 
