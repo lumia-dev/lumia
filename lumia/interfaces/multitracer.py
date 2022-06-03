@@ -156,7 +156,7 @@ class Interface:
         return mapping
     
     def control_vector(self) -> Control :
-        control = Control(optimized_categories=self.optimized_categories)
+        control = Control(optimized_categories=[c for c in self.optimized_categories])
 
         # 1) Make sure we are using the good unit:
         self.model_data.to_extensive()
@@ -222,7 +222,7 @@ class Interface:
         5. Convert the flux to umol/m2/s
         """
 
-        struct = self.model_data.new(copy_emis=True)
+        struct = self.model_data.new(copy_emis=True, copy_attrs=True)
         emdiff = (vector - self.optim_data.state_prior).values
         tracer = self.optim_data.tracer
         categ = self.optim_data.category

@@ -1,8 +1,9 @@
 import os
+from re import L
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
-from numpy import ndarray, unique, array, zeros, nan
+from numpy import isin, ndarray, unique, array, zeros, nan
 from gridtools import Grid
 from rctools import RcFile
 from datetime import datetime
@@ -12,7 +13,7 @@ from lumia.units import units_registry as ureg
 from gridtools import grid_from_rc
 from pandas import date_range
 from pandas.tseries.frequencies import DateOffset, to_offset
-from lumia.tracers import species
+from lumia.tracers import species, Unit
 from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
 import numbers
@@ -73,7 +74,7 @@ class TracerEmis(xr.Dataset):
         self._mapping = {'time':None, 'space':None} #TODO: replace by a dedicated class?
         self.shape = self.dims['time'], self.dims['lat'], self.dims['lon']
         self.grid = grid
-        self['area'] = xr.DataArray(data=grid.area, dims=['lat', 'lon'], attrs={'units': ureg('m**2')})
+        self['area'] = xr.DataArray(data=grid.area, dims=['lat', 'lon'], attrs={'units': ureg('m**2').units})
         # timestep stores the time step, in time units (seconds, days, months, etc.)
         # while dt stores the time interval in nanoseconds (pandas Timedelta).
         self.attrs['timestep'] = timestep 
@@ -182,7 +183,7 @@ class TracerEmis(xr.Dataset):
         if self.units.dimensionality.get('[time]') == -1 and self.units.dimensionality.get('[length]') == -2 :
             return
         new_unit = self.units / ureg.s / ureg.m**2
-        self.convert(str(new_unit.u))
+        self.convert(str(new_unit))
         assert self.units.dimensionality.get('[time]') == -1, self.units
         assert self.units.dimensionality.get('[length]') == -2, self.units
 
@@ -190,10 +191,10 @@ class TracerEmis(xr.Dataset):
         new_unit = self.units / ureg.s / ureg.m**2
         self.convert(str(new_unit.u))
 
-    def convert(self, destunit):
+    def convert(self, destunit: Unit):
         dest = destunit
         if isinstance(destunit, str):
-            dest = ureg(destunit)
+            dest = ureg(destunit).units
 
         for cat in self.categories :
             # Check if we need to multiply or divide by time and area:
@@ -233,18 +234,48 @@ class TracerEmis(xr.Dataset):
     def to_netcdf(self, *args, **kwargs):
         # Convert attributes in problematic format
         self.attrs['timestep'] = self.period.freqstr
-        self.attrs['units'] = str(self.units)
-        self.area.attrs['units'] = str(self.area.attrs['units'])
-        self.timestep_length.attrs['units'] = str(self.timestep_length.units)
-
+        self.attrs = attrs_to_nc(self.attrs)
+        for var in self.data_vars :
+            self[var].attrs = attrs_to_nc(self[var].attrs)
+        
         # write ncfile
         super().to_netcdf(*args, **kwargs)
 
         # revert the attributes
-        self.timestep_length.attrs['units'] = ureg(self.timestep_length.units).units
-        self.area.attrs['units'] = ureg(self.area.units).units
-        self.attrs['units'] = ureg(self.units).units
+        self.attrs = nc_to_attrs(self.attrs)
+        for var in self.data_vars :
+            self[var].attrs = nc_to_attrs(self[var].attrs)
         self.attrs['timestep'] = to_offset(self.attrs['timestep'])
+
+
+def attrs_to_nc(attrs: dict) -> dict:
+    to_bool = []
+    to_units = []
+    for k, v in attrs.items():
+        if isinstance(v, bool):
+            attrs[k] = int(v)
+            to_bool.append(k)
+        if isinstance(v, Unit):
+            attrs[k] = str(v)
+            to_units.append(k)
+
+    if to_bool :
+        attrs['_bool'] = to_bool
+    if to_units :
+        attrs['_units'] = to_units
+    return attrs
+
+
+def nc_to_attrs(attrs: dict) -> dict:
+    for attr in attrs.get('_bool', []):
+        attrs[attr] = bool(attrs[attr])
+    for attr in attrs.get('_units', []):
+        attrs[attr] = ureg(attrs[attr]).units
+    if '_bool' in attrs:
+        del attrs['_bool']
+    if '_units' in attrs:
+        del attrs['_units']
+    return attrs
 
     
 @dataclass
@@ -324,7 +355,7 @@ class Data:
             for cat in self[tracer].iter_cats() :
                 yield cat
 
-    def new(self, copy_emis=True):
+    def new(self, copy_emis=True, copy_attrs=True):
         """
         This returns a copy of the object, possibly without all the attributes
         """
@@ -334,7 +365,7 @@ class Data:
         
         if copy_emis :
             for cat in self.categories :
-                new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy())
+                new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy(), attrs=self[cat.tracer][cat.name].attrs)
         
         return new
 

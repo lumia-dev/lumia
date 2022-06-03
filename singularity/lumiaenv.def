@@ -31,7 +31,7 @@ From: ubuntu:20.04
     echo "conda activate lumia" >> $SINGULARITY_ENVIRONMENT
 
     # Install additional libraries with pip
-    pip install pint
+    pip install pint h5netcdf
 
     # Make directories
     mkdir /lumia
