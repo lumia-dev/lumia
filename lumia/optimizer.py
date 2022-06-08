@@ -167,7 +167,7 @@ class Optimizer(object):
 
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.model.save(path, step)
-        self.control.save(os.path.join(path, 'control.%shdf'%step))
+        self.interface.save(path)
         #self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
 
         # Copy to archive

@@ -13,6 +13,7 @@ from lumia.units import units_registry as ureg
 from lumia.tracers import species
 from rctools import RcFile
 import typing
+import os
 
 
 @dataclass
@@ -36,6 +37,11 @@ class Interface:
     def tracers(self):
         for tr in self.model_data.tracers :
             yield tr
+
+    def save(self, path: str) -> None:
+        self.model_data.to_intensive()
+        self.model_data.to_netcdf(os.path.join(path, 'emissions_apri.nc'))
+        self.optim_data.to_hdf(os.path.join(path, 'control.hdf'), 'vectors')
 
     def setup_optimization(self):
         """

@@ -26,3 +26,5 @@ scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 /.idea/*
 .idea/
 .idea
+*.log
+

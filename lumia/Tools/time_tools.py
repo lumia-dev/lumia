@@ -1,13 +1,17 @@
 from datetime import datetime, timedelta
 from numpy import array, ndarray
-from pandas import PeriodIndex, Timedelta, period_range
+from typing import Union
+from pandas import PeriodIndex, Timedelta, period_range, Timestamp
 
 
 class tinterv:
     def __init__(self, start, end):
         self.start = start
         self.end = end
-        self.dt = self.end - self.start
+
+    @property
+    def dt(self) -> timedelta:
+        return self.end-self.start
 
     def __repr__(self):
         return f'{self.start:%d %b %Y %H:%M} to {self.end:%d %b %Y %H:%M}'
@@ -90,5 +94,7 @@ def periods_to_intervals(periods:PeriodIndex) -> ndarray:
     return array([tinterv(s, e) for (s, e) in zip(start, end)])
 
 
-def interval_range(*args, **kwargs):
-    return periods_to_intervals(period_range(*args, **kwargs))
+def interval_range(start: Union[datetime, Timestamp], end: Union[datetime, Timestamp], freq: str) -> ndarray:
+    intv = periods_to_intervals(period_range(start, end, freq=freq))
+    intv[-1].end = end 
+    return intv

@@ -77,6 +77,8 @@ class LumiaFootprintFile(h5py.File):
         ilats = self[obsid]['ilats'][:]
         sensi = self[obsid]['sensi'][:] * 0.0002897
         sel = itims >= 0
+        if itims.min() < 0 :
+            sel *= False
         return SimpleNamespace(itims=itims[sel], ilons=ilons[sel], ilats=ilats[sel], sensi=sensi[sel])
 
 

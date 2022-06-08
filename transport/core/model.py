@@ -232,7 +232,7 @@ class Adjoint(BaseTransport):
 
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0]):
                     fp = fpf.get(obs.obsid)
-                    adj_emis[fp.itims, fp.ilats, fp.ilons] = obs.dy * fp.sensi
+                    adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
 
         with tempfile.NamedTemporaryFile(dir='.', prefix='adjoint_', suffix='.nc') as fid :
             fname = fid.name
