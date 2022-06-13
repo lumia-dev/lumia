@@ -90,7 +90,7 @@ class transport(object):
         dbf = self.db.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
         
         # Run the model
-        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints')]
+        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
         if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
@@ -112,7 +112,7 @@ class transport(object):
         adjf = os.path.join(self.tempdir, 'emissions.nc')
 
         # Run the adjoint transport:
-        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.rcf.get('path.footprints')]
+        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
         if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from abc import ABC, abstractmethod
-from datetime import datetime
-from functools import total_ordering
-from html.entities import html5
+from functools import partial
 import loguru
 from numpy import array, argsort, dot, finfo, ndarray, zeros, arange
 from typing import List, Protocol, Type
@@ -56,6 +54,7 @@ class BaseTransport:
     footprint_class: Type[FootprintFile]
     parallel: bool = False
     ncpus: int = cpu_count()
+    tempdir: str='/tmp'
     _silent: bool = None
 
     def __post_init__(self):
@@ -218,11 +217,13 @@ class Adjoint(BaseTransport):
             if len(bucket) > 0 :
                 buckets.append(bucket)
 
+        func = partial(self.run_subset, silent=self.silent, tempdir=self.tempdir)
+
         with Pool(processes=self.ncpus) as pool :
-            return list(tqdm(pool.imap(self.run_subset, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks'))
+            return list(tqdm(pool.imap(func, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks'))
 
     @staticmethod
-    def run_subset(filenames: List[str], silent: bool = True) -> str :
+    def run_subset(filenames: List[str], silent: bool = True, tempdir: str = '/tmp') -> str :
         #observations = shared_memory.obs
         times = shared_memory.time
         grid = shared_memory.grid
@@ -240,7 +241,7 @@ class Adjoint(BaseTransport):
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
                         
 
-        with tempfile.NamedTemporaryFile(dir='.', prefix='adjoint_', suffix='.nc') as fid :
+        with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.nc') as fid :
             fname = fid.name
         with File(fname, 'w') as fid :
             fid['adjoint_field'] = adj_emis
@@ -252,12 +253,13 @@ class Adjoint(BaseTransport):
 class Model(ABC):
     parallel : bool = False
     ncpus : int = cpu_count()
+    tempdir : str = '/tmp'
 
     def run_forward(self, obs: Observations, emis: Emissions) -> Observations :
-        return Forward(self.footprint_class, self.parallel, self.ncpus).run(emis, obs)
+        return Forward(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(emis, obs)
 
     def run_adjoint(self, obs: Observations, adj_emis: Emissions) -> Emissions:
-        return Adjoint(self.footprint_class, self.parallel, self.ncpus).run(adj_emis, obs)
+        return Adjoint(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(adj_emis, obs)
 
     @property
     @abstractmethod

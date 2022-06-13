@@ -109,6 +109,7 @@ if __name__ == '__main__':
     p.add_argument('--footprints', '-p', help="Path where the footprints are stored")
     p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
+    p.add_argument('--tmp', '-t', default='/tmp', help='Path to a temporary directory where (big) files can be written')
     p.add_argument('--ncpus', '-n', default=os.cpu_count())
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     logger.remove()
     logger.add(sys.stderr, level=args.verbosity)
 
-    model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus)
+    model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
 
     emis = Emissions.read(args.emis)
     obs = Observations.read(args.obs)
@@ -136,7 +137,6 @@ if __name__ == '__main__':
     elif args.adjoint :
         adj = model.run_adjoint(obs, emis)
         adj.write(args.emis)
-
 
     elif args.adjtest :
         model.adjoint_test(obs, emis)
