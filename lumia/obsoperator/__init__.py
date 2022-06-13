@@ -43,8 +43,8 @@ class transport(object):
             path = self.rcf.get('path.output')
         checkDir(path)
 
-        rcfile = self.rcf.write(os.path.join(path, 'transport.%src'%tag))
-        obsfile = self.db.save_tar(os.path.join(path, 'observations.%star.gz'%tag))
+        rcfile = self.rcf.write(os.path.join(path, f'transport.{tag}rc'))
+        obsfile = self.db.save_tar(os.path.join(path, f'observations.{tag}tar.gz'))
         if structf is not None :
             try :
                 shutil.copy(structf, path)
@@ -87,13 +87,10 @@ class transport(object):
         # Write model inputs:
         compression = step in self.rcf.get('transport.output.steps') # Do not compress during 4DVAR loop, for better speed.
         emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression)
-        #emf = self.writeStruct(struct, self.tempdir, 'modelData.%s'%step, zlib=compression)
-        #dbf = self.db.save_tar(os.path.join(self.tempdir, 'observations.%s.tar.gz'%step))
         dbf = self.db.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
-        #rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.{step}.rc'))
         
         # Run the model
-        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf]
+        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints')]
         if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
@@ -110,16 +107,12 @@ class transport(object):
         
         self.db.observations.loc[:, 'dy'] = departures
         dpf = self.db.to_hdf(os.path.join(self.tempdir, 'departures.hdf'))
-        #dpf = self.db.save_tar(os.path.join(self.tempdir, 'departures.tar.gz'))
         
-        # Create an adjoint rc-file
-        # rcadj = self.rcf.write(os.path.join(self.tempdir, 'adjoint.rc'))
-
         # Name of the adjoint output file
         adjf = os.path.join(self.tempdir, 'emissions.nc')
 
         # Run the adjoint transport:
-        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf]
+        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.rcf.get('path.footprints')]
         if self.serial :
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))

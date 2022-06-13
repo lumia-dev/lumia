@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+from loguru import logger
 
 try :
     from tqdm import tqdm
@@ -25,11 +26,14 @@ class Paths:
 
     def setup(self, rcf):
         self._temp = rcf.get('path.temp')
+        if not os.path.exists(self._temp):
+            os.makedirs(self._temp)
         self._initialized = True
 
     @property
     def temp(self):
         if self._initialized :
+            logger.debug(f'lumia.paths.temp set to {self._temp}')
             return self._temp
         else :
             raise RuntimeError(f'{__name__}.paths has been instantiated but has yet to be initialized')

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 from abc import ABC, abstractmethod
+from datetime import datetime
+from functools import total_ordering
 from html.entities import html5
+import loguru
 from numpy import array, argsort, dot, finfo, ndarray, zeros, arange
 from typing import List, Protocol, Type
 from tqdm import tqdm
@@ -60,7 +63,9 @@ class BaseTransport:
 
     @property
     def silent(self):
-        return self._silent if self._silent is not None else self.parallel
+        silent = self._silent if self._silent is not None else self.parallel
+        loguru.warning(f'{silent=}, {self._silent=}, {self.parallel=}')
+        return silent
 
     def run_files(self, *args, **kwargs) :
         if self.parallel :
@@ -149,7 +154,7 @@ class Forward(BaseTransport):
             # Align the coordinates
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
 
-            for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0]):
+            for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
                 fp = fpf.get(obs)
                 for cat in emis.categories :
                     obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
@@ -187,7 +192,7 @@ class Adjoint(BaseTransport):
         shared_memory.grid = adjemis.grid
         shared_memory.time = adjemis.times
 
-        for adjfile in self.run_files(filenames):
+        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files'):
             with File(adjfile, 'r') as ds :
                 for cat in adjemis.categories :
                     adjemis[cat].data += ds['adjoint_field'][:]
@@ -198,7 +203,7 @@ class Adjoint(BaseTransport):
         return adjemis
 
     def run_files_serial(self, filenames: List[str]) -> List[str]:
-        return [self.run_subset(filenames, silent=False)]
+        return [self.run_subset(filenames, silent=self.silent)]
 
     def run_files_mp(self, filenames: List[str]) -> List[str]:
 
@@ -214,7 +219,7 @@ class Adjoint(BaseTransport):
                 buckets.append(bucket)
 
         with Pool(processes=self.ncpus) as pool :
-            return list(tqdm(pool.imap(self.run_subset, buckets, chunksize=1), total=self.ncpus))
+            return list(tqdm(pool.imap(self.run_subset, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks'))
 
     @staticmethod
     def run_subset(filenames: List[str], silent: bool = True) -> str :
@@ -230,9 +235,10 @@ class Adjoint(BaseTransport):
             with shared_memory.footprint_class(file) as fpf :
                 fpf.align(grid, times.timestep, times.min)
 
-                for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0]):
+                for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
+                        
 
         with tempfile.NamedTemporaryFile(dir='.', prefix='adjoint_', suffix='.nc') as fid :
             fname = fid.name

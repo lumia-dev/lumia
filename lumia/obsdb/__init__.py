@@ -1,12 +1,11 @@
 import os
 import shutil
-import logging
 import tarfile
 import tempfile
+from typing import List
 from numpy import unique, nan
 from pandas import DataFrame, read_csv, read_hdf
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class obsdb:
@@ -191,7 +190,13 @@ class obsdb:
         return obs
 
     def to_hdf(self, filename: str) -> str :
-        self.to_dataframe().to_hdf(filename, key='observations')
+        df = self.to_dataframe()
+        #TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
+        for col in df.columns :
+            if df.loc[:, col].dtype == 'O' and isinstance(df.loc[:, col].iloc[0], bool):
+                logger.warning(f"Converting column {col} from {df.loc[:, col].dtype} to {bool}")
+                df.loc[:, col] = df.loc[:, col].astype(bool)
+        df.to_hdf(filename, key='observations')
         return filename
 
     @classmethod

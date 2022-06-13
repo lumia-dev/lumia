@@ -3,8 +3,8 @@
 from datetime import datetime, timedelta
 from numpy import zeros, sqrt
 from lumia.obsdb import obsdb
-from lumia.Tools.logging_tools import logger
 from multiprocessing import Pool
+from loguru import logger
 
 
 infokeys = {
@@ -39,6 +39,13 @@ class obsdb(obsdb):
 
         if self.rcf.get('obs.uncertainty.setup', default=setupUncertainties, info=infokeys):
             self.SetupUncertainties()
+
+        # Ensure that the tracer column is present:
+        if "tracer" not in self.observations.columns:
+            tracers = self.rcf.get('tracers', tolist='force')
+            if len(tracers) == 1 :
+                logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracers[0]}')
+                self.observations.loc[:, 'tracer'] = tracers[0]
 
     def SetupUncertainties(self):
         errtype = self.rcf.get('obs.uncertainty', info=infokeys)

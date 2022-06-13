@@ -1,5 +1,5 @@
 import os
-from re import L
+from typing import Union
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
@@ -154,7 +154,9 @@ class TracerEmis(xr.Dataset):
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
 
-    def print_summary(self, units='PgC'):
+    def print_summary(self, units=None):
+        if units is None :
+            units = species[self.tracer].unit_budget
         original_unit = self.units
         self.convert(units)
         
@@ -383,35 +385,47 @@ class Data:
                         em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
         return em
 
+    @classmethod
+    def from_rc(cls, rcf:RcFile, start: Union[datetime, Timestamp, str], end: Union[datetime, str, Timestamp]) -> "Data":
+        """
+        Create a Data structure from a rc-file, with the following keys defined:
+        - tracers
+        - emissions.{tracer}.region (for each tracer defined by "tracers")
+        - emissions.{tracer}.categories
+        - emissions.{tracer}.interval
+        - emissions.{tracer}.{cat}.origin
+        - emissions.{tracer}.prefix
 
-def CreateEmis(rcf: RcFile, start: datetime, end: datetime) -> Data:
-    em = Data()
-    for tr in rcf.get('tracers', tolist='force'):
-    #for tracer in rcf.get('tracers', tolist='force'):
+        Additionally, start and time arguments must be provided
+        """
+        em = cls()
+        for tr in rcf.get('tracers', tolist='force'):
 
-        # Create spatial grid
-        grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
+            # Create spatial grid
+            grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
 
-        # Create temporal grid:
-        #freq = Timedelta(rcf.get(f'emissions.{tracer}.interval'))
-        freq = to_offset(rcf.get(f'emissions.{tr}.interval'))
-        time = date_range(start, end, freq=freq, inclusive='left')
-        #time = period_range(start, end, freq=freq)[:-1]
+            # Create temporal grid:
+            freq = to_offset(rcf.get(f'emissions.{tr}.interval'))
+            time = date_range(start, end, freq=freq, inclusive='left')
 
-        # Get tracer characteristics
-        #tr = tracers[tracer]
-        unit_emis = species[tr].unit_emis
+            # Get tracer characteristics
+            unit_emis = species[tr].unit_emis
 
-        # Add new tracer to the emission object
-        em.add_tracer(TracerEmis(tr, grid, time, unit_emis, freq))#.seconds * ur('s')))
+            # Add new tracer to the emission object
+            em.add_tracer(TracerEmis(tr, grid, time, unit_emis, freq))#.seconds * ur('s')))
 
-        # Import emissions for each category of that tracer
-        for cat in rcf.get(f'emissions.{tr}.categories'):
-            origin = rcf.get(f'emissions.{tr}.{cat}.origin')
-            prefix = rcf.get(f'emissions.{tr}.prefix') + origin + '.'
-            emis = load_preprocessed(prefix, start, end, freq=freq)
-            em[tr].add_cat(cat, emis)
-    return em
+            if rcf.get(f'emissions.{tr}.resample'):
+                freq_src = rcf.get(f'emissions.{tr}.convert_from')
+            else :
+                freq_src = freq
+
+            # Import emissions for each category of that tracer
+            for cat in rcf.get(f'emissions.{tr}.categories'):
+                origin = rcf.get(f'emissions.{tr}.{cat}.origin')
+                prefix = os.path.join(rcf.get('emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                emis = load_preprocessed(prefix, start, end, freq=freq)
+                em[tr].add_cat(cat, emis)
+        return em
 
 
 def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None) -> ndarray:
@@ -444,29 +458,6 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
     return data.data
 
 
-# def read_nc(filename):
-#     logger.warning(filename)
-#     em = Data()
-#     with Dataset(filename, 'r') as fid :
-#         for tracer in fid.groups:
-#             with xr.open_dataset(filename, group=tracer) as ds :
-#                 grid = Grid(latc=ds.lat, lonc=ds.lon)
-#                 em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), to_offset(ds.timestep)))
-#                 if isinstance(ds.categories, str):
-#                     ds.attrs['categories'] = [ds.categories]
-#                 for cat in ds.categories :
-#                     em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
-#
-#                 #em[tracer]._variables = ds._variables
-#                 #import pdb; pdb.set_trace()
-#                 #for var in em[tracer].variables :
-#                 #    if 'units' in em[tracer][var].attrs :
-#                 #        em[tracer][var].data = em[tracer][var].data * ureg(em[tracer][var].units)
-#                 #    if em[tracer][var].dims == ('time', 'lat', 'lon'):
-#                 #        em[tracer].categories.append(var)
-#     return em
-
-
 # Interfaces:
 def WriteStruct(data:Data, path:str, prefix=None, zlib=False, complevel=1):
     if prefix is None :
@@ -484,22 +475,3 @@ def ReadStruct(path, prefix=None, categories=None):
     if prefix is not None :
         filename = os.path.join(path, f'{prefix}.nc')
     return Data.from_file(filename)
-
-
-# def CreateStruct(tracer, categories, grid, start, end, dt):
-#     tr = tracers.get(tracer)
-#     time = date_range(start, end, freq=dt)
-#     em = TracerEmis(tr, grid, time, tr.unit_emis, dt)
-#     for cat in categories :
-#         em.add_cat(cat, 0)
-#     return em
-
-
-#
-# def CreateStruct_adj(tracer, categories, grid, start, end, dt):
-#     tr = species[tracer]
-#     time = date_range(start, end, freq=dt, inclusive='left')
-#     em = TracerEmis(tracer, grid, time, tr.unit_mix / tr.unit_emis, dt)
-#     for cat in categories :
-#         em.add_cat(cat, 0)
-#     return em

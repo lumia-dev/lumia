@@ -1,47 +1,17 @@
 #!/usr/bin/env python
 import os
-import logging
+from loguru import logger
 from transport.core import Model
+from transport.core.model import FootprintFile
 from transport.emis import Emissions
-from lumia.obsdb import obsdb
 import h5py
-from typing import List
+from typing import List, Type
 from types import SimpleNamespace
 from pandas import Timedelta, Timestamp, DataFrame, read_hdf
 from gridtools import Grid
 from numpy import array, nan
 from dataclasses import asdict
-
-
-class Observations(DataFrame):
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-    @classmethod
-    def read(cls, filename: str) -> "Observations":
-        return cls(read_hdf(filename))
-
-    @property
-    def _constructor(self):
-        """
-        Ensures that the parent's (DataFrame) methods return an instance of Observations and not DataFrame
-        """
-        return Observations
-    
-    def write(self, filename: str) -> None:
-        self.to_hdf(filename, key='observations')
-
-    def check_footprints(self, path: str) -> None:
-        # Create the file names:
-        fnames = [f'{o.code.lower()}.{o.height:.0f}m.{o.time:%Y-%m.hdf}' for o in self.itertuples()]
-        self.loc[:, 'footprint'] = fnames
-        exists = array([os.path.exists(os.path.join(path, f)) for f in fnames])
-        self.loc[~exists, 'footprint'] = nan
-
-        # Construct the obs ids:
-        obsids = self.site + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y%m%d-%H%M%S')
-        self.loc[exists, 'obsid'] = obsids
+from tqdm import tqdm
 
 
 class LumiaFootprintFile(h5py.File):
@@ -82,6 +52,45 @@ class LumiaFootprintFile(h5py.File):
         return SimpleNamespace(itims=itims[sel], ilons=ilons[sel], ilats=ilats[sel], sensi=sensi[sel])
 
 
+class Observations(DataFrame):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def read(cls, filename: str) -> "Observations":
+        return cls(read_hdf(filename))
+
+    @property
+    def _constructor(self):
+        """
+        Ensures that the parent's (DataFrame) methods return an instance of Observations and not DataFrame
+        """
+        return Observations
+    
+    def write(self, filename: str) -> None:
+        self.to_hdf(filename, key='observations')
+
+    def check_footprints(self, path: str, cls: Type[FootprintFile]) -> None:
+        # Create the file names:
+        fnames = path + '/' + self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
+        self.loc[:, 'footprint'] = fnames
+        exists = array([os.path.exists(f) for f in fnames])
+        self.loc[~exists, 'footprint'] = nan
+
+        # Construct the obs ids:
+        obsids = self.code + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y%m%d-%H%M%S')
+        self.loc[exists, 'obsid'] = obsids
+
+        # Check in the files which footprints are actually present:
+        fnames = self.footprint.drop_duplicates().dropna()
+        footprints = []
+        for fname in fnames:
+            with cls(fname) as fpf:
+                footprints.extend(fpf.footprints)
+        self.loc[~self.obsid.isin(footprints), 'footprint'] = nan
+
+
 class MultiTracer(Model):
     _footprint_class = LumiaFootprintFile
 
@@ -93,9 +102,6 @@ class MultiTracer(Model):
 if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
-
-    # Avoid excessive warning messages
-    logging.captureWarnings(True)
 
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
@@ -111,13 +117,17 @@ if __name__ == '__main__':
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
+    # Set the verbosity in the logger (loguru quirks ...)
+    logger.remove()
+    logger.add(sys.stderr, level=args.verbosity)
+
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus)
 
     emis = Emissions.read(args.emis)
     obs = Observations.read(args.obs)
 
-    if args.check_footprints:
-        obs.check_footprints(args.footprints)
+    if args.check_footprints or not 'footprint' in obs.columns:
+        obs.check_footprints(args.footprints, LumiaFootprintFile)
 
     if args.forward:
         obs = model.run_forward(obs, emis)
@@ -126,6 +136,7 @@ if __name__ == '__main__':
     elif args.adjoint :
         adj = model.run_adjoint(obs, emis)
         adj.write(args.emis)
+
 
     elif args.adjtest :
         model.adjoint_test(obs, emis)

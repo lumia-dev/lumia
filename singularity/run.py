@@ -2,12 +2,12 @@
 
 import os
 import sys
-from datetime import datetime
+from pandas import Timestamp
 from argparse import ArgumentParser
 import lumia
 from loguru import logger
 from lumia.obsdb.InversionDb import obsdb
-from lumia.formatters import lagrange
+from lumia.formatters import xr
 
 p = ArgumentParser()
 p.add_argument('--forward', default=False, action='store_true')
@@ -24,7 +24,9 @@ p.add_argument('--rcf')
 p.add_argument('--verbosity', '-v', default='INFO')
 args = p.parse_args(sys.argv[1:])
 
-#ogger.setLevel(args.verbosity)
+# Set the verbosity in the logger (loguru quirks ...)
+logger.remove()
+logger.add(sys.stderr, level=args.verbosity)
 
 rcf = lumia.rc(args.rcf)
 
@@ -39,25 +41,25 @@ defaults = {
     # Run-dependent paths
     'tag': args.tag,
     'path.output': os.path.join('/output', args.tag),
-    'var4d.communication.file': '${path.output}/comm_file.nc4',
-    'emissions.archive': 'rclone:lumia:fluxes/nc/${region}/${emissions.convert_from.interval}',
-    'emissions.prefix': '/data/fluxes/nc/${region}/${emissions.convert_from.interval}',
-    'model.transport.exec': '/lumia/transport/default.py',
+    'var4d.communication.file': '${path.temp}/comm_file.nc4',
+    'emissions.*.archive': 'rclone:lumia:fluxes/nc',
+    'emissions.*.path': '/data/fluxes/nc',
+    'model.transport.exec': '/lumia/transport/multitracer.py',
     'transport.output': 'T',
     'transport.output.steps': 'apri, apos, forward',
-    'emissions.convert_from.interval': '${emissions.interval}',
+    'emissions.*.resample': 'T'
 }
 
 # Read simulation time
 if args.start is None :
-    start = datetime(*rcf.get('time.start'))
+    start = Timestamp(rcf.get('time.start'))
 else :
-    start = datetime.strptime(args.start, '%Y%m%d')
+    start = Timestamp(args.start)
     rcf.setkey('time.start', start.strftime('%Y,%m,%d'))
 if args.end is None :
-    end = datetime(*rcf.get('time.end'))
+    end = Timestamp(rcf.get('time.end'))
 else :
-    end = datetime.strptime(args.end, '%Y%m%d')
+    end = Timestamp(args.end)
     rcf.setkey('time.end', end.strftime('%Y,%m,%d'))
 
 
@@ -70,6 +72,8 @@ for k, v in defaults.items():
         rcf.setkey(k, v)
 
 logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
+
+lumia.paths.setup(rcf)
 
 # Load observations
 if args.noobs :
@@ -84,22 +88,23 @@ else :
 
 
 # Load the pre-processed emissions:
-emis = lagrange.Emissions(rcf, start, end)
-emis.print_summary(unit=rcf.get(f'emissions.{rcf.get("tracer")}.unit'))
+emis = xr.Data.from_rc(rcf, start, end)
+emis.print_summary()
 
 # Create model instance
-model = lumia.transport(rcf, obs=db, formatter=lagrange)
+model = lumia.transport(rcf, obs=db, formatter=xr)
 
 
 # Do a model run (or something else ...).
 if args.forward :
-    model.calcDepartures(emis.data, 'forward')
+    model.calcDepartures(emis, 'forward')
 
 elif args.optimize or args.adjtest or args.gradtest :
-    from lumia.interfaces.footprint_flexRes import Interface
+    from lumia.interfaces.multitracer import Interface
 
-    sensi = model.calcSensitivityMap()
-    control = Interface(rcf, ancilliary={'sensi_map': sensi}, emis=emis.data)
+    sensi = model.calcSensitivityMap(emis)
+    #control = Interface(rcf, ancilliary={'sensi_map': sensi}, emis=emis)
+    control = Interface(rcf, model_data=emis, sensi_map=sensi)
     opt = lumia.optimizer.Optimizer(rcf, model, control)
     if args.optimize :
         opt.Var4D()

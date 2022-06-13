@@ -52,13 +52,13 @@ class Interface:
                 optimize_cat = self.rcf.get(f'emissions.{tracer}.{cat}.optimize', default=False)
                 self.model_data[tracer][cat].attrs['optimized'] = optimize_cat
                 if optimize_cat :
-                    self.model_data[tracer][cat].attrs['optimization_interval'] = self.rcf.get(f'emissions.{tracer}.{cat}.optimization_interval', fallback='optimization.interval')
+                    self.model_data[tracer][cat].attrs['optimization_interval'] = self.rcf.get(f'emissions.{tracer}.{cat}.optimization_interval')
                     self.model_data[tracer][cat].attrs['apply_lsm'] = self.rcf.get(f'emissions.{tracer}.{cat}.apply_lsm', default=True)
                     self.model_data[tracer][cat].attrs['is_ocean'] = self.rcf.get(f'emissions.{tracer}.{cat}.is_ocean', default=False)
-                    self.model_data[tracer][cat].attrs['n_optim_points'] = self.rcf.get(f'optimize.{tracer}.{cat}.npoints', fallback='optimize.npoints')
-                    self.model_data[tracer][cat].attrs['horizontal_correlation'] = self.rcf.get(f'emissions.{tracer}.{cat}.corr', fallback=f'emissions.{cat}.corr')
-                    self.model_data[tracer][cat].attrs['temporal_correlation'] = self.rcf.get(f'emissions.{tracer}.{cat}.tcorr', fallback=f'emissions.{cat}.tcorr')
-                    err = ureg(self.rcf.get(f'emissions.{tracer}.{cat}.total_uncertainty'))
+                    self.model_data[tracer][cat].attrs['n_optim_points'] = self.rcf.get(f'optimize.{tracer}.{cat}.npoints')
+                    self.model_data[tracer][cat].attrs['horizontal_correlation'] = self.rcf.get(f'emissions.{tracer}.{cat}.corr')
+                    self.model_data[tracer][cat].attrs['temporal_correlation'] = self.rcf.get(f'emissions.{tracer}.{cat}.tcorr')
+                    err = ureg(self.rcf.get(f'emissions.{tracer}.{cat}.total_uncertainty')) 
                     scf = ((1 * err.units) / species[tracer].unit_budget).m
                     self.model_data[tracer][cat].attrs['total_uncertainty'] = err.m * scf
 
@@ -171,7 +171,10 @@ class Interface:
         cv = []
         for cat in self.model_data.optimized_categories :
             cv.append(self.coarsen_cat(cat))
-        control.vectors = concat(cv, ignore_index=True)
+        try :
+            control.vectors = concat(cv, ignore_index=True)
+        except :
+            import pdb; pdb.set_trace()
 
         # 3) Initialize the remaining fields:
         control.vectors.loc[:, 'start_prior_preco'] = 0.
