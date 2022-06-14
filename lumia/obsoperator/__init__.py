@@ -2,7 +2,7 @@
 import sys
 import os
 import shutil
-from numpy import ones, array
+from numpy import ones, array, prod, append
 from lumia import paths
 from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
@@ -57,7 +57,6 @@ class transport(object):
         db = obsdb.from_hdf(dbf)
         if self.rcf.get('model.split.categories', default=True):
             for cat in struct.categories:
-            #for cat in self.rcf.get('emissions.categories'):
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
@@ -150,24 +149,39 @@ class transport(object):
     def adjoint_test(self, struct):
         from numpy import dot, random
 
+        # Set background to zero:
+        #self.db.observations.loc[:, 'mix_background'] = 0.
+
         # 1) Do a first forward run with these emissions:
+        #self.serial = True
+
         _, dbf = self.runForward(struct, step='adjtest1')
-        db = obsdb(filename=dbf)
-        y1 = db.observations.loc[:, 'mix'].dropna().values
+        db = obsdb.from_hdf(dbf)
+        db.observations = db.observations.dropna(subset=['mix'])
+        y1 = db.observations.mix.values
 
         # 2) Do a second forward run, with perturbed emissions :
-        x1 = struct['biosphere']['emis'].reshape(-1)
-        dx = random.randn(x1.shape[0])
-        struct['biosphere']['emis'] += dx.reshape(*struct['biosphere']['emis'].shape)
+        dx1 = array([])
+        for cat in struct.categories :
+            dx = random.randn(prod(struct[cat.tracer].shape))
+            struct[cat.tracer][cat.name].data += dx.reshape(struct[cat.tracer].shape)
+            dx1 = append(dx1, dx)
+
         _, dbf = self.runForward(struct, step='adjtest2')
-        db = obsdb(filename=dbf)
-        y2 = db.observations.loc[:, 'mix'].dropna().values
-        dy = y2-y1
+        db = obsdb.from_hdf(dbf)
+        db.observations = db.observations.dropna(subset=['mix'])
+        y2 = db.observations.mix.values
+        dy1 = y2-y1
 
         # 3) Do an adjoint run :
-        adj = self.runAdjoint(db.observations.loc[:, 'mix_biosphere'])
+        db.observations.loc[:, 'dy'] = dy1
+        adj = self.runAdjoint(db.observations.loc[:, 'dy'])
 
         # 4) Convert to vectors:
-        y2 = self.db.observations.loc[:, 'dy'].dropna().values
-        x2 = adj['biosphere']['emis'].reshape(-1)
-        logger.info(f"Adjoint test value: { 1 - dot(dy, y2) / dot(dx, x2) = }")
+        dy2 = self.db.observations.loc[:, 'dy'].dropna().values
+        dx2 = array([])
+        for cat in struct.categories :
+            dx2 = append(dx2, adj[cat.tracer][cat.name].data.reshape(-1))
+        
+        logger.info(f"Adjoint test value: { 1 - dot(dy1, dy2) / dot(dx1, dx2) = }")
+        import pdb; pdb.set_trace()

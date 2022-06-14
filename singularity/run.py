@@ -79,9 +79,9 @@ lumia.paths.setup(rcf)
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
     db = obsdb(rcf.get('path.footprints'), start, end)
-elif args.forward or args.optimize :
+elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     db = obsdb(rcf)
-    if args.optimize :
+    if args.optimize or args.gradtest:
         db.SetupUncertainties()
 else :
     db = None
@@ -118,4 +118,4 @@ elif args.emis :
 
 elif args.adjtestmod :
     # Test only the adjoint of the CTM (skip the lumia stuff ...).
-    model.adjoint_test(emis.data)
+    model.adjoint_test(emis)

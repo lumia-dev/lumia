@@ -62,7 +62,6 @@ class BaseTransport:
     @property
     def silent(self):
         silent = self._silent if self._silent is not None else self.parallel
-        logger.warning(f'{silent=}, {self._silent=}, {self.parallel=}')
         return silent
 
     def run_files(self, *args, **kwargs) :
@@ -111,7 +110,7 @@ class Forward(BaseTransport):
 
         for obslist in self.run_files(filenames):
             for field in emis.categories:
-                obs.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, f'mix_{field}']
+                obs.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, f'mix_{field}']#.astype(float)
 
         shared_memory.clear('emis', 'obs')
 
@@ -193,7 +192,7 @@ class Adjoint(BaseTransport):
         for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files'):
             with File(adjfile, 'r') as ds :
                 coords = ds['coords'][:]
-                values = ds['coords'][:]
+                values = ds['values'][:]
                 for cat in adjemis.categories :
                     adjemis[cat].data.reshape(-1)[coords] += values
             os.remove(adjfile)
@@ -240,7 +239,6 @@ class Adjoint(BaseTransport):
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
-                        
 
         with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.h5') as fid :
             fname = fid.name
@@ -275,7 +273,7 @@ class Model(ABC):
 
     def adjoint_test(self, obs: Observations, emis: Emissions) -> None :
         obs.loc[:, 'mix_background'] = 0.
-        self.run_forward(obs, emis)
+        obs = self.run_forward(obs, emis)
         x1 = emis.asvec()
         obs.dropna(subset=['mix'], inplace=True)
         y1 = obs.mix.values

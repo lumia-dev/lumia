@@ -12,10 +12,8 @@ class Optimizer(object):
     def __init__(self, rcf, model, interface, minimizer=congrad):
         self.rcf = rcf                        # Settings
         self.model = model                    # Model interfaces instance (initialized!)
-#        self.control = interface.data         # modelData structure, containing the optimization data
         self.minimizer = minimizer(self.rcf)  # minimizer object instance (initiated!)
         self.interface = interface               # transitions between model data and control vector
-        #self.precon = ...                       # (TODO) transisions between optimization space and model space
         self.control = Uncertainties().setup(interface)  # TODO: create a proper "Precon" module to handle the uncertainties
         self.iteration = 0
 
@@ -45,7 +43,7 @@ class Optimizer(object):
                 # 3) Compute the gradient test itself: (J(x+dt) - J(x)) / dot(J', alpha * dx)
                 DJ1 = abs(J1.tot - J0)
                 DJ2 = abs(dot(gradient_preco, alpha * dx))
-                logger.info(f'Gradient test: {alpha =}; {DJ1/DJ2 = :.10f}; {1-DJ1/DJ2 = :.10f}; ')
+                logger.info(f'Gradient test: {alpha =}; {DJ1/DJ2 = :.10f}; {1-DJ1/DJ2 = :.10f}; {DJ1=}; {DJ2=}')
                 fid.write(f'{alpha:6.0e} ; {DJ1:16.8e} ; {DJ2:16.8e} ; {DJ1/DJ2:.10f} ; {1-DJ1/DJ2:.10f}\n')
 
     def AdjointTest(self):

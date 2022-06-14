@@ -344,18 +344,22 @@ class Data:
         """ Returns an iterable with each existing combination of tracer and optimized categories.
         This just avoids the nested loops "for tracer in self.tracers: for cat in self.tracers[tracer].optimized_categories ..."
         """
+        cats = []
         for tracer in self.tracers :
             for cat in self[tracer].optimized_categories :
-                yield cat
+                cats.append(cat)
+        return cats
 
     @property
     def categories(self) -> Category :
         """ Returns an iterable with each existing combination of tracer and categories.
         This just avoids the nested loops "for tracer in self.tracers: for cat in self.tracers[tracer].categories ..."
         """
+        cats = []
         for tracer in self.tracers :
             for cat in self[tracer].iter_cats() :
-                yield cat
+                cats.append(cat)
+        return cats
 
     def new(self, copy_emis=True, copy_attrs=True):
         """
