@@ -246,9 +246,9 @@ class Adjoint(BaseTransport):
             fname = fid.name
         with File(fname, 'w') as fid :
             adj_emis = adj_emis.reshape(-1)
-            nz = nonzero(adj_emis)
-            fid['coords'] = nz[0]
-            fid['values'] = adj_emis(nz[0])
+            nz = nonzero(adj_emis)[0]
+            fid['coords'] = nz
+            fid['values'] = adj_emis[nz]
 
         return fname
 
