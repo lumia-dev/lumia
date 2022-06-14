@@ -80,48 +80,48 @@ class EmissionFields(xr.Dataset):
             obj.load()
         return obj
 
-    def to_netcdf(self, filename: str, group=None) -> str:
-        """
-        This re-implements the default xarray to_netcdf method, but not using xarray, which leads to significant performance improvement (I don't understand why ...). The usage is the same:
-        - filename ==> path to the output file
-        - group (optional) ==> name of the netcdf group. If no name provided, then data is stored at the root of the file
-        The filename is returned, for convenience.
-        """
-        with nc.Dataset(filename, 'w') as ds :
-            if group is not None :
-                ds = ds.createGroup(group)
+    # def to_netcdf_(self, filename: str, group=None, **args) -> str:
+    #     """
+    #     This re-implements the default xarray to_netcdf method, but not using xarray, which leads to significant performance improvement (I don't understand why ...). The usage is the same:
+    #     - filename ==> path to the output file
+    #     - group (optional) ==> name of the netcdf group. If no name provided, then data is stored at the root of the file
+    #     The filename is returned, for convenience.
+    #     """
+    #     with nc.Dataset(filename, 'w') as ds :
+    #         if group is not None :
+    #             ds = ds.createGroup(group)
 
-            # Create dimensions:
-            for dim in self.dims:
-                ds.createDimension(dim, self.dims[dim])
+    #         # Create dimensions:
+    #         for dim in self.dims:
+    #             ds.createDimension(dim, self.dims[dim])
 
-            # Create variables:
-            for var in self.data_vars:
-                ds.createVariable(var, self[var].dtype, self[var].dims)
-                ds[var][:] = self[var].data
+    #         # Create variables:
+    #         for var in self.data_vars:
+    #             ds.createVariable(var, self[var].dtype, self[var].dims)
+    #             ds[var][:] = self[var].data
     
-                # Copy var attributes:
-                for k, v in self[var].attrs.items():
-                    setattr(ds[var], k, v)
+    #             # Copy var attributes:
+    #             for k, v in self[var].attrs.items():
+    #                 setattr(ds[var], k, v)
     
-            # Create coordinate variables:
-            for var in self.coords:
-                vartype = self[var].dtype
-                if vartype == 'datetime64[ns]':
-                    data = (self[var].data - self[var].data[0]) / 1.e9
-                    ds.createVariable(var, 'int64', self[var].dims)
-                    ds[var].units = f'seconds since {self[var][0].dt.strftime("%Y-%m-%d").data}'
-                    ds[var].calendar = 'proleptic_gregorian'
-                    ds[var][:] = data
-                else :
-                    ds.createVariable(var, self[var].dtype, self[var].dims)
-                    ds[var][:] = self[var].data
+    #         # Create coordinate variables:
+    #         for var in self.coords:
+    #             vartype = self[var].dtype
+    #             if vartype == 'datetime64[ns]':
+    #                 data = (self[var].data - self[var].data[0]) / 1.e9
+    #                 ds.createVariable(var, 'int64', self[var].dims)
+    #                 ds[var].units = f'seconds since {self[var][0].dt.strftime("%Y-%m-%d").data}'
+    #                 ds[var].calendar = 'proleptic_gregorian'
+    #                 ds[var][:] = data
+    #             else :
+    #                 ds.createVariable(var, self[var].dtype, self[var].dims)
+    #                 ds[var][:] = self[var].data
 
-            # Global attributes
-            for k, v in self.attrs.items():
-                setattr(ds, k, v)
+    #         # Global attributes
+    #         for k, v in self.attrs.items():
+    #             setattr(ds, k, v)
 
-            return filename
+    #         return filename
 
 
 class Emissions(dict):
@@ -145,7 +145,7 @@ class Emissions(dict):
 
     def write(self, fname: str) -> None:
         for trname, tracer in self.items() :
-            tracer.to_netcdf(fname, group=trname)
+            tracer.to_netcdf(fname, group=trname, engine='h5netcdf')
 
     def asvec(self) -> ndarray:
         """

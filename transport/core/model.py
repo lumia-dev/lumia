@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 from abc import ABC, abstractmethod
 from functools import partial
-import loguru
-from numpy import array, argsort, dot, finfo, ndarray, zeros, arange
+from numpy import array, argsort, dot, finfo, ndarray, zeros, arange, nonzero
 from typing import List, Protocol, Type
 from tqdm import tqdm
 from loguru import logger
@@ -63,7 +62,7 @@ class BaseTransport:
     @property
     def silent(self):
         silent = self._silent if self._silent is not None else self.parallel
-        loguru.warning(f'{silent=}, {self._silent=}, {self.parallel=}')
+        logger.warning(f'{silent=}, {self._silent=}, {self.parallel=}')
         return silent
 
     def run_files(self, *args, **kwargs) :
@@ -193,8 +192,10 @@ class Adjoint(BaseTransport):
 
         for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files'):
             with File(adjfile, 'r') as ds :
+                coords = ds['coords'][:]
+                values = ds['coords'][:]
                 for cat in adjemis.categories :
-                    adjemis[cat].data += ds['adjoint_field'][:]
+                    adjemis[cat].data.reshape(-1)[coords] += values
             os.remove(adjfile)
 
         shared_memory.clear('grid', 'time', 'obs')
@@ -241,10 +242,13 @@ class Adjoint(BaseTransport):
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
                         
 
-        with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.nc') as fid :
+        with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.h5') as fid :
             fname = fid.name
         with File(fname, 'w') as fid :
-            fid['adjoint_field'] = adj_emis
+            adj_emis = adj_emis.reshape(-1)
+            nz = nonzero(adj_emis)
+            fid['coords'] = nz[0]
+            fid['values'] = adj_emis(nz[0])
 
         return fname
 

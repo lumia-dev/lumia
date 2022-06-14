@@ -93,7 +93,7 @@ class transport(object):
         cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
         if self.serial :
             cmd.append('--serial')
-        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
+        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(' '))
         runcmd(cmd)
 
         # Retrieve results :
@@ -115,7 +115,7 @@ class transport(object):
         cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
         if self.serial :
             cmd.append('--serial')
-        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
+        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(' '))
         runcmd(cmd)
 
         # Collect the results :
