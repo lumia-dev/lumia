@@ -409,7 +409,7 @@ class Data:
             grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
 
             # Create temporal grid:
-            freq = to_offset(rcf.get(f'emissions.{tr}.interval'))
+            freq = rcf.get(f'emissions.{tr}.interval')
             time = date_range(start, end, freq=freq, inclusive='left')
 
             # Get tracer characteristics
