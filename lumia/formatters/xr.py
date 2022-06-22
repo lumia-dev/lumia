@@ -1,4 +1,5 @@
 import os
+from trace import Trace
 from typing import Union
 from pint import Quantity
 import xarray as xr
@@ -7,7 +8,7 @@ from numpy import isin, ndarray, unique, array, zeros, nan
 from gridtools import Grid
 from rctools import RcFile
 from datetime import datetime
-from pandas import Timestamp, DatetimeIndex
+from pandas import PeriodIndex, Timestamp, DatetimeIndex, period_range
 from loguru import logger
 from lumia.units import units_registry as ureg
 from gridtools import grid_from_rc
@@ -248,7 +249,14 @@ class TracerEmis(xr.Dataset):
         for var in self.data_vars :
             self[var].attrs = nc_to_attrs(self[var].attrs)
         self.attrs['timestep'] = to_offset(self.attrs['timestep'])
-
+    
+    def dimensionality(self, dim: str) -> int:
+        """
+        Return the dimensionality of the data, in either time or space.
+        Argument:
+            dim : one of "time" or "length"
+        """
+        return self.units.dimensionality.get(f'[{dim}]')
 
 def attrs_to_nc(attrs: dict) -> dict:
     to_bool = []
@@ -328,6 +336,41 @@ class Data:
         for tr in self._tracers :
             self[tr].to_intensive_adj()
 
+    def resample(self, time=None, lat=None, lon=None, grid=None, inplace=False) -> "Data":
+        if not inplace :
+            new = Data()
+        for tracer in self.tracers :
+            if time:
+                # Resample the emissions for that tracer
+                resampled_data = self[tracer][self[tracer].categories].resample(time=time)
+                if self[tracer].dimensionality('time') == 0:
+                    resampled_data = resampled_data.sum()
+                elif self[tracer].dimensionality('time') == -1:
+                    resampled_data = resampled_data.mean()
+
+                # Create new tracer for storing this:
+                tr = TracerEmis(
+                    tracer, self[tracer].grid,
+                    time=resampled_data.time,
+                    units=self[tracer].units,
+                    timestep=to_offset(time),
+                )
+                for cat in resampled_data.data_vars:
+                    tr.add_cat(cat, resampled_data[cat].values, attrs=self[tracer][cat].attrs)
+
+                if inplace :
+                    self.add_tracer(tr)
+                else :
+                    new.add_tracer(tr)
+
+            elif lat or lon or grid:
+                raise NotImplementedError
+            
+        if not inplace:
+            return new
+        else: 
+            return self
+
     def to_netcdf(self, filename, zlib=True, complevel=1):
         if not zlib :
             complevel = 0.
@@ -337,7 +380,7 @@ class Data:
 
     @property
     def tracers(self):
-        return self._tracers.keys()
+        return list(self._tracers.keys())
     
     @property
     def optimized_categories(self) -> Category :
@@ -381,7 +424,7 @@ class Data:
         with Dataset(filename, 'r') as fid :
             for tracer in fid.groups:
                 with xr.open_dataset(filename, group=tracer) as ds :
-                    grid = Grid(latc=ds.lat, lonc=ds.lon)
+                    grid = Grid(latc=ds.lat.values, lonc=ds.lon.values)
                     em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), to_offset(ds.timestep)))
                     if isinstance(ds.categories, str):
                         ds.attrs['categories'] = [ds.categories]
