@@ -10,6 +10,7 @@ import xarray as xr
 from cartopy.io import shapereader
 from shapely.geometry import Point
 from shapely.ops import unary_union
+from typing import List
 from shapely.prepared import prep
 
 
@@ -62,6 +63,7 @@ class Grid:
         - by specifying lonmin, lonmax and dlon (and same in latitude)
         - by specifying lonmin, dlon and nlon (and sams in latitude)
         """
+
         # Set the longitudes first
         if self.dlon is None :
             if self.lonc is not None :
@@ -139,6 +141,10 @@ class Grid:
     @property
     def area(self) -> ndarray :
         return self.calc_area()
+
+    @property
+    def extent(self) -> List[float]:
+        return [self.lon0, self.lon1, self.lat0, self.lat1]
 
     def calc_area(self):
         dlon_rad = self.dlon * pi / 180.

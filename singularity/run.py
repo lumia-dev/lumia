@@ -103,7 +103,6 @@ elif args.optimize or args.adjtest or args.gradtest :
     from lumia.interfaces.multitracer import Interface
 
     sensi = model.calcSensitivityMap(emis)
-    #control = Interface(rcf, ancilliary={'sensi_map': sensi}, emis=emis)
     control = Interface(rcf, model_data=emis, sensi_map=sensi)
     opt = lumia.optimizer.Optimizer(rcf, model, control)
     if args.optimize :
