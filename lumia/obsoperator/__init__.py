@@ -56,7 +56,7 @@ class transport(object):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb.from_hdf(dbf)
         if self.rcf.get('model.split.categories', default=True):
-            for cat in struct.categories:
+            for cat in struct.transported_categories:
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
@@ -85,7 +85,8 @@ class transport(object):
 
         # Write model inputs:
         compression = step in self.rcf.get('transport.output.steps') # Do not compress during 4DVAR loop, for better speed.
-        emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression)
+        emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
+        del struct
         dbf = self.db.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
         
         # Run the model

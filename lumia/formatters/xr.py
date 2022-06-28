@@ -1,6 +1,6 @@
 import os
 from trace import Trace
-from typing import Union
+from typing import Union, List
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
@@ -21,14 +21,47 @@ import numbers
 
 
 @dataclass
+class Constructor:
+    _value : Union[str, dict] = None
+
+    def __post_init__(self):
+        if isinstance(self._value, Constructor):
+            self._value = self._value.dict
+
+    @property
+    def dict(self) -> dict:
+        if isinstance(self._value, dict):
+            return self._value
+        cats = [c.split('*') for c in self._value.replace(' ','').replace('-','+-1*').split('+')]
+        try :
+            return {v[-1]:array(v[:-1],dtype=float).prod() for v in cats}
+        except :
+            import pdb; pdb.set_trace()
+
+    @property
+    def str(self) -> str:
+        if isinstance(self._value, str):
+            return self._value
+        return '+'.join([f'{v}*{k}' for (k, v) in self._value.items()])
+
+    @property
+    def items(self):
+        return self.dict.items
+
+    @property
+    def keys(self):
+        return self.dict.keys
+
+
+@dataclass
 class Category:
     name      : str
+    tracer    : str
     optimized : bool = False
     optimization_interval : DateOffset = None
     apply_lsm : bool = True
     is_ocean  : bool = False
     n_optim_points : int = None
-    tracer    : str = None
     horizontal_correlation : str = None
     temporal_correlation   : str = None
     total_uncertainty : float = nan
@@ -36,6 +69,9 @@ class Category:
     unit_mix : Quantity = None
     unit_budget : Quantity = None
     unit_optim  : Quantity = None
+    meta : bool = False
+    constructor : Constructor = None
+    transported : bool = True
 
     def as_dict(self):
         return asdict(self)
@@ -60,16 +96,15 @@ def offset_to_pint(offset: DateOffset):
 class TracerEmis(xr.Dataset):
     __slots__ = 'shape', 'grid', '_mapping'
 
-    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: DateOffset, attrs=None, categories: dict=None):
+    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: str, attrs=None, categories: dict=None):
         # Ensure we have the correct data types:
         time = DatetimeIndex(time)
-        timestep = to_offset(timestep)
+        timestep = to_offset(timestep).freqstr
 
         super().__init__(
             coords=dict(time=time, lat=grid.latc, lon=grid.lonc),
             attrs=attrs
         )
-        #self.categories = []
         self.attrs['tracer'] = tracer_name
         self.attrs['categories'] = []
         self._mapping = {'time':None, 'space':None} #TODO: replace by a dedicated class?
@@ -79,7 +114,7 @@ class TracerEmis(xr.Dataset):
         # timestep stores the time step, in time units (seconds, days, months, etc.)
         # while dt stores the time interval in nanoseconds (pandas Timedelta).
         self.attrs['timestep'] = timestep 
-        self['timestep_length'] = xr.DataArray((time + timestep - time).total_seconds().values, dims=['time',], attrs={'units': ureg.s})
+        self['timestep_length'] = xr.DataArray((time + to_offset(timestep) - time).total_seconds().values, dims=['time',], attrs={'units': ureg.s})
         self.attrs['units'] = units
 
         # If any field has been passed to the constructor, add it here:
@@ -90,32 +125,52 @@ class TracerEmis(xr.Dataset):
                 else :
                     self.add_cat(cat, value)
 
-    def iter_cats(self):
-        for cat in self.attrs['categories'] :
-            yield Category.from_dict(cat, {**self[cat].attrs, **self.attrs, **species[self.tracer].__dict__})
+    def __getitem__(self, key) -> xr.DataArray:
+        var = super().__getitem__(key)
+        if var.attrs.get('meta', False):
+            arr = xr.DataArray(coords=self.coords, dims=self.dims, data=zeros(self.shape), attrs=var.attrs)
+            for cat, coeff in Constructor(var.constructor).items():
+                arr.data[:] += coeff * self[cat].data
+            return arr
+        else :
+            return var
+
+    # Category iterators:
+    def iter_cats(self) -> Category:
+        for cat in self.attrs['categories']:
+            yield Category.from_dict(cat, {**self.variables[cat].attrs, **self.attrs, **species[self.tracer].__dict__})
 
     @property
-    def optimized_categories(self):
+    def optimized_categories(self) -> List[Category]:
         return [c for c in self.iter_cats() if c.optimized]
 
     @property
-    def period_index(self):
+    def transported_categories(self) -> List[Category]:
+        return [c for c in self.iter_cats() if c.transported]
+
+    @property
+    def base_categories(self) -> List[Category]:
+        return [c for c in self.iter_cats() if not c.meta]
+
+    @property
+    def period_index(self) -> PeriodIndex:
         """
         Provides a pandas "PeriodIndex" view of the time coordinate
         """
         return self.time.to_index().to_period(self.attrs['timestep'])
 
+    # Time accessors
     @property
     def intervals(self):
         return periods_to_intervals(self.period_index)
 
     @property
     def timestep(self):
-        return offset_to_pint(self.attrs['timestep'])
+        return offset_to_pint(to_offset(self.attrs['timestep']))
 
     @property
     def period(self):
-        return self.attrs['timestep']
+        return to_offset(self.attrs['timestep'])
 
     @property
     def timestamp(self):
@@ -127,8 +182,9 @@ class TracerEmis(xr.Dataset):
 
     @property
     def end(self):
-        return Timestamp(self.time.max().values) + self.attrs['timestep']
+        return Timestamp(self.time.max().values) + self.period
 
+    # Spatial and temporal mapping
     @property
     def temporal_mapping(self):
         return self._mapping['time']
@@ -145,6 +201,7 @@ class TracerEmis(xr.Dataset):
     def spatial_mapping(self, value):
         self._mapping['space'] = value
 
+    # Regular methods
     def add_cat(self, name: str, value: ndarray, attrs: dict = None):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
@@ -154,6 +211,48 @@ class TracerEmis(xr.Dataset):
             attrs = {'tracer': self.tracer}
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
+
+    def add_metacat(self, name: str, constructor: Union[dict, str], attrs: dict=None):
+        """
+        A meta-category is a category that is constructed based on a linear combination of several other categories. Besides this, it is treated as any other category by the inversion.
+        Internally, it is just an empty variable, with the "meta" attribute set to True, and a "constructor" attribute, plus the standard attributes of other categories.
+        Arguments:
+            name: name of the meta-category
+            constructor: linear combination of categories that constitute the metacat
+
+        Example:
+
+            # Load basic categories
+            em = Data(...)
+            em.add_cat('global_wetlands', ...)
+            em.add_cat('tropical_wetlands', ...)
+            em.add_cat('fossil', ...)
+            em.add_cat('fires', ...)
+            em.add_cat('waste', ...)
+
+
+            # Create a "anthrop" category, containing 40% the fires plus the waste and fossil emissions:
+            em.add_metacat('anthrop', '0.4*fires + waste + fossil')
+
+            # Create a "nat_fires" category containing the remaining 60% of "fires":
+            em.add_metacat('nat_fires', '0.6*fires')
+
+            # Create a "wetlands" by subtracting "tropical_wetlands" from "global_wetlands"
+            em.add_metacat('wetlands', 'global_wetlands - tropical_wetlands')
+
+            In an inversion, one would typically then set the "wetlands", "fossil", "fires" and "waste" categories to non-transported/non-optimized. 
+        """
+        self[name] = xr.DataArray(None)
+        self.attrs['categories'].append(name)
+        attrs = dict() if attrs is None else attrs 
+        attrs['meta'] = True
+        attrs['constructor'] = Constructor(constructor)
+        self.variables[name].attrs.update(attrs)
+
+        # All categories aggregated in the meta-category are not further transported, unless they have
+        # previously been explicitly tagged as transported
+        for cat in self[name].constructor.keys():
+            self.variables[cat].attrs['transported'] = max(False, self.variables[cat].attrs.get('transported', False)) 
 
     def print_summary(self, units=None):
         if units is None :
@@ -199,7 +298,7 @@ class TracerEmis(xr.Dataset):
         if isinstance(destunit, str):
             dest = ureg(destunit).units
 
-        for cat in self.categories :
+        for cat in self.base_categories :
             # Check if we need to multiply or divide by time and area:
 
             power_t = (dest / self.units).dimensionality.get('[time]')
@@ -209,47 +308,94 @@ class TracerEmis(xr.Dataset):
 
             # from units/m2 to units/gricell
             if power_s == 2 :
-                self[cat].data *= self.area.data
+                self[cat.name].data *= self.area.data
                 catunits *= self.area.units
             # from units/gridcell to units/m2
             elif power_s == -2 :
-                self[cat].data /= self.area.data
+                self[cat.name].data /= self.area.data
                 catunits /= self.area.units
             elif power_s != 0 :
-                raise RuntimeError(f"Unexpected units conversion request: {self[cat].data.unit} to {dest} ({power_s = })")
+                raise RuntimeError(f"Unexpected units conversion request: {self[cat.name].data.unit} to {dest} ({power_s = })")
 
             # From units/s to units/tstep
             if power_t == 1 :
-                self[cat].data = (self[cat].data.swapaxes(0, -1) * self.timestep_length.data).swapaxes(0, -1)
+                self[cat.name].data = (self[cat.name].data.swapaxes(0, -1) * self.timestep_length.data).swapaxes(0, -1)
                 catunits *= self.timestep_length.units
             # From units/tstep to units/s
             elif power_t == -1 :
-                self[cat].data = (self[cat].data.swapaxes(0, -1) / self.timestep_length.data).swapaxes(0, -1)
+                self[cat.name].data = (self[cat.name].data.swapaxes(0, -1) / self.timestep_length.data).swapaxes(0, -1)
                 catunits /= self.timestep_length.units
             elif power_t != 0 :
-                raise RuntimeError(f"Unexpected units conversion request: {self[cat].data.units} to {dest} ({power_t =})")
+                raise RuntimeError(f"Unexpected units conversion request: {self[cat.name].data.units} to {dest} ({power_t =})")
 
             # Finally, convert:
-            self[cat].data = (self[cat].data * catunits).to(dest).magnitude
+            self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude
             
         self.attrs['units'] = dest
 
-    def to_netcdf(self, *args, **kwargs):
-        # Convert attributes in problematic format
-        self.attrs['timestep'] = self.period.freqstr
-        self.attrs = attrs_to_nc(self.attrs)
-        for var in self.data_vars :
-            self[var].attrs = attrs_to_nc(self[var].attrs)
-        
-        # write ncfile
-        super().to_netcdf(*args, **kwargs)
+    def to_netcdf(self, filename, group=None, only_transported=False, **kwargs):
+        with Dataset(filename, 'w') as nc:
+            if group is not None :
+                nc = nc.createGroup(group)
 
-        # revert the attributes
-        self.attrs = nc_to_attrs(self.attrs)
-        for var in self.data_vars :
-            self[var].attrs = nc_to_attrs(self[var].attrs)
-        self.attrs['timestep'] = to_offset(self.attrs['timestep'])
-    
+            # Dimensions and coordinates
+            for dim in self.dims:
+                nc.createDimension(dim, len(self[dim]))
+
+            # Coordinates
+            for var in self.coords:
+                vartype = self[var].dtype
+                if vartype == 'datetime64[ns]':
+                    data = (self[var].data - self[var].data[0]) / 1.e9
+                    nc.createVariable(var, 'int64', self[var].dims)
+                    nc[var].units = f'seconds since {self[var][0].dt.strftime("%Y-%m-%d").data}'
+                    nc[var].calendar = 'proleptic_gregorian'
+                    nc[var][:] = data
+                else :
+                    nc.createVariable(var, self[var].dtype, self[var].dims)
+                    nc[var][:] = self[var].data
+
+            varlist = ['area', 'timestep_length']
+            if only_transported :
+                varlist.extend([c.name for c in self.transported_categories])
+            else :
+                varlist.extend([c for c in self.categories])
+
+            # data variables
+            for var in varlist :
+                nc.createVariable(var, self[var].dtype, self[var].dims)
+                nc[var][:] = self[var].data
+
+                # Copy var attributes:
+                for k, v in attrs_to_nc(self[var].attrs).items():
+                    setattr(nc[var], k, v)
+
+            # global attributes
+            for k, v in attrs_to_nc(self.attrs).items():
+                setattr(nc, k, v)
+
+                if only_transported :
+                    nc.categories = [c.name for c in self.transported_categories]
+
+    def resolve_metacats(self) -> None:
+        """
+        This will uncouple the value of the meta-categories from the value of their "parent" categories (so that they can now be updated independently).
+        The "meta" flags are renamed in "_meta" (so the meta-categories are treated as a normal ones by __getitem__, but can be made into metacats easily again), and the dummy data is replaced by the actual values that the metacats represent.
+        """
+        for cat in self.iter_cats() :
+            if cat.meta :
+                # Retrieve the value of the metacat, change the attributes of the returned data
+                value = self[cat.name]
+                del value.attrs['meta']
+                value.attrs['_meta'] = True
+
+                # Delete also the meta attribute from the original variable, so that it can be edited
+                del self.variables[cat.name].attrs['meta']
+
+                # Copy the resolved value to the variable
+                self[cat.name] = value
+
+
     def dimensionality(self, dim: str) -> int:
         """
         Return the dimensionality of the data, in either time or space.
@@ -258,9 +404,19 @@ class TracerEmis(xr.Dataset):
         """
         return self.units.dimensionality.get(f'[{dim}]')
 
+
 def attrs_to_nc(attrs: dict) -> dict:
+    """
+    Convert items of a dictionary that cannot be written as netCDF attributes to a netCDF-compliant format.
+    """
+    # Make sure we work on a copy of the dictionary
+    attrs = {k: v for (k, v) in attrs.items()}
+
+    # Store the name of the variables that have been converted
     to_bool = []
     to_units = []
+
+    # Do the actual conversion
     for k, v in attrs.items():
         if isinstance(v, bool):
             attrs[k] = int(v)
@@ -268,7 +424,10 @@ def attrs_to_nc(attrs: dict) -> dict:
         if isinstance(v, Unit):
             attrs[k] = str(v)
             to_units.append(k)
+        if isinstance(v, Constructor):
+            attrs[k] = v.str
 
+    # add attributes listing the variable conversions (for converting back)
     if to_bool :
         attrs['_bool'] = to_bool
     if to_units :
@@ -285,6 +444,8 @@ def nc_to_attrs(attrs: dict) -> dict:
         del attrs['_bool']
     if '_units' in attrs:
         del attrs['_units']
+    if 'constructor' in attrs :
+        attrs['constructor'] = Constructor(attrs['constructor'])
     return attrs
 
     
@@ -331,7 +492,7 @@ class Data:
 
     def to_intensive_adj(self):
         """
-        Convert the data to intensive units (e.g. umol/m2/s, PgC/m2/s)
+        Adjoint of to_intensive (e.g. convert data from umol/m2/s to umol/m4/s2)
         """
         for tr in self._tracers :
             self[tr].to_intensive_adj()
@@ -353,7 +514,7 @@ class Data:
                     tracer, self[tracer].grid,
                     time=resampled_data.time,
                     units=self[tracer].units,
-                    timestep=to_offset(time),
+                    timestep=to_offset(time).freqstr,
                 )
                 for cat in resampled_data.data_vars:
                     tr.add_cat(cat, resampled_data[cat].values, attrs=self[tracer][cat].attrs)
@@ -371,12 +532,12 @@ class Data:
         else: 
             return self
 
-    def to_netcdf(self, filename, zlib=True, complevel=1):
+    def to_netcdf(self, filename, zlib=True, complevel=1, **kwargs):
         if not zlib :
             complevel = 0.
         encoding = dict(zlib=zlib, complevel=complevel)
         for tracer in self._tracers :
-            self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars}, engine='h5netcdf')
+            self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars}, engine='h5netcdf', **kwargs)
 
     @property
     def tracers(self):
@@ -394,6 +555,17 @@ class Data:
         return cats
 
     @property
+    def transported_categories(self) -> Category :
+        """
+        Return the list of transported emission categories (i.e. typically the meta-categories + the categories not part of any meta-category).
+        """
+        cats = []
+        for tracer in self.tracers :
+            for cat in self[tracer].transported_categories:
+                cats.append(cat)
+        return cats
+
+    @property
     def categories(self) -> Category :
         """ Returns an iterable with each existing combination of tracer and categories.
         This just avoids the nested loops "for tracer in self.tracers: for cat in self.tracers[tracer].categories ..."
@@ -404,7 +576,7 @@ class Data:
                 cats.append(cat)
         return cats
 
-    def new(self, copy_emis=True, copy_attrs=True):
+    def copy(self, copy_emis=True, copy_attrs=True):
         """
         This returns a copy of the object, possibly without all the attributes
         """
@@ -414,9 +586,16 @@ class Data:
         
         if copy_emis :
             for cat in self.categories :
-                new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy(), attrs=self[cat.tracer][cat.name].attrs)
+                if cat.meta :
+                    new[cat.tracer].add_metacat(cat.name, self[cat.tracer][cat.name].constructor.dict, attrs=self[cat.tracer][cat.name].attrs)
+                else :
+                    new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy(), attrs=self[cat.tracer][cat.name].attrs)
         
         return new
+
+    def resolve_metacats(self) -> None:
+        for tr in self.tracers:
+            self[tr].resolve_metacats()
 
     @classmethod
     def from_file(cls, filename : str):
@@ -425,7 +604,7 @@ class Data:
             for tracer in fid.groups:
                 with xr.open_dataset(filename, group=tracer) as ds :
                     grid = Grid(latc=ds.lat.values, lonc=ds.lon.values)
-                    em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), to_offset(ds.timestep)))
+                    em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), ds.timestep))
                     if isinstance(ds.categories, str):
                         ds.attrs['categories'] = [ds.categories]
                     for cat in ds.categories :
@@ -506,12 +685,12 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
 
 
 # Interfaces:
-def WriteStruct(data:Data, path:str, prefix=None, zlib=False, complevel=1):
+def WriteStruct(data:Data, path:str, prefix=None, zlib=False, complevel=1, only_transported=False):
     if prefix is None :
         filename, path = path, os.path.dirname(path)
     else :
         filename = os.path.join(path, f'{prefix}.nc')
-    data.to_netcdf(filename, zlib=zlib, complevel=complevel)
+    data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported)
     return filename
 
 

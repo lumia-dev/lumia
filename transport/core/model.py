@@ -138,7 +138,7 @@ class Forward(BaseTransport):
         return res
 
     @staticmethod
-    def run_file(filename: str, silent: bool = True, emis: EmissionFields = None) -> Observations:
+    def run_file(filename: str, silent: bool = True) -> Observations:
         """
         Do a forward run on the selected footprint file. Set silent to False to enable progress bar
         """

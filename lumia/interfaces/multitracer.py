@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from lumia.Tools.optimization_tools import clusterize
 from numpy import meshgrid, zeros, float32, average, dot, ndarray, array
 from xarray import DataArray, Dataset
@@ -8,7 +8,6 @@ from lumia.Tools.time_tools import interval_range
 from pandas import DataFrame, Timestamp, concat
 from tqdm import tqdm
 from lumia.control.flexRes import Control
-from loguru import logger
 from lumia.units import units_registry as ureg
 from lumia.tracers import species
 from rctools import RcFile
@@ -47,20 +46,29 @@ class Interface:
         """
         Read the optimization parameters (tracers, categories, uncertaintes, etc.)
         """
+
         for tracer in self.tracers :
-            for cat in self.model_data[tracer].categories :
-                optimize_cat = self.rcf.get(f'emissions.{tracer}.{cat}.optimize', default=False)
-                self.model_data[tracer][cat].attrs['optimized'] = optimize_cat
-                if optimize_cat :
-                    self.model_data[tracer][cat].attrs['optimization_interval'] = self.rcf.get(f'emissions.{tracer}.{cat}.optimization_interval')
-                    self.model_data[tracer][cat].attrs['apply_lsm'] = self.rcf.get(f'emissions.{tracer}.{cat}.apply_lsm', default=True)
-                    self.model_data[tracer][cat].attrs['is_ocean'] = self.rcf.get(f'emissions.{tracer}.{cat}.is_ocean', default=False)
-                    self.model_data[tracer][cat].attrs['n_optim_points'] = self.rcf.get(f'optimize.{tracer}.{cat}.npoints')
-                    self.model_data[tracer][cat].attrs['horizontal_correlation'] = self.rcf.get(f'emissions.{tracer}.{cat}.corr')
-                    self.model_data[tracer][cat].attrs['temporal_correlation'] = self.rcf.get(f'emissions.{tracer}.{cat}.tcorr')
-                    err = ureg(self.rcf.get(f'emissions.{tracer}.{cat}.total_uncertainty')) 
-                    scf = ((1 * err.units) / species[tracer].unit_budget).m
-                    self.model_data[tracer][cat].attrs['total_uncertainty'] = err.m * scf
+
+            # Add meta-categories (if any!)
+            for mcat in self.rcf.get(f'emissions.{tracer}.metacategories', tolist='force', default=[]):
+                self.model_data[tracer].add_metacat(mcat, self.rcf.get(f'emissions.{tracer}.{mcat}'))
+
+        for cat in self.model_data.categories :
+            optimize_cat = self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.optimize', default=False)
+            attrs = {'optimized': optimize_cat}
+            if optimize_cat :
+                attrs.update({
+                    'optimization_interval': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.optimization_interval'),
+                    'apply_lsm': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.apply_lsm', default=True),
+                    'is_ocean': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.is_ocean', default=False),
+                    'n_optim_points': self.rcf.get(f'optimize.{cat.tracer}.{cat.name}.npoints'),
+                    'horizontal_correlation': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.corr'),
+                    'temporal_correlation': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.tcorr'),
+                })
+                err = ureg(self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.total_uncertainty'))
+                scf = ((1 * err.units) / species[tracer].unit_budget).m
+                attrs['total_uncertainty'] = err.m * scf
+            self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
 
     def setup_coarsening(self, sensi_map=None):
         """
@@ -171,10 +179,7 @@ class Interface:
         cv = []
         for cat in self.model_data.optimized_categories :
             cv.append(self.coarsen_cat(cat))
-        try :
-            control.vectors = concat(cv, ignore_index=True)
-        except :
-            import pdb; pdb.set_trace()
+        control.vectors = concat(cv, ignore_index=True)
 
         # 3) Initialize the remaining fields:
         control.vectors.loc[:, 'start_prior_preco'] = 0.
@@ -188,7 +193,7 @@ class Interface:
     def coarsen_cat(self, cat, data=None, value_field='state_prior') -> DataFrame:
 
         if data is None :
-            data = self.model_data[cat.tracer][cat.name].data            
+            data = self.model_data[cat.tracer][cat.name].data
 
         tmap = self.model_data[cat.tracer].temporal_mapping[cat.name].astype(bool).data
         hmap = self.model_data[cat.tracer].spatial_mapping[cat.name].astype(bool).data
@@ -231,7 +236,8 @@ class Interface:
         5. Convert the flux to umol/m2/s
         """
 
-        struct = self.model_data.new(copy_emis=True, copy_attrs=True)
+        struct = self.model_data.copy(copy_emis=True, copy_attrs=True)
+        struct.resolve_metacats()
         emdiff = (vector - self.optim_data.state_prior).values
         tracer = self.optim_data.tracer
         categ = self.optim_data.category
