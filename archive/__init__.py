@@ -150,3 +150,35 @@ class Archive:
         #dest = os.path.join(self.key, dest)
         success = self.archive.put(file, dest, fname)
         return success
+
+
+from dataclasses import dataclass
+
+@dataclass
+class Rclone:
+    path: str
+    protocol: str='rclone'
+    remote: str=None
+
+    def __post_init__(self):
+        """
+        The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". In that case, __post_init__ will then split this into three attributes: protocol, remote and path.
+        """
+        if self.path is not None and self.remote is None :
+            self.protocol, self.remote, self.path = self.path.split(':')
+
+    def download(self, remotepath: str, localpath: str) -> None:
+        if self.path is None :
+            return
+        cmd = [self.protocol, 'copy', f'{self.remote}:{remotepath}', localpath]
+        _ = subprocess.check_output(cmd)
+
+    def get(self, filepath: str) -> bool:
+        """
+        If the file given by the "filepath" path is not already on disk, try to retrieve it from the archive.
+        """
+        if not os.path.exists(filepath):
+            localpath, filename = os.path.split(filepath)
+            remotepath = os.path.join(self.path, filename)
+            self.download(remotepath, localpath)
+        return os.path.exists(filepath)
