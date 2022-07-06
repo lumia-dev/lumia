@@ -10,7 +10,7 @@ from typing import List, Type
 from types import SimpleNamespace
 from pandas import Timedelta, Timestamp, DataFrame, read_hdf, isnull
 from gridtools import Grid
-from numpy import array, nan
+from numpy import array, nan, inf
 from dataclasses import asdict
 from tqdm import tqdm
 
@@ -25,12 +25,17 @@ def check_migrate(source, dest):
 
 
 class LumiaFootprintFile(h5py.File):
-    __slots__ = ['shift_t']
+    maxlength : Timedelta = inf
+    __slots__ = ['shift_t', 'origin', 'timestep']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, maxlength:Timedelta=inf, **kwargs):
         super().__init__(*args, mode='r', **kwargs)
         self.shift_t = 0
         try :
+            self.origin = Timestamp(self.attrs['origin'])
+            self.timestep = Timedelta(seconds=self.attrs['tres'])
+            if self.maxlength != inf :
+                self.maxlength /= self.timestep
             assert self['latitudes'].dtype == 'f4'
             self.grid = Grid(latc=self['latitudes'][:], lonc=self['longitudes'][:])
         except AssertionError :
@@ -38,6 +43,8 @@ class LumiaFootprintFile(h5py.File):
                 lon0=self.attrs['outlon0'], dlon=self.attrs['dxout'], nlon=len(self['longitudes'][:]),
                 lat0=self.attrs['outlat0'], dlat=self.attrs['dyout'], nlat=len(self['latitudes'][:])
             )
+        except KeyError:
+            logger.warning(f"Coordinate variables (latitudes and longitudes) not found in file {self.filename}. Is the file empty?")
 
     @property
     def footprints(self) -> List[str]:
@@ -45,21 +52,42 @@ class LumiaFootprintFile(h5py.File):
 
     def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
         assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
-        assert timestep == Timedelta(seconds=self.attrs['tres']), "Temporal grid mismatch"
-        shift_t = (Timestamp(self.attrs['origin']) - origin)/timestep
-        assert int(shift_t) - shift_t == 0, "trolololo"
+        assert timestep == self.timestep, "Temporal grid mismatch"
+        shift_t = (self.origin - origin)/timestep
+        assert int(shift_t) - shift_t == 0
         self.shift_t = int(shift_t)
 
-
     def get(self, obsid) -> SimpleNamespace :
-        itims = self[obsid]['itims'][:] + self.shift_t
+        itims = self[obsid]['itims'][:] 
         ilons = self[obsid]['ilons'][:]
         ilats = self[obsid]['ilats'][:]
         sensi = self[obsid]['sensi'][:] * 0.0002897
+        import pdb; pdb.set_trace()
+
+        # sometimes, the footprint will have non-zero sentivity for the time-step directly after the observation time. This is because FLEXPART calculates the concentration after releasing the particles, and before going to the next step. In this case, re-attribute the sensitivity to the previous time step.
+
+        # Check if the time of the last time step is same as release time (it should be lower by 1 timestep normally)
+        # if it's the case, decrement that time index by 1
+        if self.origin + itims[-1] * self.timestep == Timestamp(self[obsid].attrs['release_time']):
+            itims[-1] -= 1
+
+        # Trim the footprint if needed
+        sel = itims.max() - itims <= self.maxlength
+
+        # Apply the time shift
+        itims += self.shift_t
+
+        # Exclude negative time steps
         sel = itims >= 0
         if itims.min() < 0 :
             sel *= False
-        return SimpleNamespace(itims=itims[sel], ilons=ilons[sel], ilats=ilats[sel], sensi=sensi[sel])
+
+        return SimpleNamespace(
+            shift_t=self.shift_t,
+            itims=itims[sel], 
+            ilons=ilons[sel], 
+            ilats=ilats[sel], 
+            sensi=sensi[sel])
 
 
 class Observations(DataFrame):
@@ -96,6 +124,11 @@ class Observations(DataFrame):
         exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local))])
         self.loc[:, 'footprint'] = fnames_local
 
+        if not exists.any():
+            logger.error("No valid footprints found. Exiting ...")
+            import pdb; pdb.set_trace()
+            raise RuntimeError("No valid footprints found")
+
         # Create the file names:
         #fnames = path + '/' + self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
         #self.loc[:, 'footprint'] = fnames
@@ -119,7 +152,7 @@ class Observations(DataFrame):
 
     def check_footprints(self, archive: str, cls: Type[FootprintFile], local: str=None) -> None:
         """
-        Search for the footprint corresponding to the observations
+        Search for/lumia/transport/multitracer.py the footprint corresponding to the observations
         """
         # 1) Create the footprint file names
         self.gen_filenames()
@@ -151,6 +184,7 @@ if __name__ == '__main__':
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--tmp', default='/tmp', help='Path to a temporary directory where (big) files can be written')
     p.add_argument('--ncpus', '-n', default=os.cpu_count())
+    p.add_argument('--max-footprint-length', type=Timestamp, default=Timestamp('14D'))
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
@@ -161,8 +195,10 @@ if __name__ == '__main__':
     logger.remove()
     logger.add(sys.stderr, level=args.verbosity)
 
-
     obs = Observations.read(args.obs)
+
+    # Set the max time limit for footprints:
+    LumiaFootprintFile.maxlength = args.max_footprint_length
 
     if args.check_footprints or 'footprint' not in obs.columns:
         obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints)
