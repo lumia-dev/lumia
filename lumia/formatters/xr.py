@@ -1,5 +1,4 @@
 import os
-from trace import Trace
 from typing import Union, List
 from pint import Quantity
 import xarray as xr
@@ -18,6 +17,7 @@ from lumia.tracers import species, Unit
 from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
 import numbers
+from archive import Rclone
 
 
 @dataclass
@@ -128,7 +128,7 @@ class TracerEmis(xr.Dataset):
     def __getitem__(self, key) -> xr.DataArray:
         var = super().__getitem__(key)
         if var.attrs.get('meta', False):
-            arr = xr.DataArray(coords=self.coords, dims=self.dims, data=zeros(self.shape), attrs=var.attrs)
+            arr = xr.DataArray(coords=self.coords, dims=['time', 'lat', 'lon'], data=zeros(self.shape), attrs=var.attrs)
             for cat, coeff in Constructor(var.constructor).items():
                 arr.data[:] += coeff * self[cat].data
             return arr
@@ -151,6 +151,10 @@ class TracerEmis(xr.Dataset):
     @property
     def base_categories(self) -> List[Category]:
         return [c for c in self.iter_cats() if not c.meta]
+
+    @property
+    def meta_categories(self) -> List[Category]:
+        return [c for c in self.iter_cats() if c.meta]
 
     @property
     def period_index(self) -> PeriodIndex:
@@ -251,7 +255,7 @@ class TracerEmis(xr.Dataset):
 
         # All categories aggregated in the meta-category are not further transported, unless they have
         # previously been explicitly tagged as transported
-        for cat in self[name].constructor.keys():
+        for cat in attrs['constructor'].keys():
             self.variables[cat].attrs['transported'] = max(False, self.variables[cat].attrs.get('transported', False)) 
 
     def print_summary(self, units=None):
@@ -519,6 +523,9 @@ class Data:
                 for cat in resampled_data.data_vars:
                     tr.add_cat(cat, resampled_data[cat].values, attrs=self[tracer][cat].attrs)
 
+                for cat in self[tracer].meta_categories:
+                    tr.add_metacat(cat.name, cat.constructor, self[tracer].variables[cat.name].attrs)
+
                 if inplace :
                     self.add_tracer(tr)
                 else :
@@ -608,7 +615,10 @@ class Data:
                     if isinstance(ds.categories, str):
                         ds.attrs['categories'] = [ds.categories]
                     for cat in ds.categories :
-                        em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
+                        if ds[cat].attrs.get('meta', False) :
+                            em[tracer].add_metacat(cat, ds[cat].constructor, attrs=ds[cat].attrs)
+                        else :
+                            em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
         return em
 
     @classmethod
@@ -640,7 +650,7 @@ class Data:
             # Add new tracer to the emission object
             em.add_tracer(TracerEmis(tr, grid, time, unit_emis, freq))#.seconds * ur('s')))
 
-            if rcf.get(f'emissions.{tr}.resample'):
+            if rcf.get(f'emissions.{tr}.resample', default=False):
                 freq_src = rcf.get(f'emissions.{tr}.convert_from')
             else :
                 freq_src = freq
@@ -649,17 +659,21 @@ class Data:
             for cat in rcf.get(f'emissions.{tr}.categories'):
                 origin = rcf.get(f'emissions.{tr}.{cat}.origin')
                 prefix = os.path.join(rcf.get('emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
-                emis = load_preprocessed(prefix, start, end, freq=freq)
+                emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
                 em[tr].add_cat(cat, emis)
         return em
 
 
-def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None) -> ndarray:
+def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str=None) -> ndarray:
+
+    archive = Rclone(archive)
+
     # Import a file for each year at least partially covered:
     years = unique(date_range(start, end, freq='YS', inclusive='left').year)
     data = []
     for year in years :
         fname = f'{prefix}{year}.nc'
+        archive.get(fname)
         data.append(xr.load_dataarray(fname))
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
 
