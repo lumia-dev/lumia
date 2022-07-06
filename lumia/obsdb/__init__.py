@@ -4,8 +4,9 @@ import tarfile
 import tempfile
 from typing import List
 from numpy import unique, nan
-from pandas import DataFrame, read_csv, read_hdf
+from pandas import DataFrame, read_csv, read_hdf, Series
 from loguru import logger
+from typing import Union
 
 
 class obsdb:
@@ -51,6 +52,12 @@ class obsdb:
         #else :
         #    logger.error(f"Unknown method or attribute for obsdb: {item}")
         #    raise AttributeError(item)
+
+    def __getitem__(self, item: str) -> DataFrame:
+        """
+        Return the slice of the observations dataframe corresponding to one observation site.
+        """
+        return self.observations.loc[self.observations.site == item]
 
     def __setattr__(self, key, value):
         if '_parent' in vars(self):

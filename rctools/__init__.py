@@ -66,6 +66,12 @@ class RcFile:
 
     def setkey(self, key, val):
         self.keys[key] = val
+
+    def set_defaults(self, **kwargs):
+        for k, v in kwargs.items():
+            if k not in self.keys :
+                logger.info(f"Setting key {k} to default value {v}")
+                self.setkey(k, v)
             
     def matchval(self, val):
         matches = re.findall(r'\${[^}]+}', val)

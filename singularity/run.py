@@ -42,13 +42,15 @@ defaults = {
     'tag': args.tag,
     'path.output': os.path.join('/output', args.tag),
     'var4d.communication.file': '${path.temp}/comm_file.nc4',
-    'emissions.*.archive': 'rclone:lumia:fluxes/nc',
+    'emissions.*.archive': 'rclone:lumia:fluxes/nc/',
     'emissions.*.path': '/data/fluxes/nc',
     'model.transport.exec': '/lumia/transport/multitracer.py',
     'transport.output': 'T',
     'transport.output.steps': 'apri, apos, forward',
-    'emissions.*.resample': 'T'
 }
+
+for tr in rcf.get('tracers', tolist='force'):
+    defaults[f'emissions.{tr}.archive'] = f'rclone:lumia:fluxes/nc/${{emissions.{tr}.region}}/${{emissions.{tr}.interval}}/'
 
 # Read simulation time
 if args.start is None :
@@ -67,9 +69,7 @@ else :
 defaults['path.output'] = os.path.join(defaults['path.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
 defaults['path.temp'] = os.path.join(defaults['path.temp'], f'{start:%Y%m%d}-{end:%Y%m%d}')
 
-for k, v in defaults.items():
-    if k not in rcf.keys :
-        rcf.setkey(k, v)
+rcf.set_defaults(**defaults)
 
 logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
 
