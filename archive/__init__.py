@@ -1,6 +1,7 @@
 import os
 import subprocess
 from loguru import logger
+from dataclasses import dataclass
 
 
 class RcloneArchive:
@@ -152,13 +153,11 @@ class Archive:
         return success
 
 
-from dataclasses import dataclass
-
 @dataclass
 class Rclone:
     path: str
-    protocol: str='rclone'
-    remote: str=None
+    protocol: str = 'rclone'
+    remote: str = None
 
     def __post_init__(self):
         """
@@ -182,3 +181,36 @@ class Rclone:
             remotepath = os.path.join(self.path, filename)
             self.download(remotepath, localpath)
         return os.path.exists(filepath)
+
+    def put(self, filename : str, destpath : str = None, destname : str = None) -> bool:
+        """
+        Upload the file given by the "filename" argument to the archive
+        Optionally, a specific destination folder and/or filename can be requested, using the "destpath" and "destname" keywords
+        Return: True if successful, False otherwise
+        """
+        if destname is None :
+            # if destname is none, use the same filename as the original file
+            destname = os.path.basename(filename)
+
+        if destname != os.path.basename(destname) and destpath is None :
+            # If not destpath has been provided and destname is a path, then split destname in destpath + destname
+            destpath, destname = os.path.split(destname)
+
+        if destpath is None :
+            # Finally, if destpath is still None, then set it to an empty string
+            destpath = ''
+
+        # Upload the file
+        destpath = os.path.join(self.path, destpath)
+        cmd = ['rclone', 'copyto', filename, f'{self.remote}:{destpath}/{destname}']
+        logger.info(' '.join(cmd))
+
+        try :
+            logger.info(' '.join(cmd))
+            _ = subprocess.check_output(cmd)
+            subprocess.check_output(cmd)
+            return True
+
+        except subprocess.CalledProcessError :
+            logger.warning(f"Copy of file {filename} to {self.remote}:{destpath}/{destname} failed.")
+            return False

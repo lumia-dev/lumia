@@ -134,7 +134,7 @@ class Forward(BaseTransport):
 
     def run_files_mp(self, filenames: List[str]) -> List[Observations]:
         with Pool(processes=self.ncpus) as pool:
-            res = list(tqdm(pool.imap(self.run_file, filenames, chunksize=1), total=len(filenames)))
+            res = list(tqdm(pool.imap(self.run_file, filenames, chunksize=1), total=len(filenames), leave=False))
         return res
 
     @staticmethod
@@ -189,7 +189,7 @@ class Adjoint(BaseTransport):
         shared_memory.grid = adjemis.grid
         shared_memory.time = adjemis.times
 
-        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files'):
+        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files', leave=False):
             with File(adjfile, 'r') as ds :
                 coords = ds['coords'][:]
                 values = ds['values'][:]
@@ -220,7 +220,7 @@ class Adjoint(BaseTransport):
         func = partial(self.run_subset, silent=self.silent, tempdir=self.tempdir)
 
         with Pool(processes=self.ncpus) as pool :
-            return list(tqdm(pool.imap(func, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks'))
+            return list(tqdm(pool.imap(func, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks', leave=False))
 
     @staticmethod
     def run_subset(filenames: List[str], silent: bool = True, tempdir: str = '/tmp') -> str :

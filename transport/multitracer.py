@@ -31,6 +31,7 @@ class LumiaFootprintFile(h5py.File):
     def __init__(self, *args, maxlength:Timedelta=inf, **kwargs):
         super().__init__(*args, mode='r', **kwargs)
         self.shift_t = 0
+
         try :
             self.origin = Timestamp(self.attrs['origin'])
             self.timestep = Timedelta(seconds=self.attrs['tres'])
@@ -38,11 +39,13 @@ class LumiaFootprintFile(h5py.File):
                 self.maxlength /= self.timestep
             assert self['latitudes'].dtype == 'f4'
             self.grid = Grid(latc=self['latitudes'][:], lonc=self['longitudes'][:])
+
         except AssertionError :
             self.grid = Grid(
                 lon0=self.attrs['outlon0'], dlon=self.attrs['dxout'], nlon=len(self['longitudes'][:]),
                 lat0=self.attrs['outlat0'], dlat=self.attrs['dyout'], nlat=len(self['latitudes'][:])
             )
+
         except KeyError:
             logger.warning(f"Coordinate variables (latitudes and longitudes) not found in file {self.filename}. Is the file empty?")
 
@@ -62,7 +65,6 @@ class LumiaFootprintFile(h5py.File):
         ilons = self[obsid]['ilons'][:]
         ilats = self[obsid]['ilats'][:]
         sensi = self[obsid]['sensi'][:] * 0.0002897
-        import pdb; pdb.set_trace()
 
         # sometimes, the footprint will have non-zero sentivity for the time-step directly after the observation time. This is because FLEXPART calculates the concentration after releasing the particles, and before going to the next step. In this case, re-attribute the sensitivity to the previous time step.
 
@@ -121,12 +123,11 @@ class Observations(DataFrame):
         fnames_local = local + '/' + self.footprint
 
         # 3) retrieve the files from archive if needed:
-        exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local))])
+        exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
         self.loc[:, 'footprint'] = fnames_local
 
         if not exists.any():
             logger.error("No valid footprints found. Exiting ...")
-            import pdb; pdb.set_trace()
             raise RuntimeError("No valid footprints found")
 
         # Create the file names:
@@ -184,7 +185,7 @@ if __name__ == '__main__':
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--tmp', default='/tmp', help='Path to a temporary directory where (big) files can be written')
     p.add_argument('--ncpus', '-n', default=os.cpu_count())
-    p.add_argument('--max-footprint-length', type=Timestamp, default=Timestamp('14D'))
+    p.add_argument('--max-footprint-length', type=Timedelta, default='14D')
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)

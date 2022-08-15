@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from netCDF4 import Dataset
 import subprocess, os
+from distutils.file_util import copy_file
 import shutil
 import logging
 from lumia.Tools.logging_tools import colorize
@@ -9,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class Minimizer:
-    def __init__(self, rcf, nstate=None):
+    def __init__(self, rcf, nstate=None, filename: str = None):
         self.rcf = rcf
         self.nstate = nstate
-        self.commfile = CommFile(self.rcf.get('var4d.communication.file'), self.rcf)
+        filename = self.rcf.get('var4d.communication.file') if filename is None else filename
+        self.commfile = CommFile(filename, rcf)
         self.file_initialized = True
         if nstate is not None :
             self.init(nstate)
@@ -59,10 +61,9 @@ class Minimizer:
     def update(self, gradient, J_tot):
         self.commfile.update(gradient, J_tot)
         
-    def save(self, filename):
-        if filename != self.commfile.filepath :
-            shutil.copy(self.commfile.filepath, filename)
-        return filename
+    def save(self, path: str) -> None :
+        copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
+        copy_file(os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out'), path)
 
     def iter_states(self):
         traject = self.commfile.read_traject()
@@ -173,7 +174,7 @@ class CommFile(object):
 
     def readState(self):
         with Dataset(self.filepath, 'r') as ds:
-            state = ds['x_c'][:, self.len_x-1]
+            state = (ds['x_c'][:, self.len_x-1]).data
         return state
 
     def checkUpdate(self):
@@ -195,8 +196,8 @@ class CommFile(object):
 
     def read_eigsys(self):
         with Dataset(self.filepath, 'r') as ds:
-            eigvals = ds['eigenvalues'][:]
-            eigvecs = ds['eigenvectors'][:]
+            eigvals = ds['eigenvalues'][:].data
+            eigvecs = ds['eigenvectors'][:].data
         return eigvals, eigvecs
     
     def read_traject(self):

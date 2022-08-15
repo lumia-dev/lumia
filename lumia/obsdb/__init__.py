@@ -1,12 +1,13 @@
+import datetime
 import os
 import shutil
 import tarfile
 import tempfile
-from typing import List
 from numpy import unique, nan
 from pandas import DataFrame, read_csv, read_hdf, Series
 from loguru import logger
-from typing import Union
+from typing import List, Union
+from numpy import datetime64
 
 
 class obsdb:
@@ -16,6 +17,7 @@ class obsdb:
         else :
             self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
             self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt'])
+            self.observations.loc[:, 'time'] = self.observations.time.astype(datetime64)
             self.files = DataFrame(columns=['filename'])
             self.start = start
             self.end = end
@@ -100,7 +102,8 @@ class obsdb:
             self.sites = sites
 
     def SelectSites(self, sitelist):
-        selection = [x in sitelist for x in self.observations.site]
+        selection = self.observations.site.isin(sitelist)
+        #selection = [x in sitelist for x in self.observations.site]
         self.SelectObs(selection)
 
     def SelectObs(self, selection):
@@ -128,7 +131,7 @@ class obsdb:
         return db
 
     def save_tar(self, filename):
-        logger.info("Writing observation database to %s", filename)
+        logger.info(f"Writing observation database to {filename}")
 
         # Create a unique temporary directory, save the current directory
         dirname, filename = os.path.split(filename)
@@ -165,6 +168,12 @@ class obsdb:
         self.SelectTimes(self.start, self.end, copy=False)
         logger.info(f"{self.observations.shape[0]} observation read from {filename}")
 
+    @classmethod
+    def from_tgz(cls, filename: str, start: datetime.datetime = None, end: datetime.datetime = None) -> "obsdb":
+        obs = cls(start=start, end=end)
+        obs.load_tar(filename)
+        return obs
+
     def to_dataframe(self) -> DataFrame:
         """
         Combine the "sites" and "observations" dataframes in a single dataframe
@@ -178,6 +187,21 @@ class obsdb:
                 except AttributeError:
                     import pdb; pdb.set_trace()
         return obs
+
+    def map_fields(self, mapping : Union[dict, List[str]]) -> None:
+        """
+        Rename (copy in fact) fields in the observation dataframe. Fields to rename are passed as a "mapping" argument, which is either:
+        - a dictionary of {source : dest} column names
+        - a list of "source:dest" strings
+
+        e.g. with the "mapping" argument set to ['bg:background', 'fg:foreground'] (or {'bg':'background', 'fg':'foreground'}, the "bg" and "fg" columns will respectively be copied to the "background" and "foreground" columns. The original columns (bg and fg) are kept, for reference.
+        """
+
+        if isinstance(mapping, list):
+            mapping = {field.split(':')[0]: field.split(':')[1] for field in mapping}
+
+        for source, dest in mapping.items():
+            self.observations.loc[:, dest] = self.observations.loc[:, source]
     
     @classmethod
     def from_dataframe(cls, df: DataFrame) -> "obsdb":

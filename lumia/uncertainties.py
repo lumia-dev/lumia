@@ -61,8 +61,8 @@ def calc_dist_matrix(lats, lons, stretch_ratio=1.):
     common['lats'] = lats
     common['stretch_ratio'] = stretch_ratio
     with Pool() as pp :
-        res = pp.map(calc_dist_vector, tqdm(range(len(lons))))
-    for i, v in tqdm(enumerate(res), desc="Computing spatial distance matrix", total=len(lats)):
+        res = pp.map(calc_dist_vector, range(len(lons)))
+    for i, v in enumerate(res):
         M[:i+1, i] = v
         M[i, :i+1] = v
     del common['lons'], common['lats']
@@ -129,11 +129,11 @@ class HorCor:
         n_neg = sum(lam < min_eigval)
         n_neg2 = sum(abs(lam) < min_eigval)
         lam[lam < min_eigval] = min_eigval
-        logger.info(f"Maximum eigenvalue = {lam.max():10.3e}, minimum eigenvalue = {lam.min():10.3e}")
+        logger.debug(f"Maximum eigenvalue = {lam.max():10.3e}, minimum eigenvalue = {lam.min():10.3e}")
         if n_neg != n_neg2 :
             logger.error(f"{n_neg - n_neg2} large negative eigen values set to 0. Maybe it's a bug?")
         if n_neg > 0 :
-            logger.info(f"Set {n_neg} eigenvalues to {min_eigval:15.11f}")
+            logger.debug(f"Set {n_neg} eigenvalues to {min_eigval:15.11f}")
 
         return p, lam**.5
 
@@ -215,22 +215,22 @@ class Uncertainties_mt:
         errvec.loc[:, 'prior_uncertainty'] *= scalef
         logger.info(f"Uncertainty for category {cat.name} set to {cat.total_uncertainty} {cat.unit_budget} (standard deviations scaled by {scalef = })")
 
-        _ = self.calc_total_uncertainty(errvec, cat)
+        #_ = self.calc_total_uncertainty(errvec, cat)
         return errvec
 
-    def calc_total_uncertainty(self, errvec:DataFrame, cat):
+    def calc_total_uncertainty(self, errvec:DataFrame, cat, field: str = 'prior_uncertainty'):
         unitconv = (1 * cat.unit_optim).to(cat.unit_budget).magnitude 
 
         common['Ch'] = self.horizontal_correlations[(cat.horizontal_correlation, cat.n_optim_points)].mat
         common['Ct'] = self.temporal_correlations[cat.temporal_correlation].mat
-        common['sigmas'] = errvec.prior_uncertainty.values * unitconv
+        common['sigmas'] = errvec.loc[:, field].values * unitconv
         common['itimes'] = errvec.itime.values
 
         nt = len(unique(common['itimes']))
 
         with Pool() as pp :
             errm = pp.imap(_aggregate_uncertainty, range(nt))
-            err = sum(tqdm(errm, total=nt))
+            err = sum(tqdm(errm, total=nt, leave=False))
 
         # here "err" is the variance, in units of [flux_unit]^2. We want something in [flux_unit] so take the square root.
         errtot = sqrt(err)
@@ -250,7 +250,7 @@ class Uncertainties_mt:
             errvec = interface.coarsen_cat(cat, data=errmap.data, value_field='prior_uncertainty')
             unc.setup_horizontal_correlations(cat, errvec)
             unc.setup_temporal_correlations(cat, errvec)
-            unc.scale_uncertainty(cat, errvec)
+            errvec = unc.scale_uncertainty(cat, errvec)
             err.append(errvec)
         errvec = concat(err, ignore_index=True)
 

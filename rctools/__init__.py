@@ -21,8 +21,6 @@ class RcFile:
             self.read(file)
             
     def read(self, file, comment='!', level=0):
-        #self.filename = os.path.basename(file)
-        #self.dirname = os.path.dirname(file)
         includes = []
         
         with open(os.path.join(file), 'r') as f1 :
@@ -41,7 +39,6 @@ class RcFile:
         for il, l in zip(ln, lines):
             if l.startswith('#include'):
                 includes.append(l.split()[1])
-                #self.append(RcFile(os.path.join(self.dirname, val)))
             else :
                 self.parse(l, il)
 
