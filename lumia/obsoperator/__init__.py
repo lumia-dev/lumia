@@ -8,6 +8,8 @@ from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
 from loguru import logger
+from pandas import DataFrame
+from typing import List
 
 
 class transport(object):
@@ -52,6 +54,12 @@ class transport(object):
                 pass
         return rcfile, obsfile
 
+    def run_forward(self, struct, observations: obsdb = None, serial: bool = False, step: str = 'forward') -> obsdb:
+        struct.to_intensive()
+        emf, dbf = self.runForward(struct, step=step, serial=serial, observations=observations)
+        db = obsdb.from_hdf(dbf)
+        db.save_tar(os.path.join(self.rcf.get('path.output'), f'observations.{step}.tar.gz'))
+
     def calcDepartures(self, struct, step=None, serial=False):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb.from_hdf(dbf)
@@ -70,28 +78,31 @@ class transport(object):
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
         # Output if needed:
-        if self.rcf.get('transport.output'):
+        if self.rcf.get('transport.output', default=True):
             if step in self.rcf.get('transport.output.steps'):
                 self.save(tag=step, structf=emf)
 
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
 
-    def runForward(self, struct, step=None, serial=False):
+    def runForward(self, struct, step=None, serial=False, observations: obsdb = None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly.        
         """
 
         # Write model inputs:
-        compression = step in self.rcf.get('transport.output.steps') # Do not compress during 4DVAR loop, for better speed.
+        if observations is None :
+            observations = self.db
+
+        compression = step in self.rcf.get('transport.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
         emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
         del struct
-        dbf = self.db.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
-        
+        dbf = observations.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
+
         # Run the model
         cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
-        if self.serial :
+        if self.serial or serial:
             cmd.append('--serial')
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(' '))
         runcmd(cmd)

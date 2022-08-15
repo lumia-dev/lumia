@@ -1,13 +1,15 @@
 import os
-from typing import Union, List
+from typing import Union, List, Tuple
+
+import netCDF4, pdb
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
-from numpy import isin, ndarray, unique, array, zeros, nan
+from numpy import ndarray, unique, array, zeros, nan
 from gridtools import Grid
 from rctools import RcFile
 from datetime import datetime
-from pandas import PeriodIndex, Timestamp, DatetimeIndex, period_range
+from pandas import PeriodIndex, Timestamp, DatetimeIndex
 from loguru import logger
 from lumia.units import units_registry as ureg
 from gridtools import grid_from_rc
@@ -18,6 +20,7 @@ from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
 import numbers
 from archive import Rclone
+from typing import Iterator
 
 
 @dataclass
@@ -32,11 +35,8 @@ class Constructor:
     def dict(self) -> dict:
         if isinstance(self._value, dict):
             return self._value
-        cats = [c.split('*') for c in self._value.replace(' ','').replace('-','+-1*').split('+')]
-        try :
-            return {v[-1]:array(v[:-1],dtype=float).prod() for v in cats}
-        except :
-            import pdb; pdb.set_trace()
+        cats = [c.split('*') for c in self._value.replace(' ', '').replace('-', '+-1*').split('+')]
+        return {v[-1] : array(v[:-1], dtype=float).prod() for v in cats}
 
     @property
     def str(self) -> str:
@@ -94,9 +94,9 @@ def offset_to_pint(offset: DateOffset):
 
 
 class TracerEmis(xr.Dataset):
-    __slots__ = 'shape', 'grid', '_mapping'
+    __slots__ = 'grid', '_mapping'
 
-    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: str, attrs=None, categories: dict=None):
+    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: str, attrs=None, categories: dict = None):
         # Ensure we have the correct data types:
         time = DatetimeIndex(time)
         timestep = to_offset(timestep).freqstr
@@ -107,14 +107,13 @@ class TracerEmis(xr.Dataset):
         )
         self.attrs['tracer'] = tracer_name
         self.attrs['categories'] = []
-        self._mapping = {'time':None, 'space':None} #TODO: replace by a dedicated class?
-        self.shape = self.dims['time'], self.dims['lat'], self.dims['lon']
+        self._mapping = {'time': None, 'space': None}  # TODO: replace by a dedicated class?
         self.grid = grid
         self['area'] = xr.DataArray(data=grid.area, dims=['lat', 'lon'], attrs={'units': ureg('m**2').units})
         # timestep stores the time step, in time units (seconds, days, months, etc.)
         # while dt stores the time interval in nanoseconds (pandas Timedelta).
         self.attrs['timestep'] = timestep 
-        self['timestep_length'] = xr.DataArray((time + to_offset(timestep) - time).total_seconds().values, dims=['time',], attrs={'units': ureg.s})
+        self['timestep_length'] = xr.DataArray((time + to_offset(timestep) - time).total_seconds().values, dims=['time', ], attrs={'units': ureg.s})
         self.attrs['units'] = units
 
         # If any field has been passed to the constructor, add it here:
@@ -136,9 +135,13 @@ class TracerEmis(xr.Dataset):
             return var
 
     # Category iterators:
-    def iter_cats(self) -> Category:
+    def iter_cats(self) -> Iterator[Category]:
         for cat in self.attrs['categories']:
             yield Category.from_dict(cat, {**self.variables[cat].attrs, **self.attrs, **species[self.tracer].__dict__})
+
+    @property
+    def shape(self) -> Tuple[int, int, int]:
+        return self.dims['time'], self.dims['lat'], self.dims['lon']
 
     @property
     def optimized_categories(self) -> List[Category]:
@@ -216,13 +219,14 @@ class TracerEmis(xr.Dataset):
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
 
-    def add_metacat(self, name: str, constructor: Union[dict, str], attrs: dict=None):
+    def add_metacat(self, name: str, constructor: Union[dict, str], attrs: dict = None):
         """
         A meta-category is a category that is constructed based on a linear combination of several other categories. Besides this, it is treated as any other category by the inversion.
         Internally, it is just an empty variable, with the "meta" attribute set to True, and a "constructor" attribute, plus the standard attributes of other categories.
         Arguments:
             name: name of the meta-category
             constructor: linear combination of categories that constitute the metacat
+            attrs: optional dictionary containing the (netcdf) attributes of the meta-category
 
         Example:
 
@@ -265,12 +269,12 @@ class TracerEmis(xr.Dataset):
         self.convert(units)
         
         for cat in self.categories :
-            monthly_emis = self[cat].resample(time='M').sum(['lat', 'lon', 'time'])
+            monthly_emis = self[cat].resample(time='MS', closed='left').sum(['lat', 'lon', 'time'])
             logger.info("===============================")
             logger.info(f"{cat}:")
             for year in unique(monthly_emis.time.dt.year):
                 logger.info(f'{year}:')
-                monthly_emis_year = monthly_emis.where(monthly_emis.time.dt.year == year)
+                monthly_emis_year = monthly_emis.sel(time=slice(Timestamp(year, 1, 1), Timestamp(year, 12, 31)))  # where(monthly_emis.time.dt.year == year)
                 for em in monthly_emis_year :
                     logger.info(f'  {em.time.dt.strftime("%B").data}: {em.data:7.2f} {units}')
                 logger.info("    --------------------------")
@@ -297,7 +301,7 @@ class TracerEmis(xr.Dataset):
         new_unit = self.units / ureg.s / ureg.m**2
         self.convert(str(new_unit.u))
 
-    def convert(self, destunit: Unit):
+    def convert(self, destunit: Union[str, Unit]):
         dest = destunit
         if isinstance(destunit, str):
             dest = ureg(destunit).units
@@ -338,6 +342,8 @@ class TracerEmis(xr.Dataset):
         self.attrs['units'] = dest
 
     def to_netcdf(self, filename, group=None, only_transported=False, **kwargs):
+
+        # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
         with Dataset(filename, 'w') as nc:
             if group is not None :
                 nc = nc.createGroup(group)
@@ -381,12 +387,16 @@ class TracerEmis(xr.Dataset):
                 if only_transported :
                     nc.categories = [c.name for c in self.transported_categories]
 
+        if self.temporal_mapping:
+            self.temporal_mapping.to_netcdf(filename, group=f'{group}/temporal_mapping', mode='a')
+            self.spatial_mapping.to_netcdf(filename, group=f'{group}/spatial_mapping', mode='a')
+
     def resolve_metacats(self) -> None:
         """
         This will uncouple the value of the meta-categories from the value of their "parent" categories (so that they can now be updated independently).
         The "meta" flags are renamed in "_meta" (so the meta-categories are treated as a normal ones by __getitem__, but can be made into metacats easily again), and the dummy data is replaced by the actual values that the metacats represent.
         """
-        for cat in self.iter_cats() :
+        for cat in self.iter_cats():
             if cat.meta :
                 # Retrieve the value of the metacat, change the attributes of the returned data
                 value = self[cat.name]
@@ -398,7 +408,6 @@ class TracerEmis(xr.Dataset):
 
                 # Copy the resolved value to the variable
                 self[cat.name] = value
-
 
     def dimensionality(self, dim: str) -> int:
         """
@@ -501,9 +510,18 @@ class Data:
         for tr in self._tracers :
             self[tr].to_intensive_adj()
 
+    def convert(self, units: Union[str, dict]) -> None:
+        """
+        convert all tracers to units specified by the "units" argument.
+        Alternatively, "units" can be provided as a string, then all tracers will be converted to that unit.
+        """
+        if isinstance(units, str):
+            units = {tr: units for tr in self.tracers}
+        for tr in self.tracers :
+            self[tr].convert(units[tr])
+
     def resample(self, time=None, lat=None, lon=None, grid=None, inplace=False) -> "Data":
-        if not inplace :
-            new = Data()
+        new = self if inplace else Data()
         for tracer in self.tracers :
             if time:
                 # Resample the emissions for that tracer
@@ -526,18 +544,11 @@ class Data:
                 for cat in self[tracer].meta_categories:
                     tr.add_metacat(cat.name, cat.constructor, self[tracer].variables[cat.name].attrs)
 
-                if inplace :
-                    self.add_tracer(tr)
-                else :
-                    new.add_tracer(tr)
+                new.add_tracer(tr)
 
             elif lat or lon or grid:
                 raise NotImplementedError
-            
-        if not inplace:
-            return new
-        else: 
-            return self
+        return new
 
     def to_netcdf(self, filename, zlib=True, complevel=1, **kwargs):
         if not zlib :
@@ -549,9 +560,13 @@ class Data:
     @property
     def tracers(self):
         return list(self._tracers.keys())
+
+    @property
+    def units(self):
+        return {tr : str(self[tr].units) for tr in self.tracers}
     
     @property
-    def optimized_categories(self) -> Category :
+    def optimized_categories(self) -> List[Category] :
         """ Returns an iterable with each existing combination of tracer and optimized categories.
         This just avoids the nested loops "for tracer in self.tracers: for cat in self.tracers[tracer].optimized_categories ..."
         """
@@ -562,7 +577,7 @@ class Data:
         return cats
 
     @property
-    def transported_categories(self) -> Category :
+    def transported_categories(self) -> List[Category] :
         """
         Return the list of transported emission categories (i.e. typically the meta-categories + the categories not part of any meta-category).
         """
@@ -573,7 +588,7 @@ class Data:
         return cats
 
     @property
-    def categories(self) -> Category :
+    def categories(self) -> List[Category] :
         """ Returns an iterable with each existing combination of tracer and categories.
         This just avoids the nested loops "for tracer in self.tracers: for cat in self.tracers[tracer].categories ..."
         """
@@ -583,30 +598,60 @@ class Data:
                 cats.append(cat)
         return cats
 
-    def copy(self, copy_emis=True, copy_attrs=True):
+    def copy(self, copy_emis : bool = True, copy_attrs : bool = True) -> "Data":
         """
         This returns a copy of the object, possibly without all the attributes
+        The distinction between class and metaclass is respected.
+        Arguments:
+            copy_emis (optional, default True): copy the emissions from the source category to the new one
+            copy_attrs (optional, default True): copy the attributes as well
         """
         new = Data()
-        for tr in self._tracers.values() :
+        for tr in self._tracers.values():
             new.add_tracer(TracerEmis(tr.tracer, tr.grid, tr.timestamp, tr.units, tr.period))
         
         if copy_emis :
             for cat in self.categories :
+                attrs = self[cat.tracer][cat.name].attrs if copy_attrs else None
                 if cat.meta :
-                    new[cat.tracer].add_metacat(cat.name, self[cat.tracer][cat.name].constructor.dict, attrs=self[cat.tracer][cat.name].attrs)
+                    new[cat.tracer].add_metacat(cat.name, self[cat.tracer][cat.name].constructor.dict, attrs=attrs)
                 else :
-                    new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy(), attrs=self[cat.tracer][cat.name].attrs)
+                    new[cat.tracer].add_cat(cat.name, self[cat.tracer][cat.name].data.copy(), attrs=attrs)
         
         return new
+
+    def empty_like(self, fillvalue = 0., copy_attrs: bool = True) -> "Data":
+        """
+        Returns a copy of the current Data structure, but with all data set to zero (or to the value provided by the optional "fillvalue" argument.
+        """
+        new = self.copy(copy_attrs = copy_attrs)
+        new.set_zero()
+        return new
+
+    def set_zero(self, fillvalue = 0) -> None:
+        for cat in self.categories:
+            self[cat.tracer][cat.name].data[:] = fillvalue
 
     def resolve_metacats(self) -> None:
         for tr in self.tracers:
             self[tr].resolve_metacats()
 
     @classmethod
-    def from_file(cls, filename : str):
+    def from_file(cls, filename : str, units: Union[str, dict] = None) -> "Data":
+        """
+        Create a new "Data" object based on a netCDF file (such as previously written by Data.to_netcdf).
+        Arguments:
+            filename: path to the netCDF file
+            units (ptional): convert the data in specific units. units can either be a string or a dictionary, in which case, each dictionary element gives the unit requested for each tracer. If no units is provided, use what's in the file.
+
+        Usage:
+            from xr import Data
+            emis = Data.from_file(filename, units='PgC')
+            emis = Data.from_file(filename, units={'co2':'PgC', 'ch4','TgCH4'})
+        """
+
         em = cls()
+
         with Dataset(filename, 'r') as fid :
             for tracer in fid.groups:
                 with xr.open_dataset(filename, group=tracer) as ds :
@@ -619,10 +664,23 @@ class Data:
                             em[tracer].add_metacat(cat, ds[cat].constructor, attrs=ds[cat].attrs)
                         else :
                             em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
+
+                if isinstance(units, str):
+                    em[tracer].convert(units)
+                elif isinstance(units, dict):
+                    em[tracer].convert(units[tracer])
+
+                # Check if mapping datasets are also there:
+                if 'temporal_mapping' in fid[tracer].groups:
+                    em[tracer]._mapping = {
+                        'time': xr.open_dataset(filename, group=f'{tracer}/temporal_mapping'),
+                        'space': xr.open_dataset(filename, group=f'{tracer}/spatial_mapping')
+                    }
+
         return em
 
     @classmethod
-    def from_rc(cls, rcf:RcFile, start: Union[datetime, Timestamp, str], end: Union[datetime, str, Timestamp]) -> "Data":
+    def from_rc(cls, rcf: RcFile, start: Union[datetime, Timestamp, str], end: Union[datetime, str, Timestamp]) -> "Data":
         """
         Create a Data structure from a rc-file, with the following keys defined:
         - tracers
@@ -648,7 +706,7 @@ class Data:
             unit_emis = species[tr].unit_emis
 
             # Add new tracer to the emission object
-            em.add_tracer(TracerEmis(tr, grid, time, unit_emis, freq))#.seconds * ur('s')))
+            em.add_tracer(TracerEmis(tr, grid, time, unit_emis, freq))  # .seconds * ur('s')))
 
             if rcf.get(f'emissions.{tr}.resample', default=False):
                 freq_src = rcf.get(f'emissions.{tr}.convert_from')
@@ -664,12 +722,12 @@ class Data:
         return em
 
 
-def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str=None) -> ndarray:
+def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None) -> ndarray:
 
     archive = Rclone(archive)
 
     # Import a file for each year at least partially covered:
-    years = unique(date_range(start, end, freq='YS', inclusive='left').year)
+    years = unique(date_range(start, end, freq='MS', inclusive='left').year)
     data = []
     for year in years :
         fname = f'{prefix}{year}.nc'
@@ -689,7 +747,7 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             data = data.reindex(time=times_dest).ffill('time')
 
     times = data.time.to_pandas()
-    data = data[(times >= start) * (times < end), : ,:]
+    data = data[(times >= start) * (times < end), :, :]
 
     # Coarsen if needed
     if grid is not None :
@@ -699,7 +757,7 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
 
 
 # Interfaces:
-def WriteStruct(data:Data, path:str, prefix=None, zlib=False, complevel=1, only_transported=False):
+def WriteStruct(data: Data, path: str, prefix=None, zlib=False, complevel=1, only_transported=False):
     if prefix is None :
         filename, path = path, os.path.dirname(path)
     else :

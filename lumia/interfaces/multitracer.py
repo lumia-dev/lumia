@@ -5,7 +5,7 @@ from lumia.Tools.optimization_tools import clusterize
 from numpy import meshgrid, zeros, float32, average, dot, ndarray, array
 from xarray import DataArray, Dataset
 from lumia.Tools.time_tools import interval_range
-from pandas import DataFrame, Timestamp, concat
+from pandas import DataFrame, Timestamp, concat, Timedelta
 from tqdm import tqdm
 from lumia.control.flexRes import Control
 from lumia.units import units_registry as ureg
@@ -21,11 +21,12 @@ class Interface:
     model_data : typing.Any  # TODO: need an abstract class for this
     optim_data : DataFrame = None
     sensi_map : ndarray = None
-    
+
     def __post_init__(self):
-        self.setup_optimization()
-        self.setup_coarsening(self.sensi_map)
-        self.setup_prior()
+        if self.optim_data is None :
+            self.setup_optimization()
+            self.setup_coarsening(self.sensi_map)
+            self.setup_prior()
 
     @property
     def optimized_categories(self):
@@ -37,10 +38,25 @@ class Interface:
         for tr in self.model_data.tracers :
             yield tr
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, label: str = None) -> None:
+        label = f'_{label}' if label is not None else ''
+        units = self.model_data.units
         self.model_data.to_intensive()
-        self.model_data.to_netcdf(os.path.join(path, 'emissions_apri.nc'))
-        self.optim_data.to_hdf(os.path.join(path, 'control.hdf'), 'vectors')
+        self.model_data.to_netcdf(os.path.join(path, f'emissions{label}.nc'))
+        self.model_data.convert(units)
+        # Note: optim_data should contain all the optimization data (mapping, correlation matrices, uncertainties, state vectors, etc.). But in the current implementation, it contains only a very minimal set of vectors, which are not too useful. So for now, save the control vector instead.
+#        self.optim_data.to_hdf(os.path.join(path, 'control.hdf'), 'vectors')
+
+    def save_step(self, vector: ndarray, step: str) -> None:
+        emis = self.VecToStruct(vector)
+        emis.convert(self.model_data.units)
+        for cat in self.model_data.optimized_categories :
+            attrs = emis[cat.tracer][cat.name].attrs
+            attrs.pop('meta', None)
+            self.model_data[cat.tracer].add_cat(
+                f'{cat.name}_{step}',
+                emis[cat.tracer][cat.name].values,
+                attrs=attrs)
 
     def setup_optimization(self):
         """
@@ -66,7 +82,7 @@ class Interface:
                     'temporal_correlation': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.tcorr'),
                 })
                 err = ureg(self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.total_uncertainty'))
-                scf = ((1 * err.units) / species[tracer].unit_budget).m
+                scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
                 attrs['total_uncertainty'] = err.m * scf
             self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
 
@@ -92,7 +108,7 @@ class Interface:
             # the first partially covered calendar week.
             t0 = Timestamp(self.model_data[tracer].start.year, 1, 1)
             while t0 < self.model_data[tracer].start :
-                t0 += cat.optimization_interval 
+                t0 += Timedelta(cat.optimization_interval)
             times_optim = interval_range(t0, self.model_data[tracer].end, freq=cat.optimization_interval)
 
             # Mapping:
@@ -225,7 +241,7 @@ class Interface:
 
         return vec
 
-    def VecToStruct(self, vector: ndarray, field : str = 'state'):
+    def VecToStruct(self, vector: ndarray):
         """
         Converts a state vector to flux array(s). The conversion follows the steps:
         0. The input state vector contains fluxes in umol, for each space/time cluster
@@ -236,7 +252,7 @@ class Interface:
         5. Convert the flux to umol/m2/s
         """
 
-        struct = self.model_data.copy(copy_emis=True, copy_attrs=True)
+        struct = self.model_data.copy(copy_attrs=True)
         struct.resolve_metacats()
         emdiff = (vector - self.optim_data.state_prior).values
         tracer = self.optim_data.tracer
