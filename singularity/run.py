@@ -19,6 +19,7 @@ p.add_argument('--optimize', default=False, action='store_true')
 p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
 p.add_argument('--start', default=None, help="Start of the simulation. Overwrites the value in the rc-file")
 p.add_argument('--end', default=None, help="End of the simulation. Overwrites the value in the rc-file")
+p.add_argument('--setkey', action='append', help="use to override some rc-keys")
 p.add_argument('--tag', default='')
 p.add_argument('--rcf')
 p.add_argument('--verbosity', '-v', default='INFO')
@@ -29,6 +30,11 @@ logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
 rcf = lumia.rc(args.rcf)
+
+if args.setkey :
+    for kv in args.setkey :
+        k, v = kv.split(':')
+        rcf.setkey(k, v)
 
 # Default paths, common to all runs within this container, normally
 defaults = {
@@ -41,12 +47,12 @@ defaults = {
     # Run-dependent paths
     'tag': args.tag,
     'path.output': os.path.join('/output', args.tag),
-    'var4d.communication.file': '${path.temp}/comm_file.nc4',
+    'var4d.communication.file': '${path.temp}/congrad.nc',
     'emissions.*.archive': 'rclone:lumia:fluxes/nc/',
     'emissions.*.path': '/data/fluxes/nc',
     'model.transport.exec': '/lumia/transport/multitracer.py',
     'transport.output': 'T',
-    'transport.output.steps': 'apri, apos, forward',
+    'transport.output.steps': ['forward'],
 }
 
 for tr in rcf.get('tracers', tolist='force'):
@@ -80,12 +86,10 @@ if args.noobs :
     from lumia.obsdb.runflex import obsdb
     db = obsdb(rcf.get('path.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
-    db = obsdb(rcf)
-    if args.optimize or args.gradtest:
-        db.SetupUncertainties()
+    db = obsdb.from_rc(rcf)
 else :
+    # if we just want to write the emissions ...
     db = None
-
 
 # Load the pre-processed emissions:
 emis = xr.Data.from_rc(rcf, start, end)
@@ -94,26 +98,43 @@ emis.print_summary()
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=xr)
 
-
 # Do a model run (or something else ...).
 if args.forward :
     model.calcDepartures(emis, 'forward')
 
-elif args.optimize or args.adjtest or args.gradtest :
+
+# Setup uncertainties if needed:
+if args.optimize or args.gradtest :
+    if rcf.get('obs.uncertainty') == 'dyn':
+        model.calcDepartures(emis, 'apri')
+        db.setup_uncertainties_dynamic(
+            'mix_apri',
+            rcf.get('obs.uncertainty.dyn.freq', default='7D'),
+            rcf.get('obs.uncertainty.obs_field', default='err_obs')
+        )
+    else :
+        db.setup_uncertainties()
+
+if args.optimize or args.adjtest or args.gradtest :
     from lumia.interfaces.multitracer import Interface
 
     sensi = model.calcSensitivityMap(emis)
     control = Interface(rcf, model_data=emis, sensi_map=sensi)
     opt = lumia.optimizer.Optimizer(rcf, model, control)
+
     if args.optimize :
         opt.Var4D()
+        if rcf.get('obs.validation_file', default=False):
+            obs_valid = obsdb.from_rc(rcf, filekey='obs.validation_file', setupUncertainties=False)
+            model.run_forward(control.model_data, obs_valid, step='validation')
+
     elif args.adjtest :
         opt.AdjointTest()
     elif args.gradtest :
         opt.GradientTest()
 
 elif args.emis :
-    model.writeStruct(emis.data, rcf.get('path.output'), 'modelData')
+    model.writeStruct(emis, rcf.get('path.output'), 'modelData')
 
 elif args.adjtestmod :
     # Test only the adjoint of the CTM (skip the lumia stuff ...).

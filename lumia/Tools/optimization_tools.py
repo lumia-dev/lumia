@@ -76,7 +76,7 @@ class Category:
         return self.name == other
     
 
-class costFunction:
+class CostFunction:
     def __init__(self, bg=0, obs=None):
         self.J_obs = obs
         self.J_bg = bg

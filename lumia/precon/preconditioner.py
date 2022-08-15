@@ -11,7 +11,7 @@ def init():
     pass
 
 
-def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
+def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos):
     n_state = len(G_state)
     nt = shape(Temp_Lt)[0]
     nhor = shape(Hor_Lt)[0]
@@ -22,7 +22,7 @@ def g_to_gc(G_state, Temp_Lt, Hor_Lt, g, ipos, dummy, path=None):
     return g_c
 
 
-def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos, dummy, path=None):
+def xc_to_x(G_state, Temp_L, Hor_L, x_c, ipos):
     n_state = len(G_state)
     nt = shape(Temp_L)[0]
     nhor = shape(Hor_L)[0]
