@@ -66,6 +66,10 @@ class LumiaFootprintFile(h5py.File):
         ilats = self[obsid]['ilats'][:]
         sensi = self[obsid]['sensi'][:] * 0.0002897
 
+        # If the footprint is empty, return here:
+        if len(itims) == 0:
+            return SimpleNamespace(shift_t=0, itims=itims, ilats=ilats, ilons=ilons, sensi=sensi)
+
         # sometimes, the footprint will have non-zero sentivity for the time-step directly after the observation time. This is because FLEXPART calculates the concentration after releasing the particles, and before going to the next step. In this case, re-attribute the sensitivity to the previous time step.
 
         # Check if the time of the last time step is same as release time (it should be lower by 1 timestep normally)
