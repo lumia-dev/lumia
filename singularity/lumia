@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import subprocess
+from argparse import ArgumentParser
+import configparser
+from loguru import logger
+
+c = configparser.ConfigParser()
+c.read(os.path.join(os.environ['HOME'], '.config/lumia.ini'))
+
+p = ArgumentParser()
+p.add_argument('--container', '-x', default=None)
+p.add_argument('--data', '-s', default=c['lumia'].get('/data', './data'))
+p.add_argument('--output', '-o', default=c['lumia'].get('/output', './output'))
+p.add_argument('--temp', default=c['lumia'].get('/temp', '/tmp/lumia'))
+p.add_argument('--footprints', default=c['lumia'].get('/footprints', None))
+p.add_argument('--extra-mount-path', '-e', action='append')
+p.add_argument('--exec', default=None)
+p.add_argument('--showconfig', default=False, action='store_true')
+p.add_argument('--dev', default=False, const=c['lumia'].get('DevFolder', '.'), nargs='?')
+
+args, lumia_args = p.parse_known_args(sys.argv[1:])
+
+# Gather all the mounting points:
+mounts = {
+    '/data': args.data,
+    '/output': args.output,
+    '/temp': args.temp
+}
+
+if args.footprints is not None :
+    mounts['/footprints'] = args.footprints
+
+if args.extra_mount_path is not None :
+    for mount in args.extra_mount_path :
+        source, dest = mount.split(':')
+        mounts[dest] = source
+
+if 'extras' in c :
+    for dest, source in c['extras'].items():
+        mounts[dest] = source
+
+# Ensure that the three mandatory paths exist:
+if not os.path.exists(args.data):
+    os.makedirs(args.data)
+if not os.path.exists(args.output):
+    os.makedirs(args.output)
+if not os.path.exists(args.temp):
+    os.makedirs(args.temp)
+
+# Select the container
+if args.container is None :
+    if args.dev :
+        args.container = c['lumia']['DevContainer']
+        mounts['/lumia'] = args.dev
+    else :
+        args.container = c['lumia']['DefaultContainer']
+
+# Convert to a command line:
+cmd = []
+for dest, source in mounts.items():
+    cmd.extend(['-B', f'{source}:{dest}'])
+cmd.append(args.container)
+
+# Run the container :
+if args.exec is not None :
+    cmd = ['singularity', 'exec'] + cmd + lumia_args
+else :
+    cmd = ['singularity', 'run'] + cmd + lumia_args
+logger.info(' '.join([c for c in cmd]))
+subprocess.call(cmd)

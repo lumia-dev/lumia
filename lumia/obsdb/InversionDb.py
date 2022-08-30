@@ -135,4 +135,8 @@ class obsdb(obsdb):
 #            s_mod = sqrt((nobs * sigma**2 - (s_obs**2).sum()) / nobs)
 
             # 5) Store the inflated errors:
-            self.observations.loc[:, 'err'] = sqrt(self.observations.loc[:, err_obs]**2 + sigma**2)
+            self.observations.loc[self.observations.code == code, 'err'] = sqrt(self.observations.loc[self.observations.code == code, err_obs]**2 + sigma**2).values
+            self.observations.loc[self.observations.code == code, 'resid_obs'] = resid_obs.values
+            self.observations.loc[self.observations.code == code, 'resid_mod'] = resid_mod.values
+            self.observations.loc[self.observations.code == code, 'obs_detrended'] = obs_averaged.values
+            self.observations.loc[self.observations.code == code, 'mod_detrended'] = mod_averaged.values
