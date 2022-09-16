@@ -96,33 +96,46 @@ def offset_to_pint(offset: DateOffset):
 class TracerEmis(xr.Dataset):
     __slots__ = 'grid', '_mapping'
 
-    def __init__(self, tracer_name, grid, time: DatetimeIndex, units: Quantity, timestep: str, attrs=None, categories: dict = None):
-        # Ensure we have the correct data types:
-        time = DatetimeIndex(time)
-        timestep = to_offset(timestep).freqstr
+    def __init__(self, *args, tracer_name : str = None, grid : Grid = None, time: DatetimeIndex = None, units: Quantity = None, timestep: str = None, attrs=None, categories: dict = None):
 
-        super().__init__(
-            coords=dict(time=time, lat=grid.latc, lon=grid.lonc),
-            attrs=attrs
-        )
-        self.attrs['tracer'] = tracer_name
-        self.attrs['categories'] = []
         self._mapping = {'time': None, 'space': None}  # TODO: replace by a dedicated class?
-        self.grid = grid
-        self['area'] = xr.DataArray(data=grid.area, dims=['lat', 'lon'], attrs={'units': ureg('m**2').units})
-        # timestep stores the time step, in time units (seconds, days, months, etc.)
-        # while dt stores the time interval in nanoseconds (pandas Timedelta).
-        self.attrs['timestep'] = timestep 
-        self['timestep_length'] = xr.DataArray((time + to_offset(timestep) - time).total_seconds().values, dims=['time', ], attrs={'units': ureg.s})
-        self.attrs['units'] = units
 
-        # If any field has been passed to the constructor, add it here:
-        if categories is not None :
-            for cat, value in categories.items() :
-                if isinstance(value, dict) :
-                    self.add_cat(cat, value['data'], value.get('attrs', None))
-                else :
-                    self.add_cat(cat, value)
+        # If we are initializing from an existing Dataset
+        if args :
+            super().__init__(*args, attrs=attrs)
+            self.grid = Grid(latc=self.lat.values, lonc=self.lon.values)
+
+        else :
+            # Ensure we have the correct data types:
+            time = DatetimeIndex(time)
+            timestep = to_offset(timestep).freqstr
+
+            super().__init__(
+                coords=dict(time=time, lat=grid.latc, lon=grid.lonc),
+                attrs=attrs
+            )
+
+            assert tracer_name is not None
+            assert grid is not None
+            assert time is not None
+
+            self.attrs['tracer'] = tracer_name
+            self.attrs['categories'] = []
+            self.attrs['timestep'] = timestep
+            self.attrs['units'] = units
+            self.grid = grid
+
+            self['area'] = xr.DataArray(data=grid.area, dims=['lat', 'lon'], attrs={'units': ureg('m**2').units})
+            self['timestep_length'] = xr.DataArray((time + to_offset(timestep) - time).total_seconds().values, dims=['time', ], attrs={'units': ureg.s})
+
+            # If any field has been passed to the constructor, add it here:
+            if categories is not None :
+                for cat, value in categories.items() :
+                    if isinstance(value, dict) :
+                        self.add_cat(cat, value['data'], value.get('attrs', None))
+                    else :
+                        self.add_cat(cat, value)
+
 
     def __getitem__(self, key) -> xr.DataArray:
         var = super().__getitem__(key)
@@ -533,10 +546,11 @@ class Data:
 
                 # Create new tracer for storing this:
                 tr = TracerEmis(
-                    tracer, self[tracer].grid,
-                    time=resampled_data.time,
-                    units=self[tracer].units,
-                    timestep=to_offset(time).freqstr,
+                    tracer_name = tracer,
+                    grid = self[tracer].grid,
+                    time = resampled_data.time,
+                    units = self[tracer].units,
+                    timestep = to_offset(time).freqstr,
                 )
                 for cat in resampled_data.data_vars:
                     tr.add_cat(cat, resampled_data[cat].values, attrs=self[tracer][cat].attrs)
@@ -608,7 +622,12 @@ class Data:
         """
         new = Data()
         for tr in self._tracers.values():
-            new.add_tracer(TracerEmis(tr.tracer, tr.grid, tr.timestamp, tr.units, tr.period))
+            new.add_tracer(TracerEmis(
+                tracer_name=tr.tracer,
+                grid=tr.grid,
+                time=tr.timestamp,
+                units=tr.units,
+                timestep=tr.period))
         
         if copy_emis :
             for cat in self.categories :
@@ -656,7 +675,12 @@ class Data:
             for tracer in fid.groups:
                 with xr.open_dataset(filename, group=tracer) as ds :
                     grid = Grid(latc=ds.lat.values, lonc=ds.lon.values)
-                    em.add_tracer(TracerEmis(tracer, grid, ds.time, ureg(ds.units), ds.timestep))
+                    em.add_tracer(TracerEmis(
+                        tracer_name=tracer,
+                        grid=grid,
+                        time=ds.time,
+                        units=ureg(ds.units),
+                        timestep=ds.timestep))
                     if isinstance(ds.categories, str):
                         ds.attrs['categories'] = [ds.categories]
                     for cat in ds.categories :
@@ -706,7 +730,11 @@ class Data:
             unit_emis = species[tr].unit_emis
 
             # Add new tracer to the emission object
-            em.add_tracer(TracerEmis(tr, grid, time, unit_emis, freq))  # .seconds * ur('s')))
+            em.add_tracer(TracerEmis(tracer_name=tr,
+                                     grid=grid,
+                                     time=time,
+                                     units=unit_emis,
+                                     timestep=freq))  # .seconds * ur('s')))
 
             if rcf.get(f'emissions.{tr}.resample', default=False):
                 freq_src = rcf.get(f'emissions.{tr}.convert_from')

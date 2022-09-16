@@ -4,7 +4,7 @@ import shutil
 import tarfile
 import tempfile
 from numpy import unique, nan
-from pandas import DataFrame, read_csv, read_hdf, Series
+from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
@@ -19,8 +19,8 @@ class obsdb:
             self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt'])
             self.observations.loc[:, 'time'] = self.observations.time.astype(datetime64)
             self.files = DataFrame(columns=['filename'])
-            self.start = start
-            self.end = end
+            self.start = Timestamp(start) if start is not None else None
+            self.end = Timestamp(end) if end is not None else None
             self.setup = False
             self.io = {
                 'observations':{

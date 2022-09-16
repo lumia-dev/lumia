@@ -19,7 +19,9 @@ setuptools.setup(
         "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.9',
+    install_requires=['loguru', 'pandas', 'tqdm', 'netcdf4', 'tables', 'h5py', 'cartopy', 'xarray', 'pint', 'scipy'],
+    extras_require={'interactive': ['ipython']},
     #scripts=['bin/lumia'],
     data_files=[]
 )
