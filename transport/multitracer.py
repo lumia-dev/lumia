@@ -64,7 +64,10 @@ class LumiaFootprintFile(h5py.File):
         itims = self[obsid]['itims'][:] 
         ilons = self[obsid]['ilons'][:]
         ilats = self[obsid]['ilats'][:]
-        sensi = self[obsid]['sensi'][:] * 0.0002897
+        sensi = self[obsid]['sensi'][:]
+
+        if Timestamp(self[obsid].get('runflex_version', '2000.1.1')) < Timestamp(2022, 9, 1):
+            sensi *= 0.0002897
 
         # If the footprint is empty, return here:
         if len(itims) == 0:
