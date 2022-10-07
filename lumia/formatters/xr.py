@@ -552,8 +552,8 @@ class Data:
                     units = self[tracer].units,
                     timestep = to_offset(time).freqstr,
                 )
-                for cat in resampled_data.data_vars:
-                    tr.add_cat(cat, resampled_data[cat].values, attrs=self[tracer][cat].attrs)
+                for cat in self[tracer].base_categories:
+                    tr.add_cat(cat.name, resampled_data[cat.name].values, attrs=self[tracer][cat.name].attrs)
 
                 for cat in self[tracer].meta_categories:
                     tr.add_metacat(cat.name, cat.constructor, self[tracer].variables[cat.name].attrs)
