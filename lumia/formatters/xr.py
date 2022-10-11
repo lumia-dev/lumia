@@ -744,7 +744,7 @@ class Data:
             # Import emissions for each category of that tracer
             for cat in rcf.get(f'emissions.{tr}.categories'):
                 origin = rcf.get(f'emissions.{tr}.{cat}.origin')
-                prefix = os.path.join(rcf.get('emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
                 em[tr].add_cat(cat, emis)
         return em

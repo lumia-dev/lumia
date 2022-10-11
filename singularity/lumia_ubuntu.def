@@ -1,0 +1,52 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%post
+
+    # Install system packages
+    apt -y update
+    apt -y upgrade
+
+    export DEBIAN_FRONTEND=noninteractive
+    apt -y install --no-install-recommends git rclone wget vim htop make gfortran
+    apt -y install --no-install-recommends netcdf-bin libnetcdff-dev libgeos-dev
+
+    # Install python packages
+    apt -y install --no-install-recommends python3-pint python3-cartopy python3-matplotlib python3-h5py python3-netcdf4 python3-yaml
+    apt -y install --no-install-recommends python3-tqdm python3-xarray python3-ipython python3-tables python3-loguru python3-pip ipython3
+    python3 -m pip install loguru h5netcdf
+
+    # Make directories:
+#    mkdir /lumia
+
+    # Make congrad:
+    cd /congrad
+    rm -f *.{mod,o}
+    make congrad.exe
+    mv congrad.exe /usr/bin
+
+    # Pre-install python package:
+#    export PYPTH=/usr/local/lib/python3.10/dist-packages
+#    echo /lumia >> ${PYPTH}/easy-install.pth
+#    echo /lumia >> ${PYPTH}/runflex.egg-link
+
+    cd /lumia
+    pip install -e .
+    rm -Rf /lumia/*
+
+%environment
+    PATH=/lumia/bin:${PATH}
+
+
+%files
+    ../src/congrad /congrad
+    ../ /lumia
+
+
+%runscript
+    if [ $# -ne 0 ]
+    then
+        lumia $@
+    else
+        bash
+    fi

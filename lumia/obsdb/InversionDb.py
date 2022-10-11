@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from numpy import zeros, sqrt
 
 import rctools
@@ -36,9 +36,7 @@ class obsdb(obsdb):
             - filename (optional): path of the file containing the obs (overrides the one given by filekey)
 
         """
-        start = datetime(*rcf.get('time.start'))
-        end = datetime(*rcf.get('time.end'))
-        db = cls(rcf.get(filekey), start=start, end=end)
+        db = cls(rcf.get(filekey), start=rcf.get('time.start'), end=rcf.get('time.end'))
         db.rcf = rcf
 
         db.map_fields(rcf.get('obs.fields.rename', tolist='force', default=[]))

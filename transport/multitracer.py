@@ -34,10 +34,10 @@ class LumiaFootprintFile(h5py.File):
 
         try :
             self.origin = Timestamp(self.attrs['origin'])
-            self.timestep = Timedelta(seconds=self.attrs['tres'])
+            self.timestep = Timedelta(seconds=abs(self.attrs['loutstep']))
             if self.maxlength != inf :
                 self.maxlength /= self.timestep
-            assert self['latitudes'].dtype == 'f4'
+            assert self['latitudes'].dtype == 'f4' or self['latitudes'].dtype == 'f8'
             self.grid = Grid(latc=self['latitudes'][:], lonc=self['longitudes'][:])
 
         except AssertionError :
@@ -77,7 +77,7 @@ class LumiaFootprintFile(h5py.File):
 
         # Check if the time of the last time step is same as release time (it should be lower by 1 timestep normally)
         # if it's the case, decrement that time index by 1
-        if self.origin + itims[-1] * self.timestep == Timestamp(self[obsid].attrs['release_time']):
+        if self.origin + itims[-1] * self.timestep == Timestamp(self[obsid].attrs['release_end']):
             itims[-1] -= 1
 
         # Trim the footprint if needed

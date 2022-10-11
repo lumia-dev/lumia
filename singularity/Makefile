@@ -8,11 +8,11 @@ build: lumia.def
 
 buildenv: lumiaenv.def
 	[ ! -f ${CONTAINER}] || rm -f ${CONTAINER}
-	singularity build ${ENVCONTAINER} lumiaenv.def
+	singularity build -f ${ENVCONTAINER} lumiaenv.def
 
 config:
 	python genconfig.py --exec ${BIN_DIR} --container ${CONTAINER} --dev ..
 
 install: lumia
 	cp lumia ${BIN_DIR}
-	chmod +x ${BIN_DIR}/lumia
+	chmod +x ${BIN_DIR}/lumiao

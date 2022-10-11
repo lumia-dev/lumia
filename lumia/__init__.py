@@ -1,6 +1,9 @@
 #!/usr/bin/env python
-import sys
 from loguru import logger
+from importlib import resources
+import sys
+from pathlib import Path
+
 
 try :
     from tqdm import tqdm
@@ -51,9 +54,9 @@ def __getattr__(name):
 
 from .timers import Timer
 
-from .Tools import logging_tools
+# from .Tools import logging_tools
 from .obsdb import obsdb
-from rctools import RcFile as rc
+# from rctools import RcFile as rc
 from .interfaces import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer
@@ -66,3 +69,12 @@ name = 'lumia'
 timer = Timer("Main timer") 
 
 os.environ['LUMIA_ROOT'] = os.path.dirname(__file__)
+
+# Determine if we are in a local installation or in a system (or env-) installation (i.e. if pip was called with -e option or not):
+prefix = resources.files("lumia")
+if Path(sys.prefix) in prefix.parents :
+    prefix = Path(sys.prefix)
+else :
+    prefix = prefix.parent
+
+

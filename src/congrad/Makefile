@@ -28,7 +28,7 @@ FFLAGS = $(FFLAGS_DEF) $(FFLAGS_OPT) -ffree-line-length-none
 
 # --- libs etc ---------------------------------------
 
-INCS = -I/usr/include
+INCS = $(shell nf-config --fflags)
 LIBS = -L/usr/lib -lnetcdff -lnetcdf
 
 # --- implicit rules ---------------------------------
