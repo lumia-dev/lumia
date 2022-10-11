@@ -10,6 +10,7 @@ __pycache__/
 .Python
 build/
 dist/
+pkgs/
 *.egg-info/
 *.ipynb_checkpoints
 
@@ -19,3 +20,4 @@ dist/
 *.mod
 scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 .vscode/settings.json
+
