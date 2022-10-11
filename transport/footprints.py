@@ -14,6 +14,7 @@ from lumia.formatters.structure import Emissions, ReadStruct, WriteStruct, Struc
 from lumia.Tools import regions
 import logging
 import pickle
+import pdb
 
 # Cleanup needed in the following ...
 from lumia.Tools import Region, costFunction
@@ -59,6 +60,8 @@ class Flux:
             self.tracers[tr] = {}
             self.tracers[tr] = list(self.data[tr].keys())
 
+        #TODO: when reading adjoint.nc check that it has data in it. Check before if there are not opt categories.
+
         # Make sure that all categories have the same coordinates (this is a requirement):
         for tr in self.tracers.keys():
             for cat in self.tracers[tr]:
@@ -74,7 +77,7 @@ class Flux:
                     print(self.data[tr][cat]['lons'])
                     print(self.data[tr][cat0]['lats'])
                     print(self.data[tr][cat0]['lons'])
-        
+
         tstart = self.data[tr][cat0]['time_interval']['time_start']
         tend = self.data[tr][cat0]['time_interval']['time_end']
         self.tres = tstart[1]-tstart[0]
@@ -145,7 +148,6 @@ class FootprintFile:
     def run(self, obslist, emis, step, atmdel=None): 
         self.read()  # Read basic information from the file itself
         self.setup(emis.coordinates, emis.origin, emis.tres)
-
         # 1st, check which obsids are present in the file:
         footprint_valid = [o in self.footprints for o in obslist.obsid]
         #logger.debug(f"{sum(footprint_valid)} valid footprints of {obslist.shape[0]} in file {self.filename}")
@@ -163,22 +165,29 @@ class FootprintFile:
             fpt = self.getFootprint(obs.obsid, origin=emis.origin)
             for cat in emis.data[obs.tracer].keys():
                 obslist.loc[iobs, f'{obs.tracer}_{cat}'] = fpt.to_conc(emis.data[obs.tracer][cat]['emis'])
-            if obs.tracer == 'C_D14C':
-                obslist.loc[iobs, f'{obs.tracer}_oceanic flux'] = fpt.to_conc(emis.data['CO2']['oceanic flux']['emis'] * atmdel.data['Del_14C']['obs'][:, None, None])
-                obslist.loc[iobs, f'{obs.tracer}_terrestrial flux'] = fpt.to_conc(emis.data['CO2']['terrestrial flux']['emis'] * atmdel.data['Del_14C']['obs'][:, None, None])
-                obslist.loc[iobs, f'{obs.tracer}_fossil fuel'] = fpt.to_conc(emis.data['CO2']['fossil fuel']['emis'] * -1) #TODO: call fossil.D14C key from rc file
+            if obs.tracer == 'c14':
+                #TODO: include co2 categories for unit conversion
+                obslist.loc[iobs, 'co2_ocean'] = fpt.to_conc(emis.data['co2']['ocean']['emis'])
+                obslist.loc[iobs, 'co2_biosphere'] = fpt.to_conc(emis.data['co2']['biosphere']['emis'])
+                obslist.loc[iobs, 'co2_fossil'] = fpt.to_conc(emis.data['co2']['fossil']['emis'])
+                obslist.loc[iobs, f'{obs.tracer}_ocean'] = fpt.to_conc(emis.data['co2']['ocean']['emis'] * atmdel.data['Del_14C']['obs'][:, None, None])
+                obslist.loc[iobs, f'{obs.tracer}_biosphere'] = fpt.to_conc(emis.data['co2']['biosphere']['emis'] * atmdel.data['Del_14C']['obs'][:, None, None])
+                obslist.loc[iobs, f'{obs.tracer}_fossil'] = fpt.to_conc(emis.data['co2']['fossil']['emis'] * -1) #TODO: call fossil.D14C key from rc file
         self.close()
         return obslist
 
     def _runAdjoint(self, obslist, adjstruct, atmdel=None):
         for iobs, obs in tqdm(obslist.iterrows(), desc=self.filename, total=obslist.shape[0], disable=self.silent):
             fpt = self.getFootprint(obs.obsid, origin=adjstruct.origin)
-            if obs.tracer == 'C_D14C':
+            if obs.tracer == 'c14':
                 t = (atmdel.data['Del_14C']['time_interval']['time_start']<=obs.time) & (atmdel.data['Del_14C']['time_interval']['time_start']<obs.time)
                 atmos_del = atmdel.data['Del_14C']['obs'][t][0]
-                adjstruct.data['CO2']['oceanic flux']['emis'] = fpt.to_adj(obs.dy * atmos_del, adjstruct.data['CO2']['oceanic flux']['emis'])
-                adjstruct.data['CO2']['terrestrial flux']['emis'] = fpt.to_adj(obs.dy * atmos_del, adjstruct.data['CO2']['terrestrial flux']['emis'])
-                adjstruct.data['CO2']['fossil fuel']['emis'] = fpt.to_adj(obs.dy * -1, adjstruct.data['CO2']['fossil fuel']['emis']) #TODO: call fossil.D14C key from rc file
+                if 'ocean' in adjstruct.data['co2'].keys():
+                    adjstruct.data['co2']['ocean']['emis'] = fpt.to_adj(obs.dy * atmos_del, adjstruct.data['co2']['ocean']['emis'])
+                if 'biosphere' in adjstruct.data['co2'].keys():
+                    adjstruct.data['co2']['biosphere']['emis'] = fpt.to_adj(obs.dy * atmos_del, adjstruct.data['co2']['biosphere']['emis'])
+                if 'fossil' in adjstruct.data['co2'].keys():
+                    adjstruct.data['co2']['fossil']['emis'] = fpt.to_adj(obs.dy * -1, adjstruct.data['co2']['fossil']['emis']) #TODO: call fossil.D14C key from rc file
             for cat in adjstruct.data[obs.tracer].keys():
                 adjstruct.data[obs.tracer][cat]['emis'] = fpt.to_adj(obs.dy, adjstruct.data[obs.tracer][cat]['emis'])#.copy())
         self.close()
@@ -253,7 +262,6 @@ class Footprint:
     def shift_origin(self, origin):
         shift_t = (self.origin-origin)/self.dt
         if shift_t - int(shift_t) != 0:
-            import pdb
             pdb.set_trace()
         assert shift_t - int(shift_t) == 0
         self.itims += int(shift_t)
@@ -351,7 +359,6 @@ class FootprintTransport:
 
     def runForward(self, tracers=None):
         # Read the emissions:
-
         self.emis = Flux(self.emfile, tracers=tracers)
         if self.atmdelfile is not None:
             self.atmos_del = Delta(self.atmdelfile)
@@ -362,13 +369,13 @@ class FootprintTransport:
         for tr in self.emis.tracers.keys():
             for cat in self.emis.tracers[tr]:
                 self.obs.observations.loc[:, f'mix_{tr}_{cat}'] = nan
-            if tr == 'C_D14C':
-                self.obs.observations.loc[:, f'mix_{tr}_oceanic flux'] = nan
-                self.obs.observations.loc[:, f'mix_{tr}_terrestrial flux'] = nan
-                self.obs.observations.loc[:, f'mix_{tr}_fossil fuel'] = nan
+            if tr == 'c14':
+                self.obs.observations.loc[:, f'mix_{tr}_ocean'] = nan
+                self.obs.observations.loc[:, f'mix_{tr}_biosphere'] = nan
+                self.obs.observations.loc[:, f'mix_{tr}_fossil'] = nan
 
+        filenames = self.obs.observations.footprint.dropna().drop_duplicates() 
 
-        filenames = self.obs.observations.footprint.dropna().drop_duplicates()
         self._forward_loop(filenames)
 
         # Combine the flux components:
@@ -380,11 +387,11 @@ class FootprintTransport:
 
         for tr in self.emis.tracers.keys():
             for cat in self.emis.tracers[tr]:
-                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_{cat}'].values
-            if tr == 'C_D14C':
-                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_oceanic flux'].values
-                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_terrestrial flux'].values
-                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_fossil fuel'].values
+                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_{cat}'].fillna(0)
+            if tr == 'c14':
+                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_ocean'].fillna(0)
+                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_biosphere'].fillna(0)
+                self.obs.observations.loc[self.obs.observations.tracer == tr, 'mix'] += self.obs.observations.loc[self.obs.observations.tracer == tr, f'mix_{tr}_fossil'].fillna(0)
 
         self.obs.save_tar(self.obsfile)
 
@@ -425,7 +432,7 @@ class FootprintTransport:
     def adjoint_test(self):
         # 1) Get the list of categories to be optimized:
         self.obs.observations.loc[:, 'mix_background'] = 0.
-        self.obs.observations.loc[:, 'mix_C_D14C_nuclear production'] = 0. # Just in case
+        self.obs.observations.loc[:, 'mix_c14_nuclear production'] = 0. # Just in case
 
         tracers = {}
         for tr in self.rcf.get('obs.tracers'):
@@ -497,13 +504,24 @@ class FootprintTransport:
         common['fpclass'] = self.FootprintFileClass
         for filename in tqdm(filenames):
             obslist = loop_forward(filename, silent=False)
-            for tr in self.emis.data.keys():
-                for cat in self.emis.data[tr].keys():
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_{cat}'] = obslist.loc[:, f'{tr}_{cat}']
-                if tr == 'C_D14C':
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_oceanic flux'] = obslist.loc[:, f'{tr}_oceanic flux']
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_terrestrial flux'] = obslist.loc[:, f'{tr}_terrestrial flux']
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_fossil fuel'] = obslist.loc[:, f'{tr}_fossil fuel']
+            for iobs, obs in obslist.iterrows():
+                for cat in self.emis.data[obs.tracer].keys():
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_{cat}'] = obs.loc[f'{obs.tracer}_{cat}']#.value
+                if obs.tracer == 'c14':
+                    self.obs.observations.loc[iobs, 'mix_co2_ocean'] = obs.loc['co2_ocean']#.value
+                    self.obs.observations.loc[iobs, 'mix_co2_biosphere'] = obs.loc['co2_biosphere']#.value
+                    self.obs.observations.loc[iobs, 'mix_co2_fossil'] = obs.loc['co2_fossil']#.value
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_ocean'] = obs.loc[f'{obs.tracer}_ocean']#.value
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_biosphere'] = obs.loc[f'{obs.tracer}_biosphere']#.value
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_fossil'] = obs.loc[f'{obs.tracer}_fossil']#.value
+
+            # for tr in self.emis.data.keys():
+            #     for cat in self.emis.data[tr].keys():
+            #         self.obs.observations.loc[obslist.index, f'mix_{tr}_{cat}'] = obslist.loc[:, f'{tr}_{cat}']
+            #     if tr == 'c14':
+            #         self.obs.observations.loc[obslist.index, f'mix_{tr}_ocean'] = obslist.loc[:, f'{tr}_ocean']
+            #         self.obs.observations.loc[obslist.index, f'mix_{tr}_biosphere'] = obslist.loc[:, f'{tr}_biosphere']
+            #         self.obs.observations.loc[obslist.index, f'mix_{tr}_fossil'] = obslist.loc[:, f'{tr}_fossil']
 
     def _forward_loop_mp(self, filenames):
         t0 = datetime.now()
@@ -517,16 +535,19 @@ class FootprintTransport:
         filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
 
         with Pool(processes=self.ncpus) as pool :
-            res = list(tqdm(pool.imap(loop_forward, filenames, chunksize=1), total=len(nobs)))
+            res = list(tqdm(pool.imap(loop_forward, filenames, chunksize=1), total=len(nobs))) #TODO: ValueError: time data 'JUE.120m.20180301-110000' does not match format '%Y%m%d%H%M%S'
 
         for filename, obslist in zip(filenames, res):
-            for tr in self.emis.data.keys():
-                for cat in self.emis.data[tr].keys():
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_{cat}'] = obslist.loc[:, f'{tr}_{cat}']
-                if tr == 'C_D14C':
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_oceanic flux'] = obslist.loc[:, f'{tr}_oceanic flux']
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_terrestrial flux'] = obslist.loc[:, f'{tr}_terrestrial flux']
-                    self.obs.observations.loc[obslist.index, f'mix_{tr}_fossil fuel'] = obslist.loc[:, f'{tr}_fossil fuel']
+            for iobs, obs in obslist.iterrows():
+                for cat in self.emis.data[obs.tracer].keys():
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_{cat}'] = obs.loc[f'{obs.tracer}_{cat}']
+                if obs.tracer == 'c14':
+                    self.obs.observations.loc[iobs, 'mix_co2_ocean'] = obs.loc['co2_ocean']#.value
+                    self.obs.observations.loc[iobs, 'mix_co2_biosphere'] = obs.loc['co2_biosphere']#.value
+                    self.obs.observations.loc[iobs, 'mix_co2_fossil'] = obs.loc['co2_fossil']#.value
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_ocean'] = obs.loc[f'{obs.tracer}_ocean']
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_biosphere'] = obs.loc[f'{obs.tracer}_biosphere']
+                    self.obs.observations.loc[iobs, f'mix_{obs.tracer}_fossil'] = obs.loc[f'{obs.tracer}_fossil']
         print(datetime.now()-t0)
 
     def get(self, filename, silent=None):

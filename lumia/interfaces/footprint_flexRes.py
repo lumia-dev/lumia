@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import pdb
 from datetime import datetime
 from copy import deepcopy
 from numpy import zeros, meshgrid, average, float64, array, nan, unique, float32, dot, array_equal
@@ -11,6 +12,7 @@ from lumia import tqdm
 from lumia.formatters.structure import Struct
 from lumia.control import flexRes
 from lumia.uncertainties import Uncertainties as unc 
+from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
 
@@ -22,32 +24,33 @@ data = {}
 
 class Interface :
 
-    def __init__(self, rcf, ancilliary=None, emis=None):
+    def __init__(self, rcf, ancilliary={}, emis=None, **kwargs):
         self.rcf = rcf
         self.tracers = Tracers(rcf)
         self.region = Region(rcf)
         self.ancilliary_data = ancilliary
         self.data = flexRes.Control(rcf)
-
         if emis is not None :
             self.SetupPrior(emis)
-            self.SetupUncertainties()
+            self.time = SimpleNamespace(start=self.data.start, end=self.data.end)
+            self.SetupUncertainties(**kwargs)
 
     def SetupPrior(self, emis):
+        if self.rcf.get('optim.unit.convert', default=True):
+            emis.to_extensive()  # Convert to umol
         # Calculate the initial control vector
         vec = self.StructToVec(emis)
         self.data.setupPrior(vec)
 
     def SetupUncertainties(self, errclass=unc):
-        err = errclass(self)
-        self.data.setupUncertainties(err.dict)
+        self.err = errclass(self)
+        self.data.setupUncertainties(self.err.dict)
 
     def Coarsen(self, struct):
         trac, categ, statevec, ipos, itime = [], [], [], [], []
-
         for tr in self.temporal_mapping.keys():
             for cat in self.temporal_mapping[tr].keys():
-                tmap = self.temporal_mapping[tr][cat]['map']
+                tmap = self.temporal_mapping[tr][cat]['map'].astype(bool) # Here we just want True if model tstep is in optim time step and false otherwise
                 nt = tmap.shape[0]
                 # Temporal coarsening
                 emcat = zeros((nt, self.region.nlat, self.region.nlon))
@@ -55,17 +58,16 @@ class Interface :
                     emcat[it, :, :] = struct[tr][cat]['emis'][tmap[it, :], :, :].sum(0)
 
                 # Spatial coarsening
-                emvec = zeros((nt, self.spatial_mapping['stv'].shape[0]))
+                emvec = zeros((nt, self.spatial_mapping[tr][cat]['stv'].shape[0]))
                 for it in range(nt):
-                    emvec[it, :] = dot(self.spatial_mapping['stv'], emcat[it, :].reshape(-1))
-                    ipos.extend([cl.ipos for cl in self.spatial_mapping['cluster_specs']])
+                    emvec[it, :] = dot(self.spatial_mapping[tr][cat]['stv'], emcat[it, :].reshape(-1))
+                    ipos.extend([cl.ipos for cl in self.spatial_mapping[tr][cat]['cluster_specs']])
                     itime.extend([it]*emvec[it,:].size)
 
                 # Store
                 statevec.extend(emvec.reshape(-1))
                 categ.extend([cat]*emvec.size)
                 trac.extend([tr]*emvec.size)
-
         return trac, categ, statevec, ipos, itime
 
     def calcCoarsening(self, struct, minxsize=1, minysize=1, lsm_from_file=False):
@@ -73,9 +75,9 @@ class Interface :
         if not hasattr(self, 'spatial_mapping'):
             self.temporal_mapping = self.calc_temporal_coarsening(struct)
             self.spatial_mapping = self.calc_spatial_coarsening(minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
-            self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
+            # self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
 
-    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1):
+    def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1, store_ancilliary=True):
 
         # 1. Calculate coarsening parameters
         self.calcCoarsening(struct, minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
@@ -92,26 +94,27 @@ class Interface :
         vec.loc[:, 'itime'] = array(itime, dtype=int)
 
         # 4. Add coordinates
-        for ipos in unique(vec.loc[:, 'iloc']):
-            vec.loc[vec.loc[:, 'iloc'] == ipos, 'lat'] = self.spatial_mapping['cluster_specs'][ipos].mean_lat
-            vec.loc[vec.loc[:, 'iloc'] == ipos, 'lon'] = self.spatial_mapping['cluster_specs'][ipos].mean_lon
-            vec.loc[vec.loc[:, 'iloc'] == ipos, 'land_fraction'] = self.spatial_mapping['cluster_specs'][ipos].land_fraction
+        for tr in unique(vec.tracer):
+            for cat in unique(vec.loc[vec.tracer == tr, 'category']):
+                selection = (vec.tracer == tr) & (vec.category == cat)
+                for ipos in unique(vec.loc[selection, 'iloc']):
+                    vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'lat'] = self.spatial_mapping[tr][cat]['cluster_specs'][ipos].mean_lat
+                    vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'lon'] = self.spatial_mapping[tr][cat]['cluster_specs'][ipos].mean_lon
+                    vec.loc[(vec.loc[:, 'iloc'] == ipos) & selection, 'land_fraction'] = self.spatial_mapping[tr][cat]['cluster_specs'][ipos].land_fraction
         
-        # cat = categ[0] # TODO: need to fix this line specifically to allow optimization of multiple categories (there are probably more lines to fix)
-        
-        for tr in self.temporal_mapping.keys():
-            for cat in self.temporal_mapping[tr].keys():
                 for itopt, topt in enumerate(self.temporal_mapping[tr][cat]['times_optim']):
-                    vec.loc[vec.itime == itopt, 'time'] = topt
+                    vec.loc[(vec.itime == itopt) & selection, 'time'] = topt
 
-        # 4. Store ancilliary data (needed for the reverse operation)
-        self.ancilliary_data['vec2struct'] = vec.loc[:, ['tracer', 'category', 'iloc', 'itime']]
-        self.ancilliary_data['vec2struct'].loc[:, 'prior'] = vec.loc[:, 'value']
+        # 5. Store ancilliary data (needed for the reverse operation)
 
-        for tr in self.temporal_mapping.keys():
-            self.ancilliary_data[tr] = {}
-            for cat in struct[tr].keys():
-                self.ancilliary_data[tr][cat] = struct[tr][cat]
+        if store_ancilliary:
+            self.ancilliary_data['vec2struct'] = vec.loc[:, ['tracer', 'category', 'iloc', 'itime']]
+            self.ancilliary_data['vec2struct'].loc[:, 'prior'] = vec.loc[:, 'value']
+
+            for tr in self.temporal_mapping.keys():
+                self.ancilliary_data[tr] = {}
+                for cat in struct[tr].keys():
+                    self.ancilliary_data[tr][cat] = struct[tr][cat]
 
         return vec
 
@@ -170,7 +173,7 @@ class Interface :
                 struct[tr][cat.name] = deepcopy(self.ancilliary_data[tr][cat.name])
                 if cat.optimize :
                     dem = self.distribflux_time(vec, tr, cat.name)
-                    dem = self.distribflux_space(dem)
+                    dem = self.distribflux_space(dem, tr, cat.name)
                     struct[tr][cat.name]['emis'] = struct[tr][cat.name]['emis'] + dem
 
         if self.rcf.get('optim.unit.convert', default=True):
@@ -202,12 +205,12 @@ class Interface :
         for tr in self.tracers.list:
             for cat in self.tracers[tr].categories :
                 if cat.optimize :
-                    emcoarse_adj = self.distribflux_space_adj(adjstruct[tr][cat.name]['emis'])
+                    emcoarse_adj = self.distribflux_space_adj(adjstruct[tr][cat.name]['emis'], tr, cat.name)
                     emcoarse_adj = self.distribflux_time_adj(emcoarse_adj, tr, cat.name)
                     adjvec.extend(emcoarse_adj)
         return array(adjvec)
 
-    def distribflux_space(self, emcoarse):
+    def distribflux_space(self, emcoarse, tr, cat):
         """
         Distribute the fluxes from the spatial clusters used in the optimization to the model grid.
         Input:
@@ -217,7 +220,7 @@ class Interface :
         """
 
         # 1) Select the transition matrix:
-        T = self.spatial_mapping['vts']
+        T = self.spatial_mapping[tr][cat]['vts']
 
         # 2) distribute the fluxes to a (nt, nlat*nlon) matrix: emfine = emcoarse * T
         emfine = dot(emcoarse, T)
@@ -225,7 +228,7 @@ class Interface :
         # 3) reshape as a (nt, nlat, nlon) array and return:
         return emfine.reshape((-1, self.region.nlat, self.region.nlon))
 
-    def distribflux_space_adj(self, emcoarse_adj):
+    def distribflux_space_adj(self, emcoarse_adj, tr, cat):
         """
         Adjoint of distribflux_space.
         Inputs:
@@ -238,7 +241,7 @@ class Interface :
         emcoarse_adj = emcoarse_adj.reshape(emcoarse_adj.shape[0], -1)
 
         # 2) Select the spatial transition matrix:
-        T = self.spatial_mapping['vts']
+        T = self.spatial_mapping[tr][cat]['vts']
 
         # 3) Regrid by matrix product: emfine = emcoarse * T^t
         emfine_adj = dot(emcoarse_adj, T.transpose())
@@ -283,42 +286,66 @@ class Interface :
         return emcoarse_adj.reshape(-1)
 
     def calc_spatial_coarsening(self, minxsize=1, minysize=1, lsm_from_file=None):
-        lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
+        mapping = dict()
 
-        clusters = clusterize(
-            self.ancilliary_data['sensi_map'],
-            self.rcf.get('optimize.ngridpoints'),
-            mask = lsm,
-            minxsize=minxsize,
-            minysize=minysize
-        )
-        mapping = {
-            'clusters_map': zeros((self.region.nlat, self.region.nlon))+nan,
-            'cluster_specs': []
-        }
-        lons, lats = meshgrid(self.region.lons, self.region.lats)
-        ilons, ilats = meshgrid(range(self.region.nlon), range(self.region.nlat))
-        lats, lons, ilats, ilons = lats.reshape(-1), lons.reshape(-1), ilats.reshape(-1), ilons.reshape(-1)
-        area = self.region.area.reshape(-1)
-        lsm = lsm.reshape(-1)
-        for icl, cl in enumerate(tqdm(clusters)) :
-            #indices = cl.ind.reshape(-1)
-            indices = cl.ind[cl.mask]
-            mapping['clusters_map'].reshape(-1)[indices] = icl
-            #cl.ind = icl
-            cl.indices = indices
-            cl.ipos = icl
-            cl.lats = lats[indices]
-            cl.lons = lons[indices]
-            cl.ilats = ilats[indices]
-            cl.ilons = ilons[indices]
-            cl.area = area[indices]
-            cl.mean_lat = average(cl.lats, weights=cl.area)
-            cl.mean_lon = average(cl.lons, weights=cl.area)
-            cl.area_tot = cl.area.sum()
-            cl.land_fraction = average(lsm[indices], weights=cl.area)
-            cl.size = len(indices)
-            mapping['cluster_specs'].append(cl)
+        for tr in self.tracers:
+            mapping[tr.name] = dict()
+            for cat in [c for c in tr.categories if c.optimize]:
+
+                lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
+                if cat.is_ocean :
+                    lsm = 1-lsm
+                if not cat.apply_lsm :
+                    lsm = None
+
+                if 'sensi_map' not in self.ancilliary_data :
+                    self.ancilliary_data['sensi_map'] = zeros((self.region.nlat, self.region.nlon))
+
+                clusters = clusterize(
+                    self.ancilliary_data['sensi_map'],
+                    self.rcf.get('optimize.ngridpoints'),
+                    mask=lsm,
+                    minxsize=minxsize,
+                    minysize=minysize,
+                    tr = tr.name,
+                    cat = cat.name
+                )
+                mapping[tr.name][cat.name] = {
+                    'clusters_map': zeros((self.region.nlat, self.region.nlon))+nan,
+                    'cluster_specs': []
+                }
+                lons, lats = meshgrid(self.region.lons, self.region.lats)
+                ilons, ilats = meshgrid(range(self.region.nlon), range(self.region.nlat))
+                lats, lons, ilats, ilons = lats.reshape(-1), lons.reshape(-1), ilats.reshape(-1), ilons.reshape(-1)
+                area = self.region.area.reshape(-1)
+                if lsm is not None :
+                    lsm = lsm.reshape(-1)
+                for icl, cl in enumerate(tqdm(clusters)) :
+                    #indices = cl.ind.reshape(-1)
+                    indices = cl.ind[cl.mask]
+                    mapping[tr.name][cat.name]['clusters_map'].reshape(-1)[indices] = icl
+                    #cl.ind = icl
+                    cl.indices = indices
+                    cl.ipos = icl
+                    cl.lats = lats[indices]
+                    cl.lons = lons[indices]
+                    cl.ilats = ilats[indices]
+                    cl.ilons = ilons[indices]
+                    cl.area = area[indices]
+                    cl.mean_lat = average(cl.lats, weights=cl.area)
+                    cl.mean_lon = average(cl.lons, weights=cl.area)
+                    cl.area_tot = cl.area.sum()
+                    if lsm is not None :
+                        cl.land_fraction = average(lsm[indices], weights=cl.area)
+                    else :
+                        cl.land_fraction = None
+                    cl.size = len(indices)
+                    mapping[tr.name][cat.name]['cluster_specs'].append(cl)
+
+                vts, stv = self.calc_transition_matrices(mapping[tr.name][cat.name]['cluster_specs'])
+                mapping[tr.name][cat.name]['vts'] = vts
+                mapping[tr.name][cat.name]['stv'] = stv
+
         return mapping
 
     def calc_transition_matrices(self, clusters):
@@ -331,9 +358,10 @@ class Interface :
 
         # vts
         vts_matrix = stv_matrix.transpose()/stv_matrix.sum(1).astype(float32)
+        return vts_matrix.transpose(), stv_matrix
 
-        self.spatial_mapping['vts'] = vts_matrix.transpose()
-        self.spatial_mapping['stv'] = stv_matrix
+        # self.spatial_mapping['vts'] = vts_matrix.transpose()
+        # self.spatial_mapping['stv'] = stv_matrix
 
     def calc_temporal_coarsening(self, struct):
         mapping = {}
@@ -367,9 +395,6 @@ class Interface :
                     for imod, tmod in enumerate(times_model):
                         for iopt, topt in enumerate(times_optim):
                             mapping[tr][cat.name]['map'][iopt, imod] = tmod.overlap_percent(topt)
-
-                    # Make sure we don't split model time steps
-                    assert array_equal(mapping[tr][cat.name]['map'], mapping[tr][cat.name]['map'].astype(bool)), "Splitting model time steps it technically possible but not implemented"
-                    mapping[tr][cat.name]['map'] = mapping[tr][cat.name]['map'].astype(bool)
+                    mapping[tr][cat.name]['map'] = (mapping[tr][cat.name]['map'].transpose()/mapping[tr][cat.name]['map'].sum(1)).transpose()
 
         return mapping            

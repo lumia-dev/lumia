@@ -1,19 +1,19 @@
-from email.policy import default
 import os
+import pdb
+
 from netCDF4 import Dataset
 from numpy import array, zeros, arange, array_equal
-from datetime import datetime, timedelta
+from datetime import datetime
 from lumia.Tools.system_tools import checkDir
-import logging
 from tqdm import tqdm
-from numpy import unique, append, ones
+from numpy import unique, append
 import xarray as xr
-from pandas import Timestamp, date_range
+from pandas import Timestamp
 from lumia.Tools.regions import region
 from archive import Archive
-from dateutil.relativedelta import relativedelta
-
-logger = logging.getLogger(__name__)
+from lumia.Tools.geographical_tools import GriddedData
+from loguru import logger
+from pandas import date_range
 
 
 class Emissions:
@@ -23,7 +23,6 @@ class Emissions:
         self.rcf = rcf
 
         self.tracers = {}
-        self.data = {}
 
         try:
             self.atmos_del = self.rcf.get('atmospheric.D14C.prefix')
@@ -33,42 +32,65 @@ class Emissions:
         for tr in list(rcf.get('obs.tracers')):
             self.tracers[tr] = {}
             self.tracers[tr] = dict.fromkeys(rcf.get(f'emissions.{tr}.categories'))
-            for cat in self.tracers[tr].keys():
-                self.tracers[tr][cat] = rcf.get(f'emissions.{tr}.{cat}.origin')
-            self.data[tr] = ReadArchive(self.rcf.get(f'emissions.{tr}.prefix'), self.start, self.end, tracer=tr, categories=self.tracers[tr], archive=self.rcf.get('emissions.archive'), freq=self.rcf.get('emissions.interval'))
-            if self.rcf.get('optim.unit.convert', default=False):
-                self.data[tr].to_extensive()   # Convert to umol
-                self.print_summary()
+            self.tracers[tr]['prefix'] = self.rcf.get(f'emissions.{tr}.prefix')
+            for cat in list(self.tracers[tr].keys()):
+                if cat == 'prefix':
+                    pass
+                else:
+                    self.tracers[tr][cat] = rcf.get(f'emissions.{tr}.{cat}.origin')
+
+        resample = None
+        if rcf.get('emissions.resample', default=False):
+            resample = rcf.get('emissions.interval')
+
+        self.data = ReadArchive(self.start, self.end, tracers=self.tracers, archive=self.rcf.get('emissions.archive'), freq=self.rcf.get('emissions.interval'))
+
+        if self.rcf.get('optim.unit.convert', default=False):
+            logger.info("Trying to convert fluxes to umol (from umol/m2/s")
+            self.data.to_extensive()   # Convert to umol
+            self.print_summary(unit=self.rcf.get(f'emissions.{tr}.{cat}.unit'))
+            # self.data.to_intensive()
 
         if self.atmos_del is not None:
-            self.Del_14C = ReadArchive(self.rcf.get('atmospheric.D14C.prefix'), self.start, self.end, freq=self.rcf.get('emissions.interval'), atmos_del=True)
+            self.Del_14C = ReadArchive(self.start, self.end, prefix=self.rcf.get('atmospheric.D14C.prefix'), freq=self.rcf.get('emissions.interval'), atmos_del=True)
+
+        # Coarsen the data if needed:
+        reg = region(
+            lon0=self.rcf.get('region.lon0'),
+            lon1=self.rcf.get('region.lon1'),
+            lat0=self.rcf.get('region.lat0'),
+            lat1=self.rcf.get('region.lat1'),
+            dlat=self.rcf.get('region.dlat'),
+            dlon=self.rcf.get('region.dlon')
+        )
+        self.data.coarsen(reg)
+        self.data.print_summary()
     
     def print_summary(self, unit='PgC'):
-        scaling_factor = {
-            'PgC':12 * 1.e-21,
-            'PgCO2': 44 * 1.e-21,
-        }[unit]
-        for tr in self.data.keys():
-            for cat in self.data[tr].keys():
-                tstart = self.data[tr][cat]['time_interval']['time_start']
-                years = unique([t.year for t in tstart])
-                logger.info("===============================")
-                logger.info(f"{cat}:")
-                logger.info('')
-                for year in years :
-                    logger.info(f'{year}:')
-                    for month in unique([t.month for t in tstart if t.year == year]):
-                        tot = self.data[tr][cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scaling_factor
-                        logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
-                    tot = self.data[tr][cat]['emis'][[t.year == year for t in tstart]].sum()*scaling_factor
-                    logger.info("    --------------------------")
-                    logger.info(f"   Total : {tot:7.2f} {unit}")
-                    logger.info('')
+        self.data.print_summary(unit)
             
 
 class Struct(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.unit_type = 'intensive'
+
+    def __add__(self, other):
+        #TODO: needs development for multitracer
+        allcats = set(list(self.keys())+list(other.keys()))
+        for cat in allcats :
+            if cat in self.keys():
+                # Add the category if the time intervals are matching!
+                ts = array_equal(self[cat]['time_interval']['time_start'], other[cat]['time_interval']['time_start'])
+                te = array_equal(self[cat]['time_interval']['time_end'], other[cat]['time_interval']['time_end'])
+                if ts and te :
+                    self[cat]['emis'] += other[cat]['emis']
+                else :
+                    logger.error("Cannot add the two structures, time dimensions non conforming")
+                    raise ValueError
+            else :
+                self[cat] = other[cat]
+        return self
 
     def between_times(self, tbeg, tend):
         """
@@ -77,46 +99,150 @@ class Struct(dict):
         This is mainly for postprocessing purposes.
         """
         outstruct = Struct()
-        for tracer in self.keys():
-            outstruct[tracer] = {}
-            for cat in self[tracer].keys():
-                beg = self[tracer][cat]['time_interval']['time_start']
-                end = self[tracer][cat]['time_interval']['time_end']
+        for tr in self.keys():
+            outstruct[tr] = {}
+            for cat in self[tr].keys():
+                beg = self[tr][cat]['time_interval']['time_start']
+                end = self[tr][cat]['time_interval']['time_end']
                 assert tbeg in beg and tend in end, f"The requested time boundaries ({tbeg} to {tend}) are not available for category {cat}."
                 select = (beg >= tbeg) & (end <= tend)
-                outstruct[tracer][cat] = {
-                    'emis': self[tracer][cat]['emis'][select, :, :],
+                outstruct[tr][cat] = {
+                    'emis': self[tr][cat]['emis'][select, :, :],
                     'time_interval':{
-                        'time_start':self[tracer][cat]['time_interval']['time_start'][select],
-                        'time_end':self[tracer][cat]['time_interval']['time_end'][select]
+                        'time_start':self[tr][cat]['time_interval']['time_start'][select],
+                        'time_end':self[tr][cat]['time_interval']['time_end'][select]
                     },
-                    'lats':self[tracer][cat]['lats'],
-                    'lons':self[tracer][cat]['lons']
+                    'lats':self[tr][cat]['lats'],
+                    'lons':self[tr][cat]['lons']
                 }
         return outstruct
 
+    def coarsen(self, destreg):
+        """
+        Coarsen the data to a lower resolution
+        """
+        for tr in self.keys():
+            for cat in self[tr].keys():
+                sourcereg = region(latitudes=self[tr][cat]['lats'], longitudes=self[tr][cat]['lons'])
+                if sourcereg != destreg :
+                    data = GriddedData(self[tr][cat]['emis'], sourcereg)
+                    self[tr][cat]['emis'] = data.regrid(destreg, weigh_by_area=self[tr].unit_type == 'intensive')
+                    self[tr][cat]['lats'] = destreg.lats
+                    self[tr][cat]['lons'] = destreg.lons
+
     def to_extensive(self):
-        # assert self.unit_type == 'intensive'
-        for cat in self.keys():
-            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
-            dt=array([t.total_seconds() for t in dt])
-            area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
-            self[cat]['emis'] *= area[None, :, :]
-            self[cat]['emis'] *= dt[:, None, None]
+        assert self.unit_type == 'intensive'
+        for tr in self.keys():
+            for cat in self[tr].keys():
+                dt = self[tr][cat]['time_interval']['time_end']-self[tr][cat]['time_interval']['time_start']
+                dt=array([t.total_seconds() for t in dt])
+                area = region(longitudes=self[tr][cat]['lons'], latitudes=self[tr][cat]['lats']).area
+                self[tr][cat]['emis'] *= area[None, :, :]
+                self[tr][cat]['emis'] *= dt[:, None, None]
         self.unit_type = 'extensive'
+        logger.info("Converted fluxes to extensive units (i.e. umol)")
 
     def to_intensive(self):
-        #assert self.unit_type == 'extensive'
-        for cat in self.keys():
-            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
-            dt=array([t.total_seconds() for t in dt])
-            area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
-            self[cat]['emis'] /= area[None, :, :]
-            self[cat]['emis'] /= dt[:, None, None]
+        # assert self.unit_type == 'extensive', pdb.set_trace()
+        for tr in self.keys():
+            for cat in self[tr].keys():
+                dt = self[tr][cat]['time_interval']['time_end']-self[tr][cat]['time_interval']['time_start']
+                dt=array([t.total_seconds() for t in dt])
+                area = region(longitudes=self[tr][cat]['lons'], latitudes=self[tr][cat]['lats']).area
+                self[tr][cat]['emis'] /= area[None, :, :]
+                self[tr][cat]['emis'] /= dt[:, None, None]
         self.unit_type = 'intensive'
+        logger.info("Converted fluxes to intensive units (i.e. umol/m2/s)")
+        
 
+    def append(self, other, overwrite=True):
+        """
+        Extend the data with the data from another structure.
+        The other structure must have the same spatial boundaries. If the temporal boundaries of the two structures overlap, the data from "other"
+        overwrite the original data, unless the "overwrite" optional attribute is set to False.
+        """
+        #TODO: needs development for multitracer
+        new = Struct()
+        for cat in self.keys():
 
-def WriteStruct(data, path, prefix=None, atmos_del=False):
+            # Construct the new time coordinates
+            beg_self = self[cat]['time_interval']['time_start']
+            end_self = self[cat]['time_interval']['time_end']
+            beg_other = other[cat]['time_interval']['time_start']
+            end_other = other[cat]['time_interval']['time_end']
+            beg_final = unique(append(beg_self, beg_other))
+            end_final = unique(append(end_self, end_other))
+            diff_t = end_final-beg_final
+
+            # In theory there's nothing wrong with having irregular spacing, but this is not implemented and is probably an error (and it makes
+            # what comes after more difficult to code). So I disable it for now.
+            assert all([dt == diff_t[0] for dt in diff_t]), f"append results in irregular time intervals for category {cat}. Edit the source code if this is intentional"
+
+            # Construct the new data
+            nt = len(beg_final)
+            nlat = len(self[cat]['lats'])
+            nlon = len(self[cat]['lons'])
+            data = zeros((nt, nlat, nlon))
+            if overwrite :
+                data[[t in beg_self for t in beg_final], :, :] = self[cat]['emis']
+                data[[t in beg_other for t in beg_final], :, :] = other[cat]['emis']
+            else :
+                data[[t in beg_other for t in beg_final], :, :] = other[cat]['emis']
+                data[[t in beg_self for t in beg_final], :, :] = self[cat]['emis']
+
+            # Store
+            new[cat] = {
+                'emis': data,
+                'time_interval' : {
+                    'time_start':beg_final,
+                    'time_end':end_final
+                },
+                'lats':self[cat]['lats'],
+                'lons':self[cat]['lons']
+            }
+        return new
+
+    def _get_boundaries_t(self):
+        #TODO: needs development for multitracer
+        beg = [self[cat]['time_interval']['time_start'].min() for cat in self.keys()]
+        end = [self[cat]['time_interval']['time_end'].max() for cat in self.keys()]
+        assert all([b == beg[0] for b in beg] + [e == end[0] for e in end]), f"All categories do not share the same time boundaries, cannot append {beg}, {end}"
+        return beg[0], end[0]
+
+    def print_summary(self, unit='PgC'):
+        unit_type = self.unit_type + ''
+        if self.unit_type == 'intensive':
+            self.to_extensive()
+        scaling_factor = {
+            'PgC':12 * 1.e-21,
+            'PgCO2': 44 * 1.e-21,
+            'TgCH4': 16.0425 * 1.e-18
+        }[unit]
+        for tr in self.keys() :
+            for cat in self[tr].keys() :
+                tstart = self[tr][cat]['time_interval']['time_start']
+                unit_source = self[tr][cat].get('unit', 'umol/m2/s')
+                scf = scaling_factor * {
+                    'umol/m2/s':1.,
+                    'nmol/m2/s':1.e-3
+                }[unit_source]
+                years = unique([t.year for t in tstart])
+                logger.info("===============================")
+                logger.info(f"{cat}:")
+                logger.info('')
+                for year in years :
+                    logger.info(f'{year}:')
+                    for month in unique([t.month for t in tstart if t.year == year]):
+                        tot = self[tr][cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scf
+                        logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
+                    tot = self[tr][cat]['emis'][[t.year == year for t in tstart]].sum()*scf
+                    logger.info("    --------------------------")
+                    logger.info(f"   Total : {tot:7.2f} {unit}")
+                    logger.info('')
+        if unit_type != self.unit_type :
+            self.to_intensive()
+
+def WriteStruct(data, path, prefix=None, atmos_del=False, zlib=False, complevel=1):
     """
     Write the model input (control parameters)
     """
@@ -174,7 +300,7 @@ def ReadStruct(path, atmos_del=False, prefix=None, structClass=Struct, tracers=N
         filename = os.path.join(path, '%s.nc' % prefix)
 
     if atmos_del:
-        with Dataset(filename) as ds:
+        with Dataset(filename, 'r') as ds:
             data = {}
             data['Del_14C'] = {
                         'obs': ds['Del_14C']['obs'][:],
@@ -184,7 +310,7 @@ def ReadStruct(path, atmos_del=False, prefix=None, structClass=Struct, tracers=N
                         }
                     }
     else:
-        with Dataset(filename) as ds:
+        with Dataset(filename, 'r') as ds:
             if tracers is None:
                 tracers = {}
                 for tr in list(ds.groups.keys()):
@@ -226,7 +352,7 @@ def CreateStruct(tracers, region, start, end, dt):
     return data
 
 
-def ReadArchive(prefix, start, end, **kwargs):
+def ReadArchive(start, end, **kwargs):
     """
     Create an internal model data structure (i.e. Struct() instance) from a set of netCDF files.
     The files are loaded using xarray, the file name follows the format {prefix}{field}.{year}.nc, with prefix provided
@@ -242,15 +368,11 @@ def ReadArchive(prefix, start, end, **kwargs):
 
     # TODO: remove the dependency to xarray
     data = Struct()
-    if kwargs.get('categories',False):
-        categories = kwargs.get('categories')
-    else :
-        categories = kwargs
 
-    if kwargs.get('tracer',False):
-        tracer = kwargs.get('tracer')
+    if kwargs.get('tracers',False):
+        tracers = kwargs.get('tracers')
     else :
-        tracer = kwargs
+        tracers = kwargs
 
     if kwargs.get('archive', False):
         archive = Archive(kwargs['archive'])
@@ -258,9 +380,14 @@ def ReadArchive(prefix, start, end, **kwargs):
         archive = None
 
     if kwargs.get('freq', False):
-            freq = kwargs.get('freq')
+        freq = kwargs.get('freq')
     else :
         freq = kwargs
+
+    if kwargs.get('prefix', False):
+        prefix = kwargs.get('prefix')
+    else :
+        prefix = kwargs
 
     if kwargs.get('atmos_del', False):
         atmos_del = kwargs.get('atmos_del')
@@ -269,52 +396,66 @@ def ReadArchive(prefix, start, end, **kwargs):
 
     if atmos_del is None:
 
-        localArchive = Archive(os.path.dirname(f'local:{prefix}'), parent=archive, mkdir=True)
+        for tr in tracers.keys():
 
-        dirname, prefix = os.path.split(prefix)
+            data[tr] = {}
 
-        for cat in tqdm(categories, leave=False) :
-            field = categories[cat]
+            localArchive = Archive(os.path.dirname(f"local:{tracers[tr]['prefix']}"), parent=archive, mkdir=True)
 
-            if not field:
-                pass
-            else:
-                # Import a file for every year at least partially covered (avoid trying to load a file if the end of the simulation is a 1st january).
-                end_year = end.year
-                if datetime(end_year, 1, 1) < end :
-                    end_year += 1
+            dirname, prefix = os.path.split(tracers[tr]['prefix'])
 
-                emis = []
-                times = []
+            for cat in tqdm(tracers[tr].keys(), leave=False) :
+                if cat == 'prefix':
+                    pass
+                else:
+                    field = tracers[tr][cat]
 
-                for year in tqdm(range(start.year, end_year), desc=f"Importing data for category {cat}"):
-                    fname = f"{prefix}{field}.{year}.nc"
-                    tqdm.write(f"Emissions from tracer {tracer}, category {cat}, year {year}, will be read from file {fname}")
-                    # Make sure that the file is here:
-                    localArchive.get(fname, dirname)
-                    with Dataset(os.path.join(dirname, fname), 'r') as ds:
-                        emis.extend(ds[f'{tracer}_flux'][:])
-                        units = ds['time'].units.split()
-                        start_file = datetime.strptime(units[2]+' '+units[3], '%Y-%m-%d %H:%M:%S')
-                        times.extend(date_range(start=start_file, periods=len(ds['time'][:]), freq=freq).to_pydatetime().tolist())
-                        lat = ds['lat'][:]
-                        lon = ds['lon'][:]
+                    if not field:
+                        pass
+                    else:
+                        # Import a file for every year at least partially covered (avoid trying to load a file if the end of the simulation is a 1st january).
+                        end_year = end.year
+                        if datetime(end_year, 1, 1) < end :
+                            end_year += 1
 
-                emis = array(emis)
-                times = array(times)
-                emis = emis[(times >= start) & (times < end), :, :]
-                times = times[(times >= start) & (times < end)]
-                    
-                data[cat] = {
-                    'emis': emis,
-                    'time_interval': {
-                        'time_start': times,
-                        'time_end': times+(times[1]-times[0])
-                    },
-                    'lats': lat,
-                    'lons': lon
-                }
-        if kwargs.get('extensive_units', False) : 
+                        emis = []
+                        times = []
+
+                        for year in tqdm(range(start.year, end_year), desc=f"Importing data for category {cat}"):
+                            fname = f"{prefix}{field}.{year}.nc"
+                            tqdm.write(f"Emissions from tracer {tr}, category {cat}, year {year}, will be read from file {fname}")
+                            # Make sure that the file is here:
+                            localArchive.get(fname, dirname)
+                            with Dataset(os.path.join(dirname, fname), 'r') as ds:
+                                emis.extend(ds[f'{tr}flux'][:])
+                                units = ds['time'].units.split()
+                                start_file = datetime.strptime(units[2]+' '+units[3], '%Y-%m-%d %H:%M:%S')
+                                times.extend(date_range(start=start_file, periods=len(ds['time'][:]), freq=freq).to_pydatetime().tolist())
+                                lat = ds['lat'][:]
+                                lon = ds['lon'][:]
+
+                        emis = array(emis)
+                        times = array(times)
+                        emis = emis[(times >= start) & (times < end), :, :]
+                        times = times[(times >= start) & (times < end)]
+                            
+                        data[tr][cat] = {
+                            'emis': emis,
+                            'time_interval': {
+                                'time_start': times,
+                                'time_end': times+(times[1]-times[0])
+                            },
+                            'lats': lat,
+                            'lons': lon
+                        }
+
+                        try :
+                            data[tr][cat]['unit'] = ds.unit
+                        except AttributeError :
+                            data[tr][cat]['unit'] = 'umol/m2/s'
+                            logger.warning(f'"unit" attribute missing in files {prefix}{field}.{year}.nc. Assuming {data[tr][cat]["unit"]}')
+
+        if kwargs.get('extensive_units', False) :
             data.to_extensive()
             
         return data

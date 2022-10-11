@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-name = 'lumia'
 import sys
 
 try :
     from tqdm import tqdm
-except :
+except ModuleNotFoundError :
     class fake_tqdm:
         def __init__(self):
             pass
@@ -19,17 +18,19 @@ except :
     tqdm = fake_tqdm()
 
 from .timers import Timer
-timer = Timer("Main timer") 
 
 from .Tools import logging_tools
 from .obsdb import obsdb
-from lumia.Tools.rctools import rc
+from rctools import RcFile as rc
 from .interfaces import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer
-#from .control import Control
 from .Uncertainties import Uncertainties
 
 # Setup the $LUMIA_ROOT environment variable
 import os
+
+name = 'lumia'
+timer = Timer("Main timer") 
+
 os.environ['LUMIA_ROOT'] = os.path.dirname(__file__)

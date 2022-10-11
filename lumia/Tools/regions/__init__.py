@@ -47,8 +47,12 @@ class region:
         self.name = name
         if iterable(longitudes) : 
             self.lons = longitudes
+            if dlon is None and len(unique(diff(longitudes))) == 1 :
+                self.dlon = self.lons[1]-self.lons[0]
         if iterable(latitudes) : 
             self.lats = latitudes
+            if dlat is None and len(unique(diff(latitudes))) == 1 :
+                self.dlat = self.lats[1]-self.lats[0]
         if lon0 is not None : 
             self.lonmin = lon0
         if lat0 is not None : 
@@ -207,7 +211,7 @@ class region:
             return False
 
     def __ne__(self, other):
-        return True-self.__eq__(other)
+        return not self.__eq__(other)
 
     def __lt__(self, other):
         return self.is_contained_by(other)

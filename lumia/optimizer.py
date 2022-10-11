@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+import pdb
 import os
 import logging
+from loguru import logger
 from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class Optimizer(object):
@@ -114,7 +116,7 @@ class Optimizer(object):
     def _computeDepartures(self, state_preco, step, add_prior=True):
         state = self.control.xc_to_x(state_preco, add_prior=add_prior)
         struct = self.interface.VecToStruct(state)
-        departures = self.model.runForward(struct, self.atmdel, step=step)
+        departures = self.model.calcDepartures(struct, step=step, atmdel=self.atmdel) # TODO: add atmdel
         dy = departures.loc[:, 'mismatch']
         dye = departures.loc[:, 'err']
         return dy, dye
@@ -128,15 +130,15 @@ class Optimizer(object):
         return J
 
     def _ComputeGradient(self, state_preco, dy, dye):
-        adjoint_struct = self.model.runAdjoint(dy/dye**2, self.atmdel)
-        adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
-        gradient_obs_preco = self.control.g_to_gc(adjoint_state)
+        # adjoint_struct = self.model.runAdjoint(dy/dye**2, self.atmdel)
+        # adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
+        gradient_obs_preco = self._compute_adjoint(dy/dye**2) #self.control.g_to_gc(adjoint_state)
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
         mode = 'w' if self.iteration == 0 else 'a'
         with open(os.path.join(self.rcf.get('path.output'), 'costFunction.txt'), mode=mode) as fid :
-            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)}; \
-                    x_adj={sum(adjoint_state), sum(adjoint_struct[tr][cat]['emis'] for tr in adjoint_struct.keys() for cat in adjoint_struct[tr].keys()).sum()} \n")
+            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)} \n")
+                    # x_adj={sum(adjoint_state), sum(adjoint_struct[tr][cat]['emis'] for tr in adjoint_struct.keys() for cat in adjoint_struct[tr].keys()).sum()} \n")
         return gradient_preco
 
     def _compute_adjoint(self, departures):
@@ -152,7 +154,8 @@ class Optimizer(object):
             # If use_eigen_file is true, for each eigenvector, check first whether the file eigenvector_modelspace_%03i.nn
             # exists or not. If it does, read the eigenvector in model space from that file. Else, calculate the
             # eigenvector in model space and store it in such a file.
-            LE[:,ii] = self.control.xc_to_x(converged_eigvecs[:,ii], add_prior=False)
+            dummy = self.control.xc_to_x(converged_eigvecs[:,ii], add_prior=False)
+            LE[:,ii] = dummy.values #self.control.xc_to_x(converged_eigvecs[:,ii], add_prior=False)
             if store_eigenvec:
                 self.control.set(LE[:, ii], 'eigenvec_%i'%ii)
 

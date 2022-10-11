@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import pdb
 
 import os
 import logging
@@ -6,7 +7,8 @@ from datetime import datetime
 import h5py
 from numpy import float64, zeros_like
 from pandas import DataFrame, read_hdf
-from lumia.Tools.rctools import rc
+# from lumia.Tools.rctools import rc
+from rctools import RcFile as rc
 from lumia.precon import preconditioner as precon
 from lumia.Tools import Region, Categories, Tracers
 
@@ -80,7 +82,9 @@ class Control:
                     state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
         if add_prior: 
             state += self.vectors.loc[:, 'state_prior']
-
+        else :
+            state += self.vectors.loc[:, 'state_prior'] * 0.  # we still need it converted to a dataframe
+        
         # Store the current state and state_preco
         self.vectors.loc[:,'state'] = state
         self.vectors.loc[:,'state_preco'] = state_preco
