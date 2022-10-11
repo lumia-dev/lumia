@@ -28,3 +28,4 @@ scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 .idea
 *.log
 
+*.simg

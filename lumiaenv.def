@@ -39,8 +39,8 @@ From: ubuntu:22.04
 
 
 %files
-    ../src/congrad /congrad
-    ../ /lumia
+    ./src/congrad /congrad
+    . /lumia
 
 
 %runscript

@@ -1,9 +1,0 @@
-Bootstrap: localimage
-From: lumiaenv.sif
-
-%post
-    cd /lumia/singularity
-    rm -f *.sif
-
-%files
-    ../. /lumia
