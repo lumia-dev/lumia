@@ -235,8 +235,16 @@ def optimize(rcf: RcFile) -> SimpleNamespace:
     opt.Var4D()
     if rcf.get('obs.validation_file', default=False):
         obs_valid = obsdb.from_rc(rcf, filekey='obs.validation_file', setupUncertainties=False)
-        model.run_forward(opt.control.model_data, obs_valid, step='validation')
+        model.run_forward(opt.interface.model_data, obs_valid, step='validation')
     return SimpleNamespace(obs=obs, model=model, emis=emis, optim=opt)
+
+
+def validate(rcf: RcFile) -> SimpleNamespace:
+    obs = obsdb.from_rc(rcf, filekey='obs.validation_file', setupUncertainties=False)
+    model = lumia.transport(rcf, obs=obs, formatter=xr)
+    emis = xr.Data.from_file(Path(rcf.get('path.output')) / 'emissions_apos.nc')
+    model.run_forward(emis, obs, step='validation')
+    return SimpleNamespace(obs=obs, model=model, emis=emis)
 
 
 def gradtest(rcf: RcFile) -> SimpleNamespace:
@@ -322,3 +330,6 @@ if __name__ == '__main__':
 
         case 'emis':
             emis = prepare_emis(rcf)
+
+        case 'validate':
+            results = validate(rcf)
