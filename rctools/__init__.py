@@ -20,7 +20,10 @@ class RcFile:
         if file is not None :
             self.read(file)
             
-    def read(self, file, comment='!', level=0):
+    def read(self, file, comments={'!', '#'}, level=0):
+        """ Read the resource file - comment lines may start either with an exclamation mark as
+       has been in use historically in lumia or a hash-sign as is the common practice with json 
+      and many other resource files. """
         includes = []
         
         with open(os.path.join(file), 'r') as f1 :
@@ -28,7 +31,8 @@ class RcFile:
         
         # remove comments and white lines:
         lines = [(il, l.strip()) for (il, l) in enumerate(lines) if l.strip() != '']
-        lines = [(il, l) for (il, l) in lines if not l.startswith(comment)]
+        for comment in comments:
+            lines = [(il, l) for (il, l) in lines if not (l.startswith(comment))] 
         lines = [(il, l.split(comment)[0]) for (il, l) in lines]
         
         # Separate line numbers and content
@@ -115,10 +119,12 @@ class RcFile:
                 info = info[key]
             self.setInfo(key, info)
 
-        if convert and type(val) == str :
+        if convert and type(val) == str :  # convert() Replaces descriptors with actual
+            # values for the path, e.g. it replaces
+            #      rclone:lumia:fluxes/nc/${emissions.co2.region}/${emissions.co2.interval}/
+            # with rclone:lumia:fluxes/nc/eurocom025x025/1h/
             # We don't want to call this for keys that are called internally (by
-            # matchval), or on keys that have been set by setkey (which can contain
-            # anything)
+            # matchval), or on keys that have been set by setkey (which can contain  anything)
             val = self.convert(val, tolist, todate, fmt, totype)
         return val
 

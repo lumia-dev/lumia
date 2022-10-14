@@ -1,6 +1,7 @@
 import os
 from typing import Union, List, Tuple
-from pathlib import Path
+
+import netCDF4, pdb
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
@@ -313,14 +314,10 @@ class TracerEmis(xr.Dataset):
         new_unit = self.units / ureg.s / ureg.m**2
         self.convert(str(new_unit.u))
 
-    def convert(self, destunit: Union[str, Unit, Quantity]):
+    def convert(self, destunit: Union[str, Unit]):
         dest = destunit
-        coeff = 1.
         if isinstance(destunit, str):
             dest = ureg(destunit).units
-        elif isinstance(destunit, Quantity):
-            dest = destunit.units
-            coeff = destunit.magnitude
 
         for cat in self.base_categories :
             # Check if we need to multiply or divide by time and area:
@@ -353,7 +350,7 @@ class TracerEmis(xr.Dataset):
                 raise RuntimeError(f"Unexpected units conversion request: {self[cat.name].data.units} to {dest} ({power_t =})")
 
             # Finally, convert:
-            self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude * coeff
+            self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude
             
         self.attrs['units'] = dest
 
@@ -659,7 +656,7 @@ class Data:
             self[tr].resolve_metacats()
 
     @classmethod
-    def from_file(cls, filename : Union[str, Path], units: Union[str, dict, Unit, Quantity] = None) -> "Data":
+    def from_file(cls, filename : str, units: Union[str, dict] = None) -> "Data":
         """
         Create a new "Data" object based on a netCDF file (such as previously written by Data.to_netcdf).
         Arguments:
@@ -692,15 +689,10 @@ class Data:
                         else :
                             em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
 
-                # Convert (if needed!):
-                if units is not None:
-                    if isinstance(units, (str, Unit, Quantity)):
-                        em[tracer].convert(units)
-                    elif isinstance(units, dict):
-                        em[tracer].convert(units[tracer])
-                    else :
-                        logger.critical(f'Unrecognized type ({type(units)}) for argument "units" ')
-                        raise NotImplementedError
+                if isinstance(units, str):
+                    em[tracer].convert(units)
+                elif isinstance(units, dict):
+                    em[tracer].convert(units[tracer])
 
                 # Check if mapping datasets are also there:
                 if 'temporal_mapping' in fid[tracer].groups:
@@ -727,15 +719,15 @@ class Data:
         em = cls()
         for tr in rcf.get('tracers', tolist='force'):
 
-            # Create spatial grid
+            # Create spatial grid - provided by minLat, maxLat, dLat, minLong, maxLong, dLong (e.g. Europe, quarter degree)
             grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
 
             # Create temporal grid:
-            freq = rcf.get(f'emissions.{tr}.interval')
-            time = date_range(start, end, freq=freq, inclusive='left')
+            freq = rcf.get(f'emissions.{tr}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
+            time = date_range(start, end, freq=freq, inclusive='left') # the time interval requested in the rc file
 
             # Get tracer characteristics
-            unit_emis = species[tr].unit_emis
+            unit_emis = species[tr].unit_emis  # what units are the emissions data in? e.g. 'micromole / meter ** 2 / second'
 
             # Add new tracer to the emission object
             em.add_tracer(TracerEmis(tracer_name=tr,
@@ -745,16 +737,17 @@ class Data:
                                      timestep=freq))  # .seconds * ur('s')))
 
             if rcf.get(f'emissions.{tr}.resample', default=False):
-                freq_src = rcf.get(f'emissions.{tr}.convert_from')
+                freq_src = rcf.get(f'emissions.{tr}.convert_from') # if false, we have to resample the input emissions data to the requested time resolution
             else :
-                freq_src = freq
+                freq_src = freq  # the requested time step matches the observational data time step
 
             # Import emissions for each category of that tracer
             for cat in rcf.get(f'emissions.{tr}.categories'):
                 origin = rcf.get(f'emissions.{tr}.{cat}.origin')
                 prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
-                em[tr].add_cat(cat, emis)
+                # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
+                em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
 
 
