@@ -1,7 +1,6 @@
 import os
 from typing import Union, List, Tuple
-
-import netCDF4, pdb
+from pathlib import Path
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
@@ -314,10 +313,14 @@ class TracerEmis(xr.Dataset):
         new_unit = self.units / ureg.s / ureg.m**2
         self.convert(str(new_unit.u))
 
-    def convert(self, destunit: Union[str, Unit]):
+    def convert(self, destunit: Union[str, Unit, Quantity]):
         dest = destunit
+        coeff = 1.
         if isinstance(destunit, str):
             dest = ureg(destunit).units
+        elif isinstance(destunit, Quantity):
+            dest = destunit.units
+            coeff = destunit.magnitude
 
         for cat in self.base_categories :
             # Check if we need to multiply or divide by time and area:
@@ -350,7 +353,7 @@ class TracerEmis(xr.Dataset):
                 raise RuntimeError(f"Unexpected units conversion request: {self[cat.name].data.units} to {dest} ({power_t =})")
 
             # Finally, convert:
-            self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude
+            self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude * coeff
             
         self.attrs['units'] = dest
 
@@ -656,7 +659,7 @@ class Data:
             self[tr].resolve_metacats()
 
     @classmethod
-    def from_file(cls, filename : str, units: Union[str, dict] = None) -> "Data":
+    def from_file(cls, filename : Union[str, Path], units: Union[str, dict, Unit, Quantity] = None) -> "Data":
         """
         Create a new "Data" object based on a netCDF file (such as previously written by Data.to_netcdf).
         Arguments:
@@ -689,10 +692,15 @@ class Data:
                         else :
                             em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
 
-                if isinstance(units, str):
-                    em[tracer].convert(units)
-                elif isinstance(units, dict):
-                    em[tracer].convert(units[tracer])
+                # Convert (if needed!):
+                if units is not None:
+                    if isinstance(units, (str, Unit, Quantity)):
+                        em[tracer].convert(units)
+                    elif isinstance(units, dict):
+                        em[tracer].convert(units[tracer])
+                    else :
+                        logger.critical(f'Unrecognized type ({type(units)}) for argument "units" ')
+                        raise NotImplementedError
 
                 # Check if mapping datasets are also there:
                 if 'temporal_mapping' in fid[tracer].groups:
