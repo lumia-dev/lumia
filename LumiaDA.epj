@@ -40,7 +40,7 @@
     "INTERFACES": [],
     "LEXERASSOCS": {},
     "LICENSE": "",
-    "MAINSCRIPT": "/home/cec-ami/nateko/data/icos/DICE/run.py",
+    "MAINSCRIPT": "~/nateko/data/icos/DICE/run.py",
     "MAKEPARAMS": {
       "MakeEnabled": false,
       "MakeExecutable": "",
@@ -73,7 +73,7 @@
     },
     "RESOURCES": [],
     "SOURCES": [
-      "/home/cec-ami/nateko/data/icos/DICE/run.py",
+      "~/nateko/data/icos/DICE/run.py",
       "GMDD/calc_posterior_err.py",
       "GMDD/forward.py",
       "GMDD/var4d.py",

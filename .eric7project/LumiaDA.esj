@@ -12,7 +12,7 @@
   },
   "Editors": [
     {
-      "Filename": "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "Filename": "~/nateko/dev/lumia/rctools/__init__.py",
       "Cursor": [
         17,
         14
@@ -24,7 +24,7 @@
       "Editorindex": 1
     },
     {
-      "Filename": "/home/cec-ami/nateko/data/icos/DICE/run.py",
+      "Filename": "~/nateko/data/icos/DICE/run.py",
       "Cursor": [
         0,
         0
@@ -37,7 +37,7 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+    "Filename": "~/nateko/dev/lumia/rctools/__init__.py",
     "Cursor": [
       17,
       14
@@ -45,7 +45,7 @@
   },
   "Breakpoints": [
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "~/nateko/dev/lumia/rctools/__init__.py",
       50,
       "",
       false,
@@ -53,7 +53,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "~/nateko/dev/lumia/rctools/__init__.py",
       93,
       "",
       false,
@@ -61,7 +61,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "~/nateko/dev/lumia/rctools/__init__.py",
       122,
       "",
       false,
@@ -69,7 +69,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "~/nateko/dev/lumia/rctools/__init__.py",
       129,
       "",
       false,
@@ -77,7 +77,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "~/nateko/dev/lumia/rctools/__init__.py",
       135,
       "",
       false,
@@ -85,7 +85,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "~/nateko/dev/lumia/rctools/__init__.py",
       21,
       "",
       false,
@@ -118,17 +118,17 @@
     {
       "Name": "sources",
       "ExpandedItems": [
-        "/home/cec-ami/nateko/dev/lumia/",
-        "/home/cec-ami/nateko/dev/lumia",
-        "/home/cec-ami/nateko/dev/lumia/home",
-        "/home/cec-ami/nateko/dev/lumia/home/cec-ami",
-        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko",
-        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data",
-        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data/icos",
-        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess",
-        "/home/cec-ami/nateko/dev/lumia/rctools",
-        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
-        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py@@10"
+        "~/nateko/dev/lumia/",
+        "~/nateko/dev/lumia",
+        "~/nateko/dev/lumia/home",
+        "~/nateko/dev/lumia~",
+        "~/nateko/dev/lumia~/nateko",
+        "~/nateko/dev/lumia~/nateko/data",
+        "~/nateko/dev/lumia~/nateko/data/icos",
+        "~/nateko/dev/lumia/icosPortalAccess",
+        "~/nateko/dev/lumia/rctools",
+        "~/nateko/dev/lumia/rctools/__init__.py",
+        "~/nateko/dev/lumia/rctools/__init__.py@@10"
       ]
     }
   ]

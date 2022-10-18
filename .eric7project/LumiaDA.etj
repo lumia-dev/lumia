@@ -17,7 +17,7 @@
       "uid": "{e094da7e-4cf7-44fd-87d1-225edb9b8863}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/build/lib/lumia/optimizer.py"
+      "filename": "~/nateko/dev/lumia/build/lib/lumia/optimizer.py"
     },
     {
       "summary": "TODO: check why this is not a dot product",
@@ -30,7 +30,7 @@
       "uid": "{206bddc0-4a81-4b8e-bb9b-bcaa0ce4b218}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/build/lib/lumia/uncertainties.py"
+      "filename": "~/nateko/dev/lumia/build/lib/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone",
@@ -43,7 +43,7 @@
       "uid": "{834de70a-a49d-4d0f-b5bc-db7809a0b40e}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/build/lib/lumia/uncertainties.py"
+      "filename": "~/nateko/dev/lumia/build/lib/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: this should be directly part of the \"Struct\" class itself ==> yes, but after the class is adapted for",
@@ -56,7 +56,7 @@
       "uid": "{ad6d5927-c37d-4c99-8b07-6961367af184}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/build/lib/transport/footprints.py"
+      "filename": "~/nateko/dev/lumia/build/lib/transport/footprints.py"
     },
     {
       "summary": "TODO: make this a bit more explicit ...",
@@ -69,7 +69,7 @@
       "uid": "{20cecc75-cdb7-41e8-a99e-13650d3db4a8}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/build/lib/transport/footprints.py"
+      "filename": "~/nateko/dev/lumia/build/lib/transport/footprints.py"
     },
     {
       "summary": "TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?",
@@ -82,7 +82,7 @@
       "uid": "{31d3c1ae-7dbf-4995-b470-3b156de863c3}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/build/lib/transport/footprints.py"
+      "filename": "~/nateko/dev/lumia/build/lib/transport/footprints.py"
     },
     {
       "summary": "TODO: class below can be simplified a lot using some decorators (for axes swaps and inplace switch)",
@@ -95,7 +95,7 @@
       "uid": "{50fea1eb-7b83-4cb1-b120-82afce42fb25}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/gridtools.py"
+      "filename": "~/nateko/dev/lumia/gridtools.py"
     },
     {
       "summary": "TODO: the code below might work, but needs to be tested before being used.",
@@ -108,7 +108,7 @@
       "uid": "{d2e0cad5-289e-4b10-9410-6263bbeb1eef}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/gridtools.py"
+      "filename": "~/nateko/dev/lumia/gridtools.py"
     },
     {
       "summary": "TODO: Move this to a completely external code/module?",
@@ -121,7 +121,7 @@
       "uid": "{c1377226-0eac-4960-9421-2367496f92d9}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/Uncertainties/__init__.py"
+      "filename": "~/nateko/dev/lumia/lumia/Uncertainties/__init__.py"
     },
     {
       "summary": "TODO: create a proper \"grid\" module, which will create a file storing the grid definition and the lat/lon covariances",
@@ -134,7 +134,7 @@
       "uid": "{cf0e8905-8e03-4585-aa12-766697e309cb}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/Uncertainties/tools.py"
+      "filename": "~/nateko/dev/lumia/lumia/Uncertainties/tools.py"
     },
     {
       "summary": "TODO: check if the float64 here could be avoided",
@@ -147,7 +147,7 @@
       "uid": "{aa58afbc-e913-4f71-845a-94947d167092}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/control/flexRes.py"
+      "filename": "~/nateko/dev/lumia/lumia/control/flexRes.py"
     },
     {
       "summary": "TODO: replace by a dedicated class?",
@@ -160,7 +160,7 @@
       "uid": "{8d0c261d-e493-49b1-9721-fb6aca5a5054}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py"
+      "filename": "~/nateko/dev/lumia/lumia/formatters/xr.py"
     },
     {
       "summary": "TODO: integrate this to the calc_spatial_coarsening",
@@ -173,7 +173,7 @@
       "uid": "{d234d0ff-3742-4118-a961-55c62475e79e}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/interfaces/footprint_flexRes.py"
+      "filename": "~/nateko/dev/lumia/lumia/interfaces/footprint_flexRes.py"
     },
     {
       "summary": "TODO: need an abstract class for this",
@@ -186,7 +186,7 @@
       "uid": "{34dd0d05-87e8-4325-85a9-8be35d772c8b}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/interfaces/multitracer.py"
+      "filename": "~/nateko/dev/lumia/lumia/interfaces/multitracer.py"
     },
     {
       "summary": "TODO: create simpler accessors for this",
@@ -199,7 +199,7 @@
       "uid": "{34029680-d88a-4e78-8da8-d6830f045d39}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/interfaces/multitracer.py"
+      "filename": "~/nateko/dev/lumia/lumia/interfaces/multitracer.py"
     },
     {
       "summary": "TODO: ad-hoc fix to convert \"object\" bool to standard bool. Need to make sure these don't be created in the 1st place",
@@ -212,7 +212,7 @@
       "uid": "{3b39da80-e7a8-4157-9926-49c40638b4e7}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/obsdb/__init__.py"
+      "filename": "~/nateko/dev/lumia/lumia/obsdb/__init__.py"
     },
     {
       "summary": "TODO: this enforces hourly time step in TM5 ... maybe this is not a good idea?",
@@ -225,7 +225,7 @@
       "uid": "{bd341c2e-1a14-40a1-ad88-8968c45e308d}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/obsoperator/tm5.py"
+      "filename": "~/nateko/dev/lumia/lumia/obsoperator/tm5.py"
     },
     {
       "summary": "TODO: create a proper \"Precon\" module to handle the uncertainties",
@@ -238,7 +238,7 @@
       "uid": "{8f3e9f75-cf59-4545-8f4f-271ca011a98d}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/optimizer.py"
+      "filename": "~/nateko/dev/lumia/lumia/optimizer.py"
     },
     {
       "summary": "TODO: set the OMP_NUM_THREADS just before calling the ray workers, and reset it to its original value after",
@@ -251,7 +251,7 @@
       "uid": "{fcd7dfa0-6cc0-4042-9f2b-225147dc20e3}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/precon/preconditioner_ray.py"
+      "filename": "~/nateko/dev/lumia/lumia/precon/preconditioner_ray.py"
     },
     {
       "summary": "TODO: check why this is not a dot product",
@@ -264,7 +264,7 @@
       "uid": "{f6f4989c-d990-44a8-b5ab-8d4d53780048}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/uncertainties.py"
+      "filename": "~/nateko/dev/lumia/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone",
@@ -277,7 +277,7 @@
       "uid": "{87661df5-6dd7-4092-86a8-fabbaaeb22bf}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumia/uncertainties.py"
+      "filename": "~/nateko/dev/lumia/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: this should be directly part of the \"Struct\" class itself ==> yes, but after the class is adapted for",
@@ -290,7 +290,7 @@
       "uid": "{29111bfe-6958-45c3-8885-75766c835488}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/transport/footprints.py"
+      "filename": "~/nateko/dev/lumia/transport/footprints.py"
     },
     {
       "summary": "TODO: make this a bit more explicit ...",
@@ -303,7 +303,7 @@
       "uid": "{be690009-c127-46ff-b88f-e920136fbf29}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/transport/footprints.py"
+      "filename": "~/nateko/dev/lumia/transport/footprints.py"
     },
     {
       "summary": "TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?",
@@ -316,7 +316,7 @@
       "uid": "{9c81ad51-ab59-4936-8334-51d893f972a5}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/transport/footprints.py"
+      "filename": "~/nateko/dev/lumia/transport/footprints.py"
     }
   ]
 }
