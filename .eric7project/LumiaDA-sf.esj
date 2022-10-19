@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2022-10-19, 14:30:30"
+    "saved": "2022-10-18, 16:54:20"
   },
   "MultiProject": "",
   "Project": "",
@@ -12,7 +12,7 @@
   },
   "Editors": [
     {
-      "Filename": "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "Filename": "/home/arndt/nateko/data/icos/DICE/run.py",
       "Cursor": [
         0,
         0
@@ -24,7 +24,19 @@
       "Editorindex": 0
     },
     {
-      "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "Filename": "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      "Cursor": [
+        17,
+        14
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 1
+    },
+    {
+      "Filename": "/home/arndt/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
         72,
         4
@@ -33,11 +45,11 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 1
+      "Editorindex": 2
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+    "Filename": "/home/arndt/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
     "Cursor": [
       72,
       4
@@ -45,7 +57,7 @@
   },
   "Breakpoints": [
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
       50,
       "",
       false,
@@ -53,7 +65,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
       93,
       "",
       false,
@@ -61,7 +73,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
       122,
       "",
       false,
@@ -69,7 +81,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
       129,
       "",
       false,
@@ -77,7 +89,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
       135,
       "",
       false,
@@ -85,7 +97,7 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
       21,
       "",
       false,
@@ -118,11 +130,18 @@
     {
       "Name": "sources",
       "ExpandedItems": [
-        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess",
-        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-        "/home/cec-ami/nateko/dev/lumia/rctools",
-        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
-        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py@@10"
+        "/home/arndt/nateko/dev/lumia/",
+        "/home/arndt/nateko/dev/lumia",
+        "/home/arndt/nateko/dev/lumia/home",
+        "/home/arndt/nateko/dev/lumia/home/arndt",
+        "/home/arndt/nateko/dev/lumia/home/arndt/nateko",
+        "/home/arndt/nateko/dev/lumia/home/arndt/nateko/data",
+        "/home/arndt/nateko/dev/lumia/home/arndt/nateko/data/icos",
+        "/home/arndt/nateko/dev/lumia/icosPortalAccess",
+        "/home/arndt/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+        "/home/arndt/nateko/dev/lumia/rctools",
+        "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+        "/home/arndt/nateko/dev/lumia/rctools/__init__.py@@10"
       ]
     }
   ]
