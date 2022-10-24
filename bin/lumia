@@ -110,15 +110,15 @@ def parse_config(args: Namespace) -> RcFile:
         'path.data': '/input',
         'path.temp': os.path.join('/scratch', args.tag),
         'path.footprints': '/footprints',
-        'correlation.inputdir': '/data/corr',
+        'correlation.inputdir': '${path.data}/corr',
 
         # Run-dependent paths
         'tag': args.tag,
         'path.output': os.path.join('/output', args.tag),
         'var4d.communication.file': '${path.temp}/congrad.nc',
         'emissions.*.archive': 'rclone:lumia:fluxes/nc/',
-        'emissions.*.path': '/data/fluxes/nc',
-        'model.transport.exec': '/lumia/transport/multitracer.py',
+        'emissions.*.path': '${path.data}/fluxes/nc',
+        'model.transport.exec': lumia.prefix / 'transport/multitracer.py',
         'transport.output': 'T',
         'transport.output.steps': ['forward'],
     }
@@ -145,6 +145,9 @@ def parse_config(args: Namespace) -> RcFile:
         end = Timestamp(args.end)
         rcf.setkey('time.end', end.strftime('%Y-%m-%d'))
 
+    if args.fakeobs :
+        rcf.setkey('observations.make_from_footprints', True)
+
     # Create subfolder based on the inversion time:
     defaults['path.output'] = os.path.join(defaults['path.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
     defaults['path.temp'] = os.path.join(defaults['path.temp'], f'{start:%Y%m%d}-{end:%Y%m%d}')
@@ -156,7 +159,7 @@ def parse_config(args: Namespace) -> RcFile:
     return rcf
 
 
-def load_observations(rcf: RcFile, fakeobs: bool = False) -> obsdb:
+def load_observations(rcf: RcFile) -> obsdb:
     """
     Load the observation database, either based on rc-keys (default behaviour), or just run for all existing footprints in the "path.footprints" folder.
     Relevant rc-keys:
@@ -169,9 +172,9 @@ def load_observations(rcf: RcFile, fakeobs: bool = False) -> obsdb:
         obs.uncertainty.setup : TODO: that one and the next shouldn't be here ...
         obs.uncertainty
     """
-    if fakeobs :
+    if rcf.get('observations.make_from_footprints', default=False) :
         from lumia.obsdb.runflex import obsdb
-        db = obsdb(rcf.get('path.footprints'), rcf.get('time.start'), rcf.get('time.end'))
+        db = obsdb(rcf.get('path.footprints'), rcf.get('time.start'), rcf.get('time.end'), tracers=rcf.get('tracers', tolist='force'))
     else :
         from lumia.obsdb.InversionDb import obsdb
         db = obsdb.from_rc(rcf)
@@ -292,7 +295,7 @@ if __name__ == '__main__':
     p.add_argument('--rcf', type=Path, help='Path to the configuration file (rc-file)')
     p.add_argument('--app', action='store_true', default=False, help='Run the simulation in an apptainer container (call "lumia --container --help" for dedicated help message)') # This does nothing, except adding the relevant help message.
     p.add_argument('--verbosity', '-v', default='INFO')
-    p.add_argument('action', choices=['forward', 'optim', 'adjtest', 'gradtest', 'emis', 'adjtestmod'], help='What to do')
+    p.add_argument('action', choices=['forward', 'optim', 'adjtest', 'gradtest', 'emis', 'adjtestmod', 'validate'], help='What to do')
     p.add_argument('--fakeobs', action='store_true', help='Run the model at the time of existing footprints instead of on the basis of an observation file')
     p.add_argument('--start', help='Start of the simulation (overwrites the "time.start" rc-key')
     p.add_argument('--end', help='End of the simulation (overwrites the "time.end" rc-key')
