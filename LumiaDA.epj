@@ -2,7 +2,11 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2022 , ",
+<<<<<<< HEAD
     "saved": "2022-10-21, 11:40:38"
+=======
+    "saved": "2022-10-19, 14:27:39"
+>>>>>>> LumiaDA
   },
   "project": {
     "AUTHOR": "",
@@ -73,7 +77,10 @@
     },
     "RESOURCES": [],
     "SOURCES": [
+<<<<<<< HEAD
       "/home/cec-ami/nateko/data/icos/DICE/run.py",
+=======
+>>>>>>> LumiaDA
       "GMDD/calc_posterior_err.py",
       "GMDD/forward.py",
       "GMDD/var4d.py",

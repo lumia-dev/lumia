@@ -2,7 +2,11 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
+<<<<<<< HEAD
     "saved": "2022-10-21, 16:26:21"
+=======
+    "saved": "2022-10-19, 14:30:30"
+>>>>>>> LumiaDA
   },
   "MultiProject": "",
   "Project": "",
@@ -26,14 +30,15 @@
     {
       "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        0,
-        0
+        72,
+        4
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 1
+<<<<<<< HEAD
     },
     {
       "Filename": "/home/cec-ami/nateko/data/icos/DICE/run.py",
@@ -53,6 +58,15 @@
     "Cursor": [
       28,
       43
+=======
+    }
+  ],
+  "ActiveWindow": {
+    "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+    "Cursor": [
+      72,
+      4
+>>>>>>> LumiaDA
     ]
   },
   "Breakpoints": [
@@ -138,6 +152,7 @@
     {
       "Name": "sources",
       "ExpandedItems": [
+<<<<<<< HEAD
         "/home/cec-ami/nateko/dev/lumia/",
         "/home/cec-ami/nateko/dev/lumia",
         "/home/cec-ami/nateko/dev/lumia/home",
@@ -145,6 +160,8 @@
         "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko",
         "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data",
         "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data/icos",
+=======
+>>>>>>> LumiaDA
         "/home/cec-ami/nateko/dev/lumia/icosPortalAccess",
         "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
         "/home/cec-ami/nateko/dev/lumia/rctools",
