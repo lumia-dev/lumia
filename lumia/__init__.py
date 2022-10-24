@@ -44,7 +44,7 @@ class Paths:
 
 _data = {}
 _data['paths'] = Paths()
-
+print(_data)
 
 def __getattr__(name):
     if name in _data :

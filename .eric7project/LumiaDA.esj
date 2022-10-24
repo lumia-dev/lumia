@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2022-10-18, 16:44:12"
+    "saved": "2022-10-21, 16:26:21"
   },
   "MultiProject": "",
   "Project": "",
@@ -12,10 +12,22 @@
   },
   "Editors": [
     {
-      "Filename": "~/nateko/dev/lumia/rctools/__init__.py",
+      "Filename": "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       "Cursor": [
-        17,
-        14
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 0
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "Cursor": [
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -24,10 +36,10 @@
       "Editorindex": 1
     },
     {
-      "Filename": "~/nateko/data/icos/DICE/run.py",
+      "Filename": "/home/cec-ami/nateko/data/icos/DICE/run.py",
       "Cursor": [
-        0,
-        0
+        28,
+        43
       ],
       "Folds": [],
       "Zoom": 0,
@@ -37,15 +49,15 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "~/nateko/dev/lumia/rctools/__init__.py",
+    "Filename": "/home/cec-ami/nateko/data/icos/DICE/run.py",
     "Cursor": [
-      17,
-      14
+      28,
+      43
     ]
   },
   "Breakpoints": [
     [
-      "~/nateko/dev/lumia/rctools/__init__.py",
+      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       50,
       "",
       false,
@@ -53,7 +65,7 @@
       0
     ],
     [
-      "~/nateko/dev/lumia/rctools/__init__.py",
+      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       93,
       "",
       false,
@@ -61,7 +73,7 @@
       0
     ],
     [
-      "~/nateko/dev/lumia/rctools/__init__.py",
+      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       122,
       "",
       false,
@@ -69,7 +81,7 @@
       0
     ],
     [
-      "~/nateko/dev/lumia/rctools/__init__.py",
+      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       129,
       "",
       false,
@@ -77,7 +89,7 @@
       0
     ],
     [
-      "~/nateko/dev/lumia/rctools/__init__.py",
+      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       135,
       "",
       false,
@@ -85,8 +97,16 @@
       0
     ],
     [
-      "~/nateko/dev/lumia/rctools/__init__.py",
+      "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
       21,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/run.py",
+      10,
       "",
       false,
       true,
@@ -97,15 +117,15 @@
   "DebugInfo": {
     "VirtualEnv": "",
     "ScriptName": "",
-    "CommandLine": "",
-    "WorkingDirectory": "",
+    "CommandLine": "--optimize --start 20180101 --end 20180201 --rcf ./coco2_co2_v4.rc",
+    "WorkingDirectory": "/home/cec-ami/nateko/data/icos/DICE",
     "Environment": "",
     "ReportExceptions": true,
     "Exceptions": [],
     "IgnoredExceptions": [],
     "AutoClearShell": true,
     "TracePython": false,
-    "AutoContinue": true,
+    "AutoContinue": false,
     "EnableMultiprocess": true,
     "MultiprocessNoDebug": "",
     "GlobalConfigOverride": {
@@ -118,17 +138,18 @@
     {
       "Name": "sources",
       "ExpandedItems": [
-        "~/nateko/dev/lumia/",
-        "~/nateko/dev/lumia",
-        "~/nateko/dev/lumia/home",
-        "~/nateko/dev/lumia~",
-        "~/nateko/dev/lumia~/nateko",
-        "~/nateko/dev/lumia~/nateko/data",
-        "~/nateko/dev/lumia~/nateko/data/icos",
-        "~/nateko/dev/lumia/icosPortalAccess",
-        "~/nateko/dev/lumia/rctools",
-        "~/nateko/dev/lumia/rctools/__init__.py",
-        "~/nateko/dev/lumia/rctools/__init__.py@@10"
+        "/home/cec-ami/nateko/dev/lumia/",
+        "/home/cec-ami/nateko/dev/lumia",
+        "/home/cec-ami/nateko/dev/lumia/home",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data/icos",
+        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess",
+        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+        "/home/cec-ami/nateko/dev/lumia/rctools",
+        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py@@10"
       ]
     }
   ]
