@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA-sf",
     "copyright": "Copyright (C) 2022 , ",
-    "saved": "2022-10-18, 16:44:12"
+    "saved": "2022-10-21, 11:13:11"
   },
   "project": {
     "AUTHOR": "",
@@ -11,6 +11,7 @@
     "DOCSTRING": "",
     "DOCUMENTATIONPARMS": {},
     "EMAIL": "",
+    "EMBEDDED_VENV": false,
     "EOL": 0,
     "FILETYPES": {
       "*.e4p": "OTHERS",
@@ -79,22 +80,6 @@
       "GMDD/var4d.py",
       "__init__.py",
       "archive/__init__.py",
-      "build/lib/archive/__init__.py",
-      "build/lib/lumia/__init__.py",
-      "build/lib/lumia/optimizer.py",
-      "build/lib/lumia/timers.py",
-      "build/lib/lumia/tracers.py",
-      "build/lib/lumia/uncertainties.py",
-      "build/lib/lumia/units.py",
-      "build/lib/rctools/__init__.py",
-      "build/lib/transport/__init__.py",
-      "build/lib/transport/default.py",
-      "build/lib/transport/flexpart.py",
-      "build/lib/transport/footprints.py",
-      "build/lib/transport/lagrange_mp.py",
-      "build/lib/transport/legacy.py",
-      "build/lib/transport/multitracer.py",
-      "build/lib/transport/stilt.py",
       "gridtools.py",
       "icosPortalAccess/getHandleFromDoi.py",
       "icosPortalAccess/readLv3NcFileFromCarbonPortal.py",

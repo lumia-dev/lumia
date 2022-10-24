@@ -2,100 +2,22 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA-sf",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2022-10-18, 16:54:20"
+    "saved": "2022-10-21, 16:26:08"
   },
   "ProjectScanFilter": "",
   "Tasks": [
-    {
-      "summary": "TODO: create a proper \"Precon\" module to handle the uncertainties",
-      "description": "",
-      "priority": 1,
-      "lineno": 18,
-      "completed": false,
-      "created": 1666104332.2657413,
-      "type": 1,
-      "uid": "{e094da7e-4cf7-44fd-87d1-225edb9b8863}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/build/lib/lumia/optimizer.py"
-    },
-    {
-      "summary": "TODO: check why this is not a dot product",
-      "description": "",
-      "priority": 1,
-      "lineno": 92,
-      "completed": false,
-      "created": 1666104332.2662735,
-      "type": 1,
-      "uid": "{206bddc0-4a81-4b8e-bb9b-bcaa0ce4b218}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/build/lib/lumia/uncertainties.py"
-    },
-    {
-      "summary": "TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone",
-      "description": "",
-      "priority": 1,
-      "lineno": 349,
-      "completed": false,
-      "created": 1666104332.267163,
-      "type": 1,
-      "uid": "{834de70a-a49d-4d0f-b5bc-db7809a0b40e}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/build/lib/lumia/uncertainties.py"
-    },
-    {
-      "summary": "TODO: this should be directly part of the \"Struct\" class itself ==> yes, but after the class is adapted for",
-      "description": "",
-      "priority": 1,
-      "lineno": 49,
-      "completed": false,
-      "created": 1666104332.2677913,
-      "type": 1,
-      "uid": "{ad6d5927-c37d-4c99-8b07-6961367af184}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/build/lib/transport/footprints.py"
-    },
-    {
-      "summary": "TODO: make this a bit more explicit ...",
-      "description": "",
-      "priority": 1,
-      "lineno": 232,
-      "completed": false,
-      "created": 1666104332.2683978,
-      "type": 1,
-      "uid": "{20cecc75-cdb7-41e8-a99e-13650d3db4a8}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/build/lib/transport/footprints.py"
-    },
-    {
-      "summary": "TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?",
-      "description": "",
-      "priority": 1,
-      "lineno": 241,
-      "completed": false,
-      "created": 1666104332.26902,
-      "type": 1,
-      "uid": "{31d3c1ae-7dbf-4995-b470-3b156de863c3}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/build/lib/transport/footprints.py"
-    },
     {
       "summary": "TODO: class below can be simplified a lot using some decorators (for axes swaps and inplace switch)",
       "description": "",
       "priority": 1,
       "lineno": 252,
       "completed": false,
-      "created": 1666104332.2760556,
+      "created": 1666347208.2525284,
       "type": 1,
-      "uid": "{50fea1eb-7b83-4cb1-b120-82afce42fb25}",
+      "uid": "{88e4c714-4c82-4b35-ae65-d0baeee0fe90}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/gridtools.py"
+      "filename": "/home/arndt/dev/lumia/lumia/gridtools.py"
     },
     {
       "summary": "TODO: the code below might work, but needs to be tested before being used.",
@@ -103,12 +25,12 @@
       "priority": 1,
       "lineno": 412,
       "completed": false,
-      "created": 1666104332.276895,
+      "created": 1666347208.2538078,
       "type": 1,
-      "uid": "{d2e0cad5-289e-4b10-9410-6263bbeb1eef}",
+      "uid": "{b0b62e2d-9070-4448-a987-ae6a413dbec7}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/gridtools.py"
+      "filename": "/home/arndt/dev/lumia/lumia/gridtools.py"
     },
     {
       "summary": "TODO: Move this to a completely external code/module?",
@@ -116,12 +38,12 @@
       "priority": 1,
       "lineno": 37,
       "completed": false,
-      "created": 1666104332.2776818,
+      "created": 1666347208.3001406,
       "type": 1,
-      "uid": "{c1377226-0eac-4960-9421-2367496f92d9}",
+      "uid": "{513d318e-26c3-475b-a22b-7f66740ae54f}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/Uncertainties/__init__.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/Uncertainties/__init__.py"
     },
     {
       "summary": "TODO: create a proper \"grid\" module, which will create a file storing the grid definition and the lat/lon covariances",
@@ -129,12 +51,12 @@
       "priority": 1,
       "lineno": 13,
       "completed": false,
-      "created": 1666104332.278676,
+      "created": 1666347208.3013036,
       "type": 1,
-      "uid": "{cf0e8905-8e03-4585-aa12-766697e309cb}",
+      "uid": "{519e0d96-cc88-42b6-87b7-b096ada307a0}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/Uncertainties/tools.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/Uncertainties/tools.py"
     },
     {
       "summary": "TODO: check if the float64 here could be avoided",
@@ -142,12 +64,12 @@
       "priority": 1,
       "lineno": 26,
       "completed": false,
-      "created": 1666104332.2794626,
+      "created": 1666347208.302382,
       "type": 1,
-      "uid": "{aa58afbc-e913-4f71-845a-94947d167092}",
+      "uid": "{fa496e17-274c-4516-bee5-83f37a5d4884}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/control/flexRes.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/control/flexRes.py"
     },
     {
       "summary": "TODO: replace by a dedicated class?",
@@ -155,12 +77,12 @@
       "priority": 1,
       "lineno": 100,
       "completed": false,
-      "created": 1666104332.2802665,
+      "created": 1666347208.3040366,
       "type": 1,
-      "uid": "{8d0c261d-e493-49b1-9721-fb6aca5a5054}",
+      "uid": "{a2fe5d53-dc96-4215-acd8-48edc97be574}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/formatters/xr.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/formatters/xr.py"
     },
     {
       "summary": "TODO: integrate this to the calc_spatial_coarsening",
@@ -168,12 +90,12 @@
       "priority": 1,
       "lineno": 330,
       "completed": false,
-      "created": 1666104332.2813976,
+      "created": 1666347208.3052216,
       "type": 1,
-      "uid": "{d234d0ff-3742-4118-a961-55c62475e79e}",
+      "uid": "{e9eecb58-f108-4a7a-ae9a-02bba9ff725a}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/interfaces/footprint_flexRes.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/interfaces/footprint_flexRes.py"
     },
     {
       "summary": "TODO: need an abstract class for this",
@@ -181,12 +103,12 @@
       "priority": 1,
       "lineno": 21,
       "completed": false,
-      "created": 1666104332.2823,
+      "created": 1666347208.3064923,
       "type": 1,
-      "uid": "{34dd0d05-87e8-4325-85a9-8be35d772c8b}",
+      "uid": "{9252129c-559f-430e-ae09-ddebaf5a8bbd}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/interfaces/multitracer.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/interfaces/multitracer.py"
     },
     {
       "summary": "TODO: create simpler accessors for this",
@@ -194,12 +116,12 @@
       "priority": 1,
       "lineno": 293,
       "completed": false,
-      "created": 1666104332.2834754,
+      "created": 1666347208.3081138,
       "type": 1,
-      "uid": "{34029680-d88a-4e78-8da8-d6830f045d39}",
+      "uid": "{233f2c35-5426-4181-8a29-380844e50f75}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/interfaces/multitracer.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/interfaces/multitracer.py"
     },
     {
       "summary": "TODO: ad-hoc fix to convert \"object\" bool to standard bool. Need to make sure these don't be created in the 1st place",
@@ -207,12 +129,12 @@
       "priority": 1,
       "lineno": 225,
       "completed": false,
-      "created": 1666104332.291811,
+      "created": 1666347208.3095665,
       "type": 1,
-      "uid": "{3b39da80-e7a8-4157-9926-49c40638b4e7}",
+      "uid": "{8f3fe4cf-95e4-46a0-ad4c-0422fb316c12}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/obsdb/__init__.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/obsdb/__init__.py"
     },
     {
       "summary": "TODO: this enforces hourly time step in TM5 ... maybe this is not a good idea?",
@@ -220,12 +142,12 @@
       "priority": 1,
       "lineno": 249,
       "completed": false,
-      "created": 1666104332.2937949,
+      "created": 1666347208.3113577,
       "type": 1,
-      "uid": "{bd341c2e-1a14-40a1-ad88-8968c45e308d}",
+      "uid": "{c10e164b-f433-4769-9b48-60b961f89432}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/obsoperator/tm5.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/obsoperator/tm5.py"
     },
     {
       "summary": "TODO: create a proper \"Precon\" module to handle the uncertainties",
@@ -233,12 +155,12 @@
       "priority": 1,
       "lineno": 18,
       "completed": false,
-      "created": 1666104332.2950664,
+      "created": 1666347208.3130744,
       "type": 1,
-      "uid": "{8f3e9f75-cf59-4545-8f4f-271ca011a98d}",
+      "uid": "{7871cc00-f4e2-4d8f-8b8d-005bad53cbca}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/optimizer.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/optimizer.py"
     },
     {
       "summary": "TODO: set the OMP_NUM_THREADS just before calling the ray workers, and reset it to its original value after",
@@ -246,12 +168,12 @@
       "priority": 1,
       "lineno": 12,
       "completed": false,
-      "created": 1666104332.2961872,
+      "created": 1666347208.3148704,
       "type": 1,
-      "uid": "{fcd7dfa0-6cc0-4042-9f2b-225147dc20e3}",
+      "uid": "{1d1ad664-cabe-47e2-bc68-abec5eb39cee}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/precon/preconditioner_ray.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/precon/preconditioner_ray.py"
     },
     {
       "summary": "TODO: check why this is not a dot product",
@@ -259,12 +181,12 @@
       "priority": 1,
       "lineno": 92,
       "completed": false,
-      "created": 1666104332.297348,
+      "created": 1666347208.3169851,
       "type": 1,
-      "uid": "{f6f4989c-d990-44a8-b5ab-8d4d53780048}",
+      "uid": "{a2e7f5a2-0dbf-4955-b401-c93c5878eac3}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/uncertainties.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone",
@@ -272,12 +194,12 @@
       "priority": 1,
       "lineno": 349,
       "completed": false,
-      "created": 1666104332.298577,
+      "created": 1666347208.319031,
       "type": 1,
-      "uid": "{87661df5-6dd7-4092-86a8-fabbaaeb22bf}",
+      "uid": "{406a6dda-1582-4d45-b770-38dba66a4524}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/lumia/uncertainties.py"
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: this should be directly part of the \"Struct\" class itself ==> yes, but after the class is adapted for",
@@ -285,12 +207,12 @@
       "priority": 1,
       "lineno": 49,
       "completed": false,
-      "created": 1666104332.2998426,
+      "created": 1666347208.3214757,
       "type": 1,
-      "uid": "{29111bfe-6958-45c3-8885-75766c835488}",
+      "uid": "{7f07a1f5-f198-444b-9738-27c49a163973}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/transport/footprints.py"
+      "filename": "/home/arndt/dev/lumia/lumia/transport/footprints.py"
     },
     {
       "summary": "TODO: make this a bit more explicit ...",
@@ -298,12 +220,12 @@
       "priority": 1,
       "lineno": 232,
       "completed": false,
-      "created": 1666104332.3011544,
+      "created": 1666347208.3240147,
       "type": 1,
-      "uid": "{be690009-c127-46ff-b88f-e920136fbf29}",
+      "uid": "{6978efc0-78bc-4eb3-9dc6-265325e66570}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/transport/footprints.py"
+      "filename": "/home/arndt/dev/lumia/lumia/transport/footprints.py"
     },
     {
       "summary": "TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?",
@@ -311,12 +233,12 @@
       "priority": 1,
       "lineno": 241,
       "completed": false,
-      "created": 1666104332.302582,
+      "created": 1666347208.3264081,
       "type": 1,
-      "uid": "{9c81ad51-ab59-4936-8334-51d893f972a5}",
+      "uid": "{0b8f6991-0d57-4a9e-96b3-e6ce9608296d}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/arndt/nateko/dev/lumia/transport/footprints.py"
+      "filename": "/home/arndt/dev/lumia/lumia/transport/footprints.py"
     }
   ]
 }
