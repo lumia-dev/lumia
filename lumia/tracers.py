@@ -27,11 +27,19 @@ CH4 = Specie(
     unit_optim=units('nmol').units
 )
 
+BC = Specie(
+    unit_emis=units('umol/m**2/s').units,
+    unit_mix=units('ppt').units,
+    unit_budget=units('GgC').units,
+    unit_optim=units('umol').units
+)
+
 
 @dataclass
 class Species:
     co2 : Specie = CO2
     ch4 : Specie = CH4
+    bc  : Specie = BC
 
     def __getitem__(self, tracer_name):
         return getattr(Species, tracer_name.lower())
