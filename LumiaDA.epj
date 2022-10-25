@@ -73,7 +73,6 @@
     },
     "RESOURCES": [],
     "SOURCES": [
-      "/home/cec-ami/nateko/data/icos/DICE/run.py",
       "GMDD/calc_posterior_err.py",
       "GMDD/forward.py",
       "GMDD/var4d.py",
@@ -145,6 +144,7 @@
       "lumia_tools/__init__.py",
       "lumia_tools/formatters.py",
       "rctools/__init__.py",
+      "run.py",
       "setup.py",
       "singularity/genconfig.py",
       "singularity/run.py",
