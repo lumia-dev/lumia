@@ -79,7 +79,7 @@ def readLv3NcFileFromCarbonPortal(sFileName, iVerbosityLv=1):
     # find level3 netcdf file with known filename in ICOS CP data portal
     inputname = check_cp(path_cp,sFileName, iVerbosityLv)
     
-    # or use PID directly
+    # or use PID directly 
     #inputname = path_cp + 'jXPT5pqJgz7MSm5ki95sgqJK'
     if(iVerbosityLv>1):
         print("readLv3NcFileFromCarbonPorta: Looking for "+inputname)
