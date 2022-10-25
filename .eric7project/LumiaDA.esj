@@ -1,0 +1,184 @@
+{
+  "header": {
+    "comment": "eric session file for project LumiaDA",
+    "warning": "This file was generated automatically, do not edit.",
+    "saved": "2022-10-25, 12:11:39"
+  },
+  "MultiProject": "",
+  "Project": "",
+  "ViewManagerSplits": {
+    "Count": 1,
+    "Orientation": 2
+  },
+  "Editors": [
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 0
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "Cursor": [
+        82,
+        72
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 1
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/data/icos/DICE/run.py",
+      "Cursor": [
+        8,
+        25
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 2
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumia/__init__.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 3
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumia/obsdb/__init__.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 4
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py",
+      "Cursor": [
+        754,
+        39
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 5
+    }
+  ],
+  "ActiveWindow": {
+    "Filename": "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+    "Cursor": [
+      82,
+      72
+    ]
+  },
+  "Breakpoints": [
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/run.py",
+      89,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py",
+      729,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      82,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py",
+      21,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py",
+      768,
+      "",
+      false,
+      true,
+      0
+    ]
+  ],
+  "Watchpoints": [],
+  "DebugInfo": {
+    "VirtualEnv": "",
+    "ScriptName": "",
+    "CommandLine": "--optimize --start 20180101 --end 20180201 --rcf ./coco2_co2_v4.rc",
+    "WorkingDirectory": "/home/cec-ami/nateko/data/icos/DICE",
+    "Environment": "",
+    "ReportExceptions": true,
+    "Exceptions": [],
+    "IgnoredExceptions": [],
+    "AutoClearShell": true,
+    "TracePython": false,
+    "AutoContinue": false,
+    "EnableMultiprocess": true,
+    "MultiprocessNoDebug": "",
+    "GlobalConfigOverride": {
+      "enable": false,
+      "redirect": true
+    }
+  },
+  "Bookmarks": [],
+  "ProjectBrowserStates": [
+    {
+      "Name": "sources",
+      "ExpandedItems": [
+        "/home/cec-ami/nateko/dev/lumia/",
+        "/home/cec-ami/nateko/dev/lumia",
+        "/home/cec-ami/nateko/dev/lumia/home",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data",
+        "/home/cec-ami/nateko/dev/lumia/home/cec-ami/nateko/data/icos",
+        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess",
+        "/home/cec-ami/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+        "/home/cec-ami/nateko/dev/lumia/lumia",
+        "/home/cec-ami/nateko/dev/lumia/lumia/formatters",
+        "/home/cec-ami/nateko/dev/lumia/lumia/formatters/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py",
+        "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py@@484",
+        "/home/cec-ami/nateko/dev/lumia/lumia/formatters/xr.py@@97",
+        "/home/cec-ami/nateko/dev/lumia/lumia/obsdb",
+        "/home/cec-ami/nateko/dev/lumia/rctools",
+        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/rctools/__init__.py@@10",
+        "/home/cec-ami/nateko/dev/lumia/__init__.py"
+      ]
+    }
+  ]
+}

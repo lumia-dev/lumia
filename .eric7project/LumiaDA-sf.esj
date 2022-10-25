@@ -1,0 +1,148 @@
+{
+  "header": {
+    "comment": "eric session file for project LumiaDA",
+    "warning": "This file was generated automatically, do not edit.",
+    "saved": "2022-10-18, 16:54:20"
+  },
+  "MultiProject": "",
+  "Project": "",
+  "ViewManagerSplits": {
+    "Count": 1,
+    "Orientation": 2
+  },
+  "Editors": [
+    {
+      "Filename": "/home/arndt/dev/lumia/lumia/run.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 0
+    },
+    {
+      "Filename": "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      "Cursor": [
+        17,
+        14
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 1
+    },
+    {
+      "Filename": "/home/arndt/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "Cursor": [
+        72,
+        4
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 2
+    }
+  ],
+  "ActiveWindow": {
+    "Filename": "/home/arndt/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+    "Cursor": [
+      72,
+      4
+    ]
+  },
+  "Breakpoints": [
+    [
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      50,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      93,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      122,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      129,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      135,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+      21,
+      "",
+      false,
+      true,
+      0
+    ]
+  ],
+  "Watchpoints": [],
+  "DebugInfo": {
+    "VirtualEnv": "",
+    "ScriptName": "",
+    "CommandLine": "",
+    "WorkingDirectory": "",
+    "Environment": "",
+    "ReportExceptions": true,
+    "Exceptions": [],
+    "IgnoredExceptions": [],
+    "AutoClearShell": true,
+    "TracePython": false,
+    "AutoContinue": true,
+    "EnableMultiprocess": true,
+    "MultiprocessNoDebug": "",
+    "GlobalConfigOverride": {
+      "enable": false,
+      "redirect": true
+    }
+  },
+  "Bookmarks": [],
+  "ProjectBrowserStates": [
+    {
+      "Name": "sources",
+      "ExpandedItems": [
+        "/home/arndt/nateko/dev/lumia/",
+        "/home/arndt/nateko/dev/lumia",
+        "/home/arndt/nateko/dev/lumia/home",
+        "/home/arndt/nateko/dev/lumia/home/arndt",
+        "/home/arndt/nateko/dev/lumia/home/arndt/nateko",
+        "/home/arndt/nateko/dev/lumia/home/arndt/nateko/data",
+        "/home/arndt/nateko/dev/lumia/home/arndt/nateko/data/icos",
+        "/home/arndt/nateko/dev/lumia/icosPortalAccess",
+        "/home/arndt/nateko/dev/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+        "/home/arndt/nateko/dev/lumia/rctools",
+        "/home/arndt/nateko/dev/lumia/rctools/__init__.py",
+        "/home/arndt/nateko/dev/lumia/rctools/__init__.py@@10"
+      ]
+    }
+  ]
+}
