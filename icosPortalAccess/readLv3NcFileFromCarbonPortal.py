@@ -6,6 +6,7 @@
 
 import sys
 import os
+from datetime import datetime
 import xarray as xr
 
 #Import ICOS tools:
@@ -51,7 +52,7 @@ def check_cp(cp_path,sFileName, iVerbosityLv=1):
     """ Find the requested level3 netcdf file (by name) on the ICOS data portal (using sparql queries) 
         and directly access that file via the data app """
     cp_name = ''
-    dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='csv').run()
+    dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
     if len(dobj_L3.split('/')) > 1:
         # the dobj key/val pair is something like dobj : https://meta.icos-cp.eu/objects/nBGgNpQxPYXBYiBuGGFp2VRF
         cp_name = (cp_path+dobj_L3.split('/')[-1]).strip()
@@ -70,26 +71,29 @@ def check_cp(cp_path,sFileName, iVerbosityLv=1):
 
 # ***********************************************************************************************
 
-def readLv3NcFileFromCarbonPortal(sFileName, iVerbosityLv=1):
+def readLv3NcFileFromCarbonPortal(sSearchMask, start: datetime, end: datetime, iVerbosityLv=1):
     """Attempts to find the corresponding DOI/unique-identifier for the requested FileName. This
     relies on a sparql query. Tries to read the requested netCdf file from the carbon portal. 
-    Returns (True, xarray-dataset) if successful; (False, None) if unsuccessful. """
-    #sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    Returns (xarray-dataset) if successful; (None) if unsuccessful. """
     #VPRM_ECMWF_GEE_2020_CP.nc
     # find level3 netcdf file with known filename in ICOS CP data portal
-    inputname = check_cp(path_cp,sFileName, iVerbosityLv)
-    
-    # or use PID directly 
+    # or use PID directly
     #inputname = path_cp + 'jXPT5pqJgz7MSm5ki95sgqJK'
     if(iVerbosityLv>1):
-        print("readLv3NcFileFromCarbonPorta: Looking for "+inputname)
+        print("readLv3NcFileFromCarbonPortal: Looking for "+sSearchMask)
     
+    sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    inputname = check_cp(path_cp,sFileName, iVerbosityLv)
+    
+    # inputname = check_cp(path_cp,sSearchMask, iVerbosityLv)
+        
     if len(inputname) < 1:
         print('File not found on the ICOS data portal')
-        return (False, None)
+        return (None)
     else:
-        xrDS = xr.open_dataset(inputname)
-        return (True, xrDS)
+        # xrDS = xr.open_dataset(inputname)
+        # return (xrDS)
+        return(inputname)
     # In[5]:
     # xrDS
     # In[6]:

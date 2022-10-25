@@ -56,7 +56,7 @@ from .timers import Timer
 
 # from .Tools import logging_tools
 from .obsdb import obsdb
-# from rctools import RcFile as rc
+from rctools import RcFile as rc
 from .interfaces import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer

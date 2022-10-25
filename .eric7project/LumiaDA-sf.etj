@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA-sf",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2022-10-25, 09:55:21"
+    "saved": "2022-10-25, 12:20:58"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -70,19 +70,6 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumia/lumia/control/flexRes.py"
-    },
-    {
-      "summary": "TODO: replace by a dedicated class?",
-      "description": "",
-      "priority": 1,
-      "lineno": 100,
-      "completed": false,
-      "created": 1666684518.4141598,
-      "type": 1,
-      "uid": "{424d56c6-fa90-4075-a75c-93f33b814ff5}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumia/lumia/formatters/xr.py"
     },
     {
       "summary": "TODO: integrate this to the calc_spatial_coarsening",
@@ -239,6 +226,32 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumia/transport/footprints.py"
+    },
+    {
+      "summary": "TODO: move \" Load the pre-processed emissions\" to after Load observations block again - just for testing so we can",
+      "description": "",
+      "priority": 1,
+      "lineno": 86,
+      "completed": false,
+      "created": 1666687785.1967568,
+      "type": 1,
+      "uid": "{7f5b7724-8974-45b0-a03a-e70f85f42527}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/nateko/data/icos/DICE/run.py"
+    },
+    {
+      "summary": "TODO: replace by a dedicated class?",
+      "description": "",
+      "priority": 1,
+      "lineno": 102,
+      "completed": false,
+      "created": 1666688194.4378693,
+      "type": 1,
+      "uid": "{e0545b76-1f32-44d3-8191-daef0cd6cfb9}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumia/lumia/formatters/xr.py"
     }
   ]
 }

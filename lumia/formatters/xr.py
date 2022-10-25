@@ -17,6 +17,8 @@ from pandas.tseries.frequencies import DateOffset, to_offset
 from lumia.tracers import species, Unit
 from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
+# from lumia.icosPortalAccess import  readLv3NcFileFromCarbonPortal   # as fromICP
+import icosPortalAccess.readLv3NcFileFromCarbonPortal as fromICP
 import numbers
 from archive import Rclone
 from typing import Iterator
@@ -752,8 +754,21 @@ class Data:
             # Import emissions for each category of that tracer
             for cat in rcf.get(f'emissions.{tr}.categories'):
                 origin = rcf.get(f'emissions.{tr}.{cat}.origin')
+                print("tr.path= "+rcf.get(f'emissions.{tr}.path'))
+                print("tr.region= "+rcf.get(f'emissions.{tr}.region'))
+                print("freq_src= "+freq_src)
+                print("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
+                print("origin="+origin)
                 prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
-                emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
+                print("prefix= "+prefix)
+                # If the value of the origin key starts with an '@' sign, then the user requested this data be read directly from
+                # the ICOS data base as opposed from a previously downloaded local file.
+                if('@'==origin[0]):
+                    sFileName= os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
+                    IcosDataRecord=fromICP.readLv3NcFileFromCarbonPortal(sFileName, start, end, iVerbosityLv=2)
+                    emis =  load_preprocessed(prefix, start, end, freq=freq, archive=IcosDataRecord)
+                else:
+                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
                 em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
