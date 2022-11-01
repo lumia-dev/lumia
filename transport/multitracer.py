@@ -66,7 +66,7 @@ class LumiaFootprintFile(h5py.File):
         ilats = self[obsid]['ilats'][:]
         sensi = self[obsid]['sensi'][:]
 
-        if Timestamp(self[obsid]['sensi'].attrs.get('runflex_version', '2000.1.1')) < Timestamp(2022, 9, 1):
+        if Timestamp(self[obsid]['sensi'].attrs.get('runflex_version', '2000.1.1')) > Timestamp(2022, 9, 1):
             sensi *= 0.0002897
 
         # If the footprint is empty, return here:
@@ -165,7 +165,8 @@ class Observations(DataFrame):
         # 1) Create the footprint file names
         self.gen_filenames()
         self.find_footprint_files(archive, local)
-        self.gen_obsid()
+        if 'obsid' not in self:
+            self.gen_obsid()
         self.check_footprint_files(cls)
 
 
