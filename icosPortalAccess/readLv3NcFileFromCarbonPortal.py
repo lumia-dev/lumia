@@ -46,6 +46,14 @@ def findDobjFromName(filename):
 
 
 # ***********************************************************************************************
+def remove_unwanted_characters(string):
+    """removes non-ASCII characters, curly braces, square brackets, CR, LF,  and quotes from the string."""
+    # return ''.join(char for char in string if ord(char) < 128) removes all non-ASCII characters
+    # neither do we want curly braces, square brackets or quotes 
+    return ''.join(char for char in string if ((ord(char) > 44)and(ord(char) < 123)and(ord(char) !=34)and(ord(char) !=39)and(ord(char) !=91)and(ord(char) !=93)))
+
+
+# ***********************************************************************************************
 
 
 def check_cp(cp_path,sFileName, iVerbosityLv=1):
@@ -55,13 +63,20 @@ def check_cp(cp_path,sFileName, iVerbosityLv=1):
     dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
     if len(dobj_L3.split('/')) > 1:
         # the dobj key/val pair is something like dobj : https://meta.icos-cp.eu/objects/nBGgNpQxPYXBYiBuGGFp2VRF
-        cp_name = (cp_path+dobj_L3.split('/')[-1]).strip()
-        # Grab the ID from the end of the value streing "nBGgNpQxPYXBYiBuGGFp2VRF"
+        tmps = (cp_path+dobj_L3.split('/')[-1]).strip()
+        # tmps contains some junk, e.g.: "/data/dataAppStorage/netcdf/cF7K5TwNEt3a1Hdt50TdlBNI\"         }       }     ]   } }"
+        cp_name = remove_unwanted_characters(tmps)
+        # Grab the PID from the end of the value string "nBGgNpQxPYXBYiBuGGFp2VRF"
         if(iVerbosityLv>0):
-            print("cp_name= "+cp_name)
-    if not(os.path.exists(cp_name)):
+            print("Found this PID/Landing page: "+cp_name)
+    try:
+        f=open(cp_name, 'rb')
+        f.close()
+    except:
+        # if not(os.path.isfile(str(cp_name))):
         cp_name = ''
         print('file '+sFileName+' does not exist on the Carbon Portal or you are not running this script on the Carbon Portal.')
+        return('')
     else:
         if(iVerbosityLv>1):
             print("Found "+cp_name)
