@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import logging
-import pdb
 from datetime import datetime
 from copy import deepcopy
 from numpy import zeros, meshgrid, average, float64, array, nan, unique, float32, dot, array_equal
@@ -8,7 +7,7 @@ from pandas import DataFrame
 from lumia.Tools import Region, Categories
 from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
-from lumia import tqdm
+from tqdm import tqdm
 from lumia.formatters.lagrange import Struct
 from lumia.control import flexRes
 from lumia.uncertainties import Uncertainties as unc
@@ -364,9 +363,9 @@ class Interface :
             nt_optim = len(times_optim)
             nt_model = len(times_model)
             mapping[cat.name] = {
-                'map':zeros((nt_optim, nt_model), dtype=float32), 
-                'times_model':times_model, 
-                'times_optim':times_optim
+                'map': zeros((nt_optim, nt_model), dtype=float32),
+                'times_model': times_model,
+                'times_optim': times_optim
             }
             for imod, tmod in enumerate(times_model):
                 for iopt, topt in enumerate(times_optim):

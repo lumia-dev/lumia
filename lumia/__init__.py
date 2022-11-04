@@ -5,21 +5,23 @@ import sys
 from pathlib import Path
 
 
-try :
-    from tqdm import tqdm
-except ModuleNotFoundError :
-    class fake_tqdm:
-        def __init__(self):
-            pass
+# Disabled: tqdm is available everywhere now, so following hack should never be needed
+# try :
+#     from tqdm import tqdm
+# except ModuleNotFoundError :
+#     class fake_tqdm:
+#         def __init__(self):
+#             pass
+#
+#         def tqdm(self, iterable, *args, **kwargs):
+#             return iterable
+#
+#         def write(self, message):
+#             sys.stdout.write(message)
+#             sys.stdout.write('\n')
+#
+#     tqdm = fake_tqdm()
 
-        def tqdm(self, iterable, *args, **kwargs):
-            return iterable
-
-        def write(self, message):
-            sys.stdout.write(message)
-            sys.stdout.write('\n')
-
-    tqdm = fake_tqdm()
 
 class Paths:
     _initialized : bool = False

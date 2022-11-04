@@ -6,7 +6,7 @@ from lumia.obsdb import obsdb
 from lumia.Tools.logging_tools import colorize
 from lumia.formatters.lagrange import ReadStruct, Struct, WriteStruct, CreateStruct
 from numpy import unique, array
-from lumia import tqdm
+from tqdm import tqdm
 from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from lumia.Tools.time_tools import tinterv, time_interval

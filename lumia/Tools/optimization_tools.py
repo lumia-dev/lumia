@@ -4,7 +4,7 @@ import sys
 import re
 from dateutil.relativedelta import relativedelta
 from numpy import arange, ones_like, array, cumsum
-from lumia import tqdm
+from tqdm import tqdm
 
 
 class Categories:

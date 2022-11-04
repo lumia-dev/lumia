@@ -2,7 +2,7 @@
 
 import logging
 from numpy import shape, zeros, dot, array
-from lumia import tqdm
+from tqdm import tqdm
 from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
