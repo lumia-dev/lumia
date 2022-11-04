@@ -36,13 +36,13 @@ class obsdb(obsdb):
             - filename (optional): path of the file containing the obs (overrides the one given by filekey)
 
         """
-        db = cls(rcf.get(filekey), start=rcf.get('time.start'), end=rcf.get('time.end'))
+        db = cls(rcf.get(filekey), start=rcf.get('time.start', totype=str), end=rcf.get('time.end', totype=str))
         db.rcf = rcf
 
         db.map_fields(rcf.get('obs.fields.rename', tolist='force', default=[]))
 
         if rcf.get('obs.uncertainty.setup', default=setupUncertainties):
-            db.SetupUncertainties()
+            db.setup_uncertainties()
 
         # Ensure that the tracer column is present:
         if "tracer" not in db.observations.columns:

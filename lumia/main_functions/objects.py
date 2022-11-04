@@ -86,7 +86,6 @@ def parse_config(args: Namespace) -> RcFile:
     logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
 
     # Adjust the paths in memory:
-    lumia.paths.setup(rcf)
 
     return rcf
 
@@ -219,25 +218,3 @@ def adjtestmod(rcf: RcFile):
     obs, emis, model = init_model(rcf)
     model.adjoint_test(emis)
     return SimpleNamespace(obs=obs, emis=emis, model=model)
-
-
-prepare = SimpleNamespace(
-    emissions = prepare_emis,
-    observations = load_observations,
-    config = parse_config
-)
-
-
-run = SimpleNamespace(
-    forward = forward,
-    optimize = optimize,
-    validate = validate
-)
-
-test = SimpleNamespace(
-    adjoint = adjtest,
-    model_adjoint = adjtestmod,
-    gradient = gradtest,
-)
-
-

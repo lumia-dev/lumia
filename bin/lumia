@@ -105,8 +105,13 @@ if __name__ == '__main__':
     logger.remove()
     logger.add(sys.stderr, level=args.verbosity)
 
+    logger.info(args)
+
     # Read and append configuration file
     rcf = prepare.config(args)
+
+    # Ensure that the relevant paths exist
+    prepare.paths(rcf)
 
     match args.action:
         case 'forward':
@@ -116,7 +121,7 @@ if __name__ == '__main__':
             results = run.optimize(rcf)
 
         case 'adjtest':
-            results = test.adjoin(rcf)
+            results = test.adjoint(rcf)
 
         case 'adjtestmod':
             results = test.model_adjoint(rcf)
