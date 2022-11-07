@@ -13,6 +13,7 @@ import xarray as xr
 from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
 
+# latest version: 2022-11-07a
 
 bDEBUG =False
 
@@ -44,6 +45,45 @@ def findDobjFromName(filename):
     '''
     return query
 
+# ********************************************
+
+def findDobjFromPartialNameAndDate(sFilenameKeyword, pdTimeStart='', pdTimeEnd=''):
+    '''
+    Description: Function that returns the data object
+                 for a specified level 3 product netcdf filename.
+
+    Input:       partial filename (keyword like VPRM), optional start and end time as pandas time stamps
+                    timeStart/timeEnd are of Type pandas._libs.tslibs.timestamps.Timestamp
+    Output:      Data Object ID (var_name: "dobj", var_type: String)
+
+   '''
+    sFilenameKeyword='VPRM_ECMWF_NEE_2020_CP.nc'
+    # First test: sFilenameKeyword is "VPRM"
+    timeStart=pdTimeStart.strftime('%Y-%m-%dT%X.000Z')  # becomes "2018-01-01T00:00:00.000Z"
+    timeEnd=pdTimeEnd.strftime('%Y-%m-%dT%X.000Z')     # becomes "2018-02-01T00:00:00.000Z"
+    timeStart="2020-01-01T00:00:00.000Z"
+    timeEnd="2020-12-31T00:00:00.000Z"
+    query = '''
+        prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+        prefix prov: <http://www.w3.org/ns/prov#>
+        prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+        select ?dobj ?fileName ?size ?submTime ?timeStart ?timeEnd
+        where{
+        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/biosphereModelingSpatial> .
+        ?dobj cpmeta:hasSizeInBytes ?size .
+        ?dobj cpmeta:hasName ?fileName .
+        ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
+        ?dobj cpmeta:hasStartTime ?timeStart .
+        ?dobj cpmeta:hasEndTime ?timeEnd .
+        ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
+        ?dobj cpmeta:hasKeyword "NEE"^^xsd:string .
+        FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
+        FILTER( ?timeStart > '2017-12-31T00:00:00.000Z'^^xsd:dateTime && ?timeEnd < '2019-01-02T00:00:00.000Z'^^xsd:dateTime)
+        FILTER EXISTS {?dobj cpmeta:hasSizeInBytes ?size }
+       }
+    '''
+    return query
+
 
 # ***********************************************************************************************
 def remove_unwanted_characters(string):
@@ -56,11 +96,12 @@ def remove_unwanted_characters(string):
 # ***********************************************************************************************
 
 
-def check_cp(cp_path,sFileName, iVerbosityLv=1):
+def check_cp(cp_path,sFilenameKeyword, timeStart, timeEnd, iVerbosityLv=1):
     """ Find the requested level3 netcdf file (by name) on the ICOS data portal (using sparql queries) 
         and directly access that file via the data app """
     cp_name = ''
-    dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
+    # dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
+    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sFilenameKeyword, timeStart, timeEnd),output_format='nc').run()
     if len(dobj_L3.split('/')) > 1:
         # the dobj key/val pair is something like dobj : https://meta.icos-cp.eu/objects/nBGgNpQxPYXBYiBuGGFp2VRF
         tmps = (cp_path+dobj_L3.split('/')[-1]).strip()
@@ -97,8 +138,9 @@ def readLv3NcFileFromCarbonPortal(sSearchMask, start: datetime, end: datetime, i
     if(iVerbosityLv>1):
         print("readLv3NcFileFromCarbonPortal: Looking for "+sSearchMask)
     
-    sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    inputname = check_cp(path_cp,sFileName, iVerbosityLv)
+    # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    sFilenameKeyword='VPRM'
+    inputname = check_cp(path_cp,sFilenameKeyword, start, end, iVerbosityLv)
     
     # inputname = check_cp(path_cp,sSearchMask, iVerbosityLv)
         
