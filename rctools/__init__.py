@@ -20,10 +20,7 @@ class RcFile:
         if file is not None :
             self.read(file)
             
-    def read(self, file, comments={'!', '#'}, level=0):
-        """ Read the resource file - comment lines may start either with an exclamation mark as
-       has been in use historically in lumia or a hash-sign as is the common practice with json 
-      and many other resource files. """
+    def read(self, file, comments='!', level=0):
         includes = []
         
         with open(os.path.join(file), 'r') as f1 :
@@ -31,9 +28,8 @@ class RcFile:
         
         # remove comments and white lines:
         lines = [(il, l.strip()) for (il, l) in enumerate(lines) if l.strip() != '']
-        for comment in comments:
-            lines = [(il, l) for (il, l) in lines if not (l.startswith(comment))] 
-        lines = [(il, l.split(comment)[0]) for (il, l) in lines]
+        lines = [(il, l) for (il, l) in lines if not (l.startswith(comments))]
+        lines = [(il, l.split(comments)[0]) for (il, l) in lines]
         
         # Separate line numbers and content
         ln = [l[0] for l in lines]

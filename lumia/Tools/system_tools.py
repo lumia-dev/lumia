@@ -6,7 +6,6 @@ import inspect
 import sys
 import subprocess
 from loguru import logger
-#logger = logging.getLogger(__name__)
 
 
 def checkDir(dirname, silent=False):
@@ -21,7 +20,7 @@ def checkDir(dirname, silent=False):
 
 
 def runcmd(cmd):
-    logger.info(colorize(' '.join([x for x in cmd]), 'g'))
+    logger.info(colorize(' '.join([str(x) for x in cmd]), 'g'))
     try :
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except subprocess.CalledProcessError :

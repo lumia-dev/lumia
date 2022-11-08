@@ -2,16 +2,12 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2022 , ",
-<<<<<<< HEAD
-    "saved": "2022-10-21, 11:40:38"
-=======
-    "saved": "2022-10-19, 14:27:39"
->>>>>>> LumiaDA
+    "saved": "2022-10-24, 16:44:12"
   },
   "project": {
     "AUTHOR": "",
     "CHECKERSPARMS": {},
-    "DESCRIPTION": "run with:\n--optimize --start 20180101 --end 20180201 --rcf ./coco2_co2_v4.rc",
+    "DESCRIPTION": "run with:\n--optimize --start 20180101 --end 20180201 --rcf /home/arndt/nateko/data/icos/DICE/coco2_co2_v4.rc",
     "DOCSTRING": "",
     "DOCUMENTATIONPARMS": {},
     "EMAIL": "",
@@ -44,7 +40,7 @@
     "INTERFACES": [],
     "LEXERASSOCS": {},
     "LICENSE": "",
-    "MAINSCRIPT": "/home/cec-ami/nateko/data/icos/DICE/run.py",
+    "MAINSCRIPT": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/run.py",
     "MAKEPARAMS": {
       "MakeEnabled": false,
       "MakeExecutable": "",
@@ -77,10 +73,6 @@
     },
     "RESOURCES": [],
     "SOURCES": [
-<<<<<<< HEAD
-      "/home/cec-ami/nateko/data/icos/DICE/run.py",
-=======
->>>>>>> LumiaDA
       "GMDD/calc_posterior_err.py",
       "GMDD/forward.py",
       "GMDD/var4d.py",
@@ -152,6 +144,7 @@
       "lumia_tools/__init__.py",
       "lumia_tools/formatters.py",
       "rctools/__init__.py",
+      "run.py",
       "setup.py",
       "singularity/genconfig.py",
       "singularity/run.py",

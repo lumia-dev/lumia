@@ -26,7 +26,7 @@ def check_migrate(source, dest):
 
 class LumiaFootprintFile(h5py.File):
     maxlength : Timedelta = inf
-    __slots__ = ['shift_t', 'origin', 'timestep']
+    __slots__ = ['shift_t', 'origin', 'timestep', 'grid']
 
     def __init__(self, *args, maxlength:Timedelta=inf, **kwargs):
         super().__init__(*args, mode='r', **kwargs)
@@ -34,16 +34,16 @@ class LumiaFootprintFile(h5py.File):
 
         try :
             self.origin = Timestamp(self.attrs['origin'])
-            self.timestep = Timedelta(seconds=abs(self.attrs['loutstep']))
+            self.timestep = Timedelta(seconds=abs(self.attrs['run_loutstep']))
             if self.maxlength != inf :
                 self.maxlength /= self.timestep
-            assert self['latitudes'].dtype == 'f4' or self['latitudes'].dtype == 'f8'
+            assert self['latitudes'].dtype in ['f4', 'f8']
             self.grid = Grid(latc=self['latitudes'][:], lonc=self['longitudes'][:])
 
         except AssertionError :
             self.grid = Grid(
-                lon0=self.attrs['outlon0'], dlon=self.attrs['dxout'], nlon=len(self['longitudes'][:]),
-                lat0=self.attrs['outlat0'], dlat=self.attrs['dyout'], nlat=len(self['latitudes'][:])
+                lon0=self.attrs['run_outlon0'], dlon=self.attrs['run_dxout'], nlon=len(self['longitudes'][:]),
+                lat0=self.attrs['run_outlat0'], dlat=self.attrs['run_dyout'], nlat=len(self['latitudes'][:])
             )
 
         except KeyError:
@@ -66,7 +66,7 @@ class LumiaFootprintFile(h5py.File):
         ilats = self[obsid]['ilats'][:]
         sensi = self[obsid]['sensi'][:]
 
-        if Timestamp(self[obsid].get('runflex_version', '2000.1.1')) < Timestamp(2022, 9, 1):
+        if Timestamp(self[obsid]['sensi'].attrs.get('runflex_version', '2000.1.1')) < Timestamp(2022, 9, 1):
             sensi *= 0.0002897
 
         # If the footprint is empty, return here:
@@ -87,11 +87,11 @@ class LumiaFootprintFile(h5py.File):
         itims += self.shift_t
 
         # Exclude negative time steps
-        sel = itims >= 0
         if itims.min() < 0 :
             sel *= False
 
         return SimpleNamespace(
+            name=obsid,
             shift_t=self.shift_t,
             itims=itims[sel], 
             ilons=ilons[sel], 
