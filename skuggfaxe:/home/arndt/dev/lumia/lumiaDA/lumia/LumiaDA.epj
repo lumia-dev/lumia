@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2022 , ",
-    "saved": "2022-11-14, 16:54:19"
+    "saved": "2022-11-11, 13:50:07"
   },
   "project": {
     "AUTHOR": "",
@@ -40,7 +40,7 @@
     "INTERFACES": [],
     "LEXERASSOCS": {},
     "LICENSE": "",
-    "MAINSCRIPT": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+    "MAINSCRIPT": "skuggfaxe:/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
     "MAKEPARAMS": {
       "MakeEnabled": false,
       "MakeExecutable": "",
@@ -125,8 +125,10 @@
       "lumia_tools/__init__.py",
       "lumia_tools/formatters.py",
       "rctools/__init__.py",
-      "run.py",
       "setup.py",
+      "singularity/genconfig.py",
+      "singularity/run.py",
+      "singularity/runscript.py",
       "transport/__init__.py",
       "transport/core/__init__.py",
       "transport/core/model.py",

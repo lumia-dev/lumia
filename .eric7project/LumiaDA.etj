@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2022-11-08, 12:57:58"
+    "saved": "2022-11-15, 09:49:17"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -12,12 +12,12 @@
       "priority": 1,
       "lineno": 252,
       "completed": false,
-      "created": 1667908675.245831,
+      "created": 1668502154.1678734,
       "type": 1,
-      "uid": "{deeb097d-d772-431b-b5b1-489c12d964a1}",
+      "uid": "{012057ed-72f7-476c-863f-357ac833344f}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/gridtools.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/gridtools.py"
     },
     {
       "summary": "TODO: the code below might work, but needs to be tested before being used.",
@@ -25,12 +25,12 @@
       "priority": 1,
       "lineno": 412,
       "completed": false,
-      "created": 1667908675.2463408,
+      "created": 1668502154.1686032,
       "type": 1,
-      "uid": "{f4477e97-e0de-4a34-8e35-5270ff6c8466}",
+      "uid": "{4725c85c-b86c-438c-8dd2-3193325390d2}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/gridtools.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/gridtools.py"
     },
     {
       "summary": "TODO: Move this to a completely external code/module?",
@@ -38,12 +38,12 @@
       "priority": 1,
       "lineno": 37,
       "completed": false,
-      "created": 1667908675.2470455,
+      "created": 1668502154.172291,
       "type": 1,
-      "uid": "{6b05c595-5dfc-4967-9d47-73f4de1d1a07}",
+      "uid": "{fa1ec798-7d76-4212-aef4-cca4446e01c5}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/__init__.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/__init__.py"
     },
     {
       "summary": "TODO: create a proper \"grid\" module, which will create a file storing the grid definition and the lat/lon covariances",
@@ -51,25 +51,12 @@
       "priority": 1,
       "lineno": 13,
       "completed": false,
-      "created": 1667908675.2474365,
+      "created": 1668502154.1736765,
       "type": 1,
-      "uid": "{2e574edf-9062-4b98-973a-eaa9c042eb25}",
+      "uid": "{30377bd3-b004-4157-92e8-8076a9a9a236}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/tools.py"
-    },
-    {
-      "summary": "TODO: I had to re-introduce the next line as in earlier versions before Guillaume moved",
-      "description": "",
-      "priority": 1,
-      "lineno": 59,
-      "completed": false,
-      "created": 1667908675.2479284,
-      "type": 1,
-      "uid": "{40c68299-a8ad-4921-b0b0-69c0de5dbc5e}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/__init__.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/tools.py"
     },
     {
       "summary": "TODO: check if the float64 here could be avoided",
@@ -77,25 +64,12 @@
       "priority": 1,
       "lineno": 26,
       "completed": false,
-      "created": 1667908675.2487564,
+      "created": 1668502154.174745,
       "type": 1,
-      "uid": "{24282a9d-26fa-4c63-8abd-ad8a71cc3118}",
+      "uid": "{fd83c94b-686d-4608-82e5-60065c0764b7}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/control/flexRes.py"
-    },
-    {
-      "summary": "TODO: replace by a dedicated class?",
-      "description": "",
-      "priority": 1,
-      "lineno": 102,
-      "completed": false,
-      "created": 1667908675.2493346,
-      "type": 1,
-      "uid": "{7810a6fc-de5b-4092-ab5a-bef9805512a4}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/flexRes.py"
     },
     {
       "summary": "TODO: integrate this to the calc_spatial_coarsening",
@@ -103,12 +77,12 @@
       "priority": 1,
       "lineno": 330,
       "completed": false,
-      "created": 1667908675.2500863,
+      "created": 1668502154.1801696,
       "type": 1,
-      "uid": "{f1c4a28a-a0c4-497e-8a16-5ab089d708dc}",
+      "uid": "{8a329478-883b-4f57-873c-c68108347226}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/interfaces/footprint_flexRes.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/footprint_flexRes.py"
     },
     {
       "summary": "TODO: need an abstract class for this",
@@ -116,12 +90,12 @@
       "priority": 1,
       "lineno": 21,
       "completed": false,
-      "created": 1667908675.2508955,
+      "created": 1668502154.1809318,
       "type": 1,
-      "uid": "{0b00ddff-480c-49f8-b72c-c410657bce07}",
+      "uid": "{4531dc60-f710-4839-86c3-f9fd871c55d2}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py"
     },
     {
       "summary": "TODO: create simpler accessors for this",
@@ -129,12 +103,12 @@
       "priority": 1,
       "lineno": 293,
       "completed": false,
-      "created": 1667908675.2516117,
+      "created": 1668502154.181627,
       "type": 1,
-      "uid": "{989c8917-d064-4d16-ae8e-ebed24e0255d}",
+      "uid": "{91f11070-56cf-403c-a8cb-9f973737a890}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py"
     },
     {
       "summary": "TODO: ad-hoc fix to convert \"object\" bool to standard bool. Need to make sure these don't be created in the 1st place",
@@ -142,12 +116,25 @@
       "priority": 1,
       "lineno": 225,
       "completed": false,
-      "created": 1667908675.2523718,
+      "created": 1668502154.1826384,
       "type": 1,
-      "uid": "{fb846575-8e75-4232-8964-d8ae9cac23d7}",
+      "uid": "{8867137c-9839-488c-a5f0-5230cb8b78c0}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py"
+    },
+    {
+      "summary": "TODO: move \" Load the pre-processed emissions\" to after Load observations block again - just for testing so we can",
+      "description": "",
+      "priority": 1,
+      "lineno": 86,
+      "completed": false,
+      "created": 1668502154.184896,
+      "type": 1,
+      "uid": "{a6d68491-e549-4d9e-bd21-5921696a2c6a}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
     },
     {
       "summary": "TODO: this enforces hourly time step in TM5 ... maybe this is not a good idea?",
@@ -155,12 +142,12 @@
       "priority": 1,
       "lineno": 249,
       "completed": false,
-      "created": 1667908675.2535875,
+      "created": 1668502154.1864052,
       "type": 1,
-      "uid": "{0db3f989-2c04-41f9-a02c-a26dcf06e03a}",
+      "uid": "{f368d636-6b12-40b0-87cf-ae881ce5e6f8}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/obsoperator/tm5.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/tm5.py"
     },
     {
       "summary": "TODO: create a proper \"Precon\" module to handle the uncertainties",
@@ -168,12 +155,12 @@
       "priority": 1,
       "lineno": 18,
       "completed": false,
-      "created": 1667908675.254473,
+      "created": 1668502154.1873777,
       "type": 1,
-      "uid": "{855bec25-2743-457e-98c5-f35f32f988c1}",
+      "uid": "{8cd13985-f88b-446a-9a9b-de2cce8ddd56}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/optimizer.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/optimizer.py"
     },
     {
       "summary": "TODO: set the OMP_NUM_THREADS just before calling the ray workers, and reset it to its original value after",
@@ -181,12 +168,12 @@
       "priority": 1,
       "lineno": 12,
       "completed": false,
-      "created": 1667908675.2558262,
+      "created": 1668502154.2512813,
       "type": 1,
-      "uid": "{d33a5e12-6b07-4f77-8038-c9b3f090e8f9}",
+      "uid": "{8dc41230-f379-422d-9799-a5cc4927f16a}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/precon/preconditioner_ray.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/precon/preconditioner_ray.py"
     },
     {
       "summary": "TODO: check why this is not a dot product",
@@ -194,12 +181,12 @@
       "priority": 1,
       "lineno": 92,
       "completed": false,
-      "created": 1667908675.2572255,
+      "created": 1668502154.252441,
       "type": 1,
-      "uid": "{8530270c-9129-4ba5-8182-edea924fd089}",
+      "uid": "{ac42fc48-3266-4f75-90c1-926055697dc6}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: For CH4, fluxes are given in nmol/m2/s, while for CO2 it's umol/m2/s. The units conversions need to be centralized somewhere otherwise this is too cpnfusing and error-prone",
@@ -207,12 +194,12 @@
       "priority": 1,
       "lineno": 349,
       "completed": false,
-      "created": 1667908675.2582536,
+      "created": 1668502154.2534726,
       "type": 1,
-      "uid": "{9c7b4edd-dc15-4b0c-85b9-120d17575403}",
+      "uid": "{10b3f02c-61f7-4e4d-bda2-f415762d2a32}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py"
     },
     {
       "summary": "TODO: this should be directly part of the \"Struct\" class itself ==> yes, but after the class is adapted for",
@@ -220,12 +207,12 @@
       "priority": 1,
       "lineno": 49,
       "completed": false,
-      "created": 1667908675.286286,
+      "created": 1668502154.2547219,
       "type": 1,
-      "uid": "{70fd3d05-6509-4b0e-90ff-d775d13e0301}",
+      "uid": "{23e3078a-ae97-4014-becf-a4a962524ee8}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/transport/footprints.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py"
     },
     {
       "summary": "TODO: make this a bit more explicit ...",
@@ -233,12 +220,12 @@
       "priority": 1,
       "lineno": 232,
       "completed": false,
-      "created": 1667908675.28759,
+      "created": 1668502154.2559395,
       "type": 1,
-      "uid": "{9a11308e-0f15-4f1b-a14d-27692e88fb1d}",
+      "uid": "{083ed84e-06b8-4892-abe4-d16a2a636001}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/transport/footprints.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py"
     },
     {
       "summary": "TODO: this (and the forward) accept only one category ... maybe here is the place to implement more?",
@@ -246,12 +233,38 @@
       "priority": 1,
       "lineno": 241,
       "completed": false,
-      "created": 1667908675.2887979,
+      "created": 1668502154.2572246,
       "type": 1,
-      "uid": "{2d02ebbb-8d08-4d00-9829-8d1f781e7162}",
+      "uid": "{fbeacf7d-15b1-4388-81e9-905b0d9871a5}",
       "parent_uid": "",
       "expanded": false,
-      "filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/transport/footprints.py"
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py"
+    },
+    {
+      "summary": "TODO: I had to re-introduce the next line as in earlier versions before Guillaume moved",
+      "description": "",
+      "priority": 1,
+      "lineno": 59,
+      "completed": false,
+      "created": 1668502154.4041452,
+      "type": 1,
+      "uid": "{80f1a552-0b20-494b-b5c0-afd24a314e1a}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py"
+    },
+    {
+      "summary": "TODO: replace by a dedicated class?",
+      "description": "",
+      "priority": 1,
+      "lineno": 102,
+      "completed": false,
+      "created": 1668502154.4436197,
+      "type": 1,
+      "uid": "{e8a54087-cc18-4695-86f3-0209bdd170d5}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py"
     }
   ]
 }
