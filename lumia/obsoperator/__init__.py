@@ -104,7 +104,7 @@ class transport(object):
         cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
 
         # Caching of footprints?
-        if self.rcf.get('transport.cache', False):
+        if self.rcf.get('model.cache', False):
             cmd.extend(['--copy-footprints', self.rcf.get('transport.cache')])
 
         if self.serial or serial:
@@ -131,7 +131,7 @@ class transport(object):
         cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
 
         # Caching of footprints?
-        if self.rcf.get('transport.cache', False):
+        if self.rcf.get('model.cache', False):
             cmd.extend(['--copy-footprints', self.rcf.get('transport.cache')])
 
         if self.serial :
