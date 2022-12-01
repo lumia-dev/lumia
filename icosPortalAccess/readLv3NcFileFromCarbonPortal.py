@@ -6,6 +6,7 @@
 
 import sys
 import os
+import re
 import datetime
 import xarray as xr
 
@@ -45,7 +46,7 @@ def findDobjFromName(filename):
     return query
 
 # *******************************************************
-def getStartTimeForSparqlQuery(pdStartTime):
+def getStartTimeForSparqlQuery(pdStartTime, iYr=0):
     '''
     Function getStartTimeForSparqlQuer
     
@@ -55,7 +56,8 @@ def getStartTimeForSparqlQuery(pdStartTime):
                 Note: timeEnd < '2019-01-01T00:00:00.000Z'  fails, but if I set
                 it to timeEnd < '2019-01-01T00:00:01.000Z' then it works. 
   '''
-    iYr=int(pdStartTime.strftime('%Y'))
+    if(not(pdStartTime is None)):
+        iYr=int(pdStartTime.strftime('%Y'))
     iYr=iYr - 1
     # pdTimeStart=pdTimeStart - datetime.timedelta(seconds=3) # days, seconds, then other fields
     sTimeStart=str(iYr)+'-12-31T23:59:59.000Z'
@@ -63,7 +65,7 @@ def getStartTimeForSparqlQuery(pdStartTime):
 
 
 # *********************************************************
-def getEndTimeForSparqlQuery(pdEndTime):
+def getEndTimeForSparqlQuery(pdEndTime,  iYr=0):
     '''
     Function getEndTimeForSparqlQuery
     
@@ -73,7 +75,8 @@ def getEndTimeForSparqlQuery(pdEndTime):
                 Note: timeEnd < '2019-01-01T00:00:00.000Z'  fails, but if I set
                 it to timeEnd < '2019-01-01T00:00:01.000Z' then it works. 
   '''
-    iYr=int(pdEndTime.strftime('%Y'))
+    if(not(pdEndTime is None)):
+        iYr=int(pdEndTime.strftime('%Y'))
     iYr=iYr + 1
     # pdTimeEnd=pdTimeEnd + datetime.timedelta(seconds=3) # days, seconds, then other fields
     # sTimeEnd=pdTimeEnd.strftime('%Y-%m-%dT%X.000Z')     # becomes "2018-02-01T00:00:00.000Z"
@@ -84,7 +87,7 @@ def getEndTimeForSparqlQuery(pdEndTime):
 # ********************************************
     
 
-def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart='', pdTimeEnd=''):
+def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  iYear=0):
     '''
     Function    findDobjFromPartialNameAndDate
 
@@ -99,8 +102,25 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart='', pdTimeEnd=''):
     # sKeyword='VPRM'
     # sFilename2ndKeyword='NEE'
     #    ?dobj cpmeta:hasKeyword "'''+sFilename2ndKeyword+'''"^^xsd:string .
-    sTimeStart=getStartTimeForSparqlQuery(pdTimeStart)
-    sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd)
+    # From RC file:
+    #    [Fluxes]
+    #    emissions.co2.categories : biosphere, fossil, ocean
+    
+    #    #  #VPRM_ECMWF_GEE_2020_CP.nc return the following from sparqle:
+    #      cp_name= https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU
+    
+    #    emissions.co2.fossil.origin         : @EDGARv4.3_BP2019
+    #        https://meta.icos-cp.eu/collections/XgzB--i8yDQYIPk4tf0l970K     Gerbig
+    #        https://meta.icos-cp.eu/collections/unv31HYRKgullLjJ99O5YCsG    Ute
+    
+    #    emissions.co2.biosphere.origin      : @VPRM
+    
+    #    emissions.co2.ocean.origin          : @mikaloff01
+    #    emissions.co2.interval              : 1h
+    #    emissions.co2.prefix                : flux_co2.
+    
+    sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, iYear)
+    sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, iYear)
     query = '''
         prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
         prefix prov: <http://www.w3.org/ns/prov#>
@@ -137,14 +157,15 @@ def remove_unwanted_characters(string):
 # ***********************************************************************************************
 
 
-def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd, iVerbosityLv=1):
+def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRequestedYear,  sScndKeyWord=None, iVerbosityLv=1):
     """
     Function queryCarbonPortal4FluxObsFileName
     
     @param cp_path  the full path + file name on the ICOS Carbon Portal central storage system holding the 
                                         requested flux information (1-year-record typically)
     @type string
-    @param sKeyword :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
+    @param sKeyword :    the type of product we want to query, like VPRM
+    @param sScndKeyWord:  additional qualifier for of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
     @type string 
     @param timeStart :  from when on we want to get the observations
     @type datetime
@@ -162,51 +183,88 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd, iVer
     Returns full path+name if successful; (empty) string if unsuccessful.
 
     """ 
-    cp_name = ''
     # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     # dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
-    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd),output_format='nc').run()
+    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear),output_format='nc').run()
     # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
     # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
+    bScndKWordFound=True
+    sFileNameOnCarbonPortal=None
+    sPID=''
     try:
         if len(dobj_L3.split('/')) > 1:
+            # TODO: SPARQL in its present form does not allow to provide to combine multiple key words with a logical operator
+            # like KeyWord1 AND KeyWord2. Hence dobj_L3 typically returns multiple PIDs and we need to extract the right one.
             # the dobj key/val pair is something like dobj : https://meta.icos-cp.eu/objects/nBGgNpQxPYXBYiBuGGFp2VRF
-            tmps = (cp_path+dobj_L3.split('/')[-1]).strip()
-            # tmps contains some junk, e.g.: "/data/dataAppStorage/netcdf/cF7K5TwNEt3a1Hdt50TdlBNI\"         }       }     ]   } }"
-            cp_name = remove_unwanted_characters(tmps)
-            # Grab the PID from the end of the value string "nBGgNpQxPYXBYiBuGGFp2VRF"
-            if(iVerbosityLv>0):
-                print("Found this PID/Landing page: "+cp_name)
+            if(sScndKeyWord is not None):
+                bScndKWordFound=False
+                bGrabNextUrl=False
+                sExtendedKeyWord='_'+sScndKeyWord+'_'
+                words=dobj_L3.split("\"") # split at quotation marks
+                cwLst=[]
+                for word in words:
+                    if(re.search('[a-zA-Z]', word) is not None):
+                        cwLst.append(word)  # VPRM_ECMWF_NEE_2018_CP.nctimeStart   is a word
+                        if(sExtendedKeyWord in word):
+                            bScndKWordFound=True
+                        if(bScndKWordFound==True):
+                            if('dobj' in word):
+                                bGrabNextUrl=True
+                        if((bGrabNextUrl==True) and ('http' in word)):
+                            sPID=word.split('/')[-1]  # Grab the last part of the url without directories
+                            # Grab the PID from the end of the http value string, may look like gibberish "nBGgNpQxPYXBYiBuGGFp2VRF"
+                            bGrabNextUrl=False
+                            break
+        else:
+            bScndKWordFound=False
+        if(bScndKWordFound==False):
+            if(sKeyword is None):
+                sKeyword='None'
+            if(sScndKeyWord is None):
+                sScndKeyWord='None'
+            print('Error in readLv3NcFileFromCarbonPortal(): No matching data records found for Year=%d, 1stKeyword=%s, 2ndKeyword=%s.'%(iRequestedYear, sKeyword, sScndKeyWord))
+            return(None)
+        # words=dobj_L3.split('/')
+        # tmps = (cp_path+dobj_L3.split('/')[-1]).strip()
+        # tmps="/data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU"
+        # tmps contains some junk, e.g.: "/data/dataAppStorage/netcdf/cF7K5TwNEt3a1Hdt50TdlBNI\"         }       }     ]   } }"
+        # Done earlier now... sFileNameOnCarbonPortal = remove_unwanted_characters(tmps)
+        sFileNameOnCarbonPortal = cp_path+sPID
+        if(iVerbosityLv>0):
+            print("Found this PID/Landing page: "+sFileNameOnCarbonPortal)
     except:
-        print('The SPARQL query for flux observations for the requested time interval found no matching data records.')
-        return('')
+        print('Error in readLv3NcFileFromCarbonPortal(): No matching data records found for Year=%d, 1stKeyword=%s, 2ndKeyword=%s.'%(iRequestedYear, sKeyword, sScndKeyWord))
+        # print('The SPARQL query for flux observations for the requested time interval found no matching data records.')
+        return(None)
     try:
-        f=open(cp_name, 'rb')
+        # Make sure this file actually exists and is accessible on the portal
+        f=open(sFileNameOnCarbonPortal, 'rb')
         f.close()
     except:
-        # if not(os.path.isfile(str(cp_name))):
-        cp_name = ''
-        print('file '+sFileName+' does not exist on the Carbon Portal or you are not running this script on the Carbon Portal.')
+        print('Error: The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal.')
+        sFileNameOnCarbonPortal=None
         return('')
     else:
         if(iVerbosityLv>1):
-            print("Found "+cp_name)
-    return cp_name
+            print("Successfully found the data file "+sFileNameOnCarbonPortal+" on the carbon portal.")
+    return sFileNameOnCarbonPortal
 
 
 
 # ***********************************************************************************************
 
-def readLv3NcFileFromCarbonPortal(sSearchMask, start: datetime, end: datetime, iVerbosityLv=1):
+def readLv3NcFileFromCarbonPortal(sKeyword, start: datetime=None, end: datetime=None, year=0,  sScndKeyWord=None,  iVerbosityLv=1):
     """
     Function readLv3NcFileFromCarbonPortal
     
-    @param sSearchMask :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
+    @param sKeyword :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
     @type string 
     @param start :  from when on we want to get the observations
     @type datetime
     @param end : until when on we want to get the observations
     @type datetime
+    @param year :  alternatively provide the calendar year
+    @type int
     @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
     @type integer between 0 and 3 (optional)
     @return inputname : the full path + file name on the ICOS Carbon Portal central storage system holding the 
@@ -223,18 +281,19 @@ def readLv3NcFileFromCarbonPortal(sSearchMask, start: datetime, end: datetime, i
     # or use PID directly
     #inputname = path_cp + 'jXPT5pqJgz7MSm5ki95sgqJK'
     if(iVerbosityLv>1):
-        print("readLv3NcFileFromCarbonPortal: Looking for "+sSearchMask)
-        # sSearchMask='flux_co2.VPRM'
+        print("readLv3NcFileFromCarbonPortal: Looking for "+sKeyword)
     # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    sKeyword='VPRM'
-    inputname = queryCarbonPortal4FluxObsFileName(path_cp,sKeyword, start, end, iVerbosityLv)
+    # sKeyword='VPRM'
+    inputname = queryCarbonPortal4FluxObsFileName(path_cp,sKeyword, start, end, year, sScndKeyWord,  iVerbosityLv)
         
     if len(inputname) < 1:
         print('File not found on the ICOS data portal')
         return (None)
     else:
-        xrDS = xr.open_dataset(inputname)
-        return (xrDS)
+        # xrDS = xr.open_dataset(inputname)
+        # print("readLv3NcFileFromCarbonPortal(): xrDS=")
+        # print(xrDS)
+        # return (xrDS)
         return(inputname)
     # In[5]:
     # xrDS

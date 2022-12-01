@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2022-11-15, 00:44:41"
+    "saved": "2022-12-01, 02:25:19"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,7 +14,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        88,
+        87,
         0
       ],
       "Folds": [],
@@ -26,8 +26,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        112,
-        0
+        192,
+        125
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,7 +62,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
-        767,
+        791,
         0
       ],
       "Folds": [],
@@ -75,8 +75,8 @@
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
     "Cursor": [
-      112,
-      0
+      192,
+      125
     ]
   },
   "Breakpoints": [
@@ -98,6 +98,38 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      88,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      89,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClientBase.py",
+      1171,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClientBase.py",
+      1167,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       89,
       "",
       false,
@@ -129,14 +161,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      61,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       89,
       "",
@@ -154,14 +178,6 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      768,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       769,
       "",
       false,
@@ -169,8 +185,8 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      67,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      771,
       "",
       false,
       true,
@@ -178,7 +194,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      112,
+      187,
       "",
       false,
       true,
@@ -186,7 +202,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      121,
+      210,
       "",
       false,
       true,
@@ -194,7 +210,119 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      113,
+      191,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      261,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      767,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      259,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      780,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      792,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      768,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClientBase.py",
+      1196,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/lumia/lib/python3.9/socket.py",
+      832,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClientBase.py",
+      1194,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/Debugger/DebugServer.py",
+      614,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      791,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      258,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      200,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      195,
       "",
       false,
       true,
@@ -212,7 +340,7 @@
     "Exceptions": [],
     "IgnoredExceptions": [],
     "AutoClearShell": true,
-    "TracePython": true,
+    "TracePython": false,
     "AutoContinue": false,
     "EnableMultiprocess": true,
     "MultiprocessNoDebug": "",
@@ -231,7 +359,9 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@58",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@484",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@97",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport"
       ]

@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Union, List, Tuple
 from pathlib import Path
 from pint import Quantity
@@ -759,14 +760,15 @@ class Data:
                 print("freq_src= "+freq_src)
                 print("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
                 print("origin="+origin)
-                prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, \
+                rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 print("prefix= "+prefix)
                 # If the value of the origin key starts with an '@' sign, then the user requested this data be read directly from
                 # the ICOS data base as opposed from a previously downloaded local file.
                 if('@'==origin[0]):
                     sFileName= os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
-                    IcosDataRecord=fromICP.readLv3NcFileFromCarbonPortal(sFileName, start, end, iVerbosityLv=2)
-                    emis =  load_preprocessed(prefix, start, end, freq=freq, archive=IcosDataRecord)
+                    emis =  load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'), \
+                    sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
                 else:
                     emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
@@ -774,16 +776,29 @@ class Data:
         return em
 
 
-def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None) -> ndarray:
-
+def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None,  sFileName: str=None,  bFromPortal =False, iVerbosityLv=1) -> ndarray:
+    # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
     archive = Rclone(archive)
-
+    # archive is now a structure with main values: Rclone(path='fluxes/nc/eurocom025x025/1h/', protocol='rclone', remote='lumia')
+    # in case of reading from the carbon portal the archive.path variable is not used, so no need to get fancy here 
+    
     # Import a file for each year at least partially covered:
     years = unique(date_range(start, end, freq='MS', inclusive='left').year)
     data = []
     for year in years :
-        fname = f'{prefix}{year}.nc'
-        archive.get(fname)
+        if(bFromPortal):
+            # sSearchMask='flux_co2.VPRM' 
+            words = sFileName.split('.')
+            sKeyWord=words[-1]
+            if (('co2' in sFileName)and(sKeyWord=='VPRM')):  # TODO or if it is LPJGUESS...
+                sScndKeyWord='NEE' # we want the net exchange of carbon
+            fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
+            if(fname is None):
+                # TODO: we could check if the missing file is available locally as a fall-back...
+                sys.exit(1)
+        else:
+            fname = f'{prefix}{year}.nc'
+            archive.get(fname)
         data.append(xr.load_dataarray(fname))
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
 

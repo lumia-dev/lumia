@@ -2,15 +2,16 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2022 , ",
-    "saved": "2022-11-14, 16:54:19"
+    "saved": "2022-11-21, 13:09:37"
   },
   "project": {
     "AUTHOR": "",
     "CHECKERSPARMS": {},
-    "DESCRIPTION": "run with:\n--optimize --start 20180101 --end 20180201 --rcf /home/arndt/nateko/data/icos/DICE/coco2_co2_v4.rc",
+    "DESCRIPTION": "run with:\n--optimize --start 20180101 --end 20180201 --rcf /home/arndt/nateko/data/icos/DICE/coco2_co2_v4.rc\n\n\n.",
     "DOCSTRING": "",
     "DOCUMENTATIONPARMS": {},
     "EMAIL": "",
+    "EMBEDDED_VENV": false,
     "EOL": 0,
     "FILETYPES": {
       "*.e4p": "OTHERS",
@@ -40,7 +41,7 @@
     "INTERFACES": [],
     "LEXERASSOCS": {},
     "LICENSE": "",
-    "MAINSCRIPT": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+    "MAINSCRIPT": "run.py",
     "MAKEPARAMS": {
       "MakeEnabled": false,
       "MakeExecutable": "",
@@ -147,6 +148,7 @@
     "TRANSLATIONPATTERN": "",
     "TRANSLATIONS": [],
     "TRANSLATIONSBINPATH": "",
+    "TRANSLATIONSOURCESTARTPATH": "",
     "UICPARAMS": {
       "Package": "",
       "PackagesRoot": "",
