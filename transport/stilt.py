@@ -1,88 +1,68 @@
 #!/usr/bin/env python
-from netCDF4 import Dataset
-from datetime import datetime
-from numpy import zeros, array, nan, unique
-from transport.footprints import FootprintFile, SpatialCoordinates, FootprintTransport
-from archive import Archive
-from tqdm import tqdm
-from lumia.timers import Timer
-from multiprocessing import Pool
-from lumia.formatters.lagrange import WriteStruct
 
-
-# Main ==> move?
-import os
-
-from datetime import timedelta
 from loguru import logger
+import os
+from pandas import Timedelta
+from transport.observations import Observations
+from transport.emis import Emissions
+from transport.core import Model
+from numpy import inf, zeros
+from netCDF4 import Dataset
+from typing import List
+from datetime import datetime
+from pandas import Timestamp
+from gridtools import Grid
+from types import SimpleNamespace
 
-class StiltFootprintFile(FootprintFile):
-    def read(self):
-        if not os.path.exists(self.filename) :
-            return False
-        self.ds = Dataset(self.filename, 'r')
-        self.close = self.ds.close
 
-        # List of footprints/times availables:
-        sitecode = getattr(self.ds, 'Footprints_receptor').split(';')[0].split(':')[1].strip().lower()
-        height = int(getattr(self.ds, 'sampling_height').split()[0])
-        times = [x.split('_')[1] for x in self.ds.variables.keys() if x.endswith('val')]
-        times = [datetime.strptime(x, '%Y%m%d%H') for x in times]
+class StiltFootprintFile:
+    # hard-coded value since info is not available in the files
+    timestep = Timedelta(hours=1)
 
-        # store the times for which valid footprints exist (if there is any "nan", mask.prod() will be True so the footprint won't be used)
-        # read only the indptr value for checking the nans as it is the smallest of the four variables
-        self.footprints = {f'{sitecode}.{t.strftime("%Y%m%d-%H%M%S")}' : t for t in times if not self.ds[t.strftime('ftp_%Y%m%d%H_indptr')][:].mask.prod()}
-
-        # Store time and space coordinates
-        self.coordinates = SpatialCoordinates(
-            lon0 = self.ds.lon_ll+self.ds.lon_res/2.,
-            dlon = self.ds.lon_res,
-            nlon = int(self.ds.numpix_x),
-            lat0 = self.ds.lat_ll+self.ds.lat_res/2.,
-            dlat = self.ds.lat_res,
-            nlat = int(self.ds.numpix_y),
+    def __init__(self, *args, maxlength:Timedelta=inf, **kwargs):
+        self.ds = Dataset(*args, **kwargs)
+        times = [datetime.strptime(_.split('_')[1], '%Y%m%d%H') for _ in list(self.ds.variables) if _.endswith('val')]
+        code = self.ds.Filename.split('_')[1]
+        height = self.ds.sampling_height.split()[0]
+        self._footprints = {f'{code}.{height}m.{tt.strftime("%Y%m%d-%H%M%S")}' : tt for tt in times}
+        self.grid = Grid(
+            lon0=self.ds.lon_ll,
+            lat0=self.ds.lat_ll,
+            dlon=self.ds.lon_res,
+            dlat=self.ds.lat_res,
+            nlon=self.ds.numpix_x,
+            nlat=self.ds.numpix_y
         )
-        self.dt = timedelta(hours=1)
-        
-        # Initial setup of the Footprint class
-        self.Footprint.lats = self.coordinates.lats
-        self.Footprint.lons = self.coordinates.lons
-        self.Footprint.dlat = self.coordinates.dlat
-        self.Footprint.dlon = self.coordinates.dlon
-        self.Footprint.dt = self.dt
-        return True
 
-    def setup(self, coords, origin, dt):
-        # Make sure that the requested domain is within that of the footprints
-        assert coords <= self.coordinates 
+        self.maxlength : Timedelta = inf
+        self.dest = SimpleNamespace(grid = None, origin = None, timestep = None)
 
-        # Re-setup the "Footprint" object:
-        self.Footprint.lats = coords.lats.tolist()
-        self.Footprint.lons = coords.lons.tolist()
-        self.Footprint.dlat = coords.dlat
-        self.Footprint.dlon = coords.dlon
-        self.Footprint.lon0 = self.Footprint.lons[0]-self.Footprint.dlon/2.
-        self.Footprint.lat0 = self.Footprint.lats[0]-self.Footprint.dlat/2.
+    @property
+    def footprints(self) -> List[str]:
+        return list(self._footprints.keys())
 
-        self.origin = origin
+    def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
+        self.dest.grid = grid
+        self.dest.origin = origin
+        self.dest.timestep = timestep
 
-    def getFootprint(self, obsid, origin=None):
-        time = self.footprints[obsid]
+    def get(self, obsid: str):
+        time = self._footprints[obsid]
 
         # Read raw data
         # The lat/lon coordinates in the file indicate the ll corner, but we want the center. So add half steps
-        lons = self.ds[time.strftime('ftp_%Y%m%d%H_lon')][:] + self.Footprint.dlon/2.
-        lats = self.ds[time.strftime('ftp_%Y%m%d%H_lat')][:] + self.Footprint.dlat/2.
+        lons = self.ds[time.strftime('ftp_%Y%m%d%H_lon')][:] + self.grid.dlon/2.
+        lats = self.ds[time.strftime('ftp_%Y%m%d%H_lat')][:] + self.grid.dlat/2.
         npt = self.ds[time.strftime('ftp_%Y%m%d%H_indptr')][:]
         sensi = self.ds[time.strftime('ftp_%Y%m%d%H_val')][:]
 
         # Select :
-        select = (lats >= self.Footprint.lats[0]) * (lats <= self.Footprint.lats[-1]) 
-        select *= (lons >= self.Footprint.lons[0]) * (lons <= self.Footprint.lons[-1])
+        select = (lats >= self.dest.grid.lat0) * (lats <= self.dest.grid.lat1)
+        select *= (lons >= self.dest.grid.lon0) * (lons <= self.dest.grid.lon1)
 
         # Reconstruct ilats/ilons :
-        ilats = (lats[select]-self.Footprint.lat0)/self.Footprint.dlat
-        ilons = (lons[select]-self.Footprint.lon0)/self.Footprint.dlon
+        ilats = (lats[select]-self.dest.grid.lat0)/self.dest.grid.dlat
+        ilons = (lons[select]-self.dest.grid.lon0)/self.dest.grid.dlon
         ilats = ilats.astype(int)
         ilons = ilons.astype(int)
 
@@ -94,99 +74,72 @@ class StiltFootprintFile(FootprintFile):
             prev = n
         itims = itims.astype(int)[select]
 
-        # Create the footprint
-        fp = self.Footprint(origin=time)
-        fp.sensi = sensi[select] 
-        fp.ilats = ilats
-        fp.ilons = ilons
-        fp.itims = itims
+        # align the footprint
+        # (now it's aligned with the obs time)
+        assert self.timestep == self.dest.timestep
+        shift_t = (time - self.dest.origin) / self.dest.timestep
+        assert int(shift_t) - shift_t == 0
+        shift_t = int(shift_t)
 
-        if origin is not None :
-            fp.shift_origin(origin)
-        
-        return fp 
-
-
-def loadFp(fname):
-    fp = StiltFootprintFile(fname)
-    if fp.read():
-        return {'filename':fp.filename, 'footprints':fp.footprints}
-    else :
-        return {'filename':fname}
+        return SimpleNamespace(
+            name = obsid,
+            shift_t = shift_t,
+            itims = itims,
+            ilons = ilons,
+            ilats = ilats,
+            sensi = sensi[select]
+        )
 
 
-class StiltFootprintTransport(FootprintTransport):
-    def __init__(self, rcf, obs, emfile, mp, checkfile):
-        super().__init__(rcf, obs, emfile, StiltFootprintFile, mp, checkfile)
+class Stilt(Model):
+    _footprint_class = StiltFootprintFile
 
-    def genFileNames(self):
-        return [f'footprint_{o.sitecode_CSR}_{o.time.year}{o.time.month:02.0f}.nc' for o in self.obs.observations.itertuples()]
-
-    def checkFootprints(self, path, archive=None, force=False):
-        # skip the whole checkFootprint thingie if the columns are already in the database (to save time)
-        if 'footprint' in self.obs.observations.columns and 'obsid' in self.obs.observations.columns and not force:
-            return
-
-        cache = Archive(path, parent=Archive(archive))
-
-        fnames = array(self.genFileNames())
-        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
-        fnames = array([os.path.join(path, fname) for fname in fnames])
-        self.obs.observations.loc[:, 'footprint'] = fnames
-        self.obs.observations.loc[~exists, 'footprint'] = nan
-
-        # Construct the obs ids:
-        obsids = [f'{o.sitecode_CSR.lower()}.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
-        self.obs.observations.loc[exists, 'obsid'] = obsids
-
-        # Check if the footprints actually exist in the files:
-        with Pool() as pp :
-            fpts = tqdm(list(pp.imap(loadFp, unique(fnames), chunksize=1)), total=len(unique(fnames)))
-        
-        for fp in fpts :
-            if 'footprints' in fp :
-                filename = fp['filename']
-                oids = self.obs.observations.loc[self.obs.observations.footprint == filename, 'obsid'].values
-                invalid = array([o not in fp['footprints'] for o in oids])
-                ind = self.obs.observations.loc[(self.obs.observations.footprint == filename)].loc[invalid].index
-                self.obs.observations.loc[ind, 'footprint'] = nan
+    @property
+    def footprint_class(self):
+        return self._footprint_class
 
 
 if __name__ == '__main__':
     import sys
     from argparse import ArgumentParser, REMAINDER
 
-    # Read arguments:
     p = ArgumentParser()
+    p.add_argument('--setup', action='store_true', default=False, help="Setup the transport model (copy footprints to local directory, check the footprint files, ...)")
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
+    p.add_argument('--footprints', '-p', help="Path where the footprints are stored")
+    p.add_argument('--check-footprints', action='store_true', help='Determine which footprint file correspond to each observation')
+    p.add_argument('--copy-footprints', default=None, help="Path where the footprints should be copied during the run (default is to read them directly from the path given by the '--footprints' argument")
+    p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
-    p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them", dest='checkFootprints')
-    p.add_argument('--checkfile', '-c')
-    p.add_argument('--rc')
-    p.add_argument('--db', required=True)
-    p.add_argument('--emis', required=True)
+    p.add_argument('--tmp', default='/tmp', help='Path to a temporary directory where (big) files can be written')
+    p.add_argument('--ncpus', '-n', default=os.cpu_count())
+    p.add_argument('--max-footprint-length', type=Timedelta, default='14D')
     p.add_argument('--verbosity', '-v', default='INFO')
+    p.add_argument('--obs', required=True)
+    p.add_argument('--emis')#, required=True)
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
-    # Create the transport model
-    model = StiltFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, checkfile=args.checkfile)
+    # Set the verbosity in the logger (loguru quirks ...)
+    logger.remove()
+    logger.add(sys.stderr, level=args.verbosity)
 
-    # Check footprints
-    # This is the default behaviour but can be turned of (for instance during the inversion steps)
-    # then, the "footprint" and "footprint_valid" columns must be provided
-    if args.checkFootprints:
-        model.checkFootprints(model.rcf.get('path.footprints'))
+    obs = Observations.read(args.obs)
 
-    if args.forward :
-        model.runForward()
-        model.obs.save_tar(model.obsfile)
-        #model.write(args.obs)
+    if args.check_footprints or 'footprint' not in obs.columns:
+        obs.check_footprints(args.footprints, StiltFootprintFile, local=args.copy_footprints)
 
-    if args.adjoint :
-        adj = model.runAdjoint()
-        WriteStruct(adj.data, model.emfile)
+    model = Stilt(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
 
-    if args.checkfile is not None :
-        open(args.checkfile, 'w').close()
+    emis = Emissions.read(args.emis)
+    if args.forward:
+        obs = model.run_forward(obs, emis)
+        obs.write(args.obs)
+
+    elif args.adjoint :
+        adj = model.run_adjoint(obs, emis)
+        adj.write(args.emis)
+
+    elif args.adjtest :
+        model.adjoint_test(obs, emis)
