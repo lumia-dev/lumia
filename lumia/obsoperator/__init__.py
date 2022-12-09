@@ -3,13 +3,10 @@ import sys
 import os
 import shutil
 from numpy import ones, array, prod, append
-from lumia import paths
 from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
 from loguru import logger
-from pandas import DataFrame
-from typing import List
 
 
 class transport(object):
@@ -19,10 +16,11 @@ class transport(object):
         self.rcf = rcf
 
         # Set paths :
-        self.outputdir = self.rcf.get('path.output')
-        self.tempdir = self.rcf.get('path.temp', self.outputdir)
+        self.outputdir = self.rcf.get('model.path.output')
+        self.tempdir = self.rcf.get('model.path.temp', self.outputdir)
         self.executable = self.rcf.get("model.transport.exec")
         self.serial = self.rcf.get("model.transport.serial", default=False)
+        self.footprint_path = self.rcf.get('model.path.footprints')
 
         # Initialize the obs if needed
         if obs is not None : 
@@ -42,7 +40,7 @@ class transport(object):
         """
         tag = '' if tag is None else tag.strip('.')+'.'
         if path is None :
-            path = self.rcf.get('path.output')
+            path = self.outputdir
         checkDir(path)
 
         rcfile = self.rcf.write(os.path.join(path, f'transport.{tag}rc'))
@@ -58,12 +56,12 @@ class transport(object):
         struct.to_intensive()
         emf, dbf = self.runForward(struct, step=step, serial=serial, observations=observations)
         db = obsdb.from_hdf(dbf)
-        db.save_tar(os.path.join(self.rcf.get('path.output'), f'observations.{step}.tar.gz'))
+        db.save_tar(os.path.join(self.outputdir, f'observations.{step}.tar.gz'))
 
     def calcDepartures(self, struct, step=None, serial=False):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb.from_hdf(dbf)
-        if self.rcf.get('model.split.categories', default=True):
+        if self.rcf.get('model.split_categories', default=True):
             for cat in struct.transported_categories:
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
@@ -72,14 +70,14 @@ class transport(object):
         self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
 
         # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
-        for key in self.rcf.get('model.obs.extra_keys', default=[], tolist=True) :
+        for key in list(self.rcf.get('model.store_extra_fields', default=[])) :
             self.db.observations.loc[:, key] = db.observations.loc[:, key].values
 
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
         # Output if needed:
-        if self.rcf.get('transport.output', default=True):
-            if step in self.rcf.get('transport.output.steps'):
+        if self.rcf.get('model.output', default=True):
+            if step in self.rcf.get('model.output.steps'):
                 self.save(tag=step, structf=emf)
 
         # Return model-data mismatches
@@ -95,16 +93,16 @@ class transport(object):
         if observations is None :
             observations = self.db
 
-        compression = step in self.rcf.get('transport.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
+        compression = step in self.rcf.get('model.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
         emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
         del struct
         dbf = observations.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
 
         # Run the model
-        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
+        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
         if self.serial or serial:
             cmd.append('--serial')
-        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(' '))
+        cmd.extend(self.rcf.get('model.transport.extra_arguments', default=[]))
         runcmd(cmd)
 
         # Retrieve results :
@@ -123,10 +121,10 @@ class transport(object):
         adjf = os.path.join(self.tempdir, 'emissions.nc')
 
         # Run the adjoint transport:
-        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.rcf.get('path.footprints'), '--tmp', paths.temp]
+        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
         if self.serial :
             cmd.append('--serial')
-        cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(' '))
+        cmd.extend(list(self.rcf.get('model.transport.extra_arguments', default='')))
         runcmd(cmd)
 
         # Collect the results :
@@ -137,7 +135,7 @@ class transport(object):
 #        try :
 #            adjfield = self.readStruct(self.tempdir, 'adjoint')
 #        except :
-        self.writeStruct(struct, os.path.join(paths.temp, 'emissions.nc'), zlib=True)
+        self.writeStruct(struct, os.path.join(self.tempdir, 'emissions.nc'), zlib=True)
         adjfield = self.runAdjoint(departures)
 
         sensi = {}
