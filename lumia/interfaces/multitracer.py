@@ -10,9 +10,10 @@ from tqdm import tqdm
 from lumia.control.flexRes import Control
 from lumia.units import units_registry as ureg
 from lumia.tracers import species
-from rctools import RcFile
+from rctools.config import Config as RcFile
 import typing
 import os
+from loguru import logger
 
 
 @dataclass
@@ -66,24 +67,27 @@ class Interface:
         for tracer in self.tracers :
 
             # Add meta-categories (if any!)
-            for mcat in self.rcf.get(f'emissions.{tracer}.metacategories', tolist='force', default=[]):
-                self.model_data[tracer].add_metacat(mcat, self.rcf.get(f'emissions.{tracer}.{mcat}'))
+            for k, v in self.rcf.get(f'emissions.{tracer}.metacategories', default=dict()).items():
+                self.model_data[tracer].add_metacat(k, v)
 
         for cat in self.model_data.categories :
-            optimize_cat = self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.optimize', default=False)
+            optimize_cat = cat.name in self.rcf.get(f'optimize.{cat.tracer}.emissions')
             attrs = {'optimized': optimize_cat}
-            if optimize_cat :
+            if optimize_cat:
+                logger.info(f'Category {cat.name} of tracer {cat.tracer} will be optimized')
                 attrs.update({
-                    'optimization_interval': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.optimization_interval'),
-                    'apply_lsm': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.apply_lsm', default=True),
-                    'is_ocean': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.is_ocean', default=False),
-                    'n_optim_points': self.rcf.get(f'optimize.{cat.tracer}.{cat.name}.npoints'),
-                    'horizontal_correlation': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.corr'),
-                    'temporal_correlation': self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.tcorr'),
+                    'optimization_interval': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.optimization_interval'),
+                    'apply_lsm': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.apply_lsm', default=True),
+                    'is_ocean': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.is_ocean', default=False),
+                    'n_optim_points': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.npoints'),
+                    'horizontal_correlation': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.spatial_correlation'),
+                    'temporal_correlation': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.temporal_correlation'),
                 })
-                err = ureg(self.rcf.get(f'emissions.{cat.tracer}.{cat.name}.total_uncertainty'))
+                err = ureg(self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.annual_uncertainty'))
                 scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
                 attrs['total_uncertainty'] = err.m * scf
+            else :
+                logger.info(f'Category {cat.name} of tracer {cat.tracer} will NOT be optimized')
             self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
 
     def setup_coarsening(self, sensi_map=None):
