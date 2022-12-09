@@ -29,7 +29,7 @@ FFLAGS = $(FFLAGS_DEF) $(FFLAGS_OPT) -ffree-line-length-none
 # --- libs etc ---------------------------------------
 
 INCS = $(shell nf-config --fflags)
-LIBS = $(shell nf-config --flibs) -lnetcdff -lnetcdf
+LIBS = $(shell nf-config --flibs) -lnetcdff -lnetcdf -Wl,R$(shell nf-config --prefix)/lib64
 
 # --- implicit rules ---------------------------------
 
