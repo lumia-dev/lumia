@@ -6,12 +6,14 @@
 
 import sys
 import os
+from datetime import datetime
 import xarray as xr
 
 #Import ICOS tools:
 from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
 
+# latest version: 2022-11-07a
 
 bDEBUG =False
 
@@ -43,24 +45,79 @@ def findDobjFromName(filename):
     '''
     return query
 
+# ********************************************
+
+def findDobjFromPartialNameAndDate(sFilenameKeyword, pdTimeStart='', pdTimeEnd=''):
+    '''
+    Description: Function that returns the data object
+                 for a specified level 3 product netcdf filename.
+
+    Input:       partial filename (keyword like VPRM), optional start and end time as pandas time stamps
+                    timeStart/timeEnd are of Type pandas._libs.tslibs.timestamps.Timestamp
+    Output:      Data Object ID (var_name: "dobj", var_type: String)
+
+   '''
+    sFilenameKeyword='VPRM_ECMWF_NEE_2020_CP.nc'
+    # First test: sFilenameKeyword is "VPRM"
+    timeStart=pdTimeStart.strftime('%Y-%m-%dT%X.000Z')  # becomes "2018-01-01T00:00:00.000Z"
+    timeEnd=pdTimeEnd.strftime('%Y-%m-%dT%X.000Z')     # becomes "2018-02-01T00:00:00.000Z"
+    timeStart="2020-01-01T00:00:00.000Z"
+    timeEnd="2020-12-31T00:00:00.000Z"
+    query = '''
+        prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+        prefix prov: <http://www.w3.org/ns/prov#>
+        prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+        select ?dobj ?fileName ?size ?submTime ?timeStart ?timeEnd
+        where{
+        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/biosphereModelingSpatial> .
+        ?dobj cpmeta:hasSizeInBytes ?size .
+        ?dobj cpmeta:hasName ?fileName .
+        ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
+        ?dobj cpmeta:hasStartTime ?timeStart .
+        ?dobj cpmeta:hasEndTime ?timeEnd .
+        ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
+        ?dobj cpmeta:hasKeyword "NEE"^^xsd:string .
+        FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
+        FILTER( ?timeStart > '2017-12-31T00:00:00.000Z'^^xsd:dateTime && ?timeEnd < '2019-01-02T00:00:00.000Z'^^xsd:dateTime)
+        FILTER EXISTS {?dobj cpmeta:hasSizeInBytes ?size }
+       }
+    '''
+    return query
+
+
+# ***********************************************************************************************
+def remove_unwanted_characters(string):
+    """removes non-ASCII characters, curly braces, square brackets, CR, LF,  and quotes from the string."""
+    # return ''.join(char for char in string if ord(char) < 128) removes all non-ASCII characters
+    # neither do we want curly braces, square brackets or quotes 
+    return ''.join(char for char in string if ((ord(char) > 44)and(ord(char) < 123)and(ord(char) !=34)and(ord(char) !=39)and(ord(char) !=91)and(ord(char) !=93)))
+
 
 # ***********************************************************************************************
 
 
-def check_cp(cp_path,sFileName, iVerbosityLv=1):
+def check_cp(cp_path,sFilenameKeyword, timeStart, timeEnd, iVerbosityLv=1):
     """ Find the requested level3 netcdf file (by name) on the ICOS data portal (using sparql queries) 
         and directly access that file via the data app """
     cp_name = ''
-    dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='csv').run()
+    # dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
+    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sFilenameKeyword, timeStart, timeEnd),output_format='nc').run()
     if len(dobj_L3.split('/')) > 1:
         # the dobj key/val pair is something like dobj : https://meta.icos-cp.eu/objects/nBGgNpQxPYXBYiBuGGFp2VRF
-        cp_name = (cp_path+dobj_L3.split('/')[-1]).strip()
-        # Grab the ID from the end of the value streing "nBGgNpQxPYXBYiBuGGFp2VRF"
+        tmps = (cp_path+dobj_L3.split('/')[-1]).strip()
+        # tmps contains some junk, e.g.: "/data/dataAppStorage/netcdf/cF7K5TwNEt3a1Hdt50TdlBNI\"         }       }     ]   } }"
+        cp_name = remove_unwanted_characters(tmps)
+        # Grab the PID from the end of the value string "nBGgNpQxPYXBYiBuGGFp2VRF"
         if(iVerbosityLv>0):
-            print("cp_name= "+cp_name)
-    if not(os.path.exists(cp_name)):
+            print("Found this PID/Landing page: "+cp_name)
+    try:
+        f=open(cp_name, 'rb')
+        f.close()
+    except:
+        # if not(os.path.isfile(str(cp_name))):
         cp_name = ''
         print('file '+sFileName+' does not exist on the Carbon Portal or you are not running this script on the Carbon Portal.')
+        return('')
     else:
         if(iVerbosityLv>1):
             print("Found "+cp_name)
@@ -70,26 +127,30 @@ def check_cp(cp_path,sFileName, iVerbosityLv=1):
 
 # ***********************************************************************************************
 
-def readLv3NcFileFromCarbonPortal(sFileName, iVerbosityLv=1):
+def readLv3NcFileFromCarbonPortal(sSearchMask, start: datetime, end: datetime, iVerbosityLv=1):
     """Attempts to find the corresponding DOI/unique-identifier for the requested FileName. This
     relies on a sparql query. Tries to read the requested netCdf file from the carbon portal. 
-    Returns (True, xarray-dataset) if successful; (False, None) if unsuccessful. """
-    #sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    Returns (xarray-dataset) if successful; (None) if unsuccessful. """
     #VPRM_ECMWF_GEE_2020_CP.nc
     # find level3 netcdf file with known filename in ICOS CP data portal
-    inputname = check_cp(path_cp,sFileName, iVerbosityLv)
-    
     # or use PID directly
     #inputname = path_cp + 'jXPT5pqJgz7MSm5ki95sgqJK'
     if(iVerbosityLv>1):
-        print("readLv3NcFileFromCarbonPorta: Looking for "+inputname)
+        print("readLv3NcFileFromCarbonPortal: Looking for "+sSearchMask)
     
+    # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    sFilenameKeyword='VPRM'
+    inputname = check_cp(path_cp,sFilenameKeyword, start, end, iVerbosityLv)
+    
+    # inputname = check_cp(path_cp,sSearchMask, iVerbosityLv)
+        
     if len(inputname) < 1:
         print('File not found on the ICOS data portal')
-        return (False, None)
+        return (None)
     else:
-        xrDS = xr.open_dataset(inputname)
-        return (True, xrDS)
+        # xrDS = xr.open_dataset(inputname)
+        # return (xrDS)
+        return(inputname)
     # In[5]:
     # xrDS
     # In[6]:
