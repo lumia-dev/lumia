@@ -2,7 +2,7 @@
 
 import logging
 from numpy import shape, zeros, dot
-from lumia import tqdm
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 

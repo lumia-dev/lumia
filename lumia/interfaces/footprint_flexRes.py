@@ -8,7 +8,7 @@ from pandas import DataFrame
 from lumia.Tools import Region, Categories
 from lumia.Tools.optimization_tools import clusterize
 from lumia.Tools.time_tools import tinterv
-from lumia import tqdm
+from tqdm import tqdm
 from lumia.formatters.lagrange import Struct
 from lumia.control import flexRes
 from lumia.uncertainties import Uncertainties as unc
