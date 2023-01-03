@@ -176,10 +176,13 @@ class Rclone:
         """
         If the file given by the "filepath" path is not already on disk, try to retrieve it from the archive.
         """
-        if not os.path.exists(filepath):
-            localpath, filename = os.path.split(filepath)
-            remotepath = os.path.join(self.path, filename)
-            self.download(remotepath, localpath)
+        if os.path.dirname(filepath) == '':
+            filepath = os.path.join('.', filepath)
+        if self.path is not None:
+            if not os.path.exists(filepath):
+                localpath, filename = os.path.split(filepath)
+                remotepath = os.path.join(self.path, filename)
+                self.download(remotepath, localpath)
         return os.path.exists(filepath)
 
     def put(self, filename : str, destpath : str = None, destname : str = None) -> bool:
