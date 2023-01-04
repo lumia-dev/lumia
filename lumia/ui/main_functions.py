@@ -106,69 +106,37 @@ def parse_args(args: List) -> Namespace:
 
 
 def parse_config(args: Namespace) -> RcFile:
-    """
-    Read in LUMIA settings. Settings are adjusted in three steps:
-    1. default settings are semi hard-coded (some paths are appended with the "tag" value, if it's provided).
-    2. settings are read from the rc-file (which overwrites default settings if needed).
-    3. settings from the called script arguments can overwrite default and rc- settings:
-        - the "--start" and "--end" arguments overwrite the "time.start" and "time.end" rc-keys
-        - the "--tag" argument overwrites the "tag" rc-key
-        - any argument passed with --setkey key:value will set the value of the rc-key "key" to "value"
-
-    The function returns a RcFile object, which contains the set of key:value pairs resulting from this 3-step process.
-    """
-
-    # Default paths, common to all runs within this container, normally
-    defaults = {
-        # Global paths
-        'path.data': '/input',
-        'path.temp': os.path.join('/scratch', args.tag),
-        'path.footprints': '/footprints',
-        'correlation.inputdir': '${path.data}/corr',
-
-        # Run-dependent paths
-        'tag': args.tag,
-        'path.output': os.path.join('/output', args.tag),
-        'var4d.communication.file': '${path.temp}/congrad.nc',
-        'emissions.*.archive': 'rclone:lumia:fluxes/nc/',
-        'emissions.*.path': '${path.data}/fluxes/nc',
-        'model.transport.exec': lumia.prefix / 'transport/multitracer.py',
-        'transport.output': 'T',
-        'transport.output.steps': ['forward'],
-    }
-
     rcf = RcFile(args.rcf)
 
+    # handle the --setkey option(s) 
     if args.setkey:
         for kv in args.setkey:
             k, v = kv.split(':')
             rcf.setkey(k, v)
 
-    for tr in list(rcf.get('run.tracers')):
-        defaults[f'emissions.{tr}.archive'] = f'rclone:lumia:fluxes/nc/${{emissions.{tr}.region}}/${{emissions.{tr}.interval}}/'
-
-    # Read simulation time
+    # handle the --start and --end options
     if args.start is None:
         start = Timestamp(rcf.get('time.start'))
     else:
         start = Timestamp(args.start)
         rcf.setkey('time.start', start.strftime('%Y-%m-%d'))
+
     if args.end is None:
         end = Timestamp(rcf.get('time.end'))
     else:
         end = Timestamp(args.end)
         rcf.setkey('time.end', end.strftime('%Y-%m-%d'))
 
+    # handle the --fakeobs option
     if args.fakeobs:
         rcf.setkey('observations.make_from_footprints', True)
 
-    # Create subfolder based on the inversion time:
-    defaults['path.output'] = os.path.join(defaults['path.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
-    defaults['path.temp'] = os.path.join(defaults['path.temp'], f'{start:%Y%m%d}-{end:%Y%m%d}')
-
-    rcf.set_defaults(**defaults)
-
-    logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
+    # handle the --tag option
+    tag = args.tag
+    if not tag :
+        tag = f'{start:%Y%m%d}-{end:%Y%m%d}'
+    rcf['run']['paths']['output'] = os.path.join(rcf.get('run.paths.output'), tag)
+    rcf['run']['paths']['temp'] = os.path.join(rcf.get('run.paths.output'), tag)
 
     return rcf
 
