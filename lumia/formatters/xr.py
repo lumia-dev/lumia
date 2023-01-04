@@ -731,7 +731,7 @@ class Data:
 
             # Create spatial grid - provided by minLat, maxLat, dLat, minLong, maxLong, dLong (e.g. Europe, quarter degree)
             #grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
-            grid = rcf['emissions'][tr]['region']
+            grid = rcf.get(f'emissions.{tr}.region')
 
             # Create temporal grid:
             freq = rcf.get(f'emissions.{tr}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
@@ -764,7 +764,7 @@ class Data:
                     IcosDataRecord = fromICP.readLv3NcFileFromCarbonPortal(sFileName, start, end, iVerbosityLv=2)
                     emis = load_preprocessed(prefix, start, end, freq=freq, archive=IcosDataRecord)
                 else:
-                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
+                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive', default=None))
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
                 em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
