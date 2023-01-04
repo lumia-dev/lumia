@@ -201,15 +201,19 @@ def setup_uncertainties(model: lumia.transport, emis: xr.Data = None) -> lumia.t
     If "obs.uncertainty" is set to "dyn", then the uncertainty is based on the prior fit of the model to the data,
     therefore this (can) involve a forward model run.
     """
-    if model.rcf.get('observations.uncertainty.type') == 'dyn':
-        model.calcDepartures(emis, 'apri')
-        model.db.setup_uncertainties_dynamic(
-            'mix_apri',
-            model.rcf.get('obs.uncertainty.freq', default='7D'),
-            model.rcf.get('obs.uncertainty.obs_err_field', default='err_obs')
-        )
-    else:
-        model.db.setup_uncertainties()
+    for conf in model.rcf.get('optimize.observations').values():
+        res = None
+        if conf['uncertainty']['type'] == 'dyn':
+            if res is None :
+                # Avoid recomputing multiple times if there are several tracers
+                res = model.calcDepartures(emis, 'apri')
+            model.db.setup_uncertainties_dynamic(
+                'mix_apri',
+                conf['uncertainty'].get('freq', '7D'),
+                conf['uncertainty'].get('obs_err_field', 'err_obs')
+            )
+        else:
+            model.db.setup_uncertainties()
 
     return model
 

@@ -91,7 +91,7 @@ class Config:
 
     @dict_syntax
     @rcf_legacy
-    def get(self, key: Union[str, List[str]], **kwargs):
+    def get(self, key: Union[str, List[str]], **kwargs) -> Any :
         try :
             value = self._data
             for kk in key.split('.'):

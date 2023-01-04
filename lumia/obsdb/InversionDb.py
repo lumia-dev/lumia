@@ -22,7 +22,7 @@ class obsdb(obsdb):
     #def __init__(self, rcf, setupUncertainties=True):
 
     @classmethod
-    def from_rc(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True) -> "obsdb":
+    def from_rc(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file') -> "obsdb":
         """
         Construct an observation database based on a rc-file. The class does the following:
         - load an obs file in tar.gz format
@@ -33,19 +33,23 @@ class obsdb(obsdb):
             - rcf: rctools.RcFile object (or dict)
             - setupUncertainties (optional): determine if the uncertainties need to be computed
             - filename (optional): path of the file containing the obs (overrides the one given by filekey)
+            - filekey (optional): name of the section containing the file path and relevant keys
 
         """
-        db = cls(rcf['observations']['file']['path'], start=rcf['observations']['start'], end=rcf['observations']['end'])
-        # db.rcf = rcf
+        db = cls(
+            rcf['observations'][filekey]['path'], 
+            start=rcf['observations'].get('start', None), 
+            end=rcf['observations'].get('end', None))
+        db.rcf = rcf
 
         # Rename fields, if required by the config file or dict:
         # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
         # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
-        db.map_fields(rcf['observations']['file'].get('rename', []))
+        db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:
-            tracer = rcf['observations']['file']['tracer']
+            tracer = rcf['observations'][filekey]['tracer']
             logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
         return db

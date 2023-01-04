@@ -71,19 +71,20 @@ class Interface:
                 self.model_data[tracer].add_metacat(k, v)
 
         for cat in self.model_data.categories :
-            optimize_cat = cat.name in self.rcf.get(f'optimize.{cat.tracer}.emissions')
+            pfx = f'optimize.emissions.{cat.tracer}'
+            optimize_cat = cat.name in self.rcf.get(pfx)
             attrs = {'optimized': optimize_cat}
             if optimize_cat:
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will be optimized')
                 attrs.update({
-                    'optimization_interval': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.optimization_interval'),
-                    'apply_lsm': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.apply_lsm', default=True),
-                    'is_ocean': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.is_ocean', default=False),
-                    'n_optim_points': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.npoints'),
-                    'horizontal_correlation': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.spatial_correlation'),
-                    'temporal_correlation': self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.temporal_correlation'),
+                    'optimization_interval': self.rcf.get(f'{pfx}.{cat.name}.optimization_interval'),
+                    'apply_lsm': self.rcf.get(f'{pfx}.{cat.name}.apply_lsm', default=True),
+                    'is_ocean': self.rcf.get(f'{pfx}.{cat.name}.is_ocean', default=False),
+                    'n_optim_points': self.rcf.get(f'{pfx}.{cat.name}.npoints'),
+                    'horizontal_correlation': self.rcf.get(f'{pfx}.{cat.name}.spatial_correlation'),
+                    'temporal_correlation': self.rcf.get(f'{pfx}.{cat.name}.temporal_correlation'),
                 })
-                err = ureg(self.rcf.get(f'optimize.{cat.tracer}.emissions.{cat.name}.annual_uncertainty'))
+                err = ureg(self.rcf.get(f'{pfx}.{cat.name}.annual_uncertainty'))
                 scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
                 attrs['total_uncertainty'] = err.m * scf
             else :

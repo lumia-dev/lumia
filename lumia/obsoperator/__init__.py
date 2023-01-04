@@ -34,6 +34,10 @@ class transport(object):
     def setupObs(self, obsdb):
         self.db = obsdb
 
+        # Just to ensure that calcDepartures work even if no obs err has been provided
+        if 'err' not in self.db.observations :
+            self.db.observations.loc[:, 'err'] = None
+
     def save(self, path=None, tag=None, structf=None):
         """
         This copies the last model I/O to "path", with an optional tag to identify it
