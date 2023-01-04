@@ -1,3 +1,7 @@
 site_name: LUMIA
 site_url: https://lumia.nateko.lu.se
 repo_url: https://github.com/lumia-dev/lumia
+nav:
+  - Home: index.md
+  - Tutorial: tutorial.md
+  - Settings: settings.md
