@@ -1,10 +1,12 @@
 # Step-by-step inversion tutorial 
 
-This tutorial shows how to run a simple CO2 inversion, using example data. This assumes that:
+This tutorial shows how to run a simple CO2 inversion, using example data (download from the [ICOS Carbon Portal](https://fileshare.icos-cp.eu/s/XrxcGFzEHYBo5w7)). This assumes that:
+
 1. LUMIA has been installed
 2. The example observation file (obs_example.tgz) and configuration file (inversion.yaml) are present in the current folder
 3. Footprint files are present on disk, in the __./footprints__ folder
 3. Pre-processed emission files are present in the __./data/fluxes/eurocom025x025/1h__ folder
+
 
 If the data is in a different place, edit the config file (inversion.yaml). 
 
