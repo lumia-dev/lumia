@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://lumia.nateko.lu.se/settings/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Settings - LUMIA</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
+
+        <script src="../js/jquery-1.10.2.min.js" defer></script>
+        <script src="../js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">LUMIA</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../tutorial/" class="nav-link">Tutorial</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Settings</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../tutorial/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" class="nav-link disabled">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lumia-dev/lumia/edit/master/docs/settings.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#configuration-file" class="nav-link">Configuration file</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#run-section" class="nav-link">run section</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#emissions-section" class="nav-link">emissions section:</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#observations-section" class="nav-link">observations section:</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#optimize-section" class="nav-link">optimize section</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#congrad-section" class="nav-link">congrad section:</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#model-section" class="nav-link">model section</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="configuration-file">Configuration file</h1>
+<p>The settings are contained in a <a href="inversion.yaml">configuration file</a> in <em>yaml</em> format.</p>
+<p>The file contains six major sections: 
+- the <code>run</code> section, which contains general simulation settings (domain, resolution, etc.)
+- the <code>emissions</code> section contains all settings needed to construct the file containing the surface fluxes
+- the <code>observations</code> section contains all settings needed to handle the observations (obs file, units, uncertainties, etc.)
+- the <code>optimize</code> section contains settings specific to the inversion (which category needs to be optimized, with which uncertainties, etc.)
+- the <code>model</code> section contains settings of the transport model
+- the <code>minimizer</code> section contains settings of the conjugate gradient minimizer</p>
+<p>Additional sections may be defined for convenience. The values in this page are those used for the <a href="../tutorial">tutorial</a></p>
+<h2 id="run-section"><code>run</code> section</h2>
+<p>General settings (simulation extent and resolution, paths, etc.)</p>
+<pre><code>run:
+    start    : 2018-01-01
+    end      : 2019-01-01
+    timestep : 1h
+    domain   : eurocom025x025
+    grid     : ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:.5, dlat:.5}}
+    tracers  : co2
+    paths    :
+        data        : data
+        output      : output
+        footprints  : footprints
+        temp        : temp
+</code></pre>
+<ul>
+<li><code>start</code> and <code>end</code> (time boundaries of the simulation) can be in any format supported by <code>pandas.Timestamp</code>. </li>
+<li><code>timestep</code> can be anything supported by <code>pandas.tseries.frequencies.to_offset</code>.</li>
+<li>The <code>grid</code> key defines an instance of <a href="gridtools.py"><code>gridtools.Grid</code></a>. The syntax is <code>${Grid:value}</code>, with <code>value</code> a python dictionary containing keywords passed to <code>gridtools.Grid</code>.</li>
+</ul>
+<h2 id="emissions-section"><code>emissions</code> section:</h2>
+<p>The section contains keys needed to construct the emissions file. There needs to be one subsection for each tracer (only one "co2" tracer in this example), and an <code>emissions.tracers</code> key is also necessary.</p>
+<p>The emission file for the simulation is constructed from annual, category-specific, pre-processed emission files. The keys define the naming pattern for these files:
+- the files are in <a href="data/fluxes/nc/eurocom025x025/1h/">data/fluxes/nc/eurocom025x025/1h</a>
+- the files for category <code>biosphere</code> are named following the pattern <code>flux_co2.EDGARv4.3_BP2019.%Y.nc</code></p>
+<pre><code>emissions :
+    tracers : ${run.tracers}
+    co2 :
+        region   : ${run.grid}
+        interval : ${run.timestep}
+        categories :
+            fossil    : EDGARv4.3_BP2019
+            biosphere : LPJ-GUESS_verify
+        prefix : flux_co2.
+        path   : ${run.paths.data}/fluxes/nc/${run.domain}/{run.timestep}/
+</code></pre>
+<h2 id="observations-section"><code>observations</code> section:</h2>
+<p>The section contains keys needed to read and process the observation database. In this tutorial, it just points to the right observation file, but further settings are possible, to restrict the time period, setup the uncertainties, etc. These settings are read in two places:
+- directly in the relevant obsdb module (<a href="lumia/obsdb/InversionDb.py">lumia.obsdb.InversionDb.obsdb</a> class)
+- in a pre-processing step, e.g. in the <a href="lumia/ui/main_functions.py">lumia.ui.setup_observations</a> method.</p>
+<p>See the in-line documentation of these two modules for further info</p>
+<pre><code>observations :
+    file :
+        path  : doc/observations/obs_example.tar.gz
+</code></pre>
+<h2 id="optimize-section"><code>optimize</code> section</h2>
+<p>This section contains the keys that define the inversion problem. It contains two large subsection:
+- one "emissions" subsection, which contains settings related to the state vector and its uncertainty matrix (structure of the uncertainty, number of optimized categories, resolution of the optimization, etc.)
+- one "observations" subsection, which defines the way observation uncertainties are treated:</p>
+<pre><code>optimize :
+    emissions :
+        co2 :
+            biosphere :
+                annual_uncertainty    : 0.45 PgC
+                spatial_correlation   : 500-g
+                temporal_correlation  : 30D
+                npoints               : 2500
+                optimization_interval : 7d
+
+    observations :
+        co2 :
+            uncertainty :
+                type : dyn
+                freq : 7d
+</code></pre>
+<p>Here, the emissions will be optimized for the <code>biosphere</code> category of the <code>co2</code> tracer. The total uncertainty is set to 0.45 PgC (<code>annual_uncertainty</code>), with correlations decaying spatially (<code>spatial_correlation</code>) following a 500 km Gaussian function, and temporally (<code>temporal_correlation</code>) following a 30 days exponential function (see sect 3.5.1 in <a href="https://gmd.copernicus.org/articles/14/3383/2021/">https://gmd.copernicus.org/articles/14/3383/2021/</a>).
+The inversion solves for 2500 cluster of pixels (<code>npoints</code>) each seven days (<code>optimization_interval</code>).</p>
+<p>With <code>observations.co2.uncertainty.type</code> set to <code>dyn</code>, the observation uncertainties are determined based on the quality of the fit of the short term (&lt; 7 days) variability of the modelled concentration to the observed concentrations (see <a href="lumia/ui/main_functions.py">setup_uncertainties</a> method).</p>
+<h2 id="congrad-section"><code>congrad</code> section:</h2>
+<p>This short section contains settings for the conjugate gradient minimizer. The main relevant user-setting is <code>max_number_of_iterations</code> (set to a lower value to speed things up, set to &gt; 50 for scientific results):</p>
+<pre><code>congrad :
+    max_number_of_iterations : 80
+    communication_file       : ${run.paths.temp}/congrad.nc
+    executable               : ${lumia:src/congrad/congrad.exe}
+</code></pre>
+<h2 id="model-section"><code>model</code> section</h2>
+<p>This section contains settings for the interface between lumia and the transport model (i.e. <a href="lumia/obsoperator/__init__.py">lumia/obsoperator</a>)</p>
+<pre><code>model :
+    transport :
+        exec   : ${lumia:transport/multitracer.py}
+        serial : False
+    output :
+        steps : ['apri', 'apos']
+    path : ${run.paths}
+</code></pre>
+<p>Note the syntax of the <code>model.transport.exec</code> key: <code>${lumia:path}</code> points to a path relative to the installation path of the <code>lumia</code> python module.</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js" defer></script>
+        <script src="../search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
