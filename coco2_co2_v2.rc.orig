@@ -1,0 +1,62 @@
+! Main changes:
+! * former "region" key renamed to "emissions.tr.region" (tracer-specific)
+!       Corresponding keys (region.lat0, region.lon0, etc.) renamed to grid.region.lat0, grid.region.lon0, etc.
+!       (since there may be more than one region). If both tracers use the same region, just set emissions.*.region.
+! * Observations now take a "units" key (ppm for CO2) ==> see what's implemented in lumia.tracers.
+! * emissions.categories renamed to emissions.tr.categories
+! * emissions.tr.resample can be used to produce prior based on pre-processed files at a finer temporal resolution
+! * emissions.cat.optimize renamed to emissions.tracer.cat.optimize. Same for most emissions.* keys
+! * emissions.tr.cat.total_uncertainty stores the annual uncertainty for one cat. Units need to be provided
+! * emissions.tr.cat.tcorr now in a simpler format (e.g. 30D for 30 days. Exponential temporal covariances enforced.)
+
+
+! Tracers
+tracers : co2
+
+!=============================================================================================
+emissions.co2.region : eurocom025x025
+grid.eurocom025x025.lon0 : -15
+grid.eurocom025x025.lon1 : 35
+grid.eurocom025x025.dlon : .25
+grid.eurocom025x025.lat0 : 33
+grid.eurocom025x025.lat1 : 73
+grid.eurocom025x025.dlat : .25
+
+!=============================================================================================
+! Observations
+
+obs.file                  : ../obsdb.saqr.20220210.tar.gz
+obs.uncertainty           : weekly
+obs.uncertainty.setup     : True
+obs.co2.units             : ppm
+obs.fields.rename         : mix_tm5_bg:mix_background
+obs.default_weekly_error  : 1.5
+
+!=============================================================================================
+! Fluxes
+emissions.co2.categories : biosphere, fossil, ocean
+
+emissions.co2.fossil.origin         : EDGARv4.3_BP2019
+emissions.co2.biosphere.origin      : VPRM
+emissions.co2.ocean.origin          : mikaloff01
+emissions.co2.interval              : 1h
+emissions.co2.prefix                : flux_co2.
+
+emissions.co2.resample              : F
+
+!=============================================================================================
+! Optimization
+emissions.co2.*.optimize         : 0
+emissions.co2.biosphere.optimize : 1
+emissions.co2.biosphere.total_uncertainty : 0.47 PgC
+
+optimize.co2.*.npoints : 2500
+
+emissions.*.error_structure : linear
+
+emissions.co2.biosphere.corr  : 500-g
+emissions.co2.*.tcorr         : 30D 
+emissions.co2.*.optimization_interval  : 7d
+
+var4d.gradient.norm.reduction : 1.e12
+var4d.fixed_iterations        : 60

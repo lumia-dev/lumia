@@ -1,0 +1,104 @@
+#  Main changes:
+! another comment line
+#  * former "region" key renamed to "emissions.tr.region" (tracer-specific)
+#        Corresponding keys (region.lat0, region.lon0, etc.) renamed to grid.region.lat0, grid.region.lon0, etc.
+#        (since there may be more than one region). If both tracers use the same region, just set emissions.*.region.
+#  * Observations now take a "units" key (ppm for CO2) ==> see what's implemented in lumia.tracers.
+#  * emissions.categories renamed to emissions.tr.categories
+#  * emissions.tr.resample can be used to produce prior based on pre-processed files at a finer temporal resolution
+#  * emissions.cat.optimize renamed to emissions.tracer.cat.optimize. Same for most emissions.* keys
+#  * emissions.tr.cat.total_uncertainty stores the annual uncertainty for one cat. Units need to be provided
+#  * emissions.tr.cat.tcorr now in a simpler format (e.g. 30D for 30 days. Exponential temporal covariances enforced.)
+
+
+path.temp : ./tmp
+emissions.*.path : ./fluxes/nc
+
+########################################################################################################################
+# Live level 2/3 data from ICOS server
+# observed co2 concentrations:
+#  ICOS Atmosphere Release 2022-1 of Level 2 Greenhouse Gas Mole Fractions of CO2, CH4, N2O, CO, meteorology and 14CO2
+#  https://doi.org/10.18160/KCYX-HA35
+#  https://meta.icos-cp.eu/collections/YTpBKDQn060anRJ6eB3Lf6gQ  (only 2019+2020)
+# Global anthropogenic CO2 emissions for 2006-2019 based on EDGARv4.3 and BP statistics 2019
+
+
+# Pre-processed fluxes are level 3 product: https://www.icos-cp.eu/data-products/GFNT-5Y47
+#  European anthropogenic CO2 emissions for 2019-2020 based on EDGARv4.3, BP statistics 2019 and CarbonMonitor
+# Collection
+https://meta.icos-cp.eu/collections/SmSEHOY05Y1q4PA64N6aTddG
+
+# Biosphere-atmosphere exchange fluxes for CO2 from the Vegetation Photosynthesis and Respiration Model VPRM for 2006-2020
+#  DOI https://doi.org/10.18160/VX78-HVA1 (Netcdf format)
+# Collection
+https://meta.icos-cp.eu/collections/iV6nh8iOf5VChnCDYW27c1_9
+#  net ecosystem exchange 2018
+https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU
+
+# ICOS release 2021-1 of Level 2 Ocean data
+#  DOI https://doi.org/10.18160/BCFM-GNVA
+# Collection
+https://meta.icos-cp.eu/collections/TqzkW2nUzbufj_6pnJzzq7o5
+# 2018 (csv files)
+https://meta.icos-cp.eu/objects/n94jijAEWH95fMNn8Mwd4I0M
+
+########################################################################################################################
+
+model.transport.exec: /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
+path.footprints: ./footprints
+correlation.inputdir: ./data/corr
+path.output : ./output
+var4d.conGrad.exec : /home/cec-ami/nateko/dev/lumia/src/congrad/congrad.exe
+
+[Tracers]
+tracers : co2
+
+# =============================================================================================
+[Region]
+emissions.co2.region : eurocom025x025
+grid.eurocom025x025.lon0 : -15
+grid.eurocom025x025.lon1 : 35
+grid.eurocom025x025.dlon : .25
+grid.eurocom025x025.lat0 : 33
+grid.eurocom025x025.lat1 : 73
+grid.eurocom025x025.dlat : .25
+
+# =============================================================================================
+[Observations]
+
+obs.file                  : observations.tar.gz
+obs.uncertainty           : weekly
+obs.uncertainty.setup     : False
+obs.co2.units             : ppm
+obs.fields.rename         : background:mix_background
+obs.default_weekly_error  : 1.5
+
+# =============================================================================================
+[Fluxes]
+emissions.co2.categories : biosphere, fossil, ocean
+#  #VPRM_ECMWF_GEE_2020_CP.nc return the following from sparqle:
+# cp_name= /data/dataAppStorage/netcdf/cF7K5TwNEt3a1Hdt50TdlBNI
+emissions.co2.fossil.origin         : @EDGARv4.3_BP2019
+emissions.co2.biosphere.origin      : @VPRM
+emissions.co2.ocean.origin          : mikaloff01
+emissions.co2.interval              : 1h
+emissions.co2.prefix                : flux_co2.
+
+emissions.co2.resample              : F
+
+# =============================================================================================
+[Optimization]
+emissions.co2.*.optimize         : 0
+emissions.co2.biosphere.optimize : 1
+emissions.co2.biosphere.total_uncertainty : 0.47 PgC
+
+optimize.co2.*.npoints : 2500
+
+emissions.*.error_structure : linear
+
+emissions.co2.biosphere.corr  : 500-g
+emissions.co2.*.tcorr         : 30D 
+emissions.co2.*.optimization_interval  : 7d
+
+var4d.gradient.norm.reduction : 1.e12
+var4d.fixed_iterations        : 60
