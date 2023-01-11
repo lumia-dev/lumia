@@ -767,20 +767,68 @@ class Data:
                 # the ICOS data base as opposed from a previously downloaded local file.
                 if('@'==origin[0]):
                     sFileName= os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
-                    emis =  load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'), \
+                    emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
                     sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
                 else:
-                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'))
+                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'),  grid=grid)
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
                 em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
 
-
+def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
+    '''
+    Function ensureCorrectGrid
+    interpolate the spatial coordinates in sExistingFile if necessary
+        - if the resolution in sExistingFile is the desired one, then just return sExistingFile as the file name
+        - use an existing copy if already exists and return the name of that file 
+        - else call cdo to interpolate to the user requested lat/lon grid resolution and hand the output file back
+    @param sExistingFile an existing netcdf data file like a co2 flux file or other with a lat/lon grid that cdo understands
+    @type string
+    @param grid required parameter that defines the extent and spatial resolution of the lat/lon rectangle requested (defaults to None)
+    @type Grid (optional)
+    '''
+    if(grid is None) or (sExistingFile is None) :
+        print("Fatal error in xr.ensureCorrectGrid(): no grid provided or no existing file provided.")
+        sys.exit(1)
+    # step 1: check if a file with the right spatial resolution already exist. If yes, return that file name and we are done
+    # grid may look something like Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
+    # create the file name extension: lat and lon in degrees*1000
+    sdlat=str(grid.dlat*1000)
+    sdlon=str(grid.dlon*1000)
+    fnameOut="."+os.path.sep+sdlat+os.path.sep+sExistingFile.split(os.path.sep)[-1] +".dLat"+sdlat+"dLon"+sdlon
+    print(fnameOut,  flush=True)
+    try:
+        # Have we created this file previously so we could simply read it instead of creating it first?
+        f=open(fnameOut, 'rb')
+        f.close()
+    except:
+        # No drama. We only need to create an interpolated version of the existing file
+        # step 2: figure out the grid of the existing file sExistingFile
+        # # sCmd="ncdump -h "+sExistingFile+" >tmp.hdr"
+        xrExisting = xr.open_dataset(sExistingFile, drop_variables='co2flux') # only read the dimensions
+        
+        # step 3: compare it to the desired grid
+        # step 4: call cdo and write the interpolated output file into a pre-determined hirarchie and append an extension the the PID aka 
+        #             unique output file name. Upon success, the new file name is then returned by this function.
+        # TODO: implement this
+        print("Not implemented yet")
+        return(None)
+    else:
+        return(fnameOut)
+    return(fname)
+    
 def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None,  sFileName: str=None,  bFromPortal =False, iVerbosityLv=1) -> ndarray:
     # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
     archive = Rclone(archive)
     # archive is now a structure with main values: Rclone(path='fluxes/nc/eurocom025x025/1h/', protocol='rclone', remote='lumia')
     # in case of reading from the carbon portal the archive.path variable is not used, so no need to get fancy here 
+    
+    # It is helpful to know how the data is organised. 
+    # Downloaded files are already sliced to the area needed at a quarter degree resolution: Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
+    # but the carbon portal files are different: npts\(time:8760 (1yr hourly), lat:480 , lon:400) and need to be harmonised
+    # The ranges and step sizes of the dimensions time, lat, lon are NOT contained in the netcdf header (as perhaps they should be).
+    # Looking at the 16 Gbyte  ncdump of the VPRM data set I can see that the same lat/lon area is stored within, but with a stepsize 
+    # of 1/8 of a degree (as opposed to a 1/4 degree). So we need to interpolate and reduce the number of data points.
     
     # Import a file for each year at least partially covered:
     years = unique(date_range(start, end, freq='MS', inclusive='left').year)
@@ -790,6 +838,8 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             # sSearchMask='flux_co2.VPRM' 
             words = sFileName.split('.')
             sKeyWord=words[-1]
+            # co2 fluxes could be local file names like flux_co2.EDGARv4.3_BP2019.2018.nc, flux_co2.VPRM.2018.nc and 
+            # flux_co2.mikaloff01.2018.nc for anthropogenic, vegetation model and ocean model co2 fluxes
             if (('co2' in sFileName)and(sKeyWord=='VPRM')):  # TODO or if it is LPJGUESS...
                 sScndKeyWord='NEE' # we want the net exchange of carbon
             fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
@@ -799,6 +849,9 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
         else:
             fname = f'{prefix}{year}.nc'
             archive.get(fname)
+        # issue: downloaded files are already sliced to the area needed: Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
+        # but some carbon portal files (like VPRM fluxes)  are at a higher spatial resolution
+        fname=ensureCorrectGrid(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         data.append(xr.load_dataarray(fname))
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
 

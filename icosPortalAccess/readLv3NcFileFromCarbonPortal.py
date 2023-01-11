@@ -199,7 +199,7 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
             if(sScndKeyWord is not None):
                 bScndKWordFound=False
                 bGrabNextUrl=False
-                sExtendedKeyWord='_'+sScndKeyWord+'_'
+                sExtendedKeyWord='_'+sScndKeyWord+'_'   # e.g. _NEE_ to search for a whole word
                 words=dobj_L3.split("\"") # split at quotation marks
                 cwLst=[]
                 for word in words:
@@ -222,7 +222,7 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
                 sKeyword='None'
             if(sScndKeyWord is None):
                 sScndKeyWord='None'
-            print('Error in readLv3NcFileFromCarbonPortal(): No matching data records found for Year=%d, 1stKeyword=%s, 2ndKeyword=%s.'%(iRequestedYear, sKeyword, sScndKeyWord))
+            print('Error in readLv3NcFileFromCarbonPortal(): No matching data records found for Year=%d, 1stKeyword=%s, 2ndKeyword=%s.'%(iRequestedYear, sKeyword, sScndKeyWord), flush=True)
             return(None)
         # words=dobj_L3.split('/')
         # tmps = (cp_path+dobj_L3.split('/')[-1]).strip()
@@ -231,7 +231,7 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
         # Done earlier now... sFileNameOnCarbonPortal = remove_unwanted_characters(tmps)
         sFileNameOnCarbonPortal = cp_path+sPID
         if(iVerbosityLv>0):
-            print("Found this PID/Landing page: "+sFileNameOnCarbonPortal)
+            print("Found this PID/Landing page: "+sFileNameOnCarbonPortal, flush=True)
     except:
         print('Error in readLv3NcFileFromCarbonPortal(): No matching data records found for Year=%d, 1stKeyword=%s, 2ndKeyword=%s.'%(iRequestedYear, sKeyword, sScndKeyWord))
         # print('The SPARQL query for flux observations for the requested time interval found no matching data records.')
@@ -246,7 +246,7 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
         return('')
     else:
         if(iVerbosityLv>1):
-            print("Successfully found the data file "+sFileNameOnCarbonPortal+" on the carbon portal.")
+            print("Successfully found the data file "+sFileNameOnCarbonPortal+" on the carbon portal.", flush=True)
     return sFileNameOnCarbonPortal
 
 

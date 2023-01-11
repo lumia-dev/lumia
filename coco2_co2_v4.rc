@@ -80,7 +80,7 @@ emissions.co2.categories : biosphere, fossil, ocean
 # cp_name= /data/dataAppStorage/netcdf/cF7K5TwNEt3a1Hdt50TdlBNI
 emissions.co2.fossil.origin         : @EDGARv4.3_BP2019
 emissions.co2.biosphere.origin      : @VPRM
-emissions.co2.ocean.origin          : mikaloff01
+emissions.co2.ocean.origin          : @mikaloff01
 emissions.co2.interval              : 1h
 emissions.co2.prefix                : flux_co2.
 
