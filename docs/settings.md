@@ -3,6 +3,7 @@
 The settings are contained in a [configuration file](inversion.yaml) in _yaml_ format.
 
 The file contains six major sections: 
+
 - the `run` section, which contains general simulation settings (domain, resolution, etc.)
 - the `emissions` section contains all settings needed to construct the file containing the surface fluxes
 - the `observations` section contains all settings needed to handle the observations (obs file, units, uncertainties, etc.)
@@ -40,6 +41,7 @@ run:
 The section contains keys needed to construct the emissions file. There needs to be one subsection for each tracer (only one "co2" tracer in this example), and an `emissions.tracers` key is also necessary.
 
 The emission file for the simulation is constructed from annual, category-specific, pre-processed emission files. The keys define the naming pattern for these files:
+
 - the files are in [data/fluxes/nc/eurocom025x025/1h](data/fluxes/nc/eurocom025x025/1h/)
 - the files for category `biosphere` are named following the pattern `flux_co2.EDGARv4.3_BP2019.%Y.nc`
 
@@ -59,6 +61,7 @@ emissions :
 ## `observations` section:
 
 The section contains keys needed to read and process the observation database. In this tutorial, it just points to the right observation file, but further settings are possible, to restrict the time period, setup the uncertainties, etc. These settings are read in two places:
+
 - directly in the relevant obsdb module ([lumia.obsdb.InversionDb.obsdb](lumia/obsdb/InversionDb.py) class)
 - in a pre-processing step, e.g. in the [lumia.ui.setup_observations](lumia/ui/main_functions.py) method.
 
@@ -73,6 +76,7 @@ observations :
 ## `optimize` section
 
 This section contains the keys that define the inversion problem. It contains two large subsection:
+
 - one "emissions" subsection, which contains settings related to the state vector and its uncertainty matrix (structure of the uncertainty, number of optimized categories, resolution of the optimization, etc.)
 - one "observations" subsection, which defines the way observation uncertainties are treated:
 
