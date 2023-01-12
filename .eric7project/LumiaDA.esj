@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-01-11, 14:05:35"
+    "saved": "2023-01-12, 16:47:56"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,7 +14,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        87,
+        2,
         0
       ],
       "Folds": [],
@@ -26,7 +26,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        249,
+        288,
         0
       ],
       "Folds": [],
@@ -62,11 +62,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
-        834,
-        14
+        918,
+        59
       ],
       "Folds": [],
-      "Zoom": 1,
+      "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
@@ -75,8 +75,8 @@
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
     "Cursor": [
-      834,
-      14
+      918,
+      59
     ]
   },
   "Breakpoints": [
@@ -91,14 +91,6 @@
     [
       "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClientBase.py",
       1167,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      88,
       "",
       false,
       true,
@@ -169,14 +161,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      804,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClientBase.py",
       1196,
       "",
@@ -210,7 +194,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      799,
+      769,
       "",
       false,
       true,
@@ -218,31 +202,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      768,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      756,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      230,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      811,
+      231,
       "",
       false,
       true,
@@ -251,14 +211,6 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       92,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      731,
       "",
       false,
       true,
@@ -274,7 +226,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      106,
+      107,
       "",
       false,
       true,
@@ -282,7 +234,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      287,
+      288,
       "",
       false,
       true,
@@ -290,7 +242,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      543,
+      544,
       "",
       false,
       true,
@@ -298,7 +250,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      683,
+      684,
       "",
       false,
       true,
@@ -306,7 +258,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      773,
+      774,
       "",
       false,
       true,
@@ -314,7 +266,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      124,
+      125,
       "",
       false,
       true,
@@ -322,7 +274,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      770,
+      771,
       "",
       false,
       true,
@@ -338,7 +290,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      814,
+      901,
       "",
       false,
       true,
@@ -346,7 +298,15 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      814,
+      899,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      842,
       "",
       false,
       true,
@@ -384,9 +344,9 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@59",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@485",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@98",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@60",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@486",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@99",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",

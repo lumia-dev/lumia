@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Union, List, Tuple
 from pathlib import Path
+import subprocess
 from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
@@ -779,6 +780,14 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     '''
     Function ensureCorrectGrid
     interpolate the spatial coordinates in sExistingFile if necessary
+    
+    We trust the climate data operator software CDO from Max Planck Hamburg to do a decent job on interpolation - and it is easy to use
+    CDO Homepaqe:  https://code.mpimet.mpg.de/projects/cdo
+    First we need the reference grid onto which to map. For this we extract it from any existing ICOS flux file with the correct grid, e.g.
+    cdo griddes flux_co2.VPRM.2018.nc >cdo-icos-quarter-degree.grid
+    Then we call cdo with the conservative remapping command (see below and study the cdo user guide). 
+    We also double checked the output to make sure it was mapped correctly onto the provided grid.
+    
         - if the resolution in sExistingFile is the desired one, then just return sExistingFile as the file name
         - use an existing copy if already exists and return the name of that file 
         - else call cdo to interpolate to the user requested lat/lon grid resolution and hand the output file back
@@ -793,8 +802,8 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     # step 1: check if a file with the right spatial resolution already exist. If yes, return that file name and we are done
     # grid may look something like Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
     # create the file name extension: lat and lon in degrees*1000
-    sdlat=str(grid.dlat*1000)
-    sdlon=str(grid.dlon*1000)
+    sdlat=str(int(grid.dlat*1000))
+    sdlon=str(int(grid.dlon*1000))
     fnameOut="."+os.path.sep+sdlat+os.path.sep+sExistingFile.split(os.path.sep)[-1] +".dLat"+sdlat+"dLon"+sdlon
     print(fnameOut,  flush=True)
     try:
@@ -804,15 +813,51 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     except:
         # No drama. We only need to create an interpolated version of the existing file
         # step 2: figure out the grid of the existing file sExistingFile
-        # # sCmd="ncdump -h "+sExistingFile+" >tmp.hdr"
-        xrExisting = xr.open_dataset(sExistingFile, drop_variables='co2flux') # only read the dimensions
+        # #   ncdump -h sExistingFile    or     cdo griddes sExistingFile
+        xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
+        fLats=xrExisting.lat
+        fLons=xrExisting.lon
+        d=dict(xrExisting.dims) # contains the shape of the existing file as {'lat':480, 'lon':400, 'time':8760}
+        # print(fLats.values[d['lat'] - 1],  flush=True)
+        LatWidth=fLats.values[d['lat'] - 1] - fLats.values[0]    # north-south-extent of the stored region in degrees latitude
+        dLatExs=abs(LatWidth/(d['lat'] -1))                                      # stepsize or difference between nearest grid-points in degrees latitude
+        LonWidth=fLons.values[d['lon'] - 1] - fLons.values[0]  # width/east-west extent of the stored region in degrees longitude
+        dLonExs=abs(LonWidth/(d['lon'] - 1))                                    # stepsize or difference between nearest grid-points in degrees longitude
         
-        # step 3: compare it to the desired grid
-        # step 4: call cdo and write the interpolated output file into a pre-determined hirarchie and append an extension the the PID aka 
+        # step 3: Then compare the two grids, that is to say the desired grid and the one extracted from the existing file
+        if ((abs(grid.dlat - dLatExs) < 0.002) and (abs(grid.dlon - dLonExs) < 0.002)):
+            if ((grid.nlat==d['lat']) and (grid.nlon==d['lon'])):
+                if ((abs(grid.dlat0 - fLats.values[0]) < 0.01) and (abs(grid.dlon0 - fLons.values[0]) < 0.01)):
+                    return(sExistingFile)  # The original file
+        # step 4: call cdo and write the interpolated output file into pre-determined hierarchies and append an extension to the PID based on spatial resolution aka 
         #             unique output file name. Upon success, the new file name is then returned by this function.
-        # TODO: implement this
-        print("Not implemented yet")
-        return(None)
+        # Example for calling cdo: cdo remapcon,cdo-icos-quarter-degree.grid  /data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU ./250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
+        try:
+            # Have we created this file previously so we could simply read it instead of creating it first?
+            f=open('cdo-icos-quarter-degree.grid', 'rb')
+            f.close()
+        except:
+            print('Fatal error: Cannot find grid file cdo-icos-quarter-degree.grid in your working folder. Either copy it there or create the file with >>cdo griddes ANY-EXISTING-ICOS-FLUX-FILE-WITH-DESIRED-QUARTER-DEGREE-GRID.nc >cdo-icos-quarter-degree.grid<<',  flush=True)
+            sys.exit(-1)
+        os.system("mkdir -p 250")  # We may need to create the folder as well.
+        cdoCmd='cdo remapcon,cdo-icos-quarter-degree.grid  '+sExistingFile+' '+fnameOut
+        try:
+            # Call CDO in an external subprocess
+            # The Eric7 remote debugger does not like the subprocess command and does weird stuff.
+            # I got the error: cdo (Abort): Operator missing, /opt/conda/envs/lumia/lib/python3.9/site-packages/eric7/DebugClients/Python/DebugClient.py is a file on disk!
+            #     subprocess.run(cdoCmd)
+            os.system(cdoCmd)
+        except:
+            print("Fatal error: Calling cdo failed. Please make sure cdo is installed and working for you. Try running >>cdo "+cdoCmd+"<< in your working directory.")
+            sys.exit(-1)
+        try:
+            # Did cdo create the re-gridded flux file as expected?
+            f=open(fnameOut, 'rb')
+            f.close()
+        except:
+            print("Fatal error: cdo did not create the re-gridded output file "+fnameOut+" as expected from the command >>cdo "+cdoCmd+"<<.")
+        else:
+            return(fnameOut)
     else:
         return(fnameOut)
     return(fname)
@@ -870,8 +915,8 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
     data = data[(times >= start) * (times < end), :, :]
 
     # Coarsen if needed
-    if grid is not None :
-        raise NotImplementedError
+    # if grid is not None :
+    # obsolete - that's what ensureCorrectGrid() is for....    raise NotImplementedError
 
     return data.data
 
