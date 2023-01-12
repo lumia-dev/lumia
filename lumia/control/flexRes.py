@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
 import os
-from datetime import datetime
 import h5py
 from numpy import float64, zeros_like
 from pandas import DataFrame, read_hdf
-from rctools import RcFile as rc
 from lumia.precon import preconditioner as precon
-from lumia.Tools import Region, Categories
 from loguru import logger
-from lumia import paths
 from types import SimpleNamespace
 
 

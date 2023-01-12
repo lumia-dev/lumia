@@ -7,6 +7,7 @@ from archive import Rclone
 from loguru import logger
 from lumia.uncertainties import Uncertainties_mt as Uncertainties
 from lumia.Tools.system_tools import checkDir
+from types import SimpleNamespace
 
 
 class Optimizer(object):
@@ -18,7 +19,13 @@ class Optimizer(object):
         self.control = Uncertainties().setup(interface)  # TODO: create a proper "Precon" module to handle the uncertainties
         self.iteration = 0
 
-        checkDir(self.rcf.get('path.output'))
+        # Paths :
+        self.paths = SimpleNamespace(
+            output = self.rcf.get('run.paths.output'),
+            archive = self.rcf.get('run.paths.archive', default=False)
+        )
+
+        checkDir(self.paths.output)
 
     def GradientTest(self):
 
@@ -35,7 +42,7 @@ class Optimizer(object):
         dx = random.randn(self.control.size)
         alpha = 0.01
 
-        with open(os.path.join(self.rcf.get('path.output'), 'gradient_test.log'), 'w') as fid :
+        with open(os.path.join(self.paths.output, 'gradient_test.log'), 'w') as fid :
             fid.write(f' alpha ;                DJ1 ;                DJ2 ;      DJ1/DJ2 ;    1-DJ1/DJ2\n')
             while alpha > 1.e-15 :
                 alpha /= 10
@@ -98,7 +105,7 @@ class Optimizer(object):
         Perform a chi2 goodness of fit test for the inversion result.
         """
         ndof = nobs - self.iteration
-        with open(os.path.join(self.rcf.get('path.output'), 'chi2.txt'), 'w') as fid:
+        with open(os.path.join(self.paths.output, 'chi2.txt'), 'w') as fid:
             fid.write(f'Inversion performed with {nobs = } observations and niter = {self.iteration} iterations\n')
             fid.write(f'Prior cost function (chi2) value: {self.J_pri.tot}\n')
             fid.write(f'      Reduced chi2 (chi2 / ndof): {self.J_pri.tot / ndof :.2f}\n')
@@ -153,7 +160,7 @@ class Optimizer(object):
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
         mode = 'w' if self.iteration == 0 else 'a'
-        with open(os.path.join(self.rcf.get('path.output'), 'costFunction.txt'), mode=mode) as fid :
+        with open(os.path.join(self.paths.output, 'costFunction.txt'), mode=mode) as fid :
             fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)} \n")
         return gradient_preco
 
@@ -195,7 +202,7 @@ class Optimizer(object):
         - trigger "Optimizer.minimizer.save", which saves the minimizer data file (congrad.nc) and output (congrad_debug.txt) to the output path
         """
         #step = '' if step is None else step+'.'
-        path = self.rcf.get('path.output')
+        path = self.paths.output
 
         self.rcf.write(os.path.join(path, f'lumia.rc'))
         self.model.save(path, step)
@@ -204,8 +211,8 @@ class Optimizer(object):
         self.control.save(os.path.join(path, 'control.hdf'))
 
         # Copy to archive
-        if self.rcf.get('path.archive', default=False):
-            arc = Rclone(self.rcf.get('path.archive'))
+        if self.paths.archive:
+            arc = Rclone(self.paths.archive)
             for file in os.scandir(path):
                 if file.is_file:
                     arc.put(os.path.join(path, file.name))

@@ -12,9 +12,9 @@ from numpy import datetime64
 
 class obsdb:
     def __init__(self, filename=None, start=None, end=None, db=None):
-        if db is not None :
+        if db is not None:
             self._parent = db
-        else :
+        else:
             self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
             self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt'])
             self.observations.loc[:, 'time'] = self.observations.time.astype(datetime64)
@@ -23,35 +23,35 @@ class obsdb:
             self.end = Timestamp(end) if end is not None else None
             self.setup = False
             self.io = {
-                'observations':{
-                    'write':[self.observations.to_csv.__func__, {'path_or_buf':'observations.csv','date_format':'%Y%m%d%H%M%S', 'encoding':'utf8'}],
-                    'read':(read_csv, {'infer_datetime_format':'%Y%m%d%H%M%S', 'index_col':0, 'parse_dates':['time']}),
-                    'filename':'observations.csv'
+                'observations': {
+                    'write': [self.observations.to_csv.__func__, {'path_or_buf': 'observations.csv', 'date_format': '%Y%m%d%H%M%S', 'encoding': 'utf8'}],
+                    'read': (read_csv, {'infer_datetime_format': '%Y%m%d%H%M%S', 'index_col': 0, 'parse_dates': ['time']}),
+                    'filename': 'observations.csv'
                 },
-                'sites':{
-                    'write':[self.sites.to_csv.__func__, {'path_or_buf':'sites.csv','encoding':'utf-8'}],
-                    'read':(read_csv, {'index_col':0}),
-                    'filename':'sites.csv',
+                'sites': {
+                    'write': [self.sites.to_csv.__func__, {'path_or_buf': 'sites.csv', 'encoding': 'utf-8'}],
+                    'read': (read_csv, {'index_col': 0}),
+                    'filename': 'sites.csv',
                 },
-                'files':{
-                    'write':[self.files.to_csv.__func__, {'path_or_buf':'files.csv', 'encoding':'utf-8'}],
-                    'read':(read_csv, {'index_col':0}),# 'engine':'python', 'skipfooter':1}),
-                    'filename':'files.csv',
+                'files': {
+                    'write': [self.files.to_csv.__func__, {'path_or_buf': 'files.csv', 'encoding': 'utf-8'}],
+                    'read': (read_csv, {'index_col': 0}),  # 'engine':'python', 'skipfooter':1}),
+                    'filename': 'files.csv',
                 }
             }
             self.extraFields = {}
-        if filename is not None :
+        if filename is not None:
             self.load_tar(filename)
             self.filename = filename
-            if self.start is None :
+            if self.start is None:
                 self.start = self.observations.time.min()
-            if self.end is None :
+            if self.end is None:
                 self.end = self.observations.time.max()
 
     def __getattr__(self, item):
         if '_parent' in vars(self):
             return getattr(self._parent, item)
-        #else :
+        # else :
         #    logger.error(f"Unknown method or attribute for obsdb: {item}")
         #    raise AttributeError(item)
 
@@ -64,7 +64,7 @@ class obsdb:
     def __setattr__(self, key, value):
         if '_parent' in vars(self):
             setattr(self._parent, key, value)
-        else :
+        else:
             super().__setattr__(key, value)
 
     def load_db(self, db):
@@ -87,30 +87,30 @@ class obsdb:
         tmin = self.observations.time.min() if tmin is None else tmin
         tmax = self.observations.time.max() if tmax is None else tmax
         observations = self.observations.loc[(
-            (self.observations.time >= tmin) &
-            (self.observations.time <= tmax)
+                (self.observations.time >= tmin) &
+                (self.observations.time <= tmax)
         )]
         sites = self.sites.loc[unique(self.observations.site), :]
-        if copy :
+        if copy:
             new = self.__class__(start=tmin, end=tmax)
             new.observations = observations
             new.sites = sites
             new.files = self.files
             return new
-        else :
+        else:
             self.observations = observations
             self.sites = sites
 
     def SelectSites(self, sitelist):
         selection = self.observations.site.isin(sitelist)
-        #selection = [x in sitelist for x in self.observations.site]
+        # selection = [x in sitelist for x in self.observations.site]
         self.SelectObs(selection)
 
     def SelectObs(self, selection):
-        self.observations = self.observations.loc[selection,:]
+        self.observations = self.observations.loc[selection, :]
         sites = unique(self.observations.site)
         self.sites = self.sites.loc[sites]
-        #if hasattr(self, 'files'):
+        # if hasattr(self, 'files'):
         #    self.files = self.files.loc[unique(self.observations.file)]
 
     def get_iloc(self, selection):
@@ -123,10 +123,10 @@ class obsdb:
             file_indices = unique(db.observations.file.dropna())
             files_in_db = [f for f in file_indices if f in db.files.index]
             files_not_in_db = [f for f in file_indices if f not in files_in_db]
-            if len(files_in_db) > 0 :
+            if len(files_in_db) > 0:
                 db.files = self.files.loc[files_in_db, :]
-            if len(files_not_in_db) > 0 :
-                for file in files_not_in_db :
+            if len(files_not_in_db) > 0:
+                for file in files_not_in_db:
                     db.observations.loc[db.observations.file == file, 'file'] = nan
         return db
 
@@ -144,8 +144,8 @@ class obsdb:
 
         # Create a tar file (and the intermediate files that go in the tar) in that temporary directory
         tmpfile = filename
-        with tarfile.open(tmpfile, 'w:gz') as tar :
-            for field in self.io :
+        with tarfile.open(tmpfile, 'w:gz') as tar:
+            for field in self.io:
                 method, kwargs = self.io[field]['write']
                 method(getattr(self, field), **kwargs)
                 tar.add(self.io[field]['filename'])
@@ -161,7 +161,7 @@ class obsdb:
 
     def load_tar(self, filename):
         with tarfile.open(filename, 'r:gz') as tar:
-            for field in self.io :
+            for field in self.io:
                 method, kwargs = self.io[field]['read']
                 data = method(tar.extractfile(self.io[field]['filename']), **kwargs)
                 setattr(self, field, data)
@@ -181,14 +181,15 @@ class obsdb:
         """
         obs = self.observations.copy()
         for site in self.sites.itertuples():
-            for field in set(self.sites.columns) - set(self.observations.columns) :
-                try :
+            for field in set(self.sites.columns) - set(self.observations.columns):
+                try:
                     obs.loc[self.observations.site == site.Index, field] = getattr(site, field)
                 except AttributeError:
-                    import pdb; pdb.set_trace()
+                    import pdb;
+                    pdb.set_trace()
         return obs
 
-    def map_fields(self, mapping : Union[dict, List[str]]) -> None:
+    def map_fields(self, mapping: Union[dict, List[str]]) -> None:
         """
         Rename (copy in fact) fields in the observation dataframe. Fields to rename are passed as a "mapping" argument, which is either:
         - a dictionary of {source : dest} column names
@@ -202,7 +203,7 @@ class obsdb:
 
         for source, dest in mapping.items():
             self.observations.loc[:, dest] = self.observations.loc[:, source]
-    
+
     @classmethod
     def from_dataframe(cls, df: DataFrame) -> "obsdb":
         obs = cls()
@@ -211,7 +212,7 @@ class obsdb:
             site = {}
             for col in dfs.columns:
                 values = dfs.loc[:, col].drop_duplicates().values
-                if len(values) == 1 :
+                if len(values) == 1:
                     site[col] = values[0]
             obs.sites.loc[site['site']] = site
 
@@ -220,10 +221,10 @@ class obsdb:
 
         return obs
 
-    def to_hdf(self, filename: str) -> str :
+    def to_hdf(self, filename: str) -> str:
         df = self.to_dataframe()
-        #TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
-        for col in df.columns :
+        # TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
+        for col in df.columns:
             if df.loc[:, col].dtype == 'O' and isinstance(df.loc[:, col].iloc[0], bool):
                 logger.warning(f"Converting column {col} from {df.loc[:, col].dtype} to {bool}")
                 df.loc[:, col] = df.loc[:, col].astype(bool)
@@ -237,9 +238,9 @@ class obsdb:
 
     def checkIndex(self, reindex=False):
         if True in self.observations.index.duplicated():
-            if reindex :
+            if reindex:
                 logger.warning("Duplicated indices found in the observations table! The table will be reindexed and the original indices will be lost!")
                 self.observations.reset_index(inplace=True)
-            else :
+            else:
                 logger.error("Duplicated indices found in the observations table!")
                 raise RuntimeError
