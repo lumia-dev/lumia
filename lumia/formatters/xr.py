@@ -229,6 +229,8 @@ class TracerEmis(xr.Dataset):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
         assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value) = }")
+        # print(value.shape,  flush=True)
+        # print(self.shape,  flush=True)
         assert value.shape == self.shape, logger.error(f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
         if attrs is None:
             attrs = {'tracer': self.tracer}
@@ -769,9 +771,11 @@ class Data:
                 if('@'==origin[0]):
                     sFileName= os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
-                    sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
+                                                                sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
+                    print(emis.shape,  flush=True)
                 else:
                     emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'),  grid=grid)
+                    print(emis.shape,  flush=True)
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
                 em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
@@ -827,7 +831,7 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
         # step 3: Then compare the two grids, that is to say the desired grid and the one extracted from the existing file
         if ((abs(grid.dlat - dLatExs) < 0.002) and (abs(grid.dlon - dLonExs) < 0.002)):
             if ((grid.nlat==d['lat']) and (grid.nlon==d['lon'])):
-                if ((abs(grid.dlat0 - fLats.values[0]) < 0.01) and (abs(grid.dlon0 - fLons.values[0]) < 0.01)):
+                if ((abs((grid.lat0+0.5*grid.dlat) - fLats.values[0]) < 0.01) and (abs((grid.lon0+0.5*grid.dlon) - fLons.values[0]) < 0.01)):
                     return(sExistingFile)  # The original file
         # step 4: call cdo and write the interpolated output file into pre-determined hierarchies and append an extension to the PID based on spatial resolution aka 
         #             unique output file name. Upon success, the new file name is then returned by this function.
@@ -898,11 +902,26 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
         # but some carbon portal files (like VPRM fluxes)  are at a higher spatial resolution
         fname=ensureCorrectGrid(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         data.append(xr.load_dataarray(fname))
+        # TODO: Issue: files on the carbon portal may have their time axis apparently shifted by one time step, because I found netcdf
+        # co2 flux files that use the END of the time interval for the observation times reported: time:long_name = "time at end of interval" ;
+        # cdo shifttime,-1hour xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
+        # TODO: This needs to be made smarter so we can call CDO and fix the time axis no matter what.....
+        # print(slice(start, end),  flush=True)
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
+    # print(data.time)
+    # print(data['time'][0])
+    # print('start=')
+    # print(start,  flush=True)
+    # print('xr=')
+    # print(xr,  flush=True)
+    print('data.time=')
+    print(data.time,  flush=True)
 
     # Resample if needed
     if freq is not None :
-        times_dest = date_range(start, end, freq=freq, inclusive='left')
+        times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
+        print('times_dest=')
+        print(times_dest,  flush=True)
         tres1 = Timestamp(data.time.data[1])-Timestamp(data.time.data[0])
         tres2 = times_dest[1]-times_dest[0]
         if tres1 != tres2 :
@@ -911,8 +930,11 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             logger.info(f"Increase the resolution of the emissions from {tres1.total_seconds()/3600:.0f}h to {tres2.total_seconds()/3600:.0f}h")
             data = data.reindex(time=times_dest).ffill('time')
 
-    times = data.time.to_pandas()
+    times = data.time.to_pandas()  
+    # print('times=')
+    # print(times,  flush=True) 
     data = data[(times >= start) * (times < end), :, :]
+    # print(data.time)
 
     # Coarsen if needed
     # if grid is not None :
