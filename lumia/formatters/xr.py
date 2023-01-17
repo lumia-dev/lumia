@@ -767,9 +767,12 @@ class Data:
                 logger.debug("origin="+origin)
                 prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 logger.debug("prefix= "+prefix)
-                # If the value of the origin key starts with an '@' sign, then the user requested this data be read directly from
-                # the ICOS data base as opposed from a previously downloaded local file.
-                if origin.startswith('@'):
+                # If the location in emissions.{tr}.location.{cat} is REMOTE, then we read that file directly from the carbon 
+                # portal, else we assumed it is available on the local system in the user-stated path.
+                # if origin.startswith('@'): obsolete
+                sLocation=rcf.get(f'emissions.{tr}.location.{cat}')
+                if ('REMOTE' in sLocation):
+                    # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
                     sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
                                                                 sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
@@ -794,8 +797,8 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     We also double checked the output to make sure it was mapped correctly onto the provided grid.
     
         - if the resolution in sExistingFile is the desired one, then just return sExistingFile as the file name
-        - use an existing copy if already exists and return the name of that file 
-        - else call cdo to interpolate to the user requested lat/lon grid resolution and hand the output file back
+        - use the existing matched grid file in case cdo has been called previously for the requested input file (see below) and return the name of that file 
+        - else call cdo to interpolate to the user requested lat/lon grid, save its output to a predetermined location and put the dLat-dLon into the file extension and hand that output file back
     @param sExistingFile an existing netcdf data file like a co2 flux file or other with a lat/lon grid that cdo understands
     @type string
     @param grid required parameter that defines the extent and spatial resolution of the lat/lon rectangle requested (defaults to None)
@@ -819,6 +822,8 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
         # No drama. We only need to create an interpolated version of the existing file
         # step 2: figure out the grid of the existing file sExistingFile
         # #   ncdump -h sExistingFile    or     cdo griddes sExistingFile
+        # TODO: we cannot hard-wire the the name of the variable(s) to drop to "NEE" - either figure out how to read only the dimensions or how to 
+        # determine the name(s) of the reported variable(s) so we can drop it/them
         xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
         fLats=xrExisting.lat
         fLons=xrExisting.lon
@@ -833,16 +838,17 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
         if ((abs(grid.dlat - dLatExs) < 0.002) and (abs(grid.dlon - dLonExs) < 0.002)):
             if ((grid.nlat==d['lat']) and (grid.nlon==d['lon'])):
                 if ((abs((grid.lat0+0.5*grid.dlat) - fLats.values[0]) < 0.01) and (abs((grid.lon0+0.5*grid.dlon) - fLons.values[0]) < 0.01)):
-                    return(sExistingFile)  # The original file
+                    return(sExistingFile)  # The original file already matches the user-requested grid. Thus, just hand that name back.
         # step 4: call cdo and write the interpolated output file into pre-determined hierarchies and append an extension to the PID based on spatial resolution aka 
         #             unique output file name. Upon success, the new file name is then returned by this function.
         # Example for calling cdo: cdo remapcon,cdo-icos-quarter-degree.grid  /data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU ./250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
+        fRefGridFile='cdo-icos-'+".dLat"+sdlat+"dLon"+sdlon+'-reference.grid'
         try:
             # Have we created this file previously so we could simply read it instead of creating it first?
-            f=open('cdo-icos-quarter-degree.grid', 'rb')
+            f=open(fRefGridFile, 'rb')
             f.close()
         except:
-            print('Fatal error: Cannot find grid file cdo-icos-quarter-degree.grid in your working folder. Either copy it there or create the file with >>cdo griddes ANY-EXISTING-ICOS-FLUX-FILE-WITH-DESIRED-QUARTER-DEGREE-GRID.nc >cdo-icos-quarter-degree.grid<<',  flush=True)
+            print('Fatal error: Cannot find the grid file '+fRefGridFile+' in your working folder. Either copy it there or create the file with >>cdo griddes ANY-EXISTING-ICOS-FLUX-FILE-WITH-DESIRED-dLat'+sdlat+'dLon'+sdlon+'-GRID.nc >'+fRefGridFile+'<<',  flush=True)
             sys.exit(-1)
         os.system("mkdir -p 250")  # We may need to create the folder as well.
         cdoCmd='cdo remapcon,cdo-icos-quarter-degree.grid  '+sExistingFile+' '+fnameOut
@@ -853,7 +859,7 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
             #     subprocess.run(cdoCmd)
             os.system(cdoCmd)
         except:
-            print("Fatal error: Calling cdo failed. Please make sure cdo is installed and working for you. Try running >>cdo "+cdoCmd+"<< in your working directory.")
+            print("Fatal error: Calling cdo failed. Please make sure cdo is installed and working for you. Try running >>"+cdoCmd+"<< yourself in your working directory before running Lumia again.")
             sys.exit(-1)
         try:
             # Did cdo create the re-gridded flux file as expected?

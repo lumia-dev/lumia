@@ -78,6 +78,6 @@ eapri = VecToStruct(dapri, interface)
 eapos = VecToStruct(dapos, interface)
 
 from h5py import File
-with File(f'{rcf.get("path.output")}/errors.h5', 'w') as f :
+with File(f'{rcf.get("run.paths.output")}/errors.h5', 'w') as f :
     f['eapri'] = eapri#['emis']
     f['eapos'] = eapos#['emis']

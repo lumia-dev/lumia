@@ -15,7 +15,7 @@ class Region(region):
             name=rname,
             lat0=rcf.get('region.lat0'), lat1=rcf.get('region.lat1'), dlat=rcf.get('region.dlat'),
             lon0=rcf.get('region.lon0'), lon1=rcf.get('region.lon1'), dlon=rcf.get('region.dlon')
-        )
+        )          # TODO: Perhaps better like this? lon0= rcf['run']['grid']['lon0'],
 
 class GriddedData:
     def __init__(self, data, reg, padding=None):

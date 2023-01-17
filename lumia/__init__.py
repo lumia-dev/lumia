@@ -6,7 +6,7 @@ from .timers import Timer
 from .obsdb import obsdb
 # TODO: I had to re-introduce the next line as in earlier versions before Guillaume moved
 # the rc tool invocacion to a new run file. I need to review this point later.
-from rctools import RcFile as rc
+# from rctools import RcFile as rc
 from .interfaces import Interface
 from .obsoperator import transport
 from .optimizer import Optimizer

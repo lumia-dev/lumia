@@ -22,7 +22,8 @@ p.add_argument('--start', default=None, help="Start of the simulation. Overwrite
 p.add_argument('--end', default=None, help="End of the simulation. Overwrites the value in the rc-file")
 p.add_argument('--setkey', action='append', help="use to override some rc-keys")
 p.add_argument('--tag', default='')
-p.add_argument('--rcf')
+p.add_argument('--rcf')   # what used to be the resource file (now yaml file) - only yaml format is supported
+p.add_argument('--ymf')   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
 p.add_argument('--verbosity', '-v', default='INFO')
 args = p.parse_args(sys.argv[1:])
 
@@ -30,7 +31,14 @@ args = p.parse_args(sys.argv[1:])
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
-rcf = rc(args.rcf)
+if(args.rcf is None):
+    if(args.ymf is None):
+        print("Lumia: Fatal error: no user configuration (yaml) file provided.")
+        sys.exit(1)
+    else:
+        rcf = rc(args.ymf)
+else:            
+    rcf = rc(args.rcf)
 
 if args.setkey :
     for kv in args.setkey :
@@ -41,14 +49,14 @@ if args.setkey :
 defaults = {
     # Global paths
     'path.data': '/data',
-    'path.temp': os.path.join('/temp', args.tag),
-    'path.footprints': '/footprints',
+    'run.paths.temp': os.path.join('/temp', args.tag),
+    'run.paths.footprints': '/footprints',
     'correlation.inputdir': '/data/corr',
 
     # Run-dependent paths
     'tag': args.tag,
-    'path.output': os.path.join('/output', args.tag),
-    'var4d.communication.file': '${path.temp}/congrad.nc',
+    'run.paths.output': os.path.join('/output', args.tag),
+    'var4d.communication.file': '${run.paths.temp}/congrad.nc',
     'emissions.*.archive': 'rclone:lumia:fluxes/nc/',
     'emissions.*.path': '/data/fluxes/nc',
     'model.transport.exec': '/lumia/transport/multitracer.py',
@@ -56,7 +64,8 @@ defaults = {
     'transport.output.steps': ['forward'],
 }
 
-for tr in rcf.get('tracers', tolist='force'):
+# for tr in rcf.get('run.tracers', tolist='force'):
+for tr in list(rcf['run']['tracers']):      # or  list(rcf.get('run.tracers'))
     defaults[f'emissions.{tr}.archive'] = f'rclone:lumia:fluxes/nc/${{emissions.{tr}.region}}/${{emissions.{tr}.interval}}/'
 
 # Read simulation time
@@ -73,12 +82,14 @@ else :
 
 
 # Create subfolder based on the inversion time:
-defaults['path.output'] = os.path.join(defaults['path.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
-defaults['path.temp'] = os.path.join(defaults['path.temp'], f'{start:%Y%m%d}-{end:%Y%m%d}')
+defaults['run.paths.output'] = os.path.join(defaults['run.paths.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
+defaults['run.paths.temp'] = os.path.join(defaults['run.paths.temp'], f'{start:%Y%m%d}-{end:%Y%m%d}')
 
 rcf.set_defaults(**defaults)
 
-logger.info(f"Temporary files will be stored in {rcf.get('path.temp')}")
+logger.info(f"Temporary files will be stored in {rcf.get('run.paths.temp')}")
+logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
+
 
 lumia.paths.setup(rcf)
 
@@ -91,7 +102,7 @@ emis.print_summary()
 # Load observations
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
-    db = obsdb(rcf.get('path.footprints'), start, end)
+    db = obsdb(rcf.get('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     db = obsdb.from_rc(rcf)
 else :
@@ -137,7 +148,7 @@ if args.optimize or args.adjtest or args.gradtest :
         opt.GradientTest()
 
 elif args.emis :
-    model.writeStruct(emis, rcf.get('path.output'), 'modelData')
+    model.writeStruct(emis, rcf['run']['paths']['output'], 'modelData')
 
 elif args.adjtestmod :
     # Test only the adjoint of the CTM (skip the lumia stuff ...).

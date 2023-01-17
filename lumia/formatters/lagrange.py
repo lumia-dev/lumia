@@ -36,6 +36,7 @@ class Emissions:
             self.print_summary(unit=self.rcf.get(f'emissions.{self.tracer}.unit'))
 
         # Coarsen the data if needed:
+        # TODO: Perhaps better like this? lon0=self.rcf['run']['grid']['lon0'],
         reg = region(
             lon0=self.rcf.get('region.lon0'),
             lon1=self.rcf.get('region.lon1'),

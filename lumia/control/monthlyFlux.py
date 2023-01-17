@@ -72,7 +72,8 @@ class Control:
                 Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
                 Temp_L = self.temporal_correlations[cat.temporal_correlation]
                 ipos = catIndex.index(cat.name)
-                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.temp'))
+                # state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('run.paths.temp'))
+                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf['run']['paths']['temp'])
         if add_prior: 
             state += self.vectors.loc[:, 'state_prior']
 
@@ -91,7 +92,8 @@ class Control:
                 Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
                 Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
                 ipos = catIndex.index(cat.name)
-                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.temp'))
+                # g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('run.paths.temp'))
+                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf['run']['paths']['temp'])
         return g_c
         
     def _to_hdf(self, filename):

@@ -30,7 +30,8 @@ class transport(object):
         self.db = obsdb
 
     def calcDepartures(self, struct, step=None, serial=False):
-        tmpdir = self.rcf.get('path.temp')
+        # tmpdir = self.rcf.get('run.path3.temp')
+        tmpdir = self.rcf['run']['paths']['temp']        
 
         # Make sure emissions are in umol:
         struct.to_extensive()
@@ -68,7 +69,8 @@ class transport(object):
         return self.db.observations.loc[:, ['mismatch', 'err']]
 
     def runAdjoint(self, departures):
-        tmpdir = self.rcf.get('path.temp')
+        # tmpdir = self.rcf.get('run.paths.temp')
+        tmpdir = self.rcf['run']['paths']['temp']
 
         # Write model inputs
         self.db.observations.loc[:, 'dy'] = departures

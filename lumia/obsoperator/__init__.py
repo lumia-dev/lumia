@@ -20,7 +20,7 @@ class transport(object):
         self.tempdir = self.rcf.get('model.path.temp', self.outputdir)
         self.executable = self.rcf.get("model.transport.exec")
         self.serial = self.rcf.get("model.transport.serial", default=False)
-        self.footprint_path = self.rcf.get('model.path.footprints')
+        self.footprint_path = self.rcf.get('model.paths.footprints')
 
         # Initialize the obs if needed
         if obs is not None : 

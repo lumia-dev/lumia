@@ -1,0 +1,71 @@
+run :
+    tracers : [co2]
+    grid : ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
+    timestep : 1h
+    paths :
+        temp : ./tmp
+        footprints : ./footprints
+        output : ./output
+
+
+emissions :
+    co2 :
+        region : ${run.grid}
+        interval : ${run.timestep}
+        path : ${run.paths.data}/fluxes/nc/                 # warning
+        categories :
+            biosphere : VPRM
+            ocean : mikaloff01
+            fossil : EDGARv4.3_BP2019
+        location :
+            biosphere : REMOTE
+            ocean : LOCAL
+            fossil : LOCAL
+        prefix : flux_co2.
+
+
+observations :
+    file :
+        path : observations.tar.gz
+        rename : background:mix_backgro                     # warning
+    uncertainty :
+        default_weekly_error : 1.5                          # warning
+
+
+optimize :
+    emissions :
+        co2 :
+            biosphere :
+                annual_uncertainty : 0.47 PgC
+                spatial_correlation : 500-g
+                temporal_correlation : 30D
+                npoints : 2500
+                optimization_interval : 7d
+            resample : False
+    observations :
+        co2 :
+            uncertainty :
+                type : weekly
+
+
+congrad :
+    gradient_norm_reduction : 1.e12
+    max_number_of_iterations : 60
+    communication_file : ${run.paths.temp}/congrad.nc
+    executable : ${lumia:src/congrad/congrad.exe}           # /home/cec-ami/nateko/dev/lumia/src/congrad/congrad.exe
+
+
+model :
+    transport :
+        exec    : ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
+        serial  : False
+    output :
+        steps : ['apri', 'apos']
+    path : ${run.path}
+
+
+# not needed / deprecated?
+correlation.inputdir        : ./data/corr
+emissions.*.error_structure : linear
+obs.uncertainty.setup       : False
+obs.co2.units               : ppm
