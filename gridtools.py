@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from dataclasses import dataclass, field
-from numpy import meshgrid, ndarray, linspace, pi, zeros, float64, sin, diff, searchsorted, array, pad, moveaxis, arange
+from numpy import meshgrid, ndarray, linspace, pi, zeros, float64, sin, diff, searchsorted, array, pad, moveaxis, arange, typing
 from types import SimpleNamespace
 from loguru import logger
 from tqdm import tqdm
@@ -10,7 +10,7 @@ import xarray as xr
 from cartopy.io import shapereader
 from shapely.geometry import Point
 from shapely.ops import unary_union
-from typing import List
+from typing import List, Union
 from shapely.prepared import prep
 
 
@@ -138,6 +138,21 @@ class Grid:
 
 #        self.area = self.calc_area()
 
+        self.round()
+
+    def round(self, decimals=5):
+        """
+        Round the coordinates
+        """
+        self.latc = self.latc.round(decimals)
+        self.latb = self.latb.round(decimals)
+        self.lonc = self.lonc.round(decimals)
+        self.lonb = self.lonb.round(decimals)
+        self.lon0 = round(self.lon0, decimals)
+        self.lat0 = round(self.lat0, decimals)
+        self.lon1 = round(self.lon1, decimals)
+        self.lat1 = round(self.lat1, decimals)
+
     @property
     def area(self) -> ndarray :
         return self.calc_area()
@@ -249,10 +264,18 @@ def calc_overlap_matrices(reg1, reg2):
     return SimpleNamespace(lat=overlap_lat, lon=overlap_lon)
 
 
-#TODO: class below can be simplified a lot using some decorators (for axes swaps and inplace switch)
 @dataclass
 class GriddedData:
-    data    : ndarray
+    """
+    The GriddedData class can be used to regrid data spatially.
+    Arguments:
+        :param data: array to regrid
+        :param grid: spatial grid of the data
+        :param axis: indices of the dimensions corresponding to the latitude and longitude. For instance, if data is a 3D array, with dimensions (time, lat, lon), then axis should be (1, 2). In practice, use the "dims" parameter instead.
+        :param density: whether the data are density (i.e. units/m2) or quantity (i.e. unit/gridbox).
+        :param dims: list of dimension names. Should contain "lat" and "lon".
+    """
+    data    : typing.NDArray
     grid    : Grid
     axis    : list = None
     density : bool = False
@@ -334,7 +357,15 @@ class GriddedData:
         else :
             return GriddedData(data, self.grid, self.axis, density=True, dims=self.dims)
 
-    def transform(self, destgrid, padding=None, inplace=False):
+    def transform(self, destgrid: Grid, padding: Union[float, int, bool]=None, inplace: bool=False) -> "GriddedData":
+        """
+        Regrid (crop, refine, coarsen, pad) data on a different grid.
+        Arguments:
+            :param destgrid: grid in which the output data should be.
+            :param padding: If a value is provided, the regridded data will be padded with this value where the boundaries of the destination grid exceed those from the source grid.
+            :param inplace: determine whether the regridding operation should return a new object or
+
+        """
         data = self
 
         density = False
@@ -461,12 +492,18 @@ class GriddedData:
         logger.info(destgrid)
 
         # ensure that the new grid is a subset of the old one
-        assert all([l in self.grid.latc for l in destgrid.latc])
-        assert all([l in self.grid.lonc for l in destgrid.lonc])
+        assert destgrid.lat0 in self.grid.latb
+        assert destgrid.lat1 in self.grid.latb
+        assert destgrid.lon0 in self.grid.lonb
+        assert destgrid.lon1 in self.grid.lonb
+#        assert all([l in self.grid.latc for l in destgrid.latc])
+#        assert all([l in self.grid.lonc for l in destgrid.lonc])
 
         # crop:
-        slat = array([l in destgrid.latc for l in self.grid.latc])
-        slon = array([l in destgrid.lonc for l in self.grid.lonc])
+        #slat = array([l in destgrid.latc for l in self.grid.latc])
+        #slon = array([l in destgrid.lonc for l in self.grid.lonc])
+        slat = array([destgrid.lat0 < l < destgrid.lat1 for l in self.grid.latc])
+        slon = array([destgrid.lon0 < l < destgrid.lon1 for l in self.grid.lonc])
 
         data = self.data.swapaxes(self.axis[0], 0)
         data = data[slat, :, :]
@@ -475,12 +512,14 @@ class GriddedData:
         data = data[slon, :, :]
         data = data.swapaxes(0, self.axis[1])
 
+        newgrid = Grid(latc=self.grid.latc[slat], lonc=self.grid.lonc[slon], dlat=self.grid.dlat, dlon=self.grid.dlon)
+
         if inplace :
             self.data = data
-            self.grid = destgrid
+            self.grid = newgrid
             return self
         else :
-            return GriddedData(data, destgrid, self.axis, density=self.density, dims=self.dims)
+            return GriddedData(data, newgrid, self.axis, density=self.density, dims=self.dims)
 
     def pad(self, boundaries : Grid, padding, inplace=False):
         """
@@ -524,7 +563,7 @@ class GriddedData:
             self.grid = newgrid
             return self
 
-    def as_dataArray(self, coords=None, dims=None, attrs=None, **kwargs):
+    def as_dataArray(self, coords: dict=None, dims: list=None, attrs: dict=None, **kwargs):
         if dims is None and self.dims is None :
             logger.error("Dimensions must be provided, either through the dims keyword or when instantiating the class")
         if coords is None :

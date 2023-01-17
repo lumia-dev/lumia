@@ -27,8 +27,11 @@ scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 .idea/
 .idea
 *.log
+.eric7project/*
+.jedi/*
 
 *.simg
+site/
 
 coco2_co2_v3.rc
 

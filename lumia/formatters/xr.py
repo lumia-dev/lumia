@@ -731,10 +731,11 @@ class Data:
         Additionally, start and time arguments must be provided
         """
         em = cls()
-        for tr in rcf.get('tracers', tolist='force'):
+        for tr in list(rcf.get('emissions.tracers')):
 
             # Create spatial grid - provided by minLat, maxLat, dLat, minLong, maxLong, dLong (e.g. Europe, quarter degree)
-            grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
+            #grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
+            grid = rcf.get(f'emissions.{tr}.region')
 
             # Create temporal grid:
             freq = rcf.get(f'emissions.{tr}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
@@ -750,26 +751,26 @@ class Data:
                                      units=unit_emis,
                                      timestep=freq))  # .seconds * ur('s')))
 
-            if rcf.get(f'emissions.{tr}.resample', default=False):
-                freq_src = rcf.get(f'emissions.{tr}.convert_from') # if false, we have to resample the input emissions data to the requested time resolution
-            else :
-                freq_src = freq  # the requested time step matches the observational data time step
+            freq_src = rcf.get(f'emissions.{tr}.resample', default=False)
+            if not freq_src:
+                # If emissions.{tr}.resample is False/not defined, get the emissions at their native resolution.
+                # otherwise, resample them from whatever the 'emissions.{tr}.resample' key points to
+                freq_src = freq
 
             # Import emissions for each category of that tracer
             for cat in rcf.get(f'emissions.{tr}.categories'):
-                origin = rcf.get(f'emissions.{tr}.{cat}.origin')
-                print("tr.path= "+rcf.get(f'emissions.{tr}.path'))
-                print("tr.region= "+rcf.get(f'emissions.{tr}.region'))
-                print("freq_src= "+freq_src)
-                print("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
-                print("origin="+origin)
-                prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), rcf.get(f'emissions.{tr}.region'), freq_src, \
-                rcf.get(f'emissions.{tr}.prefix') + origin + '.')
-                print("prefix= "+prefix)
+                origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
+                logger.debug("tr.path= "+rcf.get(f'emissions.{tr}.path'))
+                logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))
+                logger.debug("freq_src= "+freq_src)
+                logger.debug("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
+                logger.debug("origin="+origin)
+                prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                logger.debug("prefix= "+prefix)
                 # If the value of the origin key starts with an '@' sign, then the user requested this data be read directly from
                 # the ICOS data base as opposed from a previously downloaded local file.
-                if('@'==origin[0]):
-                    sFileName= os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
+                if origin.startswith('@'):
+                    sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
                                                                 sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
                     print(emis.shape,  flush=True)

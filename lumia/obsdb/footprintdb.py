@@ -8,7 +8,7 @@ import h5py
 from xarray import DataArray, open_dataarray
 from numpy import unique, array, size, zeros
 from lumia.obsdb import obsdb as obsdb_base
-from lumia import tqdm
+from tqdm import tqdm
 from lumia.Tools import system_tools
 
 logger = logging.getLogger(__name__)

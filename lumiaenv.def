@@ -8,7 +8,7 @@ From: ubuntu:22.04
     apt -y upgrade
 
     export DEBIAN_FRONTEND=noninteractive
-    apt -y install --no-install-recommends git rclone wget vim htop make gfortran
+    apt -y install --no-install-recommends git rclone wget vim htop make gfortran rsync curl wget
     apt -y install --no-install-recommends netcdf-bin libnetcdff-dev libgeos-dev
 
     # Install python packages

@@ -13,7 +13,7 @@ class Minimizer:
     def __init__(self, rcf, nstate=None, filename: str = None):
         self.rcf = rcf
         self.nstate = nstate
-        filename = self.rcf.get('var4d.communication.file') if filename is None else filename
+        filename = self.rcf.get('congrad.communication_file') if filename is None else filename
         self.commfile = CommFile(filename, rcf)
         self.file_initialized = True
         if nstate is not None :
@@ -53,9 +53,9 @@ class Minimizer:
         return status
 
     def runMinimizer(self):
-        exec_name = self.rcf.get('var4d.conGrad.exec', default='congrad.exe')
+        exec_name = self.rcf.get('congrad.executable', default='congrad.exe')
         cmd = [exec_name, '--write-traject', '--state-file', self.commfile.filepath]
-        logger.info(colorize(' '.join([*cmd]), 'g'))
+        logger.info(colorize(' '.join([str(_) for _ in cmd]), 'g'))
         subprocess.check_call(cmd)
 
     def update(self, gradient, J_tot):
