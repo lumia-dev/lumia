@@ -91,7 +91,7 @@ logger.info(f"Temporary files will be stored in {rcf.get('run.paths.temp')}")
 logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
 
-lumia.paths.setup(rcf)
+# lumia.paths.setup(rcf)
 
 # TODO: move " Load the pre-processed emissions" to after Load observations block again - just for testing so we can 
 # work on reading co2 emissions via DA before being bugged down by reading observations in the debugger....

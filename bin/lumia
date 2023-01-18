@@ -20,7 +20,7 @@ if __name__ == '__main__':
     rcf = ui.parse_config(args)
 
     # Adjust the paths in memory
-#    lumia.paths.setup(rcf)
+    #    lumia.paths.setup(rcf)
 
     match args.action:
         case 'forward':

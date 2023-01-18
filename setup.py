@@ -2,7 +2,9 @@
 
 import setuptools
 from pathlib import Path
+import os
 
+# TODO we need a relative path
 with open("README.md", "r") as fh:
     long_description = fh.read()
 

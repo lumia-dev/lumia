@@ -731,7 +731,8 @@ class Data:
         Additionally, start and time arguments must be provided
         """
         em = cls()
-        for tr in list(rcf.get('emissions.tracers')):
+        # TODO: we need to loop through the tracers, not hard-wire co2
+        for tr in list(rcf.get('emissions.co2')):
 
             # Create spatial grid - provided by minLat, maxLat, dLat, minLong, maxLong, dLong (e.g. Europe, quarter degree)
             #grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))

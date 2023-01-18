@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2023 , ",
-    "saved": "2023-01-17, 16:57:29"
+    "saved": "2023-01-18, 17:14:22"
   },
   "project": {
     "AUTHOR": "",
@@ -120,6 +120,8 @@
       "lumia/precon/preconditioner_ray.py",
       "lumia/timers.py",
       "lumia/tracers.py",
+      "lumia/ui/__init__.py",
+      "lumia/ui/main_functions.py",
       "lumia/uncertainties.py",
       "lumia/units.py",
       "lumia_tools/__init__.py",
