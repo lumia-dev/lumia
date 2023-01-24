@@ -732,7 +732,7 @@ class Data:
         """
         em = cls()
         # TODO: we need to loop through the tracers, not hard-wire co2
-        for tr in list(rcf.get('emissions.co2')):
+        for tr in list(rcf.get('run.tracers')):
 
             # Create spatial grid - provided by minLat, maxLat, dLat, minLong, maxLong, dLong (e.g. Europe, quarter degree)
             #grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
@@ -762,20 +762,29 @@ class Data:
             for cat in rcf.get(f'emissions.{tr}.categories'):
                 origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
                 logger.debug("tr.path= "+rcf.get(f'emissions.{tr}.path'))
-                logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))
+                #logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))   # !! one cannot simply assign a Grid to a string
+                regionGrid=rcf.get(f'emissions.{tr}.region')
+                # print(regionGrid,  flush=True)
+                sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
+                logger.debug("tr.region= "+ sRegion)
                 logger.debug("freq_src= "+freq_src)
                 logger.debug("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
                 logger.debug("origin="+origin)
                 prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 logger.debug("prefix= "+prefix)
                 # If the location in emissions.{tr}.location.{cat} is REMOTE, then we read that file directly from the carbon 
-                # portal, else we assumed it is available on the local system in the user-stated path.
-                # if origin.startswith('@'): obsolete
+                # portal, else we assume it is available on the local system in the user-stated path.
+                # if origin.startswith('@'): is now obsolete, because it is incompatible with the yaml naming rules
                 sLocation=rcf.get(f'emissions.{tr}.location.{cat}')
                 if ('REMOTE' in sLocation):
                     # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
-                    sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin[1:])
-                    emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
+                    sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin)
+                    # TODO: archive fails to construct. should be something like fluxes/nc/eurocom025x025/1h/
+                    # Hint from rclone: The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". In that case, __post_init__ will then 
+                    #                              split this into three attributes: protocol, remote and path.
+                    # # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
+                    # emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
+                    emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.path'), \
                                                                 sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
                     print(emis.shape,  flush=True)
                 else:

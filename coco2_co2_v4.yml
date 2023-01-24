@@ -6,6 +6,7 @@ run :
         temp : ./tmp
         footprints : ./footprints
         output : ./output
+        data : .                         # your current working directory under which you would have the ./fluxes/nc/eurocom025x025/ flux data files
 
 
 emissions :
