@@ -770,7 +770,27 @@ class Data:
                 logger.debug("freq_src= "+freq_src)
                 logger.debug("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
                 logger.debug("origin="+origin)
-                prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                # emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.path'),  grid=grid)
+                myPath2FluxData1=rcf.get(f'emissions.{tr}.path')
+                myPath2FluxData3=rcf.get(f'emissions.{tr}.interval')
+                myPath2FluxData2=''
+                try:
+                    myPath2FluxData2=rcf.get(f'emissions.{tr}.regionName')
+                except:
+                    print('Warning: No key emissions:TRACER:regionName found in user defined resource file (used in pathnames). I shall try to guess it...',  flush=True)
+                    mygrid=rcf.get(f'emissions.{tr}.region')
+                    if((250==int(mygrid.dlat*1000)) and (250==int(mygrid.dlon*1000)) and (abs((0.5*(mygrid.lat0+mygrid.lat1))-53)<mygrid.dlat)and (abs((0.5*(mygrid.lon0+mygrid.lon1))-10)<mygrid.dlon)):
+                        myPath2FluxData2='eurocom025x025' # It is highly likely that the region is centered in Europe and has a lat/lon grid of a quarter degree
+                    else:
+                        print('Abort in lumia/formatter/xr.py: My guess of eurocom025x025 was not a very good guess. Please provide a emissions:TRACER:regionName key in your yml configuration file and try again.', flush=True)
+                        sys.exit(1)
+                if(myPath2FluxData1[-1]!=os.path.sep):
+                    myPath2FluxData1=myPath2FluxData1+os.path.sep
+                myPath2FluxData=myPath2FluxData1+myPath2FluxData2+os.path.sep+myPath2FluxData3
+                if (os.path.sep!=myPath2FluxData[-1]):     # Does the path end in a directory separator (forward or back-slash depending on OS)?
+                    myPath2FluxData=myPath2FluxData+os.path.sep
+                myarchivePseudoDict='rclone:lumia:'+myPath2FluxData
+                prefix = os.path.join(myPath2FluxData, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 logger.debug("prefix= "+prefix)
                 # If the location in emissions.{tr}.location.{cat} is REMOTE, then we read that file directly from the carbon 
                 # portal, else we assume it is available on the local system in the user-stated path.
@@ -784,11 +804,14 @@ class Data:
                     #                              split this into three attributes: protocol, remote and path.
                     # # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
                     # emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
-                    emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.path'), \
+                    # myarchiveDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
+                    emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=myarchivePseudoDict, \
                                                                 sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
                     print(emis.shape,  flush=True)
                 else:
-                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive'),  grid=grid)
+                    # myarchiveDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
+                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=myarchivePseudoDict,  grid=grid)
+                    # self contains in its dictionary #    'emissions.co2.archive': 'rclone:lumia:fluxes/nc/${emissions.co2.region}/${emissions.co2.interval}/'
                     print(emis.shape,  flush=True)
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
                 em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
@@ -886,7 +909,7 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
 def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None,  sFileName: str=None,  bFromPortal =False, iVerbosityLv=1) -> ndarray:
     # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
     archive = Rclone(archive)
-    # archive is now a structure with main values: Rclone(path='fluxes/nc/eurocom025x025/1h/', protocol='rclone', remote='lumia')
+    # archive is now a structure with main values: Rclone(protocol='rclone', remote='lumia', path='fluxes/nc/eurocom025x025/1h/' )
     # in case of reading from the carbon portal the archive.path variable is not used, so no need to get fancy here 
     
     # It is helpful to know how the data is organised. 
@@ -906,19 +929,32 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             sKeyWord=words[-1]
             # co2 fluxes could be local file names like flux_co2.EDGARv4.3_BP2019.2018.nc, flux_co2.VPRM.2018.nc and 
             # flux_co2.mikaloff01.2018.nc for anthropogenic, vegetation model and ocean model co2 fluxes
+            sScndKeyWord=None
             if (('co2' in sFileName)and(sKeyWord=='VPRM')):  # TODO or if it is LPJGUESS...
                 sScndKeyWord='NEE' # we want the net exchange of carbon
+            if (('co2' in sFileName)and(sKeyWord[:8]=='3_BP2019')):  # TODO: This needs to become smarter.....
+                if(words[-2]=='EDGARv4'):
+                    sKeyWord='EDGARv4'
+                    sScndKeyWord='BP2019' 
             fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
             if(fname is None):
-                # TODO: we could check if the missing file is available locally as a fall-back...
+                print('Abort in lumia/formatter/xr.py: '+sKeyWord+' '+sScndKeyWord+' file '+fname+' is not found at the given path.',  flush=True)
                 sys.exit(1)
         else:
             fname = f'{prefix}{year}.nc'
-            archive.get(fname)
+            try:
+                archive.get(fname)
+            except:
+                print('Abort in lumia/formatters/xr.py: Unable to obtain archive.get(fname) with fname='+fname,  flush=True)
+                sys.exit(1)
         # issue: downloaded files are already sliced to the area needed: Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
         # but some carbon portal files (like VPRM fluxes)  are at a higher spatial resolution
         fname=ensureCorrectGrid(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
-        data.append(xr.load_dataarray(fname))
+        try:
+            data.append(xr.load_dataarray(fname))
+        except:
+            print('Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname) with fname='+fname,  flush=True)
+            sys.exit(1)
         # TODO: Issue: files on the carbon portal may have their time axis apparently shifted by one time step, because I found netcdf
         # co2 flux files that use the END of the time interval for the observation times reported: time:long_name = "time at end of interval" ;
         # cdo shifttime,-1hour xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250

@@ -164,8 +164,8 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
     @param cp_path  the full path + file name on the ICOS Carbon Portal central storage system holding the 
                                         requested flux information (1-year-record typically)
     @type string
-    @param sKeyword :    the type of product we want to query, like VPRM
-    @param sScndKeyWord:  additional qualifier for of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
+    @param sKeyword :    the type of product we want to query, like VPRM, Edgar or Mikaloff
+    @param sScndKeyWord:  additional qualifier for a product we want to query, like NEE (Net Ecosystem Exchange of CO2)
     @type string 
     @param timeStart :  from when on we want to get the observations
     @type datetime
@@ -186,9 +186,16 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
     # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     # dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
     dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear),output_format='nc').run()
+    # There are 168 entries for this data for the period 2006 to 2019, 14 years => must be monthly data 12*14=168
+    # However, all 168 entries have the same name and description and the json metadata does not provide more clues either.
+    #dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate('EDGAR', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
+    #dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate('EDGARv4.3', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
+    #dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate('EDGARv4.3_BP2019', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
     # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
     # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
     bScndKWordFound=True
+    if ('mikaloff'==sKeyword[:8]):  # may have a trailing number that we need to remove
+        sKeyword='mikaloff'
     sFileNameOnCarbonPortal=None
     sPID=''
     try:
@@ -217,7 +224,7 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
                             break
         else:
             bScndKWordFound=False
-        if(bScndKWordFound==False):
+        if((bScndKWordFound==False)and (sScndKeyWord is not None)):
             if(sKeyword is None):
                 sKeyword='None'
             if(sScndKeyWord is None):
@@ -281,13 +288,13 @@ def readLv3NcFileFromCarbonPortal(sKeyword, start: datetime=None, end: datetime=
     # or use PID directly
     #inputname = path_cp + 'jXPT5pqJgz7MSm5ki95sgqJK'
     if(iVerbosityLv>1):
-        print("readLv3NcFileFromCarbonPortal: Looking for "+sKeyword)
+        print("readLv3NcFileFromCarbonPortal: Looking for %s flux files for year %d." %(sKeyword, year),  flush=True)
     # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     # sKeyword='VPRM'
     inputname = queryCarbonPortal4FluxObsFileName(path_cp,sKeyword, start, end, year, sScndKeyWord,  iVerbosityLv)
         
-    if len(inputname) < 1:
-        print('File not found on the ICOS data portal')
+    if ((inputname is None) or (len(inputname) < 1)):
+        print('%s flux file not found on the ICOS data portal for year %d.' %(sKeyword, year),  flush=True)
         return (None)
     else:
         # xrDS = xr.open_dataset(inputname)

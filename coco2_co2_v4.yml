@@ -1,6 +1,7 @@
 run :
     tracers : [co2]
     grid : ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
+    gridname : 'eurocom025x025'   # common name for region and grid used in the path name to the tracer flux data
     timestep : 1h
     paths :
         temp : ./tmp
@@ -12,16 +13,17 @@ run :
 emissions :
     co2 :
         region : ${run.grid}
+        regionName : ${run.gridname}
         interval : ${run.timestep}
         path : ${run.paths.data}/fluxes/nc/                 # warning
         categories :
+            fossil : EDGARv4.3_BP2019
             biosphere : VPRM
             ocean : mikaloff01
-            fossil : EDGARv4.3_BP2019
         location :
             biosphere : REMOTE
-            ocean : LOCAL
-            fossil : LOCAL
+            ocean : REMOTE
+            fossil : REMOTE
         prefix : flux_co2.
 
 
