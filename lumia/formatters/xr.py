@@ -929,13 +929,19 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             sKeyWord=words[-1]
             # co2 fluxes could be local file names like flux_co2.EDGARv4.3_BP2019.2018.nc, flux_co2.VPRM.2018.nc and 
             # flux_co2.mikaloff01.2018.nc for anthropogenic, vegetation model and ocean model co2 fluxes
+            # VPRM is straight forward to find with SPARQL. EDGAR and mikaloff are not
+            # Hunting on the carbon portal I eventually found the EDGAR 2019 data at
+            # https://www.icos-cp.eu/data-products/GFNT-5Y47
+            # Which offered a link to "View in the data portal" (big turquoise button to the right):
+            # https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22project%22%3A%5B%22misc%22%5D%2C%22type%22%3A%5B%22co2EmissionInventory%22%5D%2C%22submitter%22%3A%5B%22oCP%22%5D%2C%22level%22%3A%5B3%5D%7D%7D
+            # 
             sScndKeyWord=None
             if (('co2' in sFileName)and(sKeyWord=='VPRM')):  # TODO or if it is LPJGUESS...
                 sScndKeyWord='NEE' # we want the net exchange of carbon
             if (('co2' in sFileName)and(sKeyWord[:8]=='3_BP2019')):  # TODO: This needs to become smarter.....
                 if(words[-2]=='EDGARv4'):
-                    sKeyWord='EDGARv4'
-                    sScndKeyWord='BP2019' 
+                    sKeyWord='anthropogenic'  # 'EDGARv4'
+                    sScndKeyWord='EDGARv4.3' 
             fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
             if(fname is None):
                 print('Abort in lumia/formatter/xr.py: '+sKeyWord+' '+sScndKeyWord+' file '+fname+' is not found at the given path.',  flush=True)

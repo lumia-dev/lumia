@@ -121,25 +121,30 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  
     
     sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, iYear)
     sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, iYear)
+    if(sKeyword=='VPRM'):
+        sDataType='biosphereModelingSpatial'
+    if(sKeyword=='anthropogenic'):
+        sDataType='co2EmissionInventory' # ForCo2
     query = '''
         prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
         prefix prov: <http://www.w3.org/ns/prov#>
         prefix xsd: <http://www.w3.org/2001/XMLSchema#>
         select ?dobj ?fileName ?size ?submTime ?timeStart ?timeEnd
         where{
-        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/biosphereModelingSpatial> .
+        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/'''+sDataType+'''> .
         ?dobj cpmeta:hasSizeInBytes ?size .
         ?dobj cpmeta:hasKeyword "'''+sKeyword+'''"^^xsd:string .
         ?dobj cpmeta:hasName ?fileName .
         ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
         ?dobj cpmeta:hasStartTime ?timeStart .
         ?dobj cpmeta:hasEndTime ?timeEnd .
-        ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
         FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
         FILTER( ?timeStart > "'''+sTimeStart+'''"^^xsd:dateTime && ?timeEnd <"'''+sTimeEnd+'''"^^xsd:dateTime)
         FILTER EXISTS {?dobj cpmeta:hasSizeInBytes ?size }
        }
     '''
+    #    ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
+    # https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22project%22%3A%5B%22misc%22%5D%2C%22type%22%3A%5B%22co2EmissionInventory%22%5D%2C%22submitter%22%3A%5B%22oCP%22%5D%2C%22level%22%3A%5B3%5D%7D%7D
     return query
 #         FILTER( ?timeStart > '2019-12-31T23:59:59.000Z'^^xsd:dateTime && ?timeEnd < '2021-01-01T00:00:01.000Z'^^xsd:dateTime)
 #        ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
@@ -203,10 +208,15 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
             # TODO: SPARQL in its present form does not allow to provide to combine multiple key words with a logical operator
             # like KeyWord1 AND KeyWord2. Hence dobj_L3 typically returns multiple PIDs and we need to extract the right one.
             # the dobj key/val pair is something like dobj : https://meta.icos-cp.eu/objects/nBGgNpQxPYXBYiBuGGFp2VRF
+            # anthropogenic emissions is different.
+            # there is only one record, one file name like EDGARv4.3_BP2021_CO2_EU2_2018.nc
             if(sScndKeyWord is not None):
                 bScndKWordFound=False
                 bGrabNextUrl=False
-                sExtendedKeyWord='_'+sScndKeyWord+'_'   # e.g. _NEE_ to search for a whole word
+                if(sKeyword=='anthropogenic'):
+                    sExtendedKeyWord=sScndKeyWord+'_'   # e.g. _NEE_ to search for a whole word
+                else:
+                    sExtendedKeyWord='_'+sScndKeyWord+'_'   # e.g. _NEE_ to search for a whole word
                 words=dobj_L3.split("\"") # split at quotation marks
                 cwLst=[]
                 for word in words:
@@ -238,7 +248,10 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
         # Done earlier now... sFileNameOnCarbonPortal = remove_unwanted_characters(tmps)
         sFileNameOnCarbonPortal = cp_path+sPID
         if(iVerbosityLv>0):
-            print("Found this PID/Landing page: "+sFileNameOnCarbonPortal, flush=True)
+            if(sKeyword is None):
+                print("Found this PID/Landing page for keyword %s: %s"%(sKeyword,sFileNameOnCarbonPortal), flush=True)
+            else:
+                print("Found this PID/Landing page for keywords %s and %s: %s"%(sKeyword, sScndKeyWord, sFileNameOnCarbonPortal), flush=True)
     except:
         print('Error in readLv3NcFileFromCarbonPortal(): No matching data records found for Year=%d, 1stKeyword=%s, 2ndKeyword=%s.'%(iRequestedYear, sKeyword, sScndKeyWord))
         # print('The SPARQL query for flux observations for the requested time interval found no matching data records.')
