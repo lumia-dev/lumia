@@ -22,8 +22,8 @@ emissions :
             ocean : mikaloff01
         location :
             biosphere : REMOTE
-            ocean : REMOTE
             fossil : REMOTE
+            ocean : LOCAL
         prefix : flux_co2.
 
 

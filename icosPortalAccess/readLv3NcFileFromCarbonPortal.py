@@ -22,6 +22,12 @@ bDEBUG =False
 # path to netcdf files in CP data app
 path_cp = '/data/dataAppStorage/netcdf/'
 
+#
+# The pre-processed data used by Lumia (as a-priori) is described e.g. here:
+# https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
+# There you can find links to the anthropogenic (EDGARv4.3), ocean (Mikaloff-Fletcher 2007) and to the diagnostic biosphere model VPRM
+#
+
 
 # ********************************************
 
@@ -188,14 +194,8 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
     Returns full path+name if successful; (empty) string if unsuccessful.
 
     """ 
-    # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    # dobj_L3 = RunSparql(sparql_query=findDobjFromName(sFileName),output_format='nc').run()
+    # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear),output_format='nc').run()
-    # There are 168 entries for this data for the period 2006 to 2019, 14 years => must be monthly data 12*14=168
-    # However, all 168 entries have the same name and description and the json metadata does not provide more clues either.
-    #dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate('EDGAR', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
-    #dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate('EDGARv4.3', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
-    #dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate('EDGARv4.3_BP2019', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
     # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
     # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
     bScndKWordFound=True

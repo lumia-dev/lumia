@@ -845,8 +845,8 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     # create the file name extension: lat and lon in degrees*1000
     sdlat=str(int(grid.dlat*1000))
     sdlon=str(int(grid.dlon*1000))
-    fnameOut="."+os.path.sep+sdlat+os.path.sep+sExistingFile.split(os.path.sep)[-1] +".dLat"+sdlat+"dLon"+sdlon
-    print(fnameOut,  flush=True)
+    fnameOut="."+os.path.sep+"regridded"+os.path.sep+sdlat+'x'+sdlon+os.path.sep+sExistingFile.split(os.path.sep)[-1] +".dLat"+sdlat+"dLon"+sdlon
+    print('Hunting for flux input file '+fnameOut,  flush=True)
     try:
         # Have we created this file previously so we could simply read it instead of creating it first?
         f=open(fnameOut, 'rb')
@@ -875,13 +875,17 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
         # step 4: call cdo and write the interpolated output file into pre-determined hierarchies and append an extension to the PID based on spatial resolution aka 
         #             unique output file name. Upon success, the new file name is then returned by this function.
         # Example for calling cdo: cdo remapcon,cdo-icos-quarter-degree.grid  /data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU ./250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
-        fRefGridFile='cdo-icos-'+".dLat"+sdlat+"dLon"+sdlon+'-reference.grid'
+        fRefGridFile="."+os.path.sep+"regridded"+os.path.sep+sdlat+'x'+sdlon+os.path.sep+'cdo-icos-'+"dLat"+sdlat+"dLon"+sdlon+'-reference.grid'
         try:
             # Have we created this file previously so we could simply read it instead of creating it first?
             f=open(fRefGridFile, 'rb')
             f.close()
         except:
-            print('Fatal error: Cannot find the grid file '+fRefGridFile+' in your working folder. Either copy it there or create the file with >>cdo griddes ANY-EXISTING-ICOS-FLUX-FILE-WITH-DESIRED-dLat'+sdlat+'dLon'+sdlon+'-GRID.nc >'+fRefGridFile+'<<',  flush=True)
+            print('Fatal error: Cannot find the grid file '+fRefGridFile+' below your working folder. Either copy it there or create the file with')
+            print('cdo griddes YOUR_ANY_NETCDFFILE_ON_DESIRED_GRID >'+fRefGridFile)
+            print('Next time Lumia automatically creates the regridded data file by executing:')
+            print('cdo remapcon,'+fRefGridFile+' '+sExistingFile+'  '+"."+os.path.sep+"regridded"+os.path.sep+sdlat+'x'+sdlon+os.path.sep+os.path.basename(sExistingFile)+'.'+"dLat"+sdlat+"dLon"+sdlon, flush=True)
+            # print('cdo  remapcon,cdo-icos-quarter-degree.grid  /data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU ./250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250', flush=True)
             sys.exit(-1)
         os.system("mkdir -p 250")  # We may need to create the folder as well.
         cdoCmd='cdo remapcon,cdo-icos-quarter-degree.grid  '+sExistingFile+' '+fnameOut
@@ -907,6 +911,11 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     return(fname)
     
 def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None,  sFileName: str=None,  bFromPortal =False, iVerbosityLv=1) -> ndarray:
+    #
+    # The pre-processed data used by Lumia (as a-priori) is described e.g. here:
+    # https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
+    # There you can find links to the anthropogenic (EDGARv4.3), ocean (Mikaloff-Fletcher 2007) and to the diagnostic biosphere model VPRM
+    #
     # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
     archive = Rclone(archive)
     # archive is now a structure with main values: Rclone(protocol='rclone', remote='lumia', path='fluxes/nc/eurocom025x025/1h/' )
@@ -940,7 +949,7 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
                 sScndKeyWord='NEE' # we want the net exchange of carbon
             if (('co2' in sFileName)and(sKeyWord[:8]=='3_BP2019')):  # TODO: This needs to become smarter.....
                 if(words[-2]=='EDGARv4'):
-                    sKeyWord='anthropogenic'  # 'EDGARv4'
+                    sKeyWord='anthropogenic' 
                     sScndKeyWord='EDGARv4.3' 
             fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
             if(fname is None):
