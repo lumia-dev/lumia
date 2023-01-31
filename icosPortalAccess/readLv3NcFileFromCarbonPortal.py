@@ -249,7 +249,7 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
         sFileNameOnCarbonPortal = cp_path+sPID
         if(iVerbosityLv>0):
             if(sKeyword is None):
-                print("Found this PID/Landing page for keyword %s: %s"%(sKeyword,sFileNameOnCarbonPortal), flush=True)
+                print("Found this PID/Landing page for keyword %s: %s"%(sKeyword,sFileNameOnCarbonPortal), flush=True) # timeStart
             else:
                 print("Found this PID/Landing page for keywords %s and %s: %s"%(sKeyword, sScndKeyWord, sFileNameOnCarbonPortal), flush=True)
     except:

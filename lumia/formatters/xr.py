@@ -20,7 +20,7 @@ from netCDF4 import Dataset
 # from lumia.icosPortalAccess import  readLv3NcFileFromCarbonPortal   # as fromICP
 import icosPortalAccess.readLv3NcFileFromCarbonPortal as fromICP
 import numbers
-import cdoWrapper
+from lumia.formatters import cdoWrapper
 from archive import Rclone
 from typing import Iterator
 
@@ -828,13 +828,6 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
     # archive is now a structure with main values: Rclone(protocol='rclone', remote='lumia', path='fluxes/nc/eurocom025x025/1h/' )
     # in case of reading from the carbon portal the archive.path variable is not used, so no need to get fancy here 
     
-    # It is helpful to know how the data is organised. 
-    # Downloaded files are already sliced to the area needed at a quarter degree resolution: Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
-    # but the carbon portal files are different: npts\(time:8760 (1yr hourly), lat:480 , lon:400) and need to be harmonised
-    # The ranges and step sizes of the dimensions time, lat, lon are NOT contained in the netcdf header (as perhaps they should be).
-    # Looking at the 16 Gbyte  ncdump of the VPRM data set I can see that the same lat/lon area is stored within, but with a stepsize 
-    # of 1/8 of a degree (as opposed to a 1/4 degree). So we need to interpolate and reduce the number of data points.
-    
     # Import a file for each year at least partially covered:
     years = unique(date_range(start, end, freq='MS', inclusive='left').year)
     data = []
@@ -869,19 +862,23 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             except:
                 print('Abort in lumia/formatters/xr.py: Unable to obtain archive.get(fname) with fname='+fname,  flush=True)
                 sys.exit(1)
-        # issue: downloaded files are already sliced to the area needed: Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
-        # but some carbon portal files (like VPRM fluxes)  are at a higher spatial resolution
-        fname=cdoWrapper.ensureCorrectGrid(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
+        # It is helpful to know how the data is organised. 
+        # Downloaded files are already sliced to the area needed at a quarter degree resolution: 
+        # Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
+        # but the carbon portal files are different: npts\(time:8760 (1yr hourly), lat:480 , lon:400) and need to be mapped correctly.
+        # The ranges and step sizes of the dimensions time, lat, lon are NOT contained in the netcdf header (as perhaps they should be).
+        # Looking at the 16 Gbyte  ncdump of the VPRM data set I can see that the same lat/lon area is stored within, but with a stepsize 
+        # of 1/8 of a degree (as opposed to a 1/4 degree). So we need to interpolate and reduce the number of data points.
+        tim0=None
+        (fname, tim0)=cdoWrapper.ensureCorrectGrid(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         # TODO: Issue: files on the carbon portal may have their time axis apparently shifted by one time step, because I found netcdf
         # co2 flux files that use the END of the time interval for the observation times reported: time:long_name = "time at end of interval" ;
         
-        # TODO: If Time starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement interval
-        #             as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
-        # We can fix this by shifting the time axis by one hour (with cdo):
-        # cdo shifttime,-1hour xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
-        # TODO: This needs to be made smarter so we can call CDO and fix the time axis no matter what.....
-        # TODO: check if temporal resampling should have been done before this step....
-        fname=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
+        # Beware: If the time dimension starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement
+        #           interval  as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
+        # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
+        if((tim0 is None)or(tim0!=0)):
+            fname=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname,  tim0, grid)  
         
         try:
             data.append(xr.load_dataarray(fname))
@@ -890,14 +887,6 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             sys.exit(1)
         # print(slice(start, end),  flush=True)
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
-    # print(data.time)
-    # print(data['time'][0])
-    # print('start=')
-    # print(start,  flush=True)
-    # print('xr=')
-    # print(xr,  flush=True)
-    print('data.time=')
-    print(data.time,  flush=True)
 
     # Resample if needed
     if freq is not None :
@@ -913,14 +902,10 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             data = data.reindex(time=times_dest).ffill('time')
 
     times = data.time.to_pandas()  
-    # print('times=')
-    # print(times,  flush=True) 
     data = data[(times >= start) * (times < end), :, :]
-    # print(data.time)
-
     # Coarsen if needed
-    # if grid is not None :
-    # obsolete - that's what ensureCorrectGrid() is for....    raise NotImplementedError
+    # # # if grid is not None :    raise NotImplementedError
+    # obsolete - that's what ensureCorrectGrid() is for.... 
 
     return data.data
 

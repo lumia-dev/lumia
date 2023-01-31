@@ -1,9 +1,25 @@
 import os
 import sys
+import xarray as xr
+import pandas as pd
 from gridtools import grid_from_rc
 from gridtools import Grid
 
+'''
+This is a collection of wrapper scripts to call the Climate Data Operator (cdo) to achieve common
+tasks on geolocated netcdf files.
 
+ensureCorrectGrid() ensures that the netcdf file provided is on the user-provided lat/lon grid and if not
+                                creates it and stores it in a predefined location for future use.
+ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is one (undesired)
+                             or zero (as it should). Normally the netcdf header should provide whether the times reported
+                             refer to the start of the time step, the middle or the end. VPRM files do, EDGAR4.3 files don't.
+                             Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
+                             elegance: if the first time step starts at one, then measurments are assumed to be reported at the
+                             end of each time step, while Lumia expect this time to represent the beginning of the time interval.
+                             Therefor we the time axis back in time by one timestep which is then equivalent to having
+                             times representing the beginning of an observation period.
+'''
 
 def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     '''
@@ -25,6 +41,7 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     @param grid required parameter that defines the extent and spatial resolution of the lat/lon rectangle requested (defaults to None)
     @type Grid (optional)
     '''
+    tim0=None
     if(grid is None) or (sExistingFile is None) :
         print("Fatal error in xr.ensureCorrectGrid(): no grid provided or no existing file provided.")
         sys.exit(1)
@@ -39,15 +56,19 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
         # Have we created this file previously so we could simply read it instead of creating it first?
         f=open(fnameOut, 'rb')
         f.close()
+        # tim0=0  # we could assume time axis starts at zero. If this software created it, then that should be the case. But let's be prudent....
     except:
         # No drama. We only need to create an interpolated version of the existing file
         # step 2: figure out the grid of the existing file sExistingFile
         # #   ncdump -h sExistingFile    or     cdo griddes sExistingFile
         # TODO: we cannot hard-wire the the name of the variable(s) to drop to "NEE" - either figure out how to read only the dimensions or how to
         # determine the name(s) of the reported variable(s) so we can drop it/them
-        xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
+        xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions + 'emission'
         fLats=xrExisting.lat
         fLons=xrExisting.lon
+        dTime=xrExisting.time.data
+        t1 = pd.Timestamp(dTime[0])
+        tim0=t1.hour
         d=dict(xrExisting.dims) # contains the shape of the existing file as {'lat':480, 'lon':400, 'time':8760}
         # print(fLats.values[d['lat'] - 1],  flush=True)
         LatWidth=fLats.values[d['lat'] - 1] - fLats.values[0]    # north-south-extent of the stored region in degrees latitude
@@ -59,7 +80,7 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
         if ((abs(grid.dlat - dLatExs) < 0.002) and (abs(grid.dlon - dLonExs) < 0.002)):
             if ((grid.nlat==d['lat']) and (grid.nlon==d['lon'])):
                 if ((abs((grid.lat0+0.5*grid.dlat) - fLats.values[0]) < 0.01) and (abs((grid.lon0+0.5*grid.dlon) - fLons.values[0]) < 0.01)):
-                    return(sExistingFile)  # The original file already matches the user-requested grid. Thus, just hand that name back.
+                    return(sExistingFile, tim0)  # The original file already matches the user-requested grid. Thus, just hand that name back.
         # step 4: call cdo and write the interpolated output file into pre-determined hierarchies and append an extension to the PID based on spatial resolution aka
         #             unique output file name. Upon success, the new file name is then returned by this function.
         # Example for calling cdo: cdo remapcon,cdo-icos-quarter-degree.grid  /data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU ./250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
@@ -93,25 +114,67 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
             f.close()
         except:
             print("Fatal error: cdo did not create the re-gridded output file "+fnameOut+" as expected from the command >>cdo "+cdoCmd+"<<.")
+            sys.exit(-1)
         else:
-            return(fnameOut)
-    else:
-        return(fnameOut)
-    return(fname)
+            return(fnameOut, tim0)
+    return(fnameOut, tim0) # we will use a re-gridded file we created earlier or that already exists
     
 
-def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, sdlat, sdlon,   grid: Grid = None):
-    '''  # TODO: If Time starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement interval
+def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0, grid: Grid = None):
+    '''  
+    ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is one (undesired)
+                             or zero (as it should). Normally the netcdf header should provide whether the times reported
+                             refer to the start of the time step, the middle or the end. VPRM files do, EDGAR4.3 files don't.
+                             Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
+                             elegance: if the first time step starts at one, then measurments are assumed to be reported at the
+                             end of each time step, while Lumia expect this time to represent the beginning of the time interval.
+                             Therefor we the time axis back in time by one timestep which is then equivalent to having
+                             times representing the beginning of an observation period.
+        # TODO: If Time starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement interval
         #             as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
         # We can fix this by shifting the time axis by one hour (with cdo):
         # cdo shifttime,-1hour xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
         # TODO: This needs to be made smarter so we can call CDO and fix the time axis no matter what.....
 '''
-    sRenameCmd='mv .'+os.path.sep+'regridded'+os.path.sep+sdlat+'x'+sdlon+os.path.sep+sExistingFile+' '+sExistingFile+'eots'
+    if((tim0 is not None) and (tim0==0)):
+            # we are good. No need to shift. Time dimension starts at zero.
+            return(sExistingFile)
+    if(grid is None) or (sExistingFile is None) :
+        print("Fatal error in xr.ensureCorrectGrid(): no grid provided or no existing file provided.")
+        sys.exit(1)
+    sdlat=str(int(grid.dlat*1000))
+    sdlon=str(int(grid.dlon*1000))
+    
+    # Do we have to shift the time axis or not? 
+    # read the first value from the time dimension and see if it is zero.
+    xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
+    dTime=xrExisting.time.data
+    t1 = pd.Timestamp(dTime[0])
+    tim0=t1.hour
+    # print('tim0=%d'%tim0, flush=True)
+    if(tim0==0):
+            # we are good. No need to shift. Time dimension starts at zero.
+            return(sExistingFile)
+    tStep=dTime[1] - dTime[0]
+    tStep*=1e-9  # from nanoseconds to seconds - we expect 3600s=1h
+    timeStep=int(tStep/3600) # time step in hours
+    # print('time step= %dh'%timeStep, flush=True)
+    # We expect tim0==tStep at this stage, which is the reason for shifting the time dimension by one time unit.
+    if(tim0!=timeStep): 
+        print('Warning in Lumia formatter/cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(): First time axis value is not zero(=midnight) or one time step.', flush=True)
+    sRenameCmd=''
+    fnameOutput='.'+os.path.sep+'regridded'+os.path.sep+sdlat+'x'+sdlon+os.path.sep+os.path.basename(sExistingFile).split(os.path.sep)[-1]
+    if('./regridded/' in sExistingFile):
+        #  move the existing local file with time representing eots (end of time step) out of the way
+        sRenameCmd='mv '+sExistingFile+' '+fnameOutput+'.eots'
+    else:
+        # it is a file straight from the carbon portal with correct grid to start with, but time alone is shifted.
+        sRenameCmd='cp '+sExistingFile+' '+fnameOutput+'.eots'
     os.system(sRenameCmd)  
-    cdoCmd="cdo shifttime,-1hour '+sExistingFile+'.eots '+sExistingFile"
+    print(sRenameCmd, flush=True)
+    cdoCmd='cdo shifttime,-%dhour %s.eots  %s'%(timeStep, fnameOutput, fnameOutput)
+    print(cdoCmd, flush=True)
     os.system(cdoCmd) 
-    print('Shifting of time axis with CDO not implemented yes. If you are lucky, we may not have to...',  flush=True)
     return(sExistingFile)
     
 
