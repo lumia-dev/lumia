@@ -45,7 +45,12 @@ class obsdb(obsdb):
         # Rename fields, if required by the config file or dict:
         # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
         # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
-        db.map_fields(rcf['observations'][filekey].get('rename', []))
+        renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
+        renameLst.append(rcf['observations'][filekey].get('rename', []))
+        logger.info('Renaming the following columns in the observations data:')
+        logger.info(renameLst)
+        db.map_fields(renameLst)
+        #db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:
@@ -55,7 +60,7 @@ class obsdb(obsdb):
         return db
 
     def setup_uncertainties(self, *args, **kwargs):
-        errtype = self.rcf.get('obs.uncertainty')
+        errtype = self.rcf.get('observations.uncertainty.frequency')
         if errtype == 'weekly':
             self.setup_uncertainties_weekly()
         elif errtype == 'cst':
@@ -68,8 +73,9 @@ class obsdb(obsdb):
 
     def setup_uncertainties_weekly(self):
         res = []
-        if 'obs.default_weekly_error' in self.rcf.keys :
-            default_error = self.rcf.get('obs.default_weekly_error')
+        # if 'observations.uncertainty.default_weekly_error' in self.rcf.keys :  TODO: TypeError: self.rcf.keys  is not iterable
+        if (1==1):
+            default_error = self.rcf.get('observations.uncertainty.default_weekly_error')
             if 'err' not in self.sites.columns :
                 self.sites.loc[:, 'err'] = default_error
                 

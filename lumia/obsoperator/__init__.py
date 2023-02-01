@@ -16,8 +16,8 @@ class transport(object):
         self.rcf = rcf
 
         # Set paths :
-        self.outputdir = self.rcf.get('model.path.output')
-        self.tempdir = self.rcf.get('model.path.temp', self.outputdir)
+        self.outputdir = self.rcf.get('model.paths.output')
+        self.tempdir = self.rcf.get('model.paths.temp', self.outputdir)
         self.executable = self.rcf.get("model.transport.exec")
         self.serial = self.rcf.get("model.transport.serial", default=False)
         self.footprint_path = self.rcf.get('model.paths.footprints')

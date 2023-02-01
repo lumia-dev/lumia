@@ -1,3 +1,6 @@
+lumiacode :
+    homedir : /home/arndt/nateko/dev/lumia/lumiaDA/lumia   # Location of the Lumia source code/scripts
+
 run :
     tracers : [co2]
     grid : ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
@@ -31,8 +34,17 @@ observations :
     file :
         path : observations.tar.gz
         rename : background:mix_backgro                     # warning
+        tracer : co2
     uncertainty :
         default_weekly_error : 1.5                          # warning
+        frequency            : weekly
+        setup                : False
+        obs_field            : err_obs
+        dyn :
+            freq             : 7D
+    validation_file          : False
+    co2:
+        units                : ppm
 
 
 optimize :
@@ -55,16 +67,19 @@ congrad :
     gradient_norm_reduction : 1.e12
     max_number_of_iterations : 60
     communication_file : ${run.paths.temp}/congrad.nc
-    executable : ${lumia:src/congrad/congrad.exe}           # /home/cec-ami/nateko/dev/lumia/src/congrad/congrad.exe
+    executable : ${lumiacode.homedir}/src/congrad/congrad.exe    # ${lumia:src/congrad/congrad.exe}       # /home/cec-ami/nateko/dev/lumia/src/congrad/congrad.exe
 
 
 model :
     transport :
-        exec    : ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
+        exec    : ${lumiacode.homedir}/transport/multitracer.py # ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
         serial  : False
     output :
         steps : ['apri', 'apos']
-    path : ${run.path}
+    paths :
+        output : ${run.paths.output}
+        temp   : ${run.paths.temp}
+        footprints : ${run.paths.footprints}
 
 
 # not needed / deprecated?

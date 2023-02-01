@@ -881,18 +881,18 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
             fname=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname,  tim0, grid)  
         
         try:
+            print('Reading contents from flux file %s'%fname,  flush=True)
             data.append(xr.load_dataarray(fname))
         except:
             print('Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname) with fname='+fname,  flush=True)
             sys.exit(1)
-        # print(slice(start, end),  flush=True)
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
 
     # Resample if needed
     if freq is not None :
         times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
-        print('times_dest=')
-        print(times_dest,  flush=True)
+        logger.info('times_dest=')
+        logger.info(times_dest)
         tres1 = Timestamp(data.time.data[1])-Timestamp(data.time.data[0])
         tres2 = times_dest[1]-times_dest[0]
         if tres1 != tres2 :

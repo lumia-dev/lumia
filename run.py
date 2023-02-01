@@ -119,12 +119,12 @@ if args.forward :
 
 # Setup uncertainties if needed:
 if args.optimize or args.gradtest :
-    if rcf.get('obs.uncertainty') == 'dyn':
+    if rcf.get('observations.uncertainty.frequency') == 'dyn':
         model.calcDepartures(emis, 'apri')
         db.setup_uncertainties_dynamic(
             'mix_apri',
-            rcf.get('obs.uncertainty.dyn.freq', default='7D'),
-            rcf.get('obs.uncertainty.obs_field', default='err_obs')
+            rcf.get('observations.uncertainty.dyn.freq', default='7D'),
+            rcf.get('observations.uncertainty.obs_field', default='err_obs')
         )
     else :
         db.setup_uncertainties()
@@ -138,8 +138,8 @@ if args.optimize or args.adjtest or args.gradtest :
 
     if args.optimize :
         opt.Var4D()
-        if rcf.get('obs.validation_file', default=False):
-            obs_valid = obsdb.from_rc(rcf, filekey='obs.validation_file', setupUncertainties=False)
+        if rcf.get('observation.validation_file', default=False):
+            obs_valid = obsdb.from_rc(rcf, filekey='observation.validation_file', setupUncertainties=False)
             model.run_forward(control.model_data, obs_valid, step='validation')
 
     elif args.adjtest :
