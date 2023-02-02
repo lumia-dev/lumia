@@ -3,7 +3,7 @@ import os
 from loguru import logger
 from transport.core import Model
 from transport.emis import Emissions
-from transport.observations import Observations
+from transport import Observations
 import h5py
 from typing import List
 from types import SimpleNamespace
