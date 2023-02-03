@@ -149,6 +149,8 @@ class Forward(BaseTransport):
         with shared_memory.footprint_class(filename) as fpf :
 
             # Align the coordinates
+            print("model.py L152, emis.grid=")
+            print(emis.grid,  flush=True)
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
 
             for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
@@ -234,6 +236,8 @@ class Adjoint(BaseTransport):
             observations = shared_memory.obs.loc[shared_memory.obs.footprint == file]
 
             with shared_memory.footprint_class(file) as fpf :
+                print("model.py L237, grid=")
+                print(grid,  flush=True)
                 fpf.align(grid, times.timestep, times.min)
 
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-02-01, 17:46:52"
+    "saved": "2023-02-02, 18:59:06"
   },
   "MultiProject": "",
   "Project": "",
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
-        894,
-        30
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": -1,
@@ -96,10 +96,10 @@
       "Editorindex": 6
     },
     {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
       "Cursor": [
-        76,
-        18
+        52,
+        70
       ],
       "Folds": [],
       "Zoom": 0,
@@ -108,37 +108,65 @@
       "Editorindex": 7
     },
     {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
       "Cursor": [
-        5,
-        24
+        151,
+        38
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 8
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 9
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
     "Cursor": [
-      76,
-      18
+      52,
+      70
     ]
   },
   "Breakpoints": [
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
-      77,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      51,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
-      70,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
+      241,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
+      268,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      155,
       "",
       false,
       true,
@@ -173,28 +201,23 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@29",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@487",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@98",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py@@21",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/config.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py@@105",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py@@21",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py"
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@163",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@83",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py@@16"
       ]
     }
   ]

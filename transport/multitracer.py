@@ -3,7 +3,7 @@ import os
 from loguru import logger
 from transport.core import Model
 from transport.emis import Emissions
-from transport import Observations
+from transport.observations import Observations
 import h5py
 from typing import List
 from types import SimpleNamespace
@@ -43,11 +43,23 @@ class LumiaFootprintFile(h5py.File):
         return [k for k in self.keys() if isinstance(self[k], h5py.Group)]
 
     def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
-        assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
-        assert timestep == self.timestep, "Temporal grid mismatch"
-        shift_t = (self.origin - origin)/timestep
-        assert int(shift_t) - shift_t == 0
-        self.shift_t = int(shift_t)
+        try:
+            print("multitracer.py L46, grid=",  flush=True)
+            print(grid,  flush=True)
+            print("multitracer.py L46, self.grid=",  flush=True)
+            print(self.grid,  flush=True)
+            assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
+        except:
+            print("ABORT: error in multitracer.py, L 52, assert(grid==self.grid) failed.")
+            sys.exit(-1)
+        try:
+            assert timestep == self.timestep, "Temporal grid mismatch"
+            shift_t = (self.origin - origin)/timestep
+            assert int(shift_t) - shift_t == 0
+            self.shift_t = int(shift_t)
+        except:
+            print("ABORT: error in multitracer.py, L 56, assert(timestep==self.timestep) failed.")
+            sys.exit(-1)
 
     def get(self, obsid) -> SimpleNamespace :
         itims = self[obsid]['itims'][:] 
