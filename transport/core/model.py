@@ -149,8 +149,7 @@ class Forward(BaseTransport):
         with shared_memory.footprint_class(filename) as fpf :
 
             # Align the coordinates
-            print("model.py L152, emis.grid=")
-            print(emis.grid,  flush=True)
+            logger.info(f"emis.grid={emis.grid}")
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
 
             for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
@@ -229,20 +228,31 @@ class Adjoint(BaseTransport):
         #observations = shared_memory.obs
         times = shared_memory.time
         grid = shared_memory.grid
-
-        adj_emis = zeros((times.nt, grid.nlat, grid.nlon))
+        logger.info(f"size of times dimension={times.nt}")
+        adj_emis = zeros((1+times.nt, grid.nlat, grid.nlon))
 
         for file in tqdm(filenames, disable=silent) :
             observations = shared_memory.obs.loc[shared_memory.obs.footprint == file]
 
             with shared_memory.footprint_class(file) as fpf :
-                print("model.py L237, grid=")
-                print(grid,  flush=True)
                 fpf.align(grid, times.timestep, times.min)
+                logger.info(f"grid={grid}")
 
+                desc=fpf.filename
+                logger.info(f" desc={desc}")
+                total=observations.shape[0]
+                logger.info(f"total={total}")
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
+                    logger.info(f"fp={fp}")
+                    logger.info(f"obs={obs}")
+                    logger.info(f"obs.dy={obs.dy}")
+                    logger.info(f"fp.sensi.size={fp.sensi.size}")
+                    logger.info(f"obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
+                    if(fp.sensi.size>1+times.nt):
+                        logger.error(f"fp.sensi.size exceeds the size of the time dimension ({1+times.nt})")
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
+                    # IndexError: index 4762 is out of bounds for axis 0 with size 744
 
         with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.h5') as fid :
             fname = fid.name

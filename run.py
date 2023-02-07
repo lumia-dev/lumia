@@ -10,6 +10,7 @@ from loguru import logger
 from lumia.obsdb.InversionDb import obsdb
 from lumia.formatters import xr
 
+
 p = ArgumentParser()
 p.add_argument('--forward', default=False, action='store_true')
 p.add_argument('--model-adjtest', default=False, action='store_true', dest='adjtestmod')

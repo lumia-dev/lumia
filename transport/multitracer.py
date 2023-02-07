@@ -22,7 +22,15 @@ class LumiaFootprintFile(h5py.File):
         self.shift_t = 0
 
         try :
-            self.origin = Timestamp(self.attrs['origin'])
+            # self.origin = Timestamp(self.attrs['origin'])  TypeError: Cannot convert input [['2018-01-01 00:00:00']] of type <class 'numpy.ndarray'> to Timestamp
+            # self.origin = Timestamp(self.attrs['origin'])
+            # print('multitracer.py, L27, self.attrs[origin]=',  flush=True)
+            # print(self.attrs['origin'],  flush=True)
+            # strng=str(self.attrs['origin'])
+            strng=str(self.attrs['origin']).strip('[]')
+            # strng2=strng.strip('[]')
+            # print('strng=%s, strng2=%s'%(strng, strng2),  flush=True)
+            self.origin = Timestamp(strng)
             self.timestep = Timedelta(seconds=abs(self.attrs['run_loutstep']))
             if self.maxlength != inf :
                 self.maxlength /= self.timestep
@@ -44,13 +52,11 @@ class LumiaFootprintFile(h5py.File):
 
     def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
         try:
-            print("multitracer.py L46, grid=",  flush=True)
-            print(grid,  flush=True)
-            print("multitracer.py L46, self.grid=",  flush=True)
-            print(self.grid,  flush=True)
+            logger.info(f"grid={grid}")
+            logger.info(f"self.grid={self.grid}")
             assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
         except:
-            print("ABORT: error in multitracer.py, L 52, assert(grid==self.grid) failed.")
+            logger.error("ABORT: error in multitracer.py, assert(grid==self.grid) failed.")
             sys.exit(-1)
         try:
             assert timestep == self.timestep, "Temporal grid mismatch"
@@ -58,7 +64,7 @@ class LumiaFootprintFile(h5py.File):
             assert int(shift_t) - shift_t == 0
             self.shift_t = int(shift_t)
         except:
-            print("ABORT: error in multitracer.py, L 56, assert(timestep==self.timestep) failed.")
+            logger.error("ABORT: error in multitracer.py, assert(timestep==self.timestep) failed.")
             sys.exit(-1)
 
     def get(self, obsid) -> SimpleNamespace :

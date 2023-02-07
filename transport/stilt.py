@@ -63,8 +63,10 @@ class StiltFootprintFile:
         # Reconstruct ilats/ilons :
         ilats = (lats[select]-self.dest.grid.lat0)/self.dest.grid.dlat
         ilons = (lons[select]-self.dest.grid.lon0)/self.dest.grid.dlon
+        logger.info(f"stilt lats={ilats}")
         ilats = ilats.astype(int)
         ilons = ilons.astype(int)
+        logger.info(f"stilt ilats={ilats}")
 
         # Reconstruct itims
         itims = zeros(len(lons))
