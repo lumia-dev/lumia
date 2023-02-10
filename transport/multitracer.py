@@ -52,7 +52,7 @@ class LumiaFootprintFile(h5py.File):
 
     def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
         try:
-            logger.info(f"grid={grid}")
+            # logger.info(f"grid={grid}")
             logger.info(f"self.grid={self.grid}")
             assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
         except:

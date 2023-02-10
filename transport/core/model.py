@@ -6,10 +6,13 @@ from typing import List, Protocol, Type
 from tqdm import tqdm
 from loguru import logger
 from multiprocessing import Pool, cpu_count
+import threading
 from dataclasses import dataclass
 from h5py import File
 import tempfile
+import sys
 import os
+import random
 from pandas import Timestamp, Timedelta
 from pandas import DataFrame as Observations
 from transport.emis import EmissionFields, Emissions, Grid
@@ -149,7 +152,7 @@ class Forward(BaseTransport):
         with shared_memory.footprint_class(filename) as fpf :
 
             # Align the coordinates
-            logger.info(f"emis.grid={emis.grid}")
+            # logger.info(f"emis.grid={emis.grid}")
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
 
             for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
@@ -230,13 +233,16 @@ class Adjoint(BaseTransport):
         grid = shared_memory.grid
         logger.info(f"size of times dimension={times.nt}")
         adj_emis = zeros((1+times.nt, grid.nlat, grid.nlon))
+        nWanted=(1+times.nt) * grid.nlat*grid.nlon # number of data point we want to receive
+        nPtsRead=0  # number of footprint space-time data points read
 
         for file in tqdm(filenames, disable=silent) :
             observations = shared_memory.obs.loc[shared_memory.obs.footprint == file]
 
             with shared_memory.footprint_class(file) as fpf :
                 fpf.align(grid, times.timestep, times.min)
-                logger.info(f"grid={grid}")
+                pool_id=random.randint(0,9999999)
+                # logger.info(f"grid={grid}")
 
                 desc=fpf.filename
                 logger.info(f" desc={desc}")
@@ -244,13 +250,32 @@ class Adjoint(BaseTransport):
                 logger.info(f"total={total}")
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
-                    logger.info(f"fp={fp}")
-                    logger.info(f"obs={obs}")
-                    logger.info(f"obs.dy={obs.dy}")
-                    logger.info(f"fp.sensi.size={fp.sensi.size}")
-                    logger.info(f"obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
+                    logger.info(f"(pool_id({pool_id})): fp={fp}")
+                    logger.info(f"(pool_id({pool_id})): obs={obs}")
+                    logger.info(f"(pool_id({pool_id})): obs.dy={obs.dy}")
+                    logger.info(f"(pool_id({pool_id})): obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
+                    nPtsRead+=fp.sensi.size
+                    logger.info(f"(pool_id({pool_id})): nWanted={nWanted},  cumulative number of points read:{nPtsRead}, number of points in this chunk: fp.sensi.size={fp.sensi.size}")
                     if(fp.sensi.size>1+times.nt):
-                        logger.error(f"fp.sensi.size exceeds the size of the time dimension ({1+times.nt})")
+                        logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension (axis 0) ({1+times.nt})")
+                        #for idx, s in enumerate(fp.sensi):
+                        #    if (0==idx%250):
+                        #        logger.info(f"(pool_id({pool_id})): s[{idx}]={s}")
+                        logger.info(f"(pool_id({pool_id})): bad fp={fp}")
+                        logger.info(f"(pool_id({pool_id})): bad desc={desc}")
+                        logger.info(f"(pool_id({pool_id})): bad fp.sensi={fp.sensi}")
+                        logger.info(f"(pool_id({pool_id})): Available size of times dimension={times.nt}")
+                        logger.info(f"(pool_id({pool_id})): bad total={total}")
+                        logger.info(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size}")
+                        logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension ({1+times.nt})")
+                        
+                        logger.info(f"(pool_id({pool_id})): The size of receiving array adj_emis is 1+times.nt * grid.nlat * grid.nlon= {1+times.nt} * {grid.nlat} * {grid.nlon}={nWanted}")
+                        if(fp.sensi.size>nWanted):
+                            logger.error(f"(pool_id({pool_id})): Abort: fp.sensi.size={fp.sensi.size} exceeds the size of the receiving array adj_emis ({nWanted})")
+                            sys.exit(-1)
+                        if(nPtsRead>nWanted):
+                            logger.error(f"(pool_id({pool_id})): Abort: cumulative size of footprints read nPtsRead={nPtsRead} exceeds the size of the receiving array adj_emis ({nWanted})")
+                            sys.exit(-1)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
                     # IndexError: index 4762 is out of bounds for axis 0 with size 744
 

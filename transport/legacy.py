@@ -134,7 +134,7 @@ class LegacyFootprintFile(FootprintFile):
 
 
 class LegacyFootprintTransport(FootprintTransport):
-    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None, ncpus=None):
+    def __init__(self, rcf, obs, emfile=None, mp=False, checkfile=None, ncpus=1):
         super().__init__(rcf, obs, emfile, LegacyFootprintFile, mp, checkfile, ncpus)
 
     def genFileNames(self):

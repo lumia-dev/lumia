@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-02-07, 17:56:38"
+    "saved": "2023-02-10, 09:56:25"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,7 +14,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        12,
+        0,
         0
       ],
       "Folds": [],
@@ -98,8 +98,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
       "Cursor": [
-        3,
-        15
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -110,8 +110,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
       "Cursor": [
-        252,
-        123
+        256,
+        41
       ],
       "Folds": [],
       "Zoom": 0,
@@ -134,8 +134,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
       "Cursor": [
-        246,
-        57
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -146,51 +146,99 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/stilt.py",
       "Cursor": [
-        68,
-        28
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 11
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 12
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/precon/preconditioner_mp.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 13
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 14
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/tools.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 15
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 16
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/legacy.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 17
     }
   ],
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
     "Cursor": [
-      252,
-      123
+      256,
+      41
     ]
   },
   "Breakpoints": [
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/stilt.py",
-      65,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/stilt.py",
-      68,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      253,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      252,
+      255,
       "",
       false,
       true,
@@ -228,38 +276,54 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/regions",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/regions/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/regions/__init__.py@@24",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/time_tools.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/time_tools.py@@7",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/tools.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/tools.py@@45",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py@@21",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py@@36",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/precon",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/precon/preconditioner_mp.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/precon/preconditioner_ray.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/config.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py@@275",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py@@176",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@162",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@52",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@25",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@83",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@269",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@36",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@164",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@54",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@27",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@85",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@282",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@38",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py@@13",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py@@94",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/flexpart.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/flexpart.py@@15",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@207",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@95",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@286",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py@@27",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/legacy.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/legacy.py@@38",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/legacy.py@@136",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py@@16",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",

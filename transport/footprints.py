@@ -316,6 +316,9 @@ class FootprintTransport:
         elif mode == 'ray' :
             self._forward_loop = self._forward_loop_mp
             self._adjoint_loop = self._adjoint_loop_mp
+            # TODO: remove the next two lines. Only did so for debugging
+        self._forward_loop = self._forward_loop_serial
+        self._adjoint_loop = self._adjoint_loop_serial
 
     def runForward(self, categories=None):
         # Read the emissions:

@@ -125,7 +125,6 @@ if __name__ == '__main__':
     from argparse import ArgumentParser, REMAINDER
 
     logging.captureWarnings(True)
-
     p = ArgumentParser()
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
     p.add_argument('--adjoint', '-a', action='store_true', default=False, help="Do an adjoint run")
@@ -139,7 +138,6 @@ if __name__ == '__main__':
     p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
-
     # Create the transport model
     model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
 
