@@ -209,7 +209,9 @@ class Adjoint(BaseTransport):
         return [self.run_subset(filenames, silent=self.silent)]
 
     def run_files_mp(self, filenames: List[str]) -> List[str]:
-
+        # TODO: for debugging - force single cpu, no multithreading
+        logger.info("commandline option --serial was ignored. Do single cpu anyway.")
+        return [self.run_subset(filenames, silent=self.silent)]
         # Distribute the files equally amongst the processes. Start with the larger files, to balance the load:
         icpu = arange(len(filenames))
         while icpu.max() >= self.ncpus :
@@ -232,8 +234,8 @@ class Adjoint(BaseTransport):
         times = shared_memory.time
         grid = shared_memory.grid
         logger.info(f"size of times dimension={times.nt}")
-        adj_emis = zeros((1+times.nt, grid.nlat, grid.nlon))
-        nWanted=(1+times.nt) * grid.nlat*grid.nlon # number of data point we want to receive
+        adj_emis = zeros((times.nt, grid.nlat, grid.nlon))
+        nWanted=(times.nt) * grid.nlat*grid.nlon # number of data point we want to receive
         nPtsRead=0  # number of footprint space-time data points read
 
         for file in tqdm(filenames, disable=silent) :
@@ -256,7 +258,7 @@ class Adjoint(BaseTransport):
                     logger.info(f"(pool_id({pool_id})): obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
                     nPtsRead+=fp.sensi.size
                     logger.info(f"(pool_id({pool_id})): nWanted={nWanted},  cumulative number of points read:{nPtsRead}, number of points in this chunk: fp.sensi.size={fp.sensi.size}")
-                    if(fp.sensi.size>1+times.nt):
+                    if(fp.sensi.size>times.nt):
                         logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension (axis 0) ({1+times.nt})")
                         #for idx, s in enumerate(fp.sensi):
                         #    if (0==idx%250):
