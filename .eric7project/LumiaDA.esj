@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-02-13, 19:43:58"
+    "saved": "2023-02-13, 23:05:36"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,7 +14,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        0,
+        2,
         0
       ],
       "Folds": [],
@@ -98,7 +98,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
       "Cursor": [
-        0,
+        59,
         0
       ],
       "Folds": [],
@@ -207,7 +207,7 @@
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
     "Cursor": [
-      0,
+      59,
       0
     ]
   },
@@ -223,22 +223,6 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
       262,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
-      59,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
-      57,
       "",
       false,
       true,

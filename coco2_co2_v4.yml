@@ -35,7 +35,7 @@ observations :
     end:   '2018-02-01 00:00:00'
     file :
         path : observations.tar.gz
-        rename : background:mix_backgro                     # warning
+        rename : background:mix_background                  # warning
         tracer : co2
     uncertainty :
         default_weekly_error : 1.5                          # warning
