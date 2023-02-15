@@ -795,10 +795,9 @@ class Data:
                 # portal, else we assume it is available on the local system in the user-stated path.
                 # if origin.startswith('@'): is now obsolete, because it is incompatible with the yaml naming rules
                 sLocation=rcf.get(f'emissions.{tr}.location.{cat}')
-                if ('REMOTE' in sLocation):
+                if ('CARBONPORTAL' in sLocation):
                     # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
                     sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin)
-                    # TODO: archive fails to construct. should be something like fluxes/nc/eurocom025x025/1h/
                     # Hint from rclone: The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". 
                     #                              In that case, __post_init__ will then split this into three attributes: protocol, remote and path.
                     # # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/

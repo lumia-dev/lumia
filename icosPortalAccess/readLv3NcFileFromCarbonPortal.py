@@ -270,6 +270,35 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
     return sFileNameOnCarbonPortal
 
 
+# ***********************************************************************************************
+
+def readObservationsFromCarbonPortal(sKeyword, tracer,  start: datetime=None, end: datetime=None, year=0,  sScndKeyWord=None,  iVerbosityLv=1):
+    """
+    FunctionreadObservationsFromCarbonPortal
+    
+    @param sKeyword :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
+    @type string 
+    @param tracer :    the name of the tracer like co2, ch4, etc.
+    @type string 
+    @param start :  from when on we want to get the observations
+    @type datetime
+    @param end : until when on we want to get the observations
+    @type datetime
+    @param year :  alternatively provide the calendar year
+    @type int
+    @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
+    @type integer between 0 and 3 (optional)
+    @return inputname : the full path + file name on the ICOS Carbon Portal central storage system holding the 
+                                        requested flux information (1-year-record typically)
+    @rtype string
+ 
+    Attempts to find the corresponding unique-identifier (PID) for the requested data record. 
+    The latter should refer to a level3 netcdf file (by name) on the ICOS data portal. 
+    The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
+    Returns (xarray-dataset) if successful; (None) if unsuccessful.
+    """
+    print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
+    return
 
 # ***********************************************************************************************
 

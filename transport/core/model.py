@@ -209,10 +209,10 @@ class Adjoint(BaseTransport):
         return [self.run_subset(filenames, silent=self.silent)]
 
     def run_files_mp(self, filenames: List[str]) -> List[str]:
-        # TODO: for debugging - force single cpu, no multithreading
-        logger.info("commandline option --serial was ignored. Do single cpu anyway.")
+        # TODO: for debugging - force single cpu as opposed to multi-threading  - however, that is not working as expected
+        # logger.info("Entering multi-threaded mode. ")
         return [self.run_subset(filenames, silent=self.silent)]
-        # Distribute the files equally amongst the processes. Start with the larger files, to balance the load:
+        # Distribute the files equally among the processes. Start with the larger files, to balance the load:
         icpu = arange(len(filenames))
         while icpu.max() >= self.ncpus :
             icpu[icpu >= self.ncpus] -= self.ncpus

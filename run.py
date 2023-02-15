@@ -95,12 +95,6 @@ logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
 # lumia.paths.setup(rcf)
 
-# TODO: move " Load the pre-processed emissions" to after Load observations block again - just for testing so we can 
-# work on reading co2 emissions via DA before being bugged down by reading observations in the debugger....
-# Load the pre-processed emissions:
-emis = xr.Data.from_rc(rcf, start, end)
-emis.print_summary()
-
 # Load observations
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
@@ -110,6 +104,12 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
 else :
     # if we just want to write the emissions ...
     db = None
+
+# TODO: Done. I have moved " Load the pre-processed emissions" to after Load observations block again - just for testing so we can 
+# work on reading co2 emissions via DA before being bugged down by reading observations in the debugger....
+# Load the pre-processed emissions:
+emis = xr.Data.from_rc(rcf, start, end)
+emis.print_summary()
 
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=xr)

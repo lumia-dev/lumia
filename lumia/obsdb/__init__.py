@@ -8,6 +8,9 @@ from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
+from rctools import RcFile
+import icosPortalAccess as fromICP
+
 
 
 class obsdb:
@@ -41,6 +44,10 @@ class obsdb:
             }
             self.extraFields = {}
         if filename is not None:
+            sLocation=db.rcf['observations']['location']
+            if ('CARBONPORTAL' in sLocation):
+                # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
+                fromICP.readObservationsFromCarbonPortal('sKeyword', 'co2',  start, end, 0,  sScndKeyWord=None,  iVerbosityLv=1)
             self.load_tar(filename)
             self.filename = filename
             if self.start is None:
