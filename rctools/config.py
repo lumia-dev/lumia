@@ -94,7 +94,7 @@ class Config:
     def get(self, key: Union[str, List[str]], **kwargs) -> Any :
         try :
             value = self._data
-            for kk in key.split('.'):
+            for kk in splitkey(key):
                 value = value[kk]
         except (TypeError, errors.ConfigKeyError) as e:
             # We get TypeError when the we are already at the lowest level of the hierarchy (e.g. trying to get a.b.c, but a key a.b: value exists)
@@ -124,11 +124,14 @@ class Config:
         self._data.merge_with(value)
 
     def has(self, key: Union[str, List[str]]) -> bool:
-        if key in self._data:
+        try :
+            value = self._data
+            for kk in splitkey(key):
+                value = value[kk]
             return True
-        if self._find_parent(key) is not None :
-            return True
-        return False
+        except errors.ConfigKeyError:
+            return False
+        
 
     def set_defaults(self, **defaults: Union[dict, DictConfig]):
         self._data = OmegaConf.merge(OmegaConf.create(defaults), self._data)
