@@ -47,7 +47,8 @@ class obsdb:
             sLocation=db.rcf['observations']['location']
             if ('CARBONPORTAL' in sLocation):
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
-                fromICP.readObservationsFromCarbonPortal('sKeyword', 'co2',  start, end, 0,  sScndKeyWord=None,  iVerbosityLv=1)
+                # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
+                fromICP.readObservationsFromCarbonPortal(sKeyword=None,  tracer='CO2',  pdTimeStart=start, pdTimeEnd=end, year=0,  sDataType=None,  iVerbosityLv=1)
             self.load_tar(filename)
             self.filename = filename
             if self.start is None:

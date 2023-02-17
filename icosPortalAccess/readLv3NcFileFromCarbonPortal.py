@@ -157,6 +157,85 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  
 #        ?dobj cpmeta:hasKeyword "NEE"^^xsd:string .
 # station query - can do multiple combined queries says Anders
 
+
+# ***********************************************************************************************
+
+def readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2',  start: datetime=None, end: datetime=None, year=0,  sDataType=None,  iVerbosityLv=1):
+    """
+    FunctionreadObservationsFromCarbonPortal
+    
+    @param sKeyword :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
+    @type string 
+    @param tracer :    the name of the tracer like co2, ch4, etc.
+    @type string 
+    @param start :  from when on we want to get the observations
+    @type datetime
+    @param end : until when on we want to get the observations
+    @type datetime
+    @param year :  alternatively provide the calendar year
+    @type int
+    @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
+    @type integer between 0 and 3 (optional)
+    @return inputname : the full path + file name on the ICOS Carbon Portal central storage system holding the 
+                                        requested flux information (1-year-record typically)
+    @rtype string
+ 
+    Attempts to find the corresponding unique-identifier (PID) for the requested data record. 
+    The latter should refer to a level3 netcdf file (by name) on the ICOS data portal. 
+    The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
+    Returns (xarray-dataset) if successful; (None) if unsuccessful.
+    """
+    sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, iYear)
+    sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, iYear)
+    if(sKeyword is None):
+        sKeyword=tracer
+    if(sDataType is None):
+        sDataType='ICOS ATC CO2 Release'
+
+    #=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear)
+    query = '''
+        prefix cpmeta="ttp://meta.icos-cp.eu/ontologies/cpmeta/"
+        prefix prov: <http://www.w3.org/ns/prov#>
+        prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+        select ?dobj ?hasNextVersion ?spec ?fileName ?size ?submTime ?timeStart ?timeEnd
+        where {
+            VALUES ?spec {<http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject>}
+            ?dobj cpmeta:hasObjectSpec ?spec .
+            BIND(EXISTS{[] cpmeta:isNextVersionOf ?dobj} AS ?hasNextVersion)
+            VALUES ?station {<http://meta.icos-cp.eu/resources/stations/AS_PAL> <http://meta.icos-cp.eu/resources/stations/AS_TRN> <http://meta.icos-cp.eu/resources/stations/AS_GAT> <http://meta.icos-cp.eu/resources/stations/AS_HPB> <http://meta.icos-cp.eu/resources/stations/AS_IPR> <http://meta.icos-cp.eu/resources/stations/AS_OPE> <http://meta.icos-cp.eu/resources/stations/AS_KIT> <http://meta.icos-cp.eu/resources/stations/AS_SMR> <http://meta.icos-cp.eu/resources/stations/AS_SAC> <http://meta.icos-cp.eu/resources/stations/AS_ZEP> <http://meta.icos-cp.eu/resources/stations/AS_TOH> <http://meta.icos-cp.eu/resources/stations/AS_KRE> <http://meta.icos-cp.eu/resources/stations/AS_SVB> <http://meta.icos-cp.eu/resources/stations/AS_HTM> <http://meta.icos-cp.eu/resources/stations/AS_JFJ> <http://meta.icos-cp.eu/resources/stations/AS_PUY> <http://meta.icos-cp.eu/resources/stations/AS_NOR> <http://meta.icos-cp.eu/resources/stations/AS_LIN>}
+                    ?dobj cpmeta:wasAcquiredBy/prov:wasAssociatedWith ?station .
+            ?dobj cpmeta:hasSizeInBytes ?size .
+        ?dobj cpmeta:hasName ?fileName .
+        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/'''+sDataType+'''> .        
+        ?dobj cpmeta:hasKeyword "'''+sKeyword+'''"^^xsd:string .
+        ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
+        ?dobj cpmeta:hasStartTime | (cpmeta:wasAcquiredBy / prov:startedAtTime) ?timeStart .
+        ?dobj cpmeta:hasEndTime | (cpmeta:wasAcquiredBy / prov:endedAtTime) ?timeEnd .
+            FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
+        FILTER( !(?timeStart > "'''+sTimeStart+'''"^^xsd:dateTime || ?timeEnd < "'''+sTimeEnd+'''"^^xsd:dateTime) ) 
+            {
+                {FILTER NOT EXISTS {?dobj cpmeta:hasVariableName ?varName}}
+                UNION
+                {
+                    ?dobj cpmeta:hasVariableName ?varName
+                    FILTER (?varName = "co2")
+                }
+            }
+        }
+        order by desc(?submTime)
+        offset 0 limit 20
+    '''
+    # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    dobj_L3 = RunSparql(query,output_format='nc').run()
+    logger.info(f'dobj_L3= {dobj_L3}')
+    # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
+    # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
+    print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
+    return
+
+
+
+
 # ***********************************************************************************************
 def remove_unwanted_characters(string):
     """removes non-ASCII characters, curly braces, square brackets, CR, LF,  and quotes from the string."""
@@ -270,35 +349,6 @@ def queryCarbonPortal4FluxObsFileName(cp_path,sKeyword, timeStart, timeEnd,  iRe
     return sFileNameOnCarbonPortal
 
 
-# ***********************************************************************************************
-
-def readObservationsFromCarbonPortal(sKeyword, tracer,  start: datetime=None, end: datetime=None, year=0,  sScndKeyWord=None,  iVerbosityLv=1):
-    """
-    FunctionreadObservationsFromCarbonPortal
-    
-    @param sKeyword :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
-    @type string 
-    @param tracer :    the name of the tracer like co2, ch4, etc.
-    @type string 
-    @param start :  from when on we want to get the observations
-    @type datetime
-    @param end : until when on we want to get the observations
-    @type datetime
-    @param year :  alternatively provide the calendar year
-    @type int
-    @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
-    @type integer between 0 and 3 (optional)
-    @return inputname : the full path + file name on the ICOS Carbon Portal central storage system holding the 
-                                        requested flux information (1-year-record typically)
-    @rtype string
- 
-    Attempts to find the corresponding unique-identifier (PID) for the requested data record. 
-    The latter should refer to a level3 netcdf file (by name) on the ICOS data portal. 
-    The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
-    Returns (xarray-dataset) if successful; (None) if unsuccessful.
-    """
-    print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
-    return
 
 # ***********************************************************************************************
 
