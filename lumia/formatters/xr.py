@@ -17,7 +17,6 @@ from pandas.tseries.frequencies import DateOffset, to_offset
 from lumia.tracers import species, Unit
 from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
-# from lumia.icosPortalAccess import  readLv3NcFileFromCarbonPortal   # as fromICP
 import icosPortalAccess.readLv3NcFileFromCarbonPortal as fromICP
 import numbers
 from lumia.formatters import cdoWrapper

@@ -3,18 +3,19 @@ import os
 import shutil
 import tarfile
 import tempfile
+
 from numpy import unique, nan
-from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp
+from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp, to_datetime
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
 from rctools import RcFile
-import icosPortalAccess as fromICP
+from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal
 
 
 
 class obsdb:
-    def __init__(self, filename=None, start=None, end=None, db=None):
+    def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None):
         if db is not None:
             self._parent = db
         else:
@@ -44,11 +45,15 @@ class obsdb:
             }
             self.extraFields = {}
         if filename is not None:
-            sLocation=db.rcf['observations']['location']
+            logger.info(rcf)
+            sLocation=rcf['observations']['location']
+            # sLocation=self.rcf['observations']['location']
             if ('CARBONPORTAL' in sLocation):
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
                 # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
-                fromICP.readObservationsFromCarbonPortal(sKeyword=None,  tracer='CO2',  pdTimeStart=start, pdTimeEnd=end, year=0,  sDataType=None,  iVerbosityLv=1)
+                pdTimeStart = to_datetime(start, format="%Y-%m-%d %H:%M:%s")
+                pdTimeEnd = to_datetime(end, format="%Y-%m-%d %H:%M:%s")
+                readObservationsFromCarbonPortal(sKeyword=None,  tracer='CO2',  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, year=0,  sDataType=None,  iVerbosityLv=1)
             self.load_tar(filename)
             self.filename = filename
             if self.start is None:

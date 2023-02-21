@@ -39,7 +39,9 @@ class obsdb(obsdb):
         db = cls(
             rcf['observations'][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
-            end=rcf['observations'].get('end', None))
+            end=rcf['observations'].get('end', None), 
+            rcf=rcf)
+            #location=rcf['observations'].get('location',  None))
         db.rcf = rcf
 
         # Rename fields, if required by the config file or dict:
