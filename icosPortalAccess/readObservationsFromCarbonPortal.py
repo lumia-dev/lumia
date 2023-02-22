@@ -20,69 +20,29 @@ from icoscp.sparql.runsparql import RunSparql
 bDEBUG =False
 
 # GLOBALS
-# path to netcdf files in CP data app
+# TODO: observational data is in a different path copmpared to level3 netcdf files....
 path_cp = '/data/dataAppStorage/netcdf/'
 
 #
 # The pre-processed data used by Lumia (as a-priori) is described e.g. here:
 # https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
-# There you can find links to the anthropogenic (EDGARv4.3), ocean (Mikaloff-Fletcher 2007) and to the diagnostic biosphere model VPRM
 #
+# Observational data available on the ICOS data portal you can discover via the online tool at
+# https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22theme%22%3A%5B%22atmosphere%22%5D%2C%22level%22%3A%5B2%5D%2C%22valType%22%3A%5B%22co2MixingRatio%22%5D%2C%22stationclass%22%3A%5B%22ICOS%22%5D%2C%22project%22%3A%5B%22icos%22%5D%2C%22type%22%3A%5B%22atcCo2L2DataObject%22%5D%2C%22variable%22%3A%5B%22http%3A%2F%2Fmeta.icos-cp.eu%2Fresources%2Fcpmeta%2Fco2atcMoleFrac%22%5D%7D%2C%22filterTemporal%22%3A%7B%22df%22%3A%222017-12-31%22%2C%22dt%22%3A%222018-01-31%22%7D%2C%22tabs%22%3A%7B%22resultTab%22%3A1%7D%7D
+# You can try out sparql queries and export the ones you are happy with, with the button
+# "Open the SPARQL query basic search result" page - the icon looks like an arrow pointing up and then to the right out of a stylized box.
 
 
-# ********************************************
-
-def findDobjFromName(filename):
-    '''
-    Description: Function that returns the data object
-                 for a specified level 3 product netcdf filename.
-
-    Input:       netcdf filename
-
-    Output:      Data Object ID (var_name: "dobj", var_type: String)
-    '''
-    query = '''
-        prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
-        select ?dobj
-        where{
-        ?dobj cpmeta:hasName "'''+filename+'''"^^xsd:string .
-        FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
-        FILTER EXISTS {?dobj cpmeta:hasSizeInBytes ?size }
-        }
-    '''
-    return query
-
-# *******************************************************
-def getStartTimeForSparqlQuery(pdStartTime, timeStep=None):
-    '''
-    Function getStartTimeForSparqlQuer
-    
-    @param pdStartTime pandas.timeStamp  date/time from when on observations will be queried
-    @returns a DateTimeStamp string of format 'YYYY-01-01T00:00:01.000Z'
-                start/end times must be multiples of 12 months starting at New Year's at midnight with a buffer of 1 second either side.
-                Note: timeEnd < '2019-01-01T00:00:00.000Z'  fails, but if I set
-                it to timeEnd < '2019-01-01T00:00:01.000Z' then it works. 
-  '''
-    if(pdStartTime is None):
-        logger.error('Start date of observation interval not provided.')
-        sys.exit(-1)
-    # TODO: instead of always beginning 1/Jan at midnight we could take the exact start time minus one time step (to be on the safe side)
-    iYr=int(pdStartTime.strftime('%Y'))
-    iYr=iYr - 1
-    sTimeStart=str(iYr)+'-12-31T23:59:59.000Z'
-    return sTimeStart
 
 
-# *********************************************************
+# *****************************************************************************************
 def getTimeForSparqlQuery(pdTime,  startOrEndTime=None,  timeStep=None):
     '''
     Function getEndTimeForSparqlQuery
     
-    @param pdTime pandas.timeStamp  date/time until when on observations will be queried
+    @param pdTime pandas.timeStamp  date/time from/until when observations will be queried
     @returns a DateTimeStamp string of format 'YYYY-01-01T00:00:01.000Z'
-                start/end times must be multiples of 12 months starting at New Year's at midnight with a buffer of 1 second either side.
-                Note: timeEnd < '2019-01-01T00:00:00.000Z'  fails, but if I set
-                it to timeEnd < '2019-01-01T00:00:01.000Z' then it works. 
+    @timeStep is the run.timestep defined in the user's rc configuration file'
   '''
     if((pdTime is None) or (startOrEndTime is None)):
         logger.error('Start date of observation interval or startOrEndTime operator not provided.')
@@ -108,100 +68,24 @@ def getTimeForSparqlQuery(pdTime,  startOrEndTime=None,  timeStep=None):
     return sSparqlTime
 
 
-
-# ********************************************
-    
-def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  iYear=0):
-    '''
-    Function    findDobjFromPartialNameAndDate
-
-    @param       partial filename (keyword like VPRM), optional start and end times
-                        timeStart/timeEnd are of Type pandas._libs.tslibs.timestamps.Timestamp
-    @returns      Data Object ID (var_name: "dobj", var_type: String)
-    Description: Function that returns the data object
-                        for a specified level 3 product netcdf filename.
-   '''
-    # sFilename='VPRM_ECMWF_NEE_2020_CP.nc'
-    # First test: sKeyword is "VPRM"
-    # sKeyword='VPRM'
-    # sFilename2ndKeyword='NEE'
-    #    ?dobj cpmeta:hasKeyword "'''+sFilename2ndKeyword+'''"^^xsd:string .
-    # From RC file:
-    #    [Fluxes]
-    #    emissions.co2.categories : biosphere, fossil, ocean
-    
-    #    #  #VPRM_ECMWF_GEE_2020_CP.nc return the following from sparqle:
-    #      cp_name= https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU
-    
-    #    emissions.co2.fossil.origin         : @EDGARv4.3_BP2019
-    #        https://meta.icos-cp.eu/collections/XgzB--i8yDQYIPk4tf0l970K     Gerbig
-    #        https://meta.icos-cp.eu/collections/unv31HYRKgullLjJ99O5YCsG    Ute
-    
-    #    emissions.co2.biosphere.origin      : @VPRM
-    
-    #    emissions.co2.ocean.origin          : @mikaloff01
-    #    emissions.co2.interval              : 1h
-    #    emissions.co2.prefix                : flux_co2.
-    
-    sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, iYear)
-    sTimeEnd=getTimeForSparqlQuery(pdTimeEnd,  startOrEndTime='endTime',  timeStep=None)  # getEndTimeForSparqlQuery(pdTimeEnd, iYear)
-    if(sKeyword=='VPRM'):
-        sDataType='biosphereModelingSpatial'
-    if(sKeyword=='anthropogenic'):
-        sDataType='co2EmissionInventory' # ForCo2
-    query = '''
-        prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
-        prefix prov: <http://www.w3.org/ns/prov#>
-        prefix xsd: <http://www.w3.org/2001/XMLSchema#>
-        select ?dobj ?fileName ?size ?submTime ?timeStart ?timeEnd
-        where{
-        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/'''+sDataType+'''> .
-        ?dobj cpmeta:hasSizeInBytes ?size .
-        ?dobj cpmeta:hasKeyword "'''+sKeyword+'''"^^xsd:string .
-        ?dobj cpmeta:hasName ?fileName .
-        ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
-        ?dobj cpmeta:hasStartTime ?timeStart .
-        ?dobj cpmeta:hasEndTime ?timeEnd .
-        FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
-        FILTER( ?timeStart > "'''+sTimeStart+'''"^^xsd:dateTime && ?timeEnd <"'''+sTimeEnd+'''"^^xsd:dateTime)
-        FILTER EXISTS {?dobj cpmeta:hasSizeInBytes ?size }
-       }
-    '''
-    #    ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
-    # https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22project%22%3A%5B%22misc%22%5D%2C%22type%22%3A%5B%22co2EmissionInventory%22%5D%2C%22submitter%22%3A%5B%22oCP%22%5D%2C%22level%22%3A%5B3%5D%7D%7D
-    return query
-#         FILTER( ?timeStart > '2019-12-31T23:59:59.000Z'^^xsd:dateTime && ?timeEnd < '2021-01-01T00:00:01.000Z'^^xsd:dateTime)
-#        ?dobj cpmeta:hasKeyword "VPRM"^^xsd:string .
-#        ?dobj cpmeta:hasKeyword "NEE"^^xsd:string .
-# station query - can do multiple combined queries says Anders
-
-
 # ***********************************************************************************************
-def readObservationsFromCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
-    """
-    FunctionreadObservationsFromCarbonPortal
-    
-    @param sKeyword :    the type of product we want to query, like NEE (Net Ecosystem Exchange of CO2)
-    @type string 
+def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+    '''
+    Function 
+
     @param tracer :    the name of the tracer like co2, ch4, etc.
     @type string 
-    @param start :  from when on we want to get the observations
+    @param pdTimeStart :  from when on we want to get the observations
     @type datetime
-    @param end : until when on we want to get the observations
+    @param pdTimeEnd : until when on we want to get the observations
     @type datetime
-    @param year :  alternatively provide the calendar year
-    @type int
+    @param sDataType optional name of the data type. Default is 'atcCo2L2DataObject'  #'ICOS ATC CO2 Release'
+    @type string
     @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
     @type integer between 0 and 3 (optional)
-    @return inputname : the full path + file name on the ICOS Carbon Portal central storage system holding the 
-                                        requested flux information (1-year-record typically)
-    @rtype string
- 
-    Attempts to find matching ICOS CO2 observations in form of their individual unique-identifier (PID) for the requested data record. 
-    The latter should refer to a level2(?) netcdf file (by name) on the ICOS data portal. 
-    The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
-    Returns (xarray-dataset) if successful; (None) if unsuccessful.
-    """
+    @return :  dobj (the data object returned by the SPARQL query)
+    @rtype dobj (a structured dictionary of strings)
+    '''
     # sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, timeStep)
     sTimeStart=getTimeForSparqlQuery(pdTimeStart,  startOrEndTime='startTime',  timeStep=timeStep)
     # sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, timeStep)
@@ -242,72 +126,270 @@ def readObservationsFromCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, p
     offset 0 limit 20
     '''
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    dobj_L3 = RunSparql(query,output_format='nc').run()
-    logger.info(f'dobj_L3= {dobj_L3}')
-    # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as url, stored in the dobj.value(s):
-    # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
+    dobj = RunSparql(query,output_format='nc').run()
+    logger.info(f'dobj= {dobj}')
+    return(dobj)
+
+
+
+# ***********************************************************************************************
+def extractFnamesFromDobj(dobj, iVerbosityLv=1):
+    '''
+    Function 
+
+    @param dobj the object returned from the SPARQL query that contains the PIDs of all the files we want to extract
+    @type a structured dictionary of strings
+    @return a list of strings. Each strings contains the name of one file on the carbon portal that we later need to read.
+    @rtype List[strings]
+    
+    At the bottom of this python file you may find an example of a dobj for co2 observations for 20180101 - 20180201
+    It is from such a list of strings that we need to extract each and every PID for the individual files,
+    at least one per observation site.
+    
+    The relevant section looks typically as in this example:
+        "dobj" : {
+          "type" : "uri",
+          "value" : "https://meta.icos-cp.eu/objects/LLz6BZr6LCt1Pt0w-U_DLxWZ"
+        },
+    And we want to extract "LLz6BZr6LCt1Pt0w-U_DLxWZ"
+    '''
+    sFileNameOnCarbonPortal=None
+    sPID=''
+    fNameLst=[]
+    try:
+        if len(dobj.split('/')) > 1:
+            # 
+            bGrabNextUrl=False
+            words=dobj.split("\"") # split at quotation marks
+            cwLst=[]
+            for word in words:
+                if(re.search('[a-zA-Z]', word) is not None):
+                    cwLst.append(word)  # 
+                    if('dobj' in word):
+                        bGrabNextUrl=True
+                    if((bGrabNextUrl==True) and ('https' in word)):
+                        sPID=word.split('/')[-1]  # Grab the last part of the url without directories
+                        # Grab the PID from the end of the http value string, may look like gibberish "nBGgNpQxPYXBYiBuGGFp2VRF"
+                        bGrabNextUrl=False
+                        sFileNameOnCarbonPortal = path_cp+sPID
+                        if(iVerbosityLv>0):
+                            logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
+                        fNameLst.append(sFileNameOnCarbonPortal )
+    except:
+        logger.error("No valid observational data found in SPARQL query dobj=")
+        logger.error(f"{dobj}")
+        return(None)
+    return fNameLst
+
+
+
+
+# ***********************************************************************************************
+def readObservationsFromCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+    """
+    Function readObservationsFromCarbonPortal
+    
+    @param tracer :    the name of the tracer like co2, ch4, etc.
+    @type string 
+    @param pdTimeStart :  from when on we want to get the observations
+    @type datetime
+    @param pdTimeEnd : until when on we want to get the observations
+    @type datetime
+    @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
+    @type integer between 0 and 3 (optional)
+    @return ???:  the actual data object? file list? mind you, columns are different....
+    @rtype 
+ 
+    readObservationsFromCarbonPortal attempts to find matching ICOS CO2 observations in form of their individual unique-identifier (PID)
+     for the requested data records. The latter should refer to a list of level2 netcdf file (by name) on the ICOS data portal. 
+    The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
+    Returns (xarray-dataset) if successful; (None) if unsuccessful.
+    """
+    dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
+    dobjLst=extractFnamesFromDobj(dobj, iVerbosityLv)
+    # read the observational data from all the files in the list
     print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
     return
 
 
+'''
+Example of a dobj as returned by the sparql query.
 
+{
+  "head" : {
+    "vars" : [
+      "dobj",
+      "hasNextVersion",
+      "spec",
+      "fileName",
+      "size",
+      "submTime",
+      "timeStart",
+      "timeEnd"
+    ]
+  },
+  "results" : {
+    "bindings" : [
+      {
+        "timeEnd" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-02-28T23:00:00Z"
+        },
+        "fileName" : {
+          "type" : "literal",
+          "value" : "ICOS_ATC_L2_L2-2022.1_TRN_50.0_CTS_CO2.zip"
+        },
+        "timeStart" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2016-08-11T00:00:00Z"
+        },
+        "size" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#long",
+          "type" : "literal",
+          "value" : "924117"
+        },
+        "hasNextVersion" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#boolean",
+          "type" : "literal",
+          "value" : "false"
+        },
+        "submTime" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-07-11T11:45:29.264Z"
+        },
+        "dobj" : {
+          "type" : "uri",
+          "value" : "https://meta.icos-cp.eu/objects/LLz6BZr6LCt1Pt0w-U_DLxWZ"
+        },
+        "spec" : {
+          "type" : "uri",
+          "value" : "http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject"
+        }
+      },
+      {
+        "timeEnd" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-02-28T23:00:00Z"
+        },
+        "fileName" : {
+          "type" : "literal",
+          "value" : "ICOS_ATC_L2_L2-2022.1_TRN_5.0_CTS_CO2.zip"
+        },
+        "timeStart" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2016-08-11T00:00:00Z"
+        },
+        "size" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#long",
+          "type" : "literal",
+          "value" : "939308"
+        },
+        "hasNextVersion" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#boolean",
+          "type" : "literal",
+          "value" : "false"
+        },
+        "submTime" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-07-11T11:45:18.113Z"
+        },
+        "dobj" : {
+          "type" : "uri",
+          "value" : "https://meta.icos-cp.eu/objects/NPsg10gQAes_Bw8t7G7CFUVB"
+        },
+        "spec" : {
+          "type" : "uri",
+          "value" : "http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject"
+        }
+      },
+      
+# [..] many more entries of the same type .....
 
-# ***********************************************************************************************
-def remove_unwanted_characters(string):
-    """removes non-ASCII characters, curly braces, square brackets, CR, LF,  and quotes from the string."""
-    # return ''.join(char for char in string if ord(char) < 128) removes all non-ASCII characters
-    # neither do we want curly braces, square brackets or quotes 
-    return ''.join(char for char in string if ((ord(char) > 44)and(ord(char) < 123)and(ord(char) !=34)and(ord(char) !=39)and(ord(char) !=91)and(ord(char) !=93)))
-
-
-# ***********************************************************************************************
-
-
-
-# ***********************************************************************************************
-
-from optparse import OptionParser
-class CmdArgs():
-    """
-    Read arguments from the command line.
-    """
-    def __init__(self):
-        """
-        constructs the CmdArgs object
-        """
-        parser = OptionParser(description="readLv3NcFileFromCarbonPortal.py [options]                          version: 0.0.1\n Reads a netCdf file from the carbon portal \
-    Returns (True, xarray-dataset) if successful; (False, None) if unsuccessful.\n\
-    \n", epilog="Example:\n readLv3NcFileFromCarbonPortal.py -f VPRM_ECMWF_GEE_2020_CP.nc ")
-        parser.add_option("-f","--desiredFile", dest="cFileName", default=None, help="Provide a common file name after ICOS convention.")
-        parser.add_option("-v","--iVerbosityLv",  dest="iVerbosityLv", type=int, default=1,  help="iVerbosity level (0..2, default=1). ")
-        self.parser = parser
-        (options, args) = parser.parse_args()
-
-        # Update the class dictionary with cmd line options.
-        self.__dict__.update(options.__dict__)
-        # strings may come in as Unicode which gdal cannot handle - make sure strings are plain strings
-        if (None != self.cFileName):
-            self.cFileName=str(self.cFileName)
-    def print_help(self):
-        self.parser.print_help()
-
-
-# ***********************************************************************************************
-
-if __name__ == '__main__':
-    """ Main script of readLv3NcFileFromCarbonPortal (for testing).  The typical use is to
-    jump directly to the readLv3NcFileFromCarbonPortal() function from anothger script."""
-    #sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    #VPRM_ECMWF_GEE_2020_CP.nc
-    sFileName = 'VPRM_ECMWF_GEE_2020_CP.nc'
-    cmdargs = CmdArgs()
-    if (cmdargs.cFileName is None) :
-        cmdargs.print_help()
-        #sys.exit(0)
-        sFileName=cmdargs.cFileName
-    else:
-        readLv3NcFileFromCarbonPortal(sFileName, cmdargs.iVerbosityLv)
-
-
-
-
+      {
+        "timeEnd" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-02-28T23:00:00Z"
+        },
+        "fileName" : {
+          "type" : "literal",
+          "value" : "ICOS_ATC_L2_L2-2022.1_PUY_10.0_CTS_CO2.zip"
+        },
+        "timeStart" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2016-08-25T08:00:00Z"
+        },
+        "size" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#long",
+          "type" : "literal",
+          "value" : "943125"
+        },
+        "hasNextVersion" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#boolean",
+          "type" : "literal",
+          "value" : "false"
+        },
+        "submTime" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-07-08T08:40:20.200Z"
+        },
+        "dobj" : {
+          "type" : "uri",
+          "value" : "https://meta.icos-cp.eu/objects/xvn9YXe-a0kxPvcJe7sdLOcy"
+        },
+        "spec" : {
+          "type" : "uri",
+          "value" : "http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject"
+        }
+      },
+      {
+        "timeEnd" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-02-28T23:00:00Z"
+        },
+        "fileName" : {
+          "type" : "literal",
+          "value" : "ICOS_ATC_L2_L2-2022.1_PAL_12.0_CTS_CO2.zip"
+        },
+        "timeStart" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2017-09-16T00:00:00Z"
+        },
+        "size" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#long",
+          "type" : "literal",
+          "value" : "735602"
+        },
+        "hasNextVersion" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#boolean",
+          "type" : "literal",
+          "value" : "false"
+        },
+        "submTime" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2022-07-08T08:39:53.587Z"
+        },
+        "dobj" : {
+          "type" : "uri",
+          "value" : "https://meta.icos-cp.eu/objects/YV8lCiSkhsz3W059wr_JxSMg"
+        },
+        "spec" : {
+          "type" : "uri",
+          "value" : "http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject"
+        }
+      }
+    ]
+  }
+}
+'''

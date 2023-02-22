@@ -226,7 +226,7 @@ class TracerEmis(xr.Dataset):
     def add_cat(self, name: str, value: ndarray, attrs: dict = None):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
-        assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value) = }")
+        assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value)}")
         # print(value.shape,  flush=True)
         # print(self.shape,  flush=True)
         assert value.shape == self.shape, logger.error(f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
