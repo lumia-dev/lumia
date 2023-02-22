@@ -9,10 +9,10 @@ import sys
 import os
 import re
 import datetime
-import xarray as xr
+from loguru import logger
 
 #Import ICOS tools:
-from icoscp.sparql import sparqls, runsparql
+# from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
 
 # latest version: 2022-11-07a
@@ -53,7 +53,7 @@ def findDobjFromName(filename):
     return query
 
 # *******************************************************
-def getStartTimeForSparqlQuery(pdStartTime, iYr=0):
+def getStartTimeForSparqlQuery(pdStartTime, timeStep=None):
     '''
     Function getStartTimeForSparqlQuer
     
@@ -63,32 +63,50 @@ def getStartTimeForSparqlQuery(pdStartTime, iYr=0):
                 Note: timeEnd < '2019-01-01T00:00:00.000Z'  fails, but if I set
                 it to timeEnd < '2019-01-01T00:00:01.000Z' then it works. 
   '''
-    if(not(pdStartTime is None)):
-        iYr=int(pdStartTime.strftime('%Y'))
+    if(pdStartTime is None):
+        logger.error('Start date of observation interval not provided.')
+        sys.exit(-1)
+    # TODO: instead of always beginning 1/Jan at midnight we could take the exact start time minus one time step (to be on the safe side)
+    iYr=int(pdStartTime.strftime('%Y'))
     iYr=iYr - 1
-    # pdTimeStart=pdTimeStart - datetime.timedelta(seconds=3) # days, seconds, then other fields
     sTimeStart=str(iYr)+'-12-31T23:59:59.000Z'
     return sTimeStart
 
 
 # *********************************************************
-def getEndTimeForSparqlQuery(pdEndTime,  iYr=0):
+def getTimeForSparqlQuery(pdTime,  startOrEndTime=None,  timeStep=None):
     '''
     Function getEndTimeForSparqlQuery
     
-    @param pdEndTime pandas.timeStamp  date/time until when on observations will be queried
+    @param pdTime pandas.timeStamp  date/time until when on observations will be queried
     @returns a DateTimeStamp string of format 'YYYY-01-01T00:00:01.000Z'
                 start/end times must be multiples of 12 months starting at New Year's at midnight with a buffer of 1 second either side.
                 Note: timeEnd < '2019-01-01T00:00:00.000Z'  fails, but if I set
                 it to timeEnd < '2019-01-01T00:00:01.000Z' then it works. 
   '''
-    if(not(pdEndTime is None)):
-        iYr=int(pdEndTime.strftime('%Y'))
-    iYr=iYr + 1
-    # pdTimeEnd=pdTimeEnd + datetime.timedelta(seconds=3) # days, seconds, then other fields
-    # sTimeEnd=pdTimeEnd.strftime('%Y-%m-%dT%X.000Z')     # becomes "2018-02-01T00:00:00.000Z"
-    sTimeEnd=str(iYr)+'-01-01T00:00:01.000Z'
-    return sTimeEnd
+    if((pdTime is None) or (startOrEndTime is None)):
+        logger.error('Start date of observation interval or startOrEndTime operator not provided.')
+        sys.exit(-1)
+    if('start' in startOrEndTime):
+        operation='subtractTime'
+    else:
+        operation='addTime'
+    delta=int(60)
+    if((timeStep is not None) and (len(timeStep)>1)):
+        if('h' in timeStep):
+            delta=int(timeStep[:-1])*60
+        elif('m' in timeStep):
+            delta=int(timeStep[:-1])
+        elif('d' in timeStep):
+            delta=int(timeStep[:-1])*60*24
+    if('add' in operation):
+        endTime=pdTime + datetime.timedelta(minutes=delta)            
+    else:
+        endTime=pdTime - datetime.timedelta(minutes=delta)            
+    sSparqlTime=str(endTime)
+    sSparqlTime=sSparqlTime[:10]+'T'+sSparqlTime[11:19]+'.000Z'
+    return sSparqlTime
+
 
 
 # ********************************************
@@ -126,7 +144,7 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  
     #    emissions.co2.prefix                : flux_co2.
     
     sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, iYear)
-    sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, iYear)
+    sTimeEnd=getTimeForSparqlQuery(pdTimeEnd,  startOrEndTime='endTime',  timeStep=None)  # getEndTimeForSparqlQuery(pdTimeEnd, iYear)
     if(sKeyword=='VPRM'):
         sDataType='biosphereModelingSpatial'
     if(sKeyword=='anthropogenic'):
@@ -159,7 +177,7 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  
 
 
 # ***********************************************************************************************
-def readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, year=0,  sDataType=None,  iVerbosityLv=1):
+def readObservationsFromCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
     """
     FunctionreadObservationsFromCarbonPortal
     
@@ -184,50 +202,49 @@ def readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart: d
     The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
     Returns (xarray-dataset) if successful; (None) if unsuccessful.
     """
-    sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, year)
-    sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, year)
-    if(sKeyword is None):
-        sKeyword=tracer
+    # sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, timeStep)
+    sTimeStart=getTimeForSparqlQuery(pdTimeStart,  startOrEndTime='startTime',  timeStep=timeStep)
+    # sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, timeStep)
+    sTimeEnd=getTimeForSparqlQuery(pdTimeEnd,  startOrEndTime='endTime',  timeStep=timeStep)
+    LcTracer=tracer.lower()
     if(sDataType is None):
-        sDataType='ICOS ATC CO2 Release'
+        sDataType='atcCo2L2DataObject'  #'ICOS ATC CO2 Release'
 
     #=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear)
     query = '''
-        prefix cpmeta="ttp://meta.icos-cp.eu/ontologies/cpmeta/"
-        prefix prov: <http://www.w3.org/ns/prov#>
-        prefix xsd: <http://www.w3.org/2001/XMLSchema#>
-        select ?dobj ?hasNextVersion ?spec ?fileName ?size ?submTime ?timeStart ?timeEnd
-        where {
-            VALUES ?spec {<http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject>}
-            ?dobj cpmeta:hasObjectSpec ?spec .
-            BIND(EXISTS{[] cpmeta:isNextVersionOf ?dobj} AS ?hasNextVersion)
-            VALUES ?station {<http://meta.icos-cp.eu/resources/stations/AS_PAL> <http://meta.icos-cp.eu/resources/stations/AS_TRN> <http://meta.icos-cp.eu/resources/stations/AS_GAT> <http://meta.icos-cp.eu/resources/stations/AS_HPB> <http://meta.icos-cp.eu/resources/stations/AS_IPR> <http://meta.icos-cp.eu/resources/stations/AS_OPE> <http://meta.icos-cp.eu/resources/stations/AS_KIT> <http://meta.icos-cp.eu/resources/stations/AS_SMR> <http://meta.icos-cp.eu/resources/stations/AS_SAC> <http://meta.icos-cp.eu/resources/stations/AS_ZEP> <http://meta.icos-cp.eu/resources/stations/AS_TOH> <http://meta.icos-cp.eu/resources/stations/AS_KRE> <http://meta.icos-cp.eu/resources/stations/AS_SVB> <http://meta.icos-cp.eu/resources/stations/AS_HTM> <http://meta.icos-cp.eu/resources/stations/AS_JFJ> <http://meta.icos-cp.eu/resources/stations/AS_PUY> <http://meta.icos-cp.eu/resources/stations/AS_NOR> <http://meta.icos-cp.eu/resources/stations/AS_LIN>}
-                    ?dobj cpmeta:wasAcquiredBy/prov:wasAssociatedWith ?station .
-            ?dobj cpmeta:hasSizeInBytes ?size .
-        ?dobj cpmeta:hasName ?fileName .
-        ?dobj cpmeta:hasObjectSpec <http://meta.icos-cp.eu/resources/cpmeta/'''+sDataType+'''> .        
-        ?dobj cpmeta:hasKeyword "'''+sKeyword+'''"^^xsd:string .
-        ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
-        ?dobj cpmeta:hasStartTime | (cpmeta:wasAcquiredBy / prov:startedAtTime) ?timeStart .
-        ?dobj cpmeta:hasEndTime | (cpmeta:wasAcquiredBy / prov:endedAtTime) ?timeEnd .
-            FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
-        FILTER( !(?timeStart > "'''+sTimeStart+'''"^^xsd:dateTime || ?timeEnd < "'''+sTimeEnd+'''"^^xsd:dateTime) ) 
+    prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+    prefix prov: <http://www.w3.org/ns/prov#>
+    prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+    select ?dobj ?hasNextVersion ?spec ?fileName ?size ?submTime ?timeStart ?timeEnd
+    where {
+        VALUES ?spec {<http://meta.icos-cp.eu/resources/cpmeta/'''+sDataType+'''>}
+        ?dobj cpmeta:hasObjectSpec ?spec .
+        BIND(EXISTS{[] cpmeta:isNextVersionOf ?dobj} AS ?hasNextVersion)
+        VALUES ?station {<http://meta.icos-cp.eu/resources/stations/AS_PAL> <http://meta.icos-cp.eu/resources/stations/AS_TRN> <http://meta.icos-cp.eu/resources/stations/AS_GAT> <http://meta.icos-cp.eu/resources/stations/AS_HPB> <http://meta.icos-cp.eu/resources/stations/AS_IPR> <http://meta.icos-cp.eu/resources/stations/AS_OPE> <http://meta.icos-cp.eu/resources/stations/AS_KIT> <http://meta.icos-cp.eu/resources/stations/AS_SMR> <http://meta.icos-cp.eu/resources/stations/AS_SAC> <http://meta.icos-cp.eu/resources/stations/AS_ZEP> <http://meta.icos-cp.eu/resources/stations/AS_TOH> <http://meta.icos-cp.eu/resources/stations/AS_KRE> <http://meta.icos-cp.eu/resources/stations/AS_SVB> <http://meta.icos-cp.eu/resources/stations/AS_HTM> <http://meta.icos-cp.eu/resources/stations/AS_JFJ> <http://meta.icos-cp.eu/resources/stations/AS_PUY> <http://meta.icos-cp.eu/resources/stations/AS_NOR> <http://meta.icos-cp.eu/resources/stations/AS_LIN>}
+                ?dobj cpmeta:wasAcquiredBy/prov:wasAssociatedWith ?station .
+        ?dobj cpmeta:hasSizeInBytes ?size .
+    ?dobj cpmeta:hasName ?fileName .
+    ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
+    ?dobj cpmeta:hasStartTime | (cpmeta:wasAcquiredBy / prov:startedAtTime) ?timeStart .
+    ?dobj cpmeta:hasEndTime | (cpmeta:wasAcquiredBy / prov:endedAtTime) ?timeEnd .
+        FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
+    FILTER( !(?timeStart > \''''+sTimeEnd+'''\'^^xsd:dateTime || ?timeEnd < \''''+sTimeStart+'''\'^^xsd:dateTime) ) 
+        {
+            {FILTER NOT EXISTS {?dobj cpmeta:hasVariableName ?varName}}
+            UNION
             {
-                {FILTER NOT EXISTS {?dobj cpmeta:hasVariableName ?varName}}
-                UNION
-                {
-                    ?dobj cpmeta:hasVariableName ?varName
-                    FILTER (?varName = "co2")
-                }
+                ?dobj cpmeta:hasVariableName ?varName
+                FILTER (?varName = "'''+LcTracer+'''")
             }
         }
-        order by desc(?submTime)
-        offset 0 limit 20
+    }
+    order by desc(?submTime)
+    offset 0 limit 20
     '''
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     dobj_L3 = RunSparql(query,output_format='nc').run()
     logger.info(f'dobj_L3= {dobj_L3}')
-    # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
+    # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as url, stored in the dobj.value(s):
     # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
     print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
     return

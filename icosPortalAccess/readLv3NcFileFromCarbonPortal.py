@@ -9,7 +9,7 @@ import sys
 import os
 import re
 import datetime
-import xarray as xr
+from loguru import logger
 
 #Import ICOS tools:
 from icoscp.sparql import sparqls, runsparql

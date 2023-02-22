@@ -47,13 +47,15 @@ class obsdb:
         if filename is not None:
             logger.info(rcf)
             sLocation=rcf['observations']['location']
-            # sLocation=self.rcf['observations']['location']
+            timeStep=rcf['run']['timestep']
             if ('CARBONPORTAL' in sLocation):
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
                 # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
-                pdTimeStart = to_datetime(start, format="%Y-%m-%d %H:%M:%s")
-                pdTimeEnd = to_datetime(end, format="%Y-%m-%d %H:%M:%s")
-                readObservationsFromCarbonPortal(sKeyword=None,  tracer='CO2',  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, year=0,  sDataType=None,  iVerbosityLv=1)
+                pdTimeStart = to_datetime(start, format="%Y-%m-%d %H:%M:%S")
+                pdTimeStart=pdTimeStart.tz_localize('UTC')
+                pdTimeEnd = to_datetime(end, format="%Y-%m-%d %H:%M:%S")
+                pdTimeEnd=pdTimeEnd.tz_localize('UTC')
+                readObservationsFromCarbonPortal(tracer='CO2',  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
             self.load_tar(filename)
             self.filename = filename
             if self.start is None:
