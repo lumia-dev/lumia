@@ -21,8 +21,9 @@ bDEBUG =False
 
 # GLOBALS
 # TODO: observational data is in a different path copmpared to level3 netcdf files....
-path_cp = '/data/dataAppStorage/netcdf/'
-
+path_cp = '/data/dataAppStorage/asciiAtcProductTimeSer/'
+# https://meta.icos-cp.eu/objects/LLz6BZr6LCt1Pt0w-U_DLxWZ
+# /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
 #
 # The pre-processed data used by Lumia (as a-priori) is described e.g. here:
 # https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
@@ -133,7 +134,7 @@ def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datet
 
 
 # ***********************************************************************************************
-def extractFnamesFromDobj(dobj, iVerbosityLv=1):
+def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
     '''
     Function 
 
@@ -156,6 +157,8 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
     sFileNameOnCarbonPortal=None
     sPID=''
     fNameLst=[]
+    if (cpDir is None):
+        cpDir=path_cp
     try:
         if len(dobj.split('/')) > 1:
             # 
@@ -171,7 +174,15 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
                         sPID=word.split('/')[-1]  # Grab the last part of the url without directories
                         # Grab the PID from the end of the http value string, may look like gibberish "nBGgNpQxPYXBYiBuGGFp2VRF"
                         bGrabNextUrl=False
-                        sFileNameOnCarbonPortal = path_cp+sPID
+                        #  /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
+                        sFileNameOnCarbonPortal = cpDir+sPID+'.cpb'
+                        try:
+                            # Make sure this file actually exists and is accessible on the portal
+                            f=open(sFileNameOnCarbonPortal, 'rb')
+                            f.close()
+                        except:
+                            logger.error('The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal. Please check first of all the directory you provided for observations.file.cpDir in your .yml resource file.')
+                            sys.exit(-1)
                         if(iVerbosityLv>0):
                             logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
                         fNameLst.append(sFileNameOnCarbonPortal )
@@ -185,7 +196,7 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
 
 
 # ***********************************************************************************************
-def readObservationsFromCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
     """
     Function readObservationsFromCarbonPortal
     
@@ -206,7 +217,7 @@ def readObservationsFromCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, p
     Returns (xarray-dataset) if successful; (None) if unsuccessful.
     """
     dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
-    dobjLst=extractFnamesFromDobj(dobj, iVerbosityLv)
+    dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
     # read the observational data from all the files in the list
     print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
     return
