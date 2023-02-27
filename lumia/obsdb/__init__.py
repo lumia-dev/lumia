@@ -10,6 +10,8 @@ from loguru import logger
 from typing import List, Union
 from numpy import datetime64
 from rctools import RcFile
+from icoscp.cpb import metadata as meta
+from icoscp.cpb.dobj import Dobj
 from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal
 
 
@@ -59,8 +61,24 @@ class obsdb:
                 pdTimeStart=pdTimeStart.tz_localize('UTC')
                 pdTimeEnd = to_datetime(end, format="%Y-%m-%d %H:%M:%S")
                 pdTimeEnd=pdTimeEnd.tz_localize('UTC')
-                readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
-            self.load_tar(filename)
+                (dobjLst, cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
+                # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
+                for pid in dobjLst:
+                    # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
+                    # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
+                    mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)
+                    logger.info(mdata)
+                    dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
+                    print(dob,  flush=True)
+                    logger.info(f"Reading observed co2 data from: station={dob.station},  lat={dob.lat},  lon={dob.lon},  alt={dob.alt},  elev={dob.elevation}")
+                    obsData1site = dob.get()
+                    print(obsData1site,  flush=True)
+                    setattr(self, 'observations', obsData1site)
+                    # TODO: remove next 2lines· - for testing only
+                    break
+                self.load_tar(filename)
+            else:
+                self.load_tar(filename)
             self.filename = filename
             if self.start is None:
                 self.start = self.observations.time.min()

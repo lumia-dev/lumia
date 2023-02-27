@@ -15,7 +15,6 @@ from loguru import logger
 # from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
 from icoscp.cpb import metadata as meta
-from icoscp.cpb.dobj import Dobj
 
 bDEBUG =False
 
@@ -218,21 +217,7 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     """
     dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
     dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
-    # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
-    for pid in dobjLst:
-        sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
-        # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
-        mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)
-        logger.info(mdata)
-        # obsData=dobj.get(sFileNameOnCarbonPortal)
-        doTest = Dobj('https://meta.icos-cp.eu/objects/M6XCOcBsPDTnlUv_6gGNZ2EX')
-        dataTest = doTest.get()
-        dataTest.head(3)
-        do = Dobj("https://meta.icos-cp.eu/objects/"+pid)
-        data = do.get()
-        data.head(3)
-    print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
-    return
+    return(dobjLst, cpDir)
 
 
 '''
