@@ -14,8 +14,8 @@ from loguru import logger
 #Import ICOS tools:
 # from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
-
-# latest version: 2022-11-07a
+from icoscp.cpb import metadata as meta
+from icoscp.cpb.dobj import Dobj
 
 bDEBUG =False
 
@@ -185,7 +185,7 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
                             sys.exit(-1)
                         if(iVerbosityLv>0):
                             logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
-                        fNameLst.append(sFileNameOnCarbonPortal )
+                        fNameLst.append(sPID)
     except:
         logger.error("No valid observational data found in SPARQL query dobj=")
         logger.error(f"{dobj}")
@@ -212,13 +212,25 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     @rtype 
  
     readObservationsFromCarbonPortal attempts to find matching ICOS CO2 observations in form of their individual unique-identifier (PID)
-     for the requested data records. The latter should refer to a list of level2 netcdf file (by name) on the ICOS data portal. 
-    The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal. 
-    Returns (xarray-dataset) if successful; (None) if unsuccessful.
+    for the requested data records. The latter should refer to a list of level2 netcdf file (by name) on the ICOS data portal. 
+    The function relies on a sparql query and tries to read the requested cpb files from the carbon portal using the icoscp package. 
+    Returns (...-dataset) if successful; (None) if unsuccessful.
     """
     dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
     dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
-    # read the observational data from all the files in the list
+    # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
+    for pid in dobjLst:
+        sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
+        # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
+        mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)
+        logger.info(mdata)
+        # obsData=dobj.get(sFileNameOnCarbonPortal)
+        doTest = Dobj('https://meta.icos-cp.eu/objects/M6XCOcBsPDTnlUv_6gGNZ2EX')
+        dataTest = doTest.get()
+        dataTest.head(3)
+        do = Dobj("https://meta.icos-cp.eu/objects/"+pid)
+        data = do.get()
+        data.head(3)
     print('readObservationsFromCarbonPortal() is not implemented yet.',  flush=True)
     return
 

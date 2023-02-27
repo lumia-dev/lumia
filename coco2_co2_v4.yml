@@ -37,7 +37,9 @@ observations :
         location : CARBONPORTAL      # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory
         cpDir : '/data/dataAppStorage/asciiAtcProductTimeSer/'  # only used if location is CARBONPORTAL, e.g. /data/dataAppStorage/asciiAtcProductTimeSer/
         path : observations.tar.gz
-        rename : background:mix_background                  # warning
+        rename :  background:mix_background
+        renameCpObs : {"dict":[{"oldname":"Site","newname":"code"},{"oldname":"SamplingHeight","newname":"height"},{"oldname":"co2","newname":"obs"},{"oldname":"Stdev","newname":"err_obs"},{"oldname":"Flag","newname":"icos_flag"},{"oldname":"Timestamp(Year, Month, day, hour, Minute)","newname":"time"}]}  # when reading cpb files from the carbon portal
+        renameTest : Site:code # {[  }} # Timestamp(Year, Month, day, hour, Minute) : time , background:mix_background, }}
         tracer : co2
     uncertainty :
         default_weekly_error : 1.5                          # warning

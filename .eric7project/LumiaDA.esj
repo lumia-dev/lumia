@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-02-22, 17:48:07"
+    "saved": "2023-02-25, 23:15:03"
   },
   "MultiProject": "",
   "Project": "",
@@ -26,8 +26,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
-        228,
-        111
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -50,8 +50,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
-        57,
-        0
+        56,
+        38
       ],
       "Folds": [],
       "Zoom": 0,
@@ -98,7 +98,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
       "Cursor": [
-        23,
+        220,
         0
       ],
       "Folds": [],
@@ -110,8 +110,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        223,
-        22
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -121,9 +121,9 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
     "Cursor": [
-      23,
+      0,
       0
     ]
   },
@@ -194,7 +194,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      77,
+      81,
       "",
       false,
       true,
@@ -202,7 +202,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      95,
+      99,
       "",
       false,
       true,
@@ -210,7 +210,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      120,
+      124,
       "",
       false,
       true,
@@ -218,7 +218,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      125,
+      129,
       "",
       false,
       true,
@@ -226,7 +226,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      132,
+      136,
       "",
       false,
       true,
@@ -234,7 +234,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      149,
+      153,
       "",
       false,
       true,
@@ -242,7 +242,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      178,
+      182,
       "",
       false,
       true,
@@ -250,7 +250,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      188,
+      192,
       "",
       false,
       true,
@@ -258,7 +258,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      197,
+      201,
       "",
       false,
       true,
@@ -266,7 +266,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      251,
+      255,
       "",
       false,
       true,
@@ -306,7 +306,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      146,
+      148,
       "",
       false,
       true,
@@ -314,7 +314,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      58,
+      62,
       "",
       false,
       true,
@@ -322,7 +322,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      158,
+      221,
       "",
       false,
       true,
@@ -330,15 +330,23 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      209,
+      194,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      182,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
+      51,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      56,
       "",
       false,
       true,
@@ -384,6 +392,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@486",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@97",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/__init__.py",

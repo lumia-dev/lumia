@@ -16,6 +16,7 @@ from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFr
 
 class obsdb:
     def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None):
+        bFromCarbonportal=False
         if db is not None:
             self._parent = db
         else:
@@ -49,9 +50,11 @@ class obsdb:
             sLocation=rcf['observations']['file']['location']
             timeStep=rcf['run']['timestep']
             if ('CARBONPORTAL' in sLocation):
+                bFromCarbonportal=True
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
                 # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
                 cpDir=rcf['observations']['file']['cpDir']
+                remapObsDict=rcf['observations']['file']['renameCpObs']
                 pdTimeStart = to_datetime(start, format="%Y-%m-%d %H:%M:%S")
                 pdTimeStart=pdTimeStart.tz_localize('UTC')
                 pdTimeEnd = to_datetime(end, format="%Y-%m-%d %H:%M:%S")

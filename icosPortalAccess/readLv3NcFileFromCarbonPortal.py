@@ -12,7 +12,7 @@ import datetime
 from loguru import logger
 
 #Import ICOS tools:
-from icoscp.sparql import sparqls, runsparql
+# from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
 
 # latest version: 2022-11-07a
