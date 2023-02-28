@@ -56,16 +56,22 @@ class obsdb:
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
                 # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
                 cpDir=rcf['observations']['file']['cpDir']
-                remapObsDict=rcf['observations']['file']['renameCpObs']
+                #remapObsDict=rcf['observations']['file']['renameCpObs']
                 pdTimeStart = to_datetime(start, format="%Y-%m-%d %H:%M:%S")
                 pdTimeStart=pdTimeStart.tz_localize('UTC')
                 pdTimeEnd = to_datetime(end, format="%Y-%m-%d %H:%M:%S")
                 pdTimeEnd=pdTimeEnd.tz_localize('UTC')
+                # create a datetime64 version of these so we can extract the time interval needed from the pandas data frame
+                pdSliceStartTime=pdTimeStart.to_datetime64()
+                pdSliceEndTime=pdTimeEnd.to_datetime64()
                 (dobjLst, cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
                 # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
                 for pid in dobjLst:
                     # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
                     # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
+
+                    # TODO: remove next line· - for testing only
+                    pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
                     mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)
                     logger.info(mdata)
                     dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
@@ -73,7 +79,25 @@ class obsdb:
                     logger.info(f"Reading observed co2 data from: station={dob.station},  lat={dob.lat},  lon={dob.lon},  alt={dob.alt},  elev={dob.elevation}")
                     obsData1site = dob.get()
                     print(obsData1site,  flush=True)
-                    setattr(self, 'observations', obsData1site)
+                    # Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
+                    # and along the same line of thought we can abuse DecimalDate for the site altitude
+                    # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
+                    obsData1site.rename(columns={'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  'TIMESTAMP':'time','Site':'code','SamplingHeight':'height','co2':'obs','Stdev':'err_obs','Flag':'icos_flag'}, inplace=True)
+                    logger.info(f"obsData1site= {obsData1site}")
+                    # bother only with relevant time intervals
+                    obsData1siteTimed = obsData1site.loc[(
+                        (obsData1site.time >= pdSliceStartTime) &
+                        (obsData1site.time <= pdSliceEndTime)
+                    )]  # and where NbPoints>0
+                    obsData1siteTimed['lat']=dob.lat
+                    obsData1siteTimed['lon']=dob.lon
+                    obsData1siteTimed['alt']=dob.alt
+                    # site name/code is in capitals, but needs conversion to lower case:
+                    obsData1siteTimed['code'] = dob.station['id'].lower()
+                    logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
+                    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', sep=',')
+                    # TODO: Timestamp format needs modifications
+                    setattr(self, 'observations', obsData1siteTimed)
                     # TODO: remove next 2lines· - for testing only
                     break
                 self.load_tar(filename)
