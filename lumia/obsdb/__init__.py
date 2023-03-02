@@ -72,28 +72,55 @@ class obsdb:
 
                     # TODO: remove next line· - for testing only
                     pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
-                    mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)
-                    logger.info(mdata)
+                    # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
                     dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
                     print(dob,  flush=True)
-                    logger.info(f"Reading observed co2 data from: station={dob.station},  lat={dob.lat},  lon={dob.lon},  alt={dob.alt},  elev={dob.elevation}")
+                    logger.info(f"Reading observed co2 data from: station={dob.station},  station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
                     obsData1site = dob.get()
-                    print(obsData1site,  flush=True)
-                    # Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
-                    # and along the same line of thought we can abuse DecimalDate for the site altitude
+                    logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
                     # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
-                    obsData1site.rename(columns={'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  'TIMESTAMP':'time','Site':'code','SamplingHeight':'height','co2':'obs','Stdev':'err_obs','Flag':'icos_flag'}, inplace=True)
-                    logger.info(f"obsData1site= {obsData1site}")
-                    # bother only with relevant time intervals
+                    obsData1site.rename(columns={ 'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err_obs','Flag':'icos_flag'}, inplace=True)
+                    # 'TIMESTAMP':'time'
+                    # These are not read, thus need not be renamed: 'SamplingHeight':'height' (taken from metadata), 'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  
+                    # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
+                    #                                              and along the same line of thought we can abuse DecimalDate for the site altitude
+                    # logger.info(f"obsData1site= {obsData1site}")
+                    # bother only with relevant time intervals and where we have valid observations (NbPoints>0):
                     obsData1siteTimed = obsData1site.loc[(
-                        (obsData1site.time >= pdSliceStartTime) &
-                        (obsData1site.time <= pdSliceEndTime)
-                    )]  # and where NbPoints>0
+                        (obsData1site.TIMESTAMP >= pdSliceStartTime) &
+                        (obsData1site.TIMESTAMP <= pdSliceEndTime) &
+                        (obsData1site['NbPoints'] > 0)
+                    )]  
                     obsData1siteTimed['lat']=dob.lat
                     obsData1siteTimed['lon']=dob.lon
                     obsData1siteTimed['alt']=dob.alt
+                    obsData1siteTimed['height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
                     # site name/code is in capitals, but needs conversion to lower case:
                     obsData1siteTimed['code'] = dob.station['id'].lower()
+                    # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
+                    # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
+                    # obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].astype("string") # ''.join(char for char in str(obsData1siteTimed['time']) if ((char >= '0')and(char <= '9')))
+                    # obsData1siteTimed['time'] =  obsData1siteTimed['time'].strftime("%Y%m%d%H%M%S") # ''.join(char for char in str(obsData1siteTimed['time']) if ((char >= '0')and(char <= '9')))
+
+                    #obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].astype("string")
+                    #obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].astype("datetime64")
+                    #obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].dt.year.astype("string")+obsData1siteTimed['TIMESTAMP'].dt.month.astype("string")+obsData1siteTimed['TIMESTAMP'].dt.day.astype("string")
+                    #for ser in obsData1siteTimed['TIMESTAMP']:
+                    #    print(ser,  flush=True)
+                    #    ts=ser.strftime("%Y%m%d%H%M%S")
+                    #    print(ts,  flush=True)
+                    #    tts =  "%d%2d%2d" % (ser.dt.year, ser.dt.month, ser.dt.day)
+                    #    print(tts,  flush=True)
+                    #    #ddt=ser.apply(to_datetime)
+                    #    #print(ddt,  flush=True)
+                    #    break
+                    #obsData1siteTimed['timeS'] =  "%d%2d%2d" % (obsData1siteTimed['TIMESTAMP'].dt.year, obsData1siteTimed['TIMESTAMP'].dt.month, obsData1siteTimed['TIMESTAMP'].dt.day)
+
+                    #obsData1siteTimed['TIMESTAMP'] = obsData1siteTimed['TIMESTAMP'].apply(to_datetime)
+                    #obsData1siteTimed['time'] =  datetime.datetime(obsData1siteTimed['TIMESTAMP']) #.apply(to_datetime, utc=True)
+                    ## t = datetime.datetime(2018, 2, 23, 9, 59, 1)
+                    #t2=datetime.datetime(obsData1siteTimed['TIMESTAMP'])
+                    #obsData1siteTimed['time2'] =  to_datetime(obsData1siteTimed['time']).strftime("%Y%m%d%H%M%S")
                     logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
                     obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', sep=',')
                     # TODO: Timestamp format needs modifications

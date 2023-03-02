@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-02-28, 17:39:16"
+    "saved": "2023-02-28, 17:49:27"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,7 +14,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        2,
+        0,
         0
       ],
       "Folds": [],
@@ -98,8 +98,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
       "Cursor": [
-        219,
-        0
+        175,
+        70
       ],
       "Folds": [],
       "Zoom": 0,
@@ -121,10 +121,10 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
     "Cursor": [
-      98,
-      64
+      175,
+      70
     ]
   },
   "Breakpoints": [

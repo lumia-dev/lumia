@@ -161,11 +161,11 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  
 
 
 # ***********************************************************************************************
-def remove_unwanted_characters(string):
+def remove_unwanted_characters(myString):
     """removes non-ASCII characters, curly braces, square brackets, CR, LF,  and quotes from the string."""
     # return ''.join(char for char in string if ord(char) < 128) removes all non-ASCII characters
     # neither do we want curly braces, square brackets or quotes 
-    return ''.join(char for char in string if ((ord(char) > 44)and(ord(char) < 123)and(ord(char) !=34)and(ord(char) !=39)and(ord(char) !=91)and(ord(char) !=93)))
+    return ''.join(char for char in myString if ((ord(char) > 44)and(ord(char) < 123)and(ord(char) !=34)and(ord(char) !=39)and(ord(char) !=91)and(ord(char) !=93)))
 
 
 # ***********************************************************************************************
