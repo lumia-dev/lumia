@@ -5,7 +5,7 @@ import tarfile
 import tempfile
 
 from numpy import unique, nan
-from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp, to_datetime
+from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp, to_datetime, concat
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
@@ -17,7 +17,14 @@ from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFr
 
 
 class obsdb:
-    def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None):
+    def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None,  errorEstimate=None):
+        # errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
+       # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 
+       # The value actually matters, in some cases: it can be used as a value for the weekly uncertainty, or for the default 
+       # single-obs uncertainty (in the "lumia.obsdb.InversionDb.obsdb.setup_uncertainties_cst" and 
+       # "lumia.obsdb.InversionDb.obsdb.setup_uncertainties_weekly" methods). But it's not something you can retrieve 
+       # from the observations themselves (it accounts for model uncertainty as well, to a degree), so it's more of a user settings. 
+        CrudeErrorEstimate="1.5" # 1.5 ppm
         bFromCarbonportal=False
         if db is not None:
             self._parent = db
@@ -54,6 +61,7 @@ class obsdb:
             if ('CARBONPORTAL' in sLocation):
                 # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is empty and so is the data frame resulting from it.
                 bFromCarbonportal=True
+                bFirstDf=True
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
                 # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
                 cpDir=rcf['observations']['file']['cpDir']
@@ -72,7 +80,7 @@ class obsdb:
                     # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
 
                     # TODO: remove next line· - for testing only
-                    pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
+                    # pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
                     # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
                     dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
                     print(dob,  flush=True)
@@ -104,9 +112,14 @@ class obsdb:
                     # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
                     # not timestamp and since I'm reading the data here and not elsewhere no further changes are required.
                     logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
-                    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', sep=',')
-                    # TODO: Timestamp format needs modifications
-                    setattr(self, 'observations', obsData1siteTimed)
+                    if(bFirstDf):
+                        obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')
+                    else:
+                        obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='a', sep=',', header=False)
+                    if(bFirstDf):
+                        allObsDfs= obsData1siteTimed.copy()
+                    else:
+                        allObsDfs= concat([allObsDfs, obsData1siteTimed])
                     # Now let's create the list of sites and store it in self....
                     # The example I have from the observations.tar.gz files looks like this:
                     # site,code,name,lat,lon,alt,height,mobile,file,sitecode_CSR,err
@@ -120,8 +133,12 @@ class obsdb:
                     mobileFlag=None
                     scCSR=getSitecodeCsr(dob.station['id'].lower())
                     logger.info(f"sitecode_CSR: {scCSR}")
-                    errV="1.5"
-                    logger.info(f"err: {errV}")
+                    # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)                    
+                    if(CrudeErrorEstimate is None):
+                        errorEstimate=CrudeErrorEstimate
+                        logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
+                    else:
+                        logger.info(f"errorEstimate (observations): {errorEstimate}")
                     data =( {
                       "site":dob.station['id'].lower() ,
                       "code": dob.station['id'].lower(),
@@ -133,15 +150,24 @@ class obsdb:
                       "mobile": mobileFlag,
                       "file": sFileNameOnCarbonPortal,
                       "sitecode_CSR": scCSR,
-                      "err": errV
+                      "err": errorEstimate
                     })
                     df = DataFrame([data])                    
-                    df.to_csv('mySites.csv', encoding='utf-8', sep=',')
-                    setattr(self, 'sites', df)
-                    # TODO: remove next 2lines· - for testing only
-                    break
-                self.load_tar(filename)
-
+                    if(bFirstDf):
+                        df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
+                    else:
+                        df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
+                    if(bFirstDf):
+                        allSitesDfs = df.copy()
+                        bFirstDf=False
+                    else:
+                        allSitesDfs = concat([allSitesDfs, df])
+                    
+                setattr(self, 'observations', allObsDfs)
+                setattr(self, 'sites', allSitesDfs)
+                allObsDfs.to_csv('obsData1siteTimedFinal.csv', encoding='utf-8', mode='w', sep=',')
+                allSitesDfs.to_csv('mySitesFinal.csv', encoding='utf-8', sep=',', mode='w')
+                # self.load_tar(filename)
             else:
                 self.load_tar(filename)
             self.filename = filename
@@ -346,3 +372,5 @@ class obsdb:
             else:
                 logger.error("Duplicated indices found in the observations table!")
                 raise RuntimeError
+
+# Observations and sites data are now read and created correctly for the first data set found. The time field is actually also a series in case it is read from a tarbll - so I don't need to convert it in any way. Thus the obs data fields seem to be fine now. In the data for the sites file I was able to extract most info from the dobj meta data except the following: err (seems always to be 1.5), mobile: seems always to be None (according to Ute there presently are no mobile ICOS stations),  and it is unclear how the sitecode_CSR is created. It is not in the meta data. I have made a look-up table from an existing sites file, but it may be incvomplete. I'll check with Guillaume to clarify these. Next steps are reading all observational files matching the user criteria. The yml will need additional variables so a user can select say station altitude or intake height..

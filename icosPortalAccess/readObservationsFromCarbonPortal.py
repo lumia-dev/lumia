@@ -243,7 +243,8 @@ def getSitecodeCsr(siteCode):
     if (siteCode in stationDict):
         return(stationDict[siteCode])
     else:
-        return('dt'+siteCode+'i')
+        # TODO: # 'dt'+siteCode+'i'  is not good enough. I need to get the correct names from the CarboScope (CSR) naming convention
+        return(None)  
 
 
 # ***********************************************************************************************

@@ -66,7 +66,7 @@ optimize :
     observations :
         co2 :
             uncertainty :
-                type : weekly
+                type : weekly    # or 'dyn' dynamic
 
 
 congrad :
