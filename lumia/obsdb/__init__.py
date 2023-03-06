@@ -12,7 +12,7 @@ from numpy import datetime64
 from rctools import RcFile
 from icoscp.cpb import metadata as meta
 from icoscp.cpb.dobj import Dobj
-from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal
+from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal,  getSitecodeCsr
 
 
 
@@ -52,6 +52,7 @@ class obsdb:
             sLocation=rcf['observations']['file']['location']
             timeStep=rcf['run']['timestep']
             if ('CARBONPORTAL' in sLocation):
+                # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is empty and so is the data frame resulting from it.
                 bFromCarbonportal=True
                 # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
                 # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
@@ -79,7 +80,7 @@ class obsdb:
                     obsData1site = dob.get()
                     logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
                     # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
-                    obsData1site.rename(columns={ 'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err_obs','Flag':'icos_flag'}, inplace=True)
+                    obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err_obs','Flag':'icos_flag'}, inplace=True)
                     # 'TIMESTAMP':'time'
                     # These are not read, thus need not be renamed: 'SamplingHeight':'height' (taken from metadata), 'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  
                     # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
@@ -87,8 +88,8 @@ class obsdb:
                     # logger.info(f"obsData1site= {obsData1site}")
                     # bother only with relevant time intervals and where we have valid observations (NbPoints>0):
                     obsData1siteTimed = obsData1site.loc[(
-                        (obsData1site.TIMESTAMP >= pdSliceStartTime) &
-                        (obsData1site.TIMESTAMP <= pdSliceEndTime) &
+                        (obsData1site.time >= pdSliceStartTime) &
+                        (obsData1site.time <= pdSliceEndTime) &
                         (obsData1site['NbPoints'] > 0)
                     )]  
                     obsData1siteTimed['lat']=dob.lat
@@ -99,35 +100,48 @@ class obsdb:
                     obsData1siteTimed['code'] = dob.station['id'].lower()
                     # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
                     # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
-                    # obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].astype("string") # ''.join(char for char in str(obsData1siteTimed['time']) if ((char >= '0')and(char <= '9')))
-                    # obsData1siteTimed['time'] =  obsData1siteTimed['time'].strftime("%Y%m%d%H%M%S") # ''.join(char for char in str(obsData1siteTimed['time']) if ((char >= '0')and(char <= '9')))
-
-                    #obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].astype("string")
-                    #obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].astype("datetime64")
-                    #obsData1siteTimed['time'] =  obsData1siteTimed['TIMESTAMP'].dt.year.astype("string")+obsData1siteTimed['TIMESTAMP'].dt.month.astype("string")+obsData1siteTimed['TIMESTAMP'].dt.day.astype("string")
-                    #for ser in obsData1siteTimed['TIMESTAMP']:
-                    #    print(ser,  flush=True)
-                    #    ts=ser.strftime("%Y%m%d%H%M%S")
-                    #    print(ts,  flush=True)
-                    #    tts =  "%d%2d%2d" % (ser.dt.year, ser.dt.month, ser.dt.day)
-                    #    print(tts,  flush=True)
-                    #    #ddt=ser.apply(to_datetime)
-                    #    #print(ddt,  flush=True)
-                    #    break
-                    #obsData1siteTimed['timeS'] =  "%d%2d%2d" % (obsData1siteTimed['TIMESTAMP'].dt.year, obsData1siteTimed['TIMESTAMP'].dt.month, obsData1siteTimed['TIMESTAMP'].dt.day)
-
-                    #obsData1siteTimed['TIMESTAMP'] = obsData1siteTimed['TIMESTAMP'].apply(to_datetime)
-                    #obsData1siteTimed['time'] =  datetime.datetime(obsData1siteTimed['TIMESTAMP']) #.apply(to_datetime, utc=True)
-                    ## t = datetime.datetime(2018, 2, 23, 9, 59, 1)
-                    #t2=datetime.datetime(obsData1siteTimed['TIMESTAMP'])
-                    #obsData1siteTimed['time2'] =  to_datetime(obsData1siteTimed['time']).strftime("%Y%m%d%H%M%S")
+                    # I tried to pull my hair out converting the series into a timestamp object or likewise and format the output,
+                    # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
+                    # not timestamp and since I'm reading the data here and not elsewhere no further changes are required.
                     logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
                     obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', sep=',')
                     # TODO: Timestamp format needs modifications
                     setattr(self, 'observations', obsData1siteTimed)
+                    # Now let's create the list of sites and store it in self....
+                    # The example I have from the observations.tar.gz files looks like this:
+                    # site,code,name,lat,lon,alt,height,mobile,file,sitecode_CSR,err
+                    # trn,trn,Trainou,47.9647,2.1125,131.0,180.0,,/proj/inversion/LUMIA/observations/eurocom2018/rona/TRN_180m_air.hdf.all.COMBI_Drought2018_20190522.co2,dtTR4i,1.5
+                    sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
+                    logger.info(f"station name: {dob.station['org']['name']}")
+                    logger.info(f"file name cpb: {sFileNameOnCarbonPortal}")
+                    logger.info(f"file name (csv) for download {dob.meta['fileName']}")
+                    logger.info(f"file name (url): {dob.meta['accessUrl']}")
+                    # logger.info(f"mobile flag: {}")
+                    mobileFlag=None
+                    scCSR=getSitecodeCsr(dob.station['id'].lower())
+                    logger.info(f"sitecode_CSR: {scCSR}")
+                    errV="1.5"
+                    logger.info(f"err: {errV}")
+                    data =( {
+                      "site":dob.station['id'].lower() ,
+                      "code": dob.station['id'].lower(),
+                      "name": dob.station['org']['name'] ,
+                      "lat": dob.lat,
+                      "lon":dob.lon ,
+                      "alt": dob.alt,
+                      "height": dob.meta['specificInfo']['acquisition']['samplingHeight'],
+                      "mobile": mobileFlag,
+                      "file": sFileNameOnCarbonPortal,
+                      "sitecode_CSR": scCSR,
+                      "err": errV
+                    })
+                    df = DataFrame([data])                    
+                    df.to_csv('mySites.csv', encoding='utf-8', sep=',')
+                    setattr(self, 'sites', df)
                     # TODO: remove next 2lines· - for testing only
                     break
                 self.load_tar(filename)
+
             else:
                 self.load_tar(filename)
             self.filename = filename

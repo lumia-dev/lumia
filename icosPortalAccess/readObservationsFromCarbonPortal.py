@@ -192,6 +192,58 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
     return fNameLst
 
 
+# /*****************************************************************************************************************/
+def getSitecodeCsr(siteCode):
+    stationDict={
+        'bik':	'dtBI5i', 
+        'bir':	'dcBIRi', 
+        'bis':	'dcBISi', 
+        'brm':	'dtBR5i', 
+        'bsd':	'htBS3i', 
+        'ces':	'dtCB4i', 
+        'cmn' : 'nmCMNi', 
+        'crp':	'dsCRPi', 
+        'dec':	'dsDECi', 
+        'eec':	'dsEECi', 
+        'ers':	'hmER2i', 
+        'fkl':	'hsFKLi', 
+        'gat':	'dtGA5i', 
+        'gic': 'hcGICi', 
+        'hei':	'duHEIi', 
+        'hpb':	'dtHP4i', 
+        'htm':	'dtHT3i', 
+        'hun':	'dtHU4i', 
+        'ipr':	'htIP3i', 
+        'jfj':	'nmJFJi', 
+        'kre':	'dtKR3i', 
+        'lhw':	'hcLHWi', 
+        'lin':	'dtLINi', 
+        'lmp':	'dsLMPi', 
+        'lmu':	'dtLMUi', 
+        'lut':	'dcLUTi', 
+        'mhd':	'dsMHDi', 
+        'mlh':	'hsMLHi', 
+        'nor':	'dtNO3i', 
+        'ohp':	'htOHPi', 
+        'ope':	'dtOP3i', 
+        'pal':	'dcPALi', 
+        'prs':	'nmPTRi', 
+        'pui':	'dtPUIi', 
+        'puy':	'nmPUYi', 
+        'rgl':	'dtRG2i', 
+        'sac':	'hsSA3i', 
+        'smr':	'dtSM3i', 
+        'ssl':	'nmSI2i', 
+        'svb':	'dtSV3i', 
+        'tac':	'dtTA3i', 
+        'trn':	'dtTR4i', 
+        'uto':	'hsUTOi', 
+        'wao':	'dsWAOi'    
+    }
+    if (siteCode in stationDict):
+        return(stationDict[siteCode])
+    else:
+        return('dt'+siteCode+'i')
 
 
 # ***********************************************************************************************
