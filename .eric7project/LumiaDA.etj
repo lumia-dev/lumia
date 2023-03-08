@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-03-08, 13:40:27"
+    "saved": "2023-03-08, 16:17:51"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -384,19 +384,6 @@
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py"
     },
     {
-      "summary": "TODO: for debugging - force single cpu as opposed to multi-threading  - however, that is not working as expected",
-      "description": "",
-      "priority": 1,
-      "lineno": 212,
-      "completed": false,
-      "created": 1678264560.6791902,
-      "type": 1,
-      "uid": "{b092b1da-cdb9-4225-a5dd-7d1081abf560}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py"
-    },
-    {
       "summary": "TODO: this enforces hourly time step in TM5 ... maybe this is not a good idea?",
       "description": "",
       "priority": 1,
@@ -467,12 +454,25 @@
       "priority": 1,
       "lineno": 68,
       "completed": false,
-      "created": 1678279224.1150978,
+      "created": 1678287268.192214,
       "type": 1,
-      "uid": "{074cd148-f39a-4ad4-bef0-a60d3fa7f586}",
+      "uid": "{2969a9d2-a70a-499e-90cb-cb83398a62ba}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py"
+    },
+    {
+      "summary": "TODO: for debugging - force single cpu as opposed to multi-threading  - however, that is not working as expected",
+      "description": "",
+      "priority": 1,
+      "lineno": 212,
+      "completed": false,
+      "created": 1678288668.5804296,
+      "type": 1,
+      "uid": "{fa80ecf8-64e7-4cc0-9553-6e5dbeb52504}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py"
     }
   ]
 }

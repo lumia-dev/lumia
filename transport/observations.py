@@ -68,7 +68,8 @@ class Observations(DataFrame):
         # TODO: obsids are no longer unique if footprints from multiple(!) heights are available for the same site.
         # assuming all traditional obsids are <=999,999.0, we could make them unique by replacing that 
         # index with newObsidx=obsidx+int(1e7*height); e.g. 50m: 12228 => 50012228
-        obsids = self.code + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y%m%d-%H%M%S')
+        valid=self.loc[~isnull(self.footprint)]
+        obsids = valid.code + valid.height.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
         logger.info(f"Dbg: obsids= {obsids}")
         obsids.to_csv('obsids.csv', encoding='utf-8', sep=',', mode='w')
         self.loc[~isnull(self.footprint), 'obsid'] = obsids

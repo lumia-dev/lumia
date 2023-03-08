@@ -95,7 +95,7 @@ class Forward(BaseTransport):
 
             # Combine :
             for col in [col for col in fwd.columns if col.startswith('mix')]:
-                obs.loc[obs.index, col] = fwd.loc[:, col]
+                obs.loc[obs.index, col] = fwd.loc[obs.index, col]
 
         return obs
 
@@ -258,26 +258,26 @@ class Adjoint(BaseTransport):
                     logger.info(f"(pool_id({pool_id})): obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
                     nPtsRead+=fp.sensi.size
                     logger.info(f"(pool_id({pool_id})): nWanted={nWanted},  cumulative number of points read:{nPtsRead}, number of points in this chunk: fp.sensi.size={fp.sensi.size}")
-                    if(fp.sensi.size>times.nt):
-                        logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension (axis 0) ({1+times.nt})")
+                    # if(fp.sensi.size>times.nt):
+                        # logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension (axis 0) ({1+times.nt})")
                         #for idx, s in enumerate(fp.sensi):
                         #    if (0==idx%250):
                         #        logger.info(f"(pool_id({pool_id})): s[{idx}]={s}")
-                        logger.info(f"(pool_id({pool_id})): bad fp={fp}")
-                        logger.info(f"(pool_id({pool_id})): bad desc={desc}")
-                        logger.info(f"(pool_id({pool_id})): bad fp.sensi={fp.sensi}")
-                        logger.info(f"(pool_id({pool_id})): Available size of times dimension={times.nt}")
-                        logger.info(f"(pool_id({pool_id})): bad total={total}")
-                        logger.info(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size}")
-                        logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension ({1+times.nt})")
+                        # logger.info(f"(pool_id({pool_id})): bad fp={fp}")
+                        # logger.info(f"(pool_id({pool_id})): bad desc={desc}")
+                        # logger.info(f"(pool_id({pool_id})): bad fp.sensi={fp.sensi}")
+                        # logger.info(f"(pool_id({pool_id})): Available size of times dimension={times.nt}")
+                        # logger.info(f"(pool_id({pool_id})): bad total={total}")
+                        # logger.info(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size}")
+                        # logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension ({1+times.nt})")
                         
-                        logger.info(f"(pool_id({pool_id})): The size of receiving array adj_emis is 1+times.nt * grid.nlat * grid.nlon= {1+times.nt} * {grid.nlat} * {grid.nlon}={nWanted}")
-                        if(fp.sensi.size>nWanted):
-                            logger.error(f"(pool_id({pool_id})): Abort: fp.sensi.size={fp.sensi.size} exceeds the size of the receiving array adj_emis ({nWanted})")
-                            sys.exit(-1)
-                        if(nPtsRead>nWanted):
-                            logger.error(f"(pool_id({pool_id})): Abort: cumulative size of footprints read nPtsRead={nPtsRead} exceeds the size of the receiving array adj_emis ({nWanted})")
-                            sys.exit(-1)
+                        # logger.info(f"(pool_id({pool_id})): The size of receiving array adj_emis is 1+times.nt * grid.nlat * grid.nlon= {1+times.nt} * {grid.nlat} * {grid.nlon}={nWanted}")
+                        # if(fp.sensi.size>nWanted):
+                        #     logger.error(f"(pool_id({pool_id})): Abort: fp.sensi.size={fp.sensi.size} exceeds the size of the receiving array adj_emis ({nWanted})")
+                        #     sys.exit(-1)
+                        # if(nPtsRead>nWanted):
+                        #     logger.error(f"(pool_id({pool_id})): Abort: cumulative size of footprints read nPtsRead={nPtsRead} exceeds the size of the receiving array adj_emis ({nWanted})")
+                        #     sys.exit(-1)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
                     # IndexError: index 4762 is out of bounds for axis 0 with size 744
 
