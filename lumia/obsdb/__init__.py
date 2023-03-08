@@ -55,9 +55,9 @@ class obsdb:
             }
             self.extraFields = {}
         if filename is not None:
-            logger.info(rcf)
-            sLocation=rcf['observations']['file']['location']
+            # logger.info(rcf)
             timeStep=rcf['run']['timestep']
+            sLocation=rcf['observations']['file']['location']
             if ('CARBONPORTAL' in sLocation):
                 # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is empty and so is the data frame resulting from it.
                 bFromCarbonportal=True
@@ -83,39 +83,42 @@ class obsdb:
                     # pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
                     # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
                     dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
-                    print(dob,  flush=True)
-                    logger.info(f"Reading observed co2 data from: station={dob.station},  station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
+                    logger.info(f"dobj: {dob}")
+                    logger.info(f"Reading observed co2 data from: station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
                     obsData1site = dob.get()
                     logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
                     # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
-                    obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err_obs','Flag':'icos_flag'}, inplace=True)
-                    # 'TIMESTAMP':'time'
+                    obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err','Flag':'icos_flag'}, inplace=True)
+                    # one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
+                    # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
+                    # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
+                    # Hence I decided to mimic the behaviour of a local observations.tar.gz file
                     # These are not read, thus need not be renamed: 'SamplingHeight':'height' (taken from metadata), 'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  
                     # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
                     #                                              and along the same line of thought we can abuse DecimalDate for the site altitude
                     # logger.info(f"obsData1site= {obsData1site}")
-                    # bother only with relevant time intervals and where we have valid observations (NbPoints>0):
+                    obsData1site.loc[:,'site'] = dob.station['id'].lower()
+                    obsData1site.loc[:,'lat']=dob.lat
+                    obsData1site.loc[:,'lon']=dob.lon
+                    obsData1site.loc[:,'alt']=dob.alt
+                    obsData1site.loc[:,'height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
+                    # site name/code is in capitals, but needs conversion to lower case:
+                    obsData1site.loc[:,'code'] = dob.station['id'].lower()
                     obsData1siteTimed = obsData1site.loc[(
                         (obsData1site.time >= pdSliceStartTime) &
                         (obsData1site.time <= pdSliceEndTime) &
                         (obsData1site['NbPoints'] > 0)
                     )]  
-                    obsData1siteTimed['lat']=dob.lat
-                    obsData1siteTimed['lon']=dob.lon
-                    obsData1siteTimed['alt']=dob.alt
-                    obsData1siteTimed['height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
-                    # site name/code is in capitals, but needs conversion to lower case:
-                    obsData1siteTimed['code'] = dob.station['id'].lower()
                     # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
                     # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
                     # I tried to pull my hair out converting the series into a timestamp object or likewise and format the output,
                     # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
                     # not timestamp and since I'm reading the data here and not elsewhere no further changes are required.
                     logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
-                    if(bFirstDf):
-                        obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')
-                    else:
-                        obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='a', sep=',', header=False)
+                    #if(bFirstDf):
+                    #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')
+                    #else:
+                    #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='a', sep=',', header=False)
                     if(bFirstDf):
                         allObsDfs= obsData1siteTimed.copy()
                     else:
@@ -134,15 +137,17 @@ class obsdb:
                     scCSR=getSitecodeCsr(dob.station['id'].lower())
                     logger.info(f"sitecode_CSR: {scCSR}")
                     # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)                    
-                    if(CrudeErrorEstimate is None):
+                    if(errorEstimate is None):
                         errorEstimate=CrudeErrorEstimate
-                        logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
+                        logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations of CO2 has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
                     else:
                         logger.info(f"errorEstimate (observations): {errorEstimate}")
                     data =( {
                       "site":dob.station['id'].lower() ,
                       "code": dob.station['id'].lower(),
                       "name": dob.station['org']['name'] ,
+                      "fnameCpb": sFileNameOnCarbonPortal ,
+                      "fnameUrl": dob.meta['accessUrl'] ,
                       "lat": dob.lat,
                       "lon":dob.lon ,
                       "alt": dob.alt,
@@ -153,10 +158,10 @@ class obsdb:
                       "err": errorEstimate
                     })
                     df = DataFrame([data])                    
-                    if(bFirstDf):
-                        df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
-                    else:
-                        df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
+                    #if(bFirstDf):
+                    #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
+                    #else:
+                    #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
                     if(bFirstDf):
                         allSitesDfs = df.copy()
                         bFirstDf=False
@@ -165,8 +170,8 @@ class obsdb:
                     
                 setattr(self, 'observations', allObsDfs)
                 setattr(self, 'sites', allSitesDfs)
-                allObsDfs.to_csv('obsData1siteTimedFinal.csv', encoding='utf-8', mode='w', sep=',')
-                allSitesDfs.to_csv('mySitesFinal.csv', encoding='utf-8', sep=',', mode='w')
+                allObsDfs.to_csv('obsDataAll.csv', encoding='utf-8', mode='w', sep=',')
+                allSitesDfs.to_csv('mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
                 # self.load_tar(filename)
             else:
                 self.load_tar(filename)

@@ -48,7 +48,7 @@ class Observations(DataFrame):
             local = archive
         fnames_archive = archive + '/' + self.footprint
         fnames_local = local + '/' + self.footprint
-
+        logger.info(f"Hunting for these footprints,  either archived: \n{fnames_archive} \n or local:\n{fnames_local}")
         # 3) retrieve the files from archive if needed:
         exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
         self.loc[:, 'footprint'] = fnames_local
@@ -65,7 +65,12 @@ class Observations(DataFrame):
 
     def gen_obsid(self) -> None:
         # Construct the obs ids:
+        # TODO: obsids are no longer unique if footprints from multiple(!) heights are available for the same site.
+        # assuming all traditional obsids are <=999,999.0, we could make them unique by replacing that 
+        # index with newObsidx=obsidx+int(1e7*height); e.g. 50m: 12228 => 50012228
         obsids = self.code + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y%m%d-%H%M%S')
+        logger.info(f"Dbg: obsids= {obsids}")
+        obsids.to_csv('obsids.csv', encoding='utf-8', sep=',', mode='w')
         self.loc[~isnull(self.footprint), 'obsid'] = obsids
 
     def check_footprint_files(self, cls: Type[FootprintFile]) -> None:

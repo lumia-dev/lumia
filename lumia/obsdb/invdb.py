@@ -23,7 +23,7 @@ class invdb(obsdb):
         inflated, observations with higher uncertainty are discarded), with the err_tot_min and err_tot_max arguments
 
         This requires the three following column to be present in the database:
-        - err_meas
+        - err_meas     == err_obs?
         - err_mod
         - err_bg
 

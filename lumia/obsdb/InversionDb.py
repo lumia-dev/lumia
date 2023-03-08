@@ -44,15 +44,17 @@ class obsdb(obsdb):
             #location=rcf['observations'].get('location',  None))
         db.rcf = rcf
 
-        # Rename fields, if required by the config file or dict:
-        # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
-        # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
-        renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
-        renameLst.append(rcf['observations'][filekey].get('rename', []))
-        logger.info('Renaming the following columns in the observations data:')
-        logger.info(renameLst)
-        db.map_fields(renameLst)
-        #db.map_fields(rcf['observations'][filekey].get('rename', []))
+        sLocation=rcf['observations']['file']['location']
+        if ('CARBONPORTAL' not in sLocation):
+            # Rename fields, if required by the config file or dict:
+            # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
+            # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
+            renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
+            renameLst.append(rcf['observations'][filekey].get('rename', []))
+            logger.info('Renaming the following columns in the observations data:')
+            logger.info(renameLst)
+            db.map_fields(renameLst)
+            #db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:

@@ -35,7 +35,7 @@ class transport(object):
         self.db = obsdb
 
         # Just to ensure that calcDepartures work even if no obs err has been provided
-        if 'err' not in self.db.observations :
+        if ('err' not in self.db.observations) :
             self.db.observations.loc[:, 'err'] = None
 
     def save(self, path=None, tag=None, structf=None):
@@ -65,7 +65,11 @@ class transport(object):
     def calcDepartures(self, struct, step=None, serial=False):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb.from_hdf(dbf)
+        logger.info(f"Dbg: self.db.observations: {self.db.observations}")
+        self.db.observations.to_csv('self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         if self.rcf.get('model.split_categories', default=True):
+            import time
+            time.sleep(5)
             for cat in struct.transported_categories:
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
@@ -120,6 +124,8 @@ class transport(object):
         """
         
         self.db.observations.loc[:, 'dy'] = departures
+        depout=os.path.join(self.tempdir, 'departures.hdf')
+        logger.info(f"Writing departures to {depout}")
         dpf = self.db.to_hdf(os.path.join(self.tempdir, 'departures.hdf'))
         
         # Name of the adjoint output file

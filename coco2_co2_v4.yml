@@ -7,8 +7,8 @@ run :
     gridname : 'eurocom025x025'   # common name for region and grid used in the path name to the tracer flux data
     timestep : 1h
     paths :
-        temp : ./tmp
-        footprints : ./footprints
+        temp : /home/arndt/nateko/data/icos/DICE/tmp  # ./tmp
+        footprints : /home/arndt/nateko/data/icos/DICE/footprints  #./footprints
         output : ./output
         data : .                         # your current working directory under which you would have the ./fluxes/nc/eurocom025x025/ flux data files
 
@@ -34,7 +34,7 @@ observations :
     start: '2018-01-01 00:00:00'
     end:   '2018-02-01 00:00:00'
     file :
-        location : CARBONPORTAL      # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory
+        location : CARBONPORTAL      # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory. In the former case the value of 'path' is ignored.
         cpDir : '/data/dataAppStorage/asciiAtcProductTimeSer/'  # only used if location is CARBONPORTAL, e.g. /data/dataAppStorage/asciiAtcProductTimeSer/
         path : observations.tar.gz
         rename :  background:mix_background
