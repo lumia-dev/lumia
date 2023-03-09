@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-03-09, 10:37:13"
+    "saved": "2023-03-09, 10:52:33"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -345,32 +345,6 @@
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py"
     },
     {
-      "summary": "TODO: remove next line\u00b7 - for testing only",
-      "description": "",
-      "priority": 1,
-      "lineno": 82,
-      "completed": false,
-      "created": 1678354629.653607,
-      "type": 1,
-      "uid": "{a6d122e0-451a-4405-95e8-05c118a697c9}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py"
-    },
-    {
-      "summary": "TODO: ad-hoc fix to convert \"object\" bool to standard bool. Need to make sure these don't be created in the 1st place",
-      "description": "",
-      "priority": 1,
-      "lineno": 359,
-      "completed": false,
-      "created": 1678354629.6559677,
-      "type": 1,
-      "uid": "{74aa3d09-a46b-467e-b42d-73ed14960726}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py"
-    },
-    {
       "summary": "TODO: TypeError: self.rcf.keys  is not iterable",
       "description": "",
       "priority": 1,
@@ -473,6 +447,19 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/flexRes.py"
+    },
+    {
+      "summary": "TODO: ad-hoc fix to convert \"object\" bool to standard bool. Need to make sure these don't be created in the 1st place",
+      "description": "",
+      "priority": 1,
+      "lineno": 226,
+      "completed": false,
+      "created": 1678355550.1406007,
+      "type": 1,
+      "uid": "{73e68483-b189-4945-bf84-4f6a481be992}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py"
     }
   ]
 }
