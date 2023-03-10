@@ -11,7 +11,7 @@ from numpy import datetime64
 
 
 class obsdb:
-    def __init__(self, filename=None, start=None, end=None, db=None):
+    def __init__(self, filename=None, start=None, end=None, db=None,  bFromCPortal=False,  rcFile=None):
         if db is not None:
             self._parent = db
         else:
@@ -41,7 +41,10 @@ class obsdb:
             }
             self.extraFields = {}
         if filename is not None:
-            self.load_tar(filename)
+            if (bFromCPortal):
+                self.load_fromCPortal(self, rcFile)
+            else:
+                self.load_tar(filename)
             self.filename = filename
             if self.start is None:
                 self.start = self.observations.time.min()

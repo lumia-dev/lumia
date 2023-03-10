@@ -7,6 +7,11 @@ from lumia.obsdb import obsdb
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
+from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp, to_datetime, concat
+from rctools import RcFile
+from icoscp.cpb import metadata as meta
+from icoscp.cpb.dobj import Dobj
+from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal,  getSitecodeCsr
 
 
 def _calc_weekly_uncertainty(site, times, err):
@@ -22,7 +27,7 @@ class obsdb(obsdb):
     #def __init__(self, rcf, setupUncertainties=True):
 
     @classmethod
-    def from_rc(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file') -> "obsdb":
+    def from_CPortal(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file') -> "obsdb":
         """
         Construct an observation database based on a rc-file and the carbon portal. The class does the following:
         - loads all tracer observation files from the carbon portal
@@ -40,12 +45,11 @@ class obsdb(obsdb):
             rcf['observations'][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
             end=rcf['observations'].get('end', None), 
-            rcf=rcf)
+            bFromCPortal=True,  rcFile=rcf)
             #location=rcf['observations'].get('location',  None))
         db.rcf = rcf
 
-        sLocation=rcf['observations']['file']['location']
-        if ('CARBONPORTAL' not in sLocation):
+        if (1>2):  # TODO: check. should not be needed
             # Rename fields, if required by the config file or dict:
             # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
             # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
@@ -62,6 +66,143 @@ class obsdb(obsdb):
             logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
         return db
+
+    @classmethod
+    def load_fromCPortal(self, filename,  rcf=None,  errorEstimate=None):
+        #def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None,  errorEstimate=None):
+        # errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
+       # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 
+       # The value actually matters, in some cases: it can be used as a value for the weekly uncertainty, or for the default 
+       # single-obs uncertainty (in the "lumia.obsdb.InversionDb.obsdb.setup_uncertainties_cst" and 
+       # "lumia.obsdb.InversionDb.obsdb.setup_uncertainties_weekly" methods). But it's not something you can retrieve 
+       # from the observations themselves (it accounts for model uncertainty as well, to a degree), so it's more of a user settings. 
+        self.rcf = rcf
+        CrudeErrorEstimate="1.5" # 1.5 ppm
+        timeStep=self.rcf['run']['timestep']
+        # sLocation=rcf['observations']['file']['location']
+        # if ('CARBONPORTAL' in sLocation):
+        # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is empty and so is the data frame resulting from it.
+        # bFromCarbonportal=True
+        bFirstDf=True
+        # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
+        # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
+        cpDir=rcf['observations']['file']['cpDir']
+        #remapObsDict=rcf['observations']['file']['renameCpObs']
+        #if self.start is None:
+        sStart=self.rcf['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
+        sEnd=self.rcf['observations']['end']
+        # self.start = self.observations.time.min()
+        # if self.end is None:
+        # self.end = self.observations.time.max()
+        pdTimeStart = to_datetime(sStart, format="%Y-%m-%d %H:%M:%S")
+        pdTimeStart=pdTimeStart.tz_localize('UTC')
+        pdTimeEnd = to_datetime(sEnd, format="%Y-%m-%d %H:%M:%S")
+        pdTimeEnd=pdTimeEnd.tz_localize('UTC')
+        # create a datetime64 version of these so we can extract the time interval needed from the pandas data frame
+        pdSliceStartTime=pdTimeStart.to_datetime64()
+        pdSliceEndTime=pdTimeEnd.to_datetime64()
+        (dobjLst, cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
+        # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
+        for pid in dobjLst:
+            # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
+            # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
+
+            # TODO: remove next line· - for testing only
+            # pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
+            # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
+            dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
+            logger.info(f"dobj: {dob}")
+            logger.info(f"Reading observed co2 data from: station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
+            obsData1site = dob.get()
+            logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
+            # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
+            obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err','Flag':'icos_flag'}, inplace=True)
+            # one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
+            # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
+            # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
+            # Hence I decided to mimic the behaviour of a local observations.tar.gz file
+            # These are not read, thus need not be renamed: 'SamplingHeight':'height' (taken from metadata), 'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  
+            # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
+            #                                              and along the same line of thought we can abuse DecimalDate for the site altitude
+            # logger.info(f"obsData1site= {obsData1site}")
+            obsData1site.loc[:,'site'] = dob.station['id'].lower()
+            obsData1site.loc[:,'lat']=dob.lat
+            obsData1site.loc[:,'lon']=dob.lon
+            obsData1site.loc[:,'alt']=dob.alt
+            obsData1site.loc[:,'height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
+            # site name/code is in capitals, but needs conversion to lower case:
+            obsData1site.loc[:,'code'] = dob.station['id'].lower()
+            obsData1siteTimed = obsData1site.loc[(
+                (obsData1site.time >= pdSliceStartTime) &
+                (obsData1site.time <= pdSliceEndTime) &
+                (obsData1site['NbPoints'] > 0)
+            )]  
+            # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
+            # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
+            # I tried to pull my hair out converting the series into a timestamp object or likewise and format the output,
+            # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
+            # not timestamp and since I'm reading the data here and not elsewhere no further changes are required.
+            logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
+            #if(bFirstDf):
+            #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')
+            #else:
+            #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='a', sep=',', header=False)
+            if(bFirstDf):
+                allObsDfs= obsData1siteTimed.copy()
+            else:
+                allObsDfs= concat([allObsDfs, obsData1siteTimed])
+            # Now let's create the list of sites and store it in self....
+            # The example I have from the observations.tar.gz files looks like this:
+            # site,code,name,lat,lon,alt,height,mobile,file,sitecode_CSR,err
+            # trn,trn,Trainou,47.9647,2.1125,131.0,180.0,,/proj/inversion/LUMIA/observations/eurocom2018/rona/TRN_180m_air.hdf.all.COMBI_Drought2018_20190522.co2,dtTR4i,1.5
+            sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
+            logger.info(f"station name: {dob.station['org']['name']}")
+            logger.info(f"file name cpb: {sFileNameOnCarbonPortal}")
+            logger.info(f"file name (csv) for download {dob.meta['fileName']}")
+            logger.info(f"file name (url): {dob.meta['accessUrl']}")
+            # logger.info(f"mobile flag: {}")
+            mobileFlag=None
+            scCSR=getSitecodeCsr(dob.station['id'].lower())
+            logger.info(f"sitecode_CSR: {scCSR}")
+            # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)                    
+            if(errorEstimate is None):
+                errorEstimate=CrudeErrorEstimate
+                logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations of CO2 has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
+            else:
+                logger.info(f"errorEstimate (observations): {errorEstimate}")
+            data =( {
+              "site":dob.station['id'].lower() ,
+              "code": dob.station['id'].lower(),
+              "name": dob.station['org']['name'] ,
+              "fnameCpb": sFileNameOnCarbonPortal ,
+              "fnameUrl": dob.meta['accessUrl'] ,
+              "lat": dob.lat,
+              "lon":dob.lon ,
+              "alt": dob.alt,
+              "height": dob.meta['specificInfo']['acquisition']['samplingHeight'],
+              "mobile": mobileFlag,
+              "file": sFileNameOnCarbonPortal,
+              "sitecode_CSR": scCSR,
+              "err": errorEstimate
+            })
+            df = DataFrame([data])                    
+            #if(bFirstDf):
+            #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
+            #else:
+            #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
+            if(bFirstDf):
+                allSitesDfs = df.copy()
+                bFirstDf=False
+            else:
+                allSitesDfs = concat([allSitesDfs, df])
+            
+        setattr(self, 'observations', allObsDfs)
+        setattr(self, 'sites', allSitesDfs)
+        allObsDfs.to_csv('obsDataAll.csv', encoding='utf-8', mode='w', sep=',')
+        allSitesDfs.to_csv('mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
+        # self.load_tar(filename)
+        logger.info(f"{self.observations.shape[0]} observation read from {filename}")
+
 
     def setup_uncertainties(self, *args, **kwargs):
         errtype = self.rcf.get('observations.uncertainty.frequency')

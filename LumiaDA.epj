@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2023 , ",
-    "saved": "2023-02-21, 13:52:17"
+    "saved": "2023-03-09, 13:03:39"
   },
   "project": {
     "AUTHOR": "",
@@ -109,6 +109,7 @@
       "lumia/obsdb/eurocom_dtf.py",
       "lumia/obsdb/footprintdb.py",
       "lumia/obsdb/invdb.py",
+      "lumia/obsdb/obsCPortalDb.py",
       "lumia/obsdb/obspackdb.py",
       "lumia/obsdb/obsplots.py",
       "lumia/obsdb/runflex.py",

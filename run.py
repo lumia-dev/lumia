@@ -7,7 +7,6 @@ from argparse import ArgumentParser
 import lumia
 from rctools import RcFile as rc
 from loguru import logger
-from lumia.obsdb.InversionDb import obsdb
 from lumia.formatters import xr
 
 
@@ -100,7 +99,13 @@ if args.noobs :
     from lumia.obsdb.runflex import obsdb
     db = obsdb(rcf.get('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
-    db = obsdb.from_rc(rcf)
+    sLocation=rcf['observations']['file']['location']
+    if ('CARBONPORTAL' in sLocation):
+        from lumia.obsdb.obsCPortalDb import obsdb
+        db = obsdb.from_CPortal(rcf)
+    else:
+        from lumia.obsdb.InversionDb import obsdb
+        db = obsdb.from_rc(rcf)
 else :
     # if we just want to write the emissions ...
     db = None

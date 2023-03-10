@@ -24,7 +24,8 @@ class obsdb(obsdb):
     @classmethod
     def from_rc(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file') -> "obsdb":
         """
-        Construct an observation database based on a rc-file. The class does the following:
+        Construct an observation database based on an rc-file and a local observations.tar.gz, observations.pari.tar.gz, etc file. 
+        The class does the following:
         - load an obs file in tar.gz format
         - rename fields, if required by the rc-file
         - calculate uncertainties (according to how specified in the rc-file)
