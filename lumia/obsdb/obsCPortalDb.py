@@ -41,13 +41,14 @@ class obsdb(obsdb):
             - filekey (optional): name of the section containing the file path and relevant keys
 
         """
+        # TODO: part of the db structure (like observations) is not passed correctly to this location but lost on the way....
         db = cls(
             rcf['observations'][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
             end=rcf['observations'].get('end', None), 
             bFromCPortal=True,  rcFile=rcf)
             #location=rcf['observations'].get('location',  None))
-        db.rcf = rcf
+        # db.rcf = rcf
 
         if (1>2):  # TODO: check. should not be needed
             # Rename fields, if required by the config file or dict:
@@ -198,11 +199,12 @@ class obsdb(obsdb):
             
         setattr(self, 'observations', allObsDfs)
         setattr(self, 'sites', allSitesDfs)
+        self.observations.to_csv('obsDataAll2-slf-load_fromCPortal-201.csv', encoding='utf-8', mode='w', sep=',')
         allObsDfs.to_csv('obsDataAll.csv', encoding='utf-8', mode='w', sep=',')
         allSitesDfs.to_csv('mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
         # self.load_tar(filename)
         logger.info(f"{self.observations.shape[0]} observation read from {filename}")
-
+        return(self)
 
     def setup_uncertainties(self, *args, **kwargs):
         errtype = self.rcf.get('observations.uncertainty.frequency')

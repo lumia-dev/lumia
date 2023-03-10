@@ -42,14 +42,24 @@ class obsdb:
             self.extraFields = {}
         if filename is not None:
             if (bFromCPortal):
-                self.load_fromCPortal(self, rcFile)
+                self=self.load_fromCPortal(self, rcFile)
             else:
                 self.load_tar(filename)
+            self.observations.to_csv('obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
             self.filename = filename
-            if self.start is None:
+            try:
+                if self.start is None:
+                    self.start = self.observations.time.min()
+            except:
                 self.start = self.observations.time.min()
-            if self.end is None:
+            try:
+                if self.end is None:
+                    self.end = self.observations.time.max()
+            except:
                 self.end = self.observations.time.max()
+            #if (bFromCPortal):
+            #    return(self)  ...not allowed
+
 
     def __getattr__(self, item):
         if '_parent' in vars(self):
