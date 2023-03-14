@@ -7,9 +7,9 @@ from lumia.obsdb import obsdb
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
-from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp, to_datetime, concat
-from rctools import RcFile
-from icoscp.cpb import metadata as meta
+from pandas import DataFrame, to_datetime, concat  # , read_csv, read_hdf, Series, Timestamp
+# from rctools import RcFile
+# from icoscp.cpb import metadata as meta
 from icoscp.cpb.dobj import Dobj
 from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal,  getSitecodeCsr
 
@@ -67,9 +67,8 @@ class obsdb(obsdb):
             logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
         return db
-
-    @classmethod
-    def load_fromCPortal(self, filename,  rcf=None,  errorEstimate=None):
+ 
+    def load_fromCPortal(self, filename,  rcf=None,  errorEstimate=None) -> "obsdb":
         #def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None,  errorEstimate=None):
         # errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
        # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 

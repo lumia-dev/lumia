@@ -4,7 +4,7 @@ import shutil
 import tarfile
 import tempfile
 from numpy import unique, nan
-from pandas import DataFrame, read_csv, read_hdf, Series, Timestamp
+from pandas import DataFrame, read_csv, read_hdf, Timestamp
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
