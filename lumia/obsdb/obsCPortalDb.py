@@ -24,7 +24,6 @@ def _calc_weekly_uncertainty(site, times, err):
 
 
 class obsdb(obsdb):
-    #def __init__(self, rcf, setupUncertainties=True):
 
     @classmethod
     def from_CPortal(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file') -> "obsdb":
@@ -41,25 +40,23 @@ class obsdb(obsdb):
             - filekey (optional): name of the section containing the file path and relevant keys
 
         """
-        # TODO: part of the db structure (like observations) is not passed correctly to this location but lost on the way....
         db = cls(
             rcf['observations'][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
             end=rcf['observations'].get('end', None), 
             bFromCPortal=True,  rcFile=rcf)
-            #location=rcf['observations'].get('location',  None))
         # db.rcf = rcf
 
-        if (1>2):  # TODO: check. should not be needed
-            # Rename fields, if required by the config file or dict:
-            # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
-            # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
-            renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
-            renameLst.append(rcf['observations'][filekey].get('rename', []))
-            logger.info('Renaming the following columns in the observations data:')
-            logger.info(renameLst)
-            db.map_fields(renameLst)
-            #db.map_fields(rcf['observations'][filekey].get('rename', []))
+        # if (1>2):  # TODO: check. should not be needed
+        # Rename fields, if required by the config file or dict:
+        # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
+        # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
+        renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
+        renameLst.append(rcf['observations'][filekey].get('rename', []))
+        logger.info('Renaming the following columns in the observations data:')
+        logger.info(renameLst)
+        db.map_fields(renameLst)
+        #db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:
@@ -69,8 +66,7 @@ class obsdb(obsdb):
         return db
  
     def load_fromCPortal(self, filename,  rcf=None,  errorEstimate=None) -> "obsdb":
-        #def __init__(self, filename=None, start=None, end=None, db=None,  rcf: Union[dict, RcFile]=None,  errorEstimate=None):
-        # errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
+        # TODO: ·errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
        # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 
        # The value actually matters, in some cases: it can be used as a value for the weekly uncertainty, or for the default 
        # single-obs uncertainty (in the "lumia.obsdb.InversionDb.obsdb.setup_uncertainties_cst" and 
@@ -116,7 +112,7 @@ class obsdb(obsdb):
             obsData1site = dob.get()
             logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
             # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
-            obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'err','Flag':'icos_flag'}, inplace=True)
+            obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'stddev','Flag':'icos_flag'}, inplace=True)
             # one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
             # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
             # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
@@ -125,6 +121,12 @@ class obsdb(obsdb):
             # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
             #                                              and along the same line of thought we can abuse DecimalDate for the site altitude
             # logger.info(f"obsData1site= {obsData1site}")
+            absErrEst=self.rcf['observations']['uncertainty']['systematicErrEstim']
+            logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
+            obsData1site.loc[:,'err']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
+            # TODO: The observational data does not provide the background concentration. For testing we can brutally estimate a background:
+            bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
+            obsData1site.loc[:,'background']=(obsData1site.loc[:,'obs'] - bruteForceObsBgBias) 
             obsData1site.loc[:,'site'] = dob.station['id'].lower()
             obsData1site.loc[:,'lat']=dob.lat
             obsData1site.loc[:,'lon']=dob.lon
