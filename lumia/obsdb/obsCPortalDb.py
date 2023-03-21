@@ -113,17 +113,20 @@ class obsdb(obsdb):
             logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
             # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
             obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'stddev','Flag':'icos_flag'}, inplace=True)
-            # one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
+            # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
             # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
             # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
             # Hence I decided to mimic the behaviour of a local observations.tar.gz file
+            # However, that said, invdb.setupUncertainties() later in the game replaces the contents of 'err' with the total error from all sources 
+            # of uncertainties. Therefore perhaps it is best to have that column twice with both names - at least until I can be sure what is actually going on.
             # These are not read, thus need not be renamed: 'SamplingHeight':'height' (taken from metadata), 'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  
             # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
             #                                              and along the same line of thought we can abuse DecimalDate for the site altitude
             # logger.info(f"obsData1site= {obsData1site}")
             absErrEst=self.rcf['observations']['uncertainty']['systematicErrEstim']
             logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
-            obsData1site.loc[:,'err']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
+            obsData1site.loc[:,'err_obs']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
+            obsData1site.loc[:,'err']=obsData1site.loc[:,'err_obs'] 
             # TODO: The observational data does not provide the background concentration. For testing we can brutally estimate a background:
             bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
             obsData1site.loc[:,'background']=(obsData1site.loc[:,'obs'] - bruteForceObsBgBias) 

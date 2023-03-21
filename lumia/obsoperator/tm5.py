@@ -17,6 +17,7 @@ class transport(object):
     name = 'tm5'
 
     def __init__(self, rcf, obs=None):
+        logger.info(f"Entering tm5__init__() with self={self}")
         self.rcf = rcf
         self.tm5rc = RcFile(self.rcf.get('model.tm5.rcfile'))
         self.struct = Struct()
@@ -31,6 +32,8 @@ class transport(object):
 
     def calcDepartures(self, struct, step=None, serial=False):
         # tmpdir = self.rcf.get('run.path3.temp')
+        logger.info(f"Entering tm5.calcDepartures() with self={self}")
+        logger.info(f"Entering tm5.calcDepartures() with struct={struct}")
         tmpdir = self.rcf['run']['paths']['temp']        
 
         # Make sure emissions are in umol:
@@ -70,6 +73,8 @@ class transport(object):
 
     def runAdjoint(self, departures):
         # tmpdir = self.rcf.get('run.paths.temp')
+        logger.info(f"Entering tm5.runAdjoint() with self={self}")
+        logger.info(f"Entering tm5.departures() with self={departures}")
         tmpdir = self.rcf['run']['paths']['temp']
 
         # Write model inputs
@@ -100,6 +105,7 @@ class transport(object):
         # Import the adjoint emissions
         adjstruct = self.readAdjEmis(os.path.join(tmpdir, 'adj_emissions.nc4'))
         adjstruct.to_extensive()
+        logger.info(f"tm5.runAdjoint() return adjstruct={adjstruct}")
         return adjstruct
 
     def readAdjEmis(self, fname):
@@ -145,6 +151,7 @@ class transport(object):
         return adjemis
 
     def writeEmissions(self, emis, path, writecycles=True):
+        logger.info(f"Entering tm5.writeEmissions() with emis={emis}")
         tm5emis = {'regions':{}}
         for regname in self.tm5rc.get('regions').split():
             tmreg = self.get_tm5_reg(regname)
@@ -177,6 +184,7 @@ class transport(object):
                     }
 
         self.writeEmFile(tm5emis, path)
+        logger.info(f"Writing tm5emis={tm5emis} to file tm5emis.nc")
         if writecycles :
             self.writeDailyCycles(emtimes, tm5emis, path)
 

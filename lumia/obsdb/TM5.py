@@ -25,6 +25,7 @@ class obsdb(base):
                 fid.write(f' {isite:3.0f} {site.code} {site.lat:6.2f} {site.lon:7.2f} {site.alt:7.1f} FM {site.name}\n')
 
     def to_departures(self, filename, regions):
+        logger.info(f"Entering TM5.to_departures() with self={self}")
         tracers = unique(self.observations.tm5_tracer.values)
         with Dataset(filename, 'w') as ds :
             ds.createDimension('tracer', len(tracers))
@@ -67,6 +68,7 @@ class obsdb(base):
         - int   :: id(id), date_components(id, 6), sampling_strategy(id), station_id(id)
         - float :: lat(id), lon(id), alt(id)
         """
+        logger.info(f"Entering TM5.to_point_input() with self={self}")
         nobs = self.observations.shape[0]
 
         if 'uid_TM5' not in self.observations.columns :
@@ -99,6 +101,8 @@ class obsdb(base):
             gr['sampling_strategy'][:] = 2
 
     def read_point_output(self, filename):
+        logger.info(f"Entering TM5.to_point_input() with self={self}")
+        logger.info(f"Entering TM5.to_point_input() with filename={filename}")
         logger.debug(filename)
         with Dataset(filename, 'r') as ds :
             data = defaultdict(list)

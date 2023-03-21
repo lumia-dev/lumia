@@ -44,9 +44,9 @@ observations :
         systematicErrEstim   : 1.0   # percent of observation value
         model                : 1.5   # any estimate is better than zero
         background           : 1.822 # percent; derived from drought 2018 data set with 65553 observations
-        frequency            : weekly
+        frequency            : dyn
         setup                : False
-        obs_field            : err_obs
+        obs_field            : err   # err_obs
         dyn :
             freq             : 7D
     validation_file          : False

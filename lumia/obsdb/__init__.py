@@ -45,7 +45,7 @@ class obsdb:
                 self=self.load_fromCPortal(self, rcFile)
             else:
                 self.load_tar(filename)
-            self.observations.to_csv('obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
+            # self.observations.to_csv('obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
             self.filename = filename
             try:
                 if self.start is None:
