@@ -89,6 +89,7 @@ class Optimizer(object):
 
         # Finishup ...
         dy, err = self._computeDepartures(state_preco, label)
+        logger.info(f"optimizer.var4D() Finishup dy={dy}, err={err} ")
         self.J = self._computeCostFunction(state_preco, dy, err)
         gradient_preco = self._ComputeGradient(state_preco, dy, err)
         self.minimizer.update(gradient_preco, self.J.tot)
@@ -149,6 +150,7 @@ class Optimizer(object):
 
     def _computeCostFunction(self, state_preco, dy, dye):
         dstate = state_preco-self.control.get('state_prior_preco')
+        logger.info(f"Iteration {self.iteration}: dstate={dstate}")
         J_bg = 0.5*dot(dstate, dstate)
         J_obs = 0.5*dot(dy/dye, dy/dye)
         J = CostFunction(bg=J_bg, obs=J_obs)

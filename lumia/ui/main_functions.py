@@ -172,6 +172,7 @@ def setup_uncertainties(model: lumia.transport, emis: xr.Data = None) -> lumia.t
     for conf in model.rcf.get('optimize.observations').values():
         res = None
         if conf['uncertainty']['type'] == 'dyn':
+            logger.info(f"mainfunctions_setup_uncertainties(): setting up uncertainties for conf={conf} and type=dyn")
             if res is None :
                 # Avoid recomputing multiple times if there are several tracers
                 res = model.calcDepartures(emis, 'apri')
@@ -221,6 +222,7 @@ def optimize(rcf: RcFile) -> SimpleNamespace:
     obs, emis, model = init_model(rcf)
     model = setup_uncertainties(model, emis)
     opt = init_optim(model, emis)
+    logger.info(f"Entering main_functions_optimize() and calling opt.Var4D() opt={opt}")
     opt.Var4D()
 
     if rcf.get('observations.validation', default=False):

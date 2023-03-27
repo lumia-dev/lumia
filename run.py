@@ -122,13 +122,15 @@ model = lumia.transport(rcf, obs=db, formatter=xr)
 
 # Do a model run (or something else ...).
 if args.forward :
+    logger.info(f" run_args.forward(): before calling .calcDepartures(emis, forward) with emis={emis}")
     model.calcDepartures(emis, 'forward')
 
 
 # Setup uncertainties if needed:
 if args.optimize or args.gradtest :
     if rcf.get('observations.uncertainty.frequency') == 'dyn':
-        model.calcDepartures(emis, 'apri')
+        logger.info(f" run_args.optimize_dyn(): before calling .calcDepartures(emis, apri) with emis={emis}")
+        model.calcDepartures(emis, 'apri')   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
         db.setup_uncertainties_dynamic(
             'mix_apri',
             rcf.get('observations.uncertainty.dyn.freq', default='7D'),
@@ -145,10 +147,13 @@ if args.optimize or args.adjtest or args.gradtest :
     opt = lumia.optimizer.Optimizer(rcf, model, control)
 
     if args.optimize :
+        logger.info(f"Entering run_args.optimize_149 and calling opt.Var4D() with opt={opt}")
         opt.Var4D()
         if rcf.get('observation.validation_file', default=False):
             obs_valid = obsdb.from_rc(rcf, filekey='observation.validation_file', setupUncertainties=False)
             model.run_forward(control.model_data, obs_valid, step='validation')
+        else:
+            logger.info("No observation.validation_file found.")
 
     elif args.adjtest :
         opt.AdjointTest()

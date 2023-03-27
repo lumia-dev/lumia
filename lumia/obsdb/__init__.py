@@ -241,6 +241,12 @@ class obsdb:
             if df.loc[:, col].dtype == 'O' and isinstance(df.loc[:, col].iloc[0], bool):
                 logger.warning(f"Converting column {col} from {df.loc[:, col].dtype} to {bool}")
                 df.loc[:, col] = df.loc[:, col].astype(bool)
+
+        # TODO:  /home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py:250: PerformanceWarning: 
+        # your performance may suffer as PyTables will pickle object types that it cannot
+        # map directly to c-types [inferred_type->mixed,key->block3_values] [items->Index(['icos_flag', 'site', 'code', 'tracer', 'sitecode_CSR', 'fnameUrl',
+        #        'file', 'name', 'fnameCpb'],
+        #       dtype='object')]
         df.to_hdf(filename, key='observations')
         return filename
 

@@ -2,6 +2,7 @@
 
 from lumia.obsdb import obsdb
 from numpy import sqrt, nan, isnan
+from loguru import logger
 
 class invdb(obsdb):
     def setupUncertainties(self, err_obs_min=0, err_obs_fac=1., err_mod_min=0., err_mod_fac=1., err_bg_min=0., err_bg_fac=1., err_tot_min=0., err_tot_max=None, err_bg_field='err_bg', err_mod_field='err_mod', err_obs_field='err_obs'):
@@ -34,7 +35,8 @@ class invdb(obsdb):
         err_bg = self.observations.loc[:, err_bg_field].values
         err_mod = self.observations.loc[:, err_mod_field].values
         err_obs = self.observations.loc[:, err_obs_field].values
-
+        logger.info(f"In invdb.setupUncertainties() err_obs_field={err_obs_field}")
+        logger.info(f"In invdb.setupUncertainties() self={self}")
         err_bg[isnan(err_bg)] = 0.
         err_obs[isnan(err_obs)] = 0.
         err_mod[isnan(err_mod)] = 0.

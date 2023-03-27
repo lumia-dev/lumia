@@ -70,7 +70,7 @@ class Observations(DataFrame):
         # index with newObsidx=obsidx+int(1e7*height); e.g. 50m: 12228 => 50012228
         valid=self.loc[~isnull(self.footprint)]
         obsids = valid.code + valid.height.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
-        logger.info(f"Dbg: obsids= {obsids}")
+        # logger.info(f"Dbg: obsids=\n{obsids}")
         obsids.to_csv('obsids.csv', encoding='utf-8', sep=',', mode='w')
         self.loc[~isnull(self.footprint), 'obsid'] = obsids
 

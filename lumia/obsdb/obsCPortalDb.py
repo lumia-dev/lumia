@@ -118,11 +118,7 @@ class obsdb(obsdb):
             # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
             # Hence I decided to mimic the behaviour of a local observations.tar.gz file
             # However, that said, invdb.setupUncertainties() later in the game replaces the contents of 'err' with the total error from all sources 
-            # of uncertainties. Therefore perhaps it is best to have that column twice with both names - at least until I can be sure what is actually going on.
-            # These are not read, thus need not be renamed: 'SamplingHeight':'height' (taken from metadata), 'QcBias': 'lat', 'QcBiasUncertainty': 'lon', 'DecimalDate':'alt',  
-            # Hence this idea is obsolete: Add latitude and longitude - we can abuse the existing (yet unused) QcBias coulmns for this without making the file bigger.
-            #                                              and along the same line of thought we can abuse DecimalDate for the site altitude
-            # logger.info(f"obsData1site= {obsData1site}")
+            # of uncertainties. Therefore perhaps it is best to have that column twice with both names - at least until I fully understand what is actually going on.
             absErrEst=self.rcf['observations']['uncertainty']['systematicErrEstim']
             logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
             obsData1site.loc[:,'err_obs']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
@@ -130,6 +126,9 @@ class obsdb(obsdb):
             # TODO: The observational data does not provide the background concentration. For testing we can brutally estimate a background:
             bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
             obsData1site.loc[:,'background']=(obsData1site.loc[:,'obs'] - bruteForceObsBgBias) 
+            # Parameters like site-code, latitude, longitude, elevation, and sampling height are not present as data columns, but can be 
+            # extracted from the header, which really is written as a comment. Thus the following columns need to be created: 
+            # 'SamplingHeight':'height' (taken from metadata)
             obsData1site.loc[:,'site'] = dob.station['id'].lower()
             obsData1site.loc[:,'lat']=dob.lat
             obsData1site.loc[:,'lon']=dob.lon
@@ -144,9 +143,10 @@ class obsdb(obsdb):
             )]  
             # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
             # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
-            # I tried to pull my hair out converting the series into a timestamp object or likewise and format the output,
+            # I tried to pull my hair out converting the series into a timestamp object or similar and format the output,
             # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
-            # not timestamp and since I'm reading the data here and not elsewhere no further changes are required.
+            # (not a timestamp type variable) and since I'm reading the data here directly into the dataframe, and not 
+            # elsewhere, no further changes are required.
             logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
             #if(bFirstDf):
             #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')

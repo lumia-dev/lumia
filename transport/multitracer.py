@@ -152,9 +152,9 @@ if __name__ == '__main__':
         obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints)
 
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
-    emis = Emissions.read(args.emis)
+    emis = Emissions.read(args.emis)  # goes to lumia.transport.emis.init_.read() and reads ./tmp/emissions.nc
     if args.forward:
-        obs = model.run_forward(obs, emis)
+        obs = model.run_forward(obs, emis)  # goes to lumiatransport.core.model.run_forward() -> run() -> run_tracer() 
         obs.write(args.obs)
 
     elif args.adjoint :

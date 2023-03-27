@@ -6,11 +6,10 @@ from typing import List, Protocol, Type
 from tqdm import tqdm
 from loguru import logger
 from multiprocessing import Pool, cpu_count
-import threading
+#import threading
 from dataclasses import dataclass
 from h5py import File
 import tempfile
-import sys
 import os
 import random
 from pandas import Timestamp, Timedelta
@@ -250,12 +249,22 @@ class Adjoint(BaseTransport):
                 logger.info(f" desc={desc}")
                 total=observations.shape[0]
                 logger.info(f"total={total}")
+                bFirst=True
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
-                    logger.info(f"(pool_id({pool_id})): fp={fp}")
+                    # logger.info(f"(pool_id({pool_id})): fp={fp}")
+                    if(bFirst):
+                        logger.info(f"obs={obs}")
+                        logger.info(f"desc={desc},  obs.__dir__()=")
+                        print(obs.__dir__(),  flush=True)
+                        logger.info(f" obs.mix_background={obs.mix_background}")
+                        bFirst=False
+                    logger.info(f"obs.site={obs.site},  obs.height={obs.height}")
+                    # import signal
+                    #    os.kill(os.getpid(), signal.SIGINT)
                     logger.info(f"(pool_id({pool_id})): obs={obs}")
                     logger.info(f"(pool_id({pool_id})): obs.dy={obs.dy}")
-                    logger.info(f"(pool_id({pool_id})): obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
+                    # logger.info(f"(pool_id({pool_id})): obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
                     nPtsRead+=fp.sensi.size
                     logger.info(f"(pool_id({pool_id})): nWanted={nWanted},  cumulative number of points read:{nPtsRead}, number of points in this chunk: fp.sensi.size={fp.sensi.size}")
                     # if(fp.sensi.size>times.nt):
@@ -280,7 +289,6 @@ class Adjoint(BaseTransport):
                         #     sys.exit(-1)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
                     # IndexError: index 4762 is out of bounds for axis 0 with size 744
-
         with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.h5') as fid :
             fname = fid.name
         with File(fname, 'w') as fid :

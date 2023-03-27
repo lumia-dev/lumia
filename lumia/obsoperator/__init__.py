@@ -18,7 +18,7 @@ class transport(object):
         # Set paths :
         self.outputdir = self.rcf.get('model.paths.output')
         self.tempdir = self.rcf.get('model.paths.temp', self.outputdir)
-        self.executable = self.rcf.get("model.transport.exec")
+        self.executable = self.rcf.get("model.transport.exec")  # could be lumia/transport/multitracer.py
         self.serial = self.rcf.get("model.transport.serial", default=False)
         self.footprint_path = self.rcf.get('model.paths.footprints')
 
@@ -36,6 +36,7 @@ class transport(object):
 
         # Just to ensure that calcDepartures work even if no obs err has been provided
         if ('err' not in self.db.observations) :
+            logger.warning("The observations provided do not contain an 'err' column. You may want to check this.")
             self.db.observations.loc[:, 'err'] = None
 
     def save(self, path=None, tag=None, structf=None):
@@ -66,7 +67,7 @@ class transport(object):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb.from_hdf(dbf)
         logger.info(f"Dbg: self.db.observations: {self.db.observations}")
-        self.db.observations.to_csv('self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
         if self.rcf.get('model.split_categories', default=True):
             import time
             time.sleep(5)
@@ -87,6 +88,7 @@ class transport(object):
         if self.rcf.get('model.output', default=True):
             if step in self.rcf.get('model.output.steps'):
                 self.save(tag=step, structf=emf)
+        self.db.observations.to_csv('obsoperator_init_LEAVING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
 
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
@@ -94,7 +96,7 @@ class transport(object):
     def runForward(self, struct, step=None, serial=False, observations: obsdb = None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
-        The eventual parallelization is handled by the subprocess directly.        
+        The eventual parallelization is handled by the subprocess directly. struct can hold the emissions on a lat/lon grid for ocean, anthropogenic and biosphere-model       
         """
 
         # Write model inputs:
