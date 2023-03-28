@@ -312,7 +312,7 @@ class GriddedData:
         else :
             # If lon is before lat:
             data = moveaxis(data, -1, self.axis[1])  # Move lon from last position to original position
-            data = moveaxis(data, -1, self.axis[2])  # Move lat from last position to original position
+            data = moveaxis(data, -1, self.axis[0])  # Move lat from last position to original position
 
         # Return
         if inplace :
@@ -347,7 +347,7 @@ class GriddedData:
         else :
             # If lon is before lat:
             data = moveaxis(data, -1, self.axis[1])  # Move lon from last position to original position
-            data = moveaxis(data, -1, self.axis[2])  # Move lat from last position to original position
+            data = moveaxis(data, -1, self.axis[0])  # Move lat from last position to original position
 
         # Return
         if inplace :
