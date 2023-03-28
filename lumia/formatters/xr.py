@@ -229,7 +229,8 @@ class TracerEmis(xr.Dataset):
         assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value) = }")
         assert value.shape == self.shape, logger.error(f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
         if attrs is None:
-            attrs = {'tracer': self.tracer}
+            attrs = {}
+        attrs['tracer'] = self.tracer
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
 
@@ -747,22 +748,31 @@ class Data:
                                      units=unit_emis,
                                      timestep=freq))  # .seconds * ur('s')))
 
-            freq_src = rcf.get(f'emissions.{tr}.resample', default=False)
-            if not freq_src:
-                # If emissions.{tr}.resample is False/not defined, get the emissions at their native resolution.
-                # otherwise, resample them from whatever the 'emissions.{tr}.resample' key points to
-                freq_src = freq
-
             # Import emissions for each category of that tracer
-            for cat in rcf.get(f'emissions.{tr}.categories'):
+            for cat in list(rcf['emissions'][tr]['categories']):
+                
+                # Get the frequency of the emissions and, optionally, of the files they should be upscalled from (temporally):
+                # By order of priority:
+                #   - use the emissions.tracer.cat.resample_from key (i.e. category-specific)
+                #   - fallback on the emissions.tracer.resample_from key (non-category specific)
+                #   - default to "False" (no resampling)
+                freq_src = rcf.get(
+                    f'emissions.{tr}.{cat}.resample_from', 
+                    rcf.get(f'emissions.{tr}.resample_from', 
+                            default=freq
+                    )
+                )
+                
                 origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
-                logger.debug("tr.path= "+rcf.get(f'emissions.{tr}.path'))
-                logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))
-                logger.debug("freq_src= "+freq_src)
-                logger.debug("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
-                logger.debug("origin="+origin)
                 prefix = os.path.join(rcf.get(f'emissions.{tr}.path'), freq_src, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
-                logger.debug("prefix= "+prefix)
+                
+                # Optional attributes :
+                attrs = rcf['emissions'][tr]['categories'][cat]
+                if isinstance(attrs, str):
+                    # if "origin" is accessed via "emissions.{tr}.categories.cat" instead of 
+                    # "emissions.{tr}.categories.cat.origin", then there cannot be any other attributes
+                    attrs = {'origin': attrs}
+
                 # If the value of the origin key starts with an '@' sign, then the user requested this data be read directly from
                 # the ICOS data base as opposed from a previously downloaded local file.
                 if origin.startswith('@'):
@@ -772,11 +782,33 @@ class Data:
                 else:
                     emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.archive', default=None))
                 # emis is a Data object containing the emisions values in a lat-lon-timestep cube for one category
-                em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
+                em[tr].add_cat(cat, emis, attrs=attrs)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
 
 
-def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = None, grid: Grid = None, archive: str = None) -> ndarray:
+def load_preprocessed(
+    prefix: str, 
+    start: datetime, 
+    end: datetime, 
+    freq: str = None, 
+    grid: Grid = None, 
+    archive: str = None,
+    ) -> ndarray:
+    """
+    Construct an emissions DataArray by reading, and optionally up-sampling, the pre-processed emission files for one
+    category.
+    The pre-processed files are named following the convention {prefix}{year}.nc
+    
+    Arguments:
+    - prefix     : prefix of the pre-processed files (including the path)
+    - start, end : minimum (inclusive) and maximum (exclusive) dates of the emissions
+    
+    Optional arguments:
+    - freq      : frequency of the produced emissions. If the pre-processed files are at a lower frequency, they will
+                  be up-sampled (by simple rebinning, no change in the actual flux distribution).
+    - grid      : grid definition of the produced emissions. Not fully implemented, should be left to default value
+    - archive   : alternative location for the pre-processed emission files. Should be a rclone remote, (e.g. rclone:lumia:path/to/the/emissions). The remote must be configured on the system (i.e. "rclone lsf rclone:lumia:path/to/the/emissions should return the list of emission files on the rclone remote)
+    """
 
     archive = Rclone(archive)
 
@@ -806,7 +838,7 @@ def load_preprocessed(prefix: str, start: datetime, end: datetime, freq: str = N
     # Coarsen if needed
     if grid is not None :
         raise NotImplementedError
-
+    
     return data.data
 
 
@@ -816,6 +848,7 @@ def WriteStruct(data: Data, path: str, prefix=None, zlib=False, complevel=1, onl
         filename, path = path, os.path.dirname(path)
     else :
         filename = os.path.join(path, f'{prefix}.nc')
+    Path(path).mkdir(exist_ok=True, parents=True)
     data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported)
     return filename
 

@@ -6,3 +6,5 @@ nav:
   - Home: index.md
   - Tutorial: tutorial.md
   - Settings: settings.md
+  - Modules:
+    - observations.md
