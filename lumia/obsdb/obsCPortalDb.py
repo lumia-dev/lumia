@@ -123,9 +123,6 @@ class obsdb(obsdb):
             logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
             obsData1site.loc[:,'err_obs']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
             obsData1site.loc[:,'err']=obsData1site.loc[:,'err_obs'] 
-            # TODO: The observational data does not provide the background concentration. For testing we can brutally estimate a background:
-            bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
-            obsData1site.loc[:,'background']=(obsData1site.loc[:,'obs'] - bruteForceObsBgBias) 
             # Parameters like site-code, latitude, longitude, elevation, and sampling height are not present as data columns, but can be 
             # extracted from the header, which really is written as a comment. Thus the following columns need to be created: 
             # 'SamplingHeight':'height' (taken from metadata)
@@ -201,6 +198,20 @@ class obsdb(obsdb):
             else:
                 allSitesDfs = concat([allSitesDfs, df])
             
+        # TODO: The observational data does not provide the background concentration. For testing we can brutally estimate a background. 
+        # However, we expect to read the background from a separate external file, read it into a DF, and only if points are missing could we either 
+        # abort LUMIA or use the crude estimate - perhaps with a threshold if no more than NmaxMissing points are missing, then use the crude 
+        # estimate -- and ample uncertainties(!) for those points.
+        bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
+        allSitesDfs.loc[:,'crudeBgEstimate']=(allSitesDfs.loc[:,'obs'] - bruteForceObsBgBias) 
+        allSitesDfs.loc[:,'background']=None
+        # TODO bgDf=readBackground(self.rcf,allSitesDfs)
+        # allSitesDfs.loc[:,'background']=bgDf.loc[:,'background']
+        # allSitesDfs['background'] = np.where(allSitesDfs['background'] is None, allSitesDfs['crudeBgEstimate'], allSitesDfs['background'])
+        allSitesDfs.loc[allSitesDfs['background']  is None, 'background'] = allSitesDfs.loc['crudeBgEstimate']
+        # df.loc[df['Fee'] > 22000, 'Fee'] = 15000
+        allSitesDfs.loc[:,'background']=allSitesDfs.loc[:,'crudeBgEstimate']
+        # TODO: add ample background error for crude estimates.
         setattr(self, 'observations', allObsDfs)
         setattr(self, 'sites', allSitesDfs)
         self.observations.to_csv('obsDataAll2-slf-load_fromCPortal-201.csv', encoding='utf-8', mode='w', sep=',')
