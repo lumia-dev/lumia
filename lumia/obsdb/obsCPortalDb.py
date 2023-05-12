@@ -205,12 +205,12 @@ class obsdb(obsdb):
         bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
         allSitesDfs.loc[:,'crudeBgEstimate']=(allSitesDfs.loc[:,'obs'] - bruteForceObsBgBias) 
         allSitesDfs.loc[:,'background']=None
+        # instead of replacing all, replace only those background points we are missing   allSitesDfs.loc[:,'background']=allSitesDfs.loc[:,'crudeBgEstimate']
         # TODO bgDf=readBackground(self.rcf,allSitesDfs)
         # allSitesDfs.loc[:,'background']=bgDf.loc[:,'background']
         # allSitesDfs['background'] = np.where(allSitesDfs['background'] is None, allSitesDfs['crudeBgEstimate'], allSitesDfs['background'])
         allSitesDfs.loc[allSitesDfs['background']  is None, 'background'] = allSitesDfs.loc['crudeBgEstimate']
         # df.loc[df['Fee'] > 22000, 'Fee'] = 15000
-        allSitesDfs.loc[:,'background']=allSitesDfs.loc[:,'crudeBgEstimate']
         # TODO: add ample background error for crude estimates.
         setattr(self, 'observations', allObsDfs)
         setattr(self, 'sites', allSitesDfs)

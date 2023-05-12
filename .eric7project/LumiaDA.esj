@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-03-27, 21:20:04"
+    "saved": "2023-05-05, 12:34:33"
   },
   "MultiProject": "",
   "Project": "",
@@ -11,18 +11,6 @@
     "Orientation": 2
   },
   "Editors": [
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      "Cursor": [
-        0,
-        0
-      ],
-      "Folds": [],
-      "Zoom": 1,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 0
-    },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
@@ -33,7 +21,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 1
+      "Editorindex": 0
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
@@ -45,7 +33,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 2
+      "Editorindex": 1
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
@@ -57,7 +45,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 3
+      "Editorindex": 2
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
@@ -69,31 +57,31 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 4
+      "Editorindex": 3
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        131,
-        29
+        67,
+        24
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 4
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      "Cursor": [
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 5
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
-      "Cursor": [
-        77,
-        113
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 6
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
@@ -105,19 +93,19 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 7
+      "Editorindex": 6
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
       "Cursor": [
-        250,
-        37
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 8
+      "Editorindex": 7
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
@@ -129,31 +117,19 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 9
+      "Editorindex": 8
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py",
       "Cursor": [
-        0,
-        0
+        199,
+        72
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 10
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      "Cursor": [
-        259,
-        57
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 11
+      "Editorindex": 9
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py",
@@ -165,7 +141,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 12
+      "Editorindex": 10
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/invdb.py",
@@ -177,7 +153,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 13
+      "Editorindex": 11
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/optimizer.py",
@@ -189,67 +165,19 @@
       "Zoom": 1,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 14
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
-      "Cursor": [
-        358,
-        60
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 15
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/flexRes.py",
-      "Cursor": [
-        0,
-        0
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 16
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/footprint_flexRes.py",
-      "Cursor": [
-        0,
-        0
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 17
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/calc_posterior_err.py",
-      "Cursor": [
-        0,
-        0
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 18
+      "Editorindex": 12
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/var4d.py",
       "Cursor": [
-        0,
-        0
+        69,
+        25
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 19
+      "Editorindex": 13
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
@@ -261,7 +189,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 20
+      "Editorindex": 14
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis/__init__.py",
@@ -273,7 +201,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 21
+      "Editorindex": 15
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py",
@@ -285,48 +213,684 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 22
+      "Editorindex": 16
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/tm5.py",
       "Cursor": [
-        69,
-        123
+        0,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 23
+      "Editorindex": 17
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      "Cursor": [
+        9,
+        31
+      ],
+      "Folds": [],
+      "Zoom": 1,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 18
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/lagrange.py",
+      "Cursor": [
+        0,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 19
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/archive/__init__.py",
+      "Cursor": [
+        108,
+        67
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 20
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/archive/__init__.py",
     "Cursor": [
-      131,
-      29
+      108,
+      67
     ]
   },
   "Breakpoints": [
     [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      165,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      129,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      157,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      147,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/observations.py",
+      240,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      198,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      745,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      165,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      129,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      157,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      147,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/observations.py",
+      240,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      198,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      165,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      129,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      157,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      147,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/observations.py",
+      240,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
+      198,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/flex/runflex/runflex/runflex.py",
+      11,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      664,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      676,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      678,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
+      745,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
       117,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      90,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      336,
       "",
       false,
       true,
@@ -405,14 +969,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      97,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
       16,
       "",
@@ -478,7 +1034,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      214,
+      221,
       "",
       false,
       true,
@@ -517,22 +1073,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/flexRes.py",
-      43,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/footprint_flexRes.py",
-      45,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py",
       51,
       "",
@@ -542,7 +1082,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      224,
+      231,
       "",
       false,
       true,
@@ -605,38 +1145,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      195,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      104,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      113,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      121,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       66,
       "",
@@ -677,32 +1185,8 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      213,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      71,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      173,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-      273,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      207,
       "",
       false,
       true,
@@ -713,8 +1197,8 @@
   "DebugInfo": {
     "VirtualEnv": "",
     "ScriptName": "",
-    "CommandLine": "",
-    "WorkingDirectory": "",
+    "CommandLine": "--optimize --start 20180101 --end 20180201 --ymf ./coco2_co2_v4.yml",
+    "WorkingDirectory": "/home/arndt/nateko/data/icos/DICE",
     "Environment": "",
     "ReportExceptions": true,
     "Exceptions": [],
@@ -735,50 +1219,30 @@
       "Name": "sources",
       "ExpandedItems": [
         "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/var4d.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/archive",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/archive/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/archive/__init__.py@@64",
         "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@74",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@26",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@12",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/tm5.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/tm5.py@@16",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/config.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/optimizer.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/optimizer.py@@13",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia_tools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@164",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py@@85",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@286",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py@@125"
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis"
       ]
     }
   ]

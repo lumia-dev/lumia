@@ -28,10 +28,40 @@ path_cp = '/data/dataAppStorage/asciiAtcProductTimeSer/'
 # https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
 #
 # Observational data available on the ICOS data portal you can discover via the online tool at
-# https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22theme%22%3A%5B%22atmosphere%22%5D%2C%22level%22%3A%5B2%5D%2C%22valType%22%3A%5B%22co2MixingRatio%22%5D%2C%22stationclass%22%3A%5B%22ICOS%22%5D%2C%22project%22%3A%5B%22icos%22%5D%2C%22type%22%3A%5B%22atcCo2L2DataObject%22%5D%2C%22variable%22%3A%5B%22http%3A%2F%2Fmeta.icos-cp.eu%2Fresources%2Fcpmeta%2Fco2atcMoleFrac%22%5D%7D%2C%22filterTemporal%22%3A%7B%22df%22%3A%222017-12-31%22%2C%22dt%22%3A%222018-01-31%22%7D%2C%22tabs%22%3A%7B%22resultTab%22%3A1%7D%7D
+# old: https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22theme%22%3A%5B%22atmosphere%22%5D%2C%22level%22%3A%5B2%5D%2C%22valType%22%3A%5B%22co2MixingRatio%22%5D%2C%22stationclass%22%3A%5B%22ICOS%22%5D%2C%22project%22%3A%5B%22icos%22%5D%2C%22type%22%3A%5B%22atcCo2L2DataObject%22%5D%2C%22variable%22%3A%5B%22http%3A%2F%2Fmeta.icos-cp.eu%2Fresources%2Fcpmeta%2Fco2atcMoleFrac%22%5D%7D%2C%22filterTemporal%22%3A%7B%22df%22%3A%222017-12-31%22%2C%22dt%22%3A%222018-01-31%22%7D%2C%22tabs%22%3A%7B%22resultTab%22%3A1%7D%7D
+
 # You can try out sparql queries and export the ones you are happy with, with the button
 # "Open the SPARQL query basic search result" page - the icon looks like an arrow pointing up and then to the right out of a stylized box.
 
+# However, it is usually better to keep the url rather than the exported resulting script, as the url is better suited to discover new data, whenever new data sets are added. 
+# Also, you may want to tidy up the resulting query in a similar fashion to the example provided here, that Oleg prettied up for me:
+#
+# https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22valType%22%3A%5B%22co2MixingRatioMolMol%22%2C%22co2MixingRatio%22%5D%2C%22theme%22%3A%5B%22atmosphere%22%5D%7D%7D
+#
+'''
+prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+prefix prov: <http://www.w3.org/ns/prov#>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+select ?dobj ?samplingHeight ?spec ?fileName ?size ?submTime ?timeStart ?timeEnd
+where {
+    VALUES ?spec {
+        <http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject>
+        <http://meta.icos-cp.eu/resources/cpmeta/atcCo2Product>
+        <http://meta.icos-cp.eu/resources/cpmeta/ObspackTimeSerieResult>
+    }
+    ?dobj cpmeta:hasObjectSpec ?spec .
+    ?dobj cpmeta:hasSizeInBytes ?size .
+    ?dobj cpmeta:hasName ?fileName .
+    ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
+    ?dobj cpmeta:wasAcquiredBy / prov:startedAtTime ?timeStart .
+    ?dobj cpmeta:wasAcquiredBy / prov:endedAtTime ?timeEnd .
+    OPTIONAL{?dobj cpmeta:wasAcquiredBy / cpmeta:hasSamplingHeight ?samplingHeight }
+    FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
+FILTER( !(?timeStart > '2018-12-30T23:00:00.000Z'^^xsd:dateTime || ?timeEnd < '2017-12-31T23:00:00.000Z'^^xsd:dateTime) )
+
+}
+order by desc(?submTime)
+'''
 
 
 
@@ -69,9 +99,59 @@ def getTimeForSparqlQuery(pdTime,  startOrEndTime=None,  timeStep=None):
 
 
 # ***********************************************************************************************
-def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+def getCo2DryMolFractionObjectsFromSparql(pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,iVerbosityLv=1):
     '''
     Function 
+
+    @param pdTimeStart :  from when on we want to get the observations
+    @type datetime
+    @param pdTimeEnd : until when on we want to get the observations
+    @type datetime
+    @param iVerbosityLv : defines how much detail of program progress is printed to stdout (defaults to 1)
+    @type integer between 0 and 3 (optional)
+    @return :  dobj (the data object returned by the SPARQL query)
+    @rtype dobj (a structured dictionary of strings)
+    '''
+    # sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, timeStep)
+    sTimeStart=getTimeForSparqlQuery(pdTimeStart,  startOrEndTime='startTime',  timeStep=timeStep)
+    # sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, timeStep)
+    sTimeEnd=getTimeForSparqlQuery(pdTimeEnd,  startOrEndTime='endTime',  timeStep=timeStep)
+    query = '''
+    prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+    prefix prov: <http://www.w3.org/ns/prov#>
+    prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+    select ?dobj ?samplingHeight ?spec ?fileName ?size ?submTime ?timeStart ?timeEnd
+    where {
+        VALUES ?spec {
+            <http://meta.icos-cp.eu/resources/cpmeta/atcCo2L2DataObject>
+            <http://meta.icos-cp.eu/resources/cpmeta/atcCo2Product>
+            <http://meta.icos-cp.eu/resources/cpmeta/ObspackTimeSerieResult>
+        }
+        ?dobj cpmeta:hasObjectSpec ?spec .
+        ?dobj cpmeta:hasSizeInBytes ?size .
+        ?dobj cpmeta:hasName ?fileName .
+        ?dobj cpmeta:wasSubmittedBy/prov:endedAtTime ?submTime .
+        ?dobj cpmeta:wasAcquiredBy / prov:startedAtTime ?timeStart .
+        ?dobj cpmeta:wasAcquiredBy / prov:endedAtTime ?timeEnd .
+        OPTIONAL{?dobj cpmeta:wasAcquiredBy / cpmeta:hasSamplingHeight ?samplingHeight }
+        FILTER NOT EXISTS {[] cpmeta:isNextVersionOf ?dobj}
+    FILTER( !(?timeStart > \''''+sTimeEnd+'''\'^^xsd:dateTime || ?timeEnd < \''''+sTimeStart+'''\'^^xsd:dateTime) ) 
+    }
+    order by desc(?submTime)
+    '''
+    # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    logger.info(f'SPARQL query= {query}')    
+    dobj = RunSparql(query,output_format='nc').run()
+    logger.info(f'dobj= {dobj}')
+    return(dobj)
+
+
+
+# ***********************************************************************************************
+def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+    '''
+    Function  -- for historical and possible future use with ch4. 
+    Presently Lumia only uses the function getCo2DryMolFractionObjectsFromSparql()
 
     @param tracer :    the name of the tracer like co2, ch4, etc.
     @type string 
@@ -126,6 +206,7 @@ def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datet
     offset 0 limit 20
     '''
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
+    logger.info(f'SPARQL query= {query}')    
     dobj = RunSparql(query,output_format='nc').run()
     logger.info(f'dobj= {dobj}')
     return(dobj)
@@ -268,7 +349,10 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     The function relies on a sparql query and tries to read the requested cpb files from the carbon portal using the icoscp package. 
     Returns (...-dataset) if successful; (None) if unsuccessful.
     """
-    dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
+    if(tracer=='CO2'):
+        getCo2DryMolFractionObjectsFromSparql(pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd,  timeStep=timeStep, iVerbosityLv=iVerbosityLv)
+    else:        
+        dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
     dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
     return(dobjLst, cpDir)
 

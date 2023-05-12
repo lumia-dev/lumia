@@ -1,33 +1,24 @@
 lumiacode :
-    homedir : /home/arndt/nateko/dev/lumia/lumiaDA/lumia   # Location of the Lumia source code/scripts
+    homedir : /home/arndt/nateko/dev/flex/runflex   # Root folder of the runflex source code
 
 run :
+    start: '2018-01-01 00:00:00'
+    end:   '2018-02-01 00:00:00'
     tracers : [co2]
     grid : ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
     gridname : 'eurocom025x025'   # common name for region and grid used in the path name to the tracer flux data
     timestep : 1h
+    region : ${run.grid}
+    regionName : ${run.gridname}
+    interval : ${run.timestep}
     paths :
+        inputs : /home/arndt/nateko/dev/flex/runflex/inputs
         temp : /home/arndt/nateko/data/icos/DICE/tmp  # ./tmp
+        scratch : /home/arndt/nateko/data/icos/DICE/scratchLumia
         footprints : /home/arndt/nateko/data/icos/DICE/footprints  #./footprints
-        output : ./output
+        output : ./rfFootprints
         data : .                         # your current working directory under which you would have the ./fluxes/nc/eurocom025x025/ flux data files
 
-
-emissions :
-    co2 :
-        region : ${run.grid}
-        regionName : ${run.gridname}
-        interval : ${run.timestep}
-        path : ${run.paths.data}/fluxes/nc/                 # warning
-        categories :
-            fossil : EDGARv4.3_BP2019
-            biosphere : VPRM
-            ocean : mikaloff01
-        location :          # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory
-            biosphere : CARBONPORTAL
-            fossil : CARBONPORTAL
-            ocean : LOCAL
-        prefix : flux_co2.
 
 
 observations :
@@ -39,58 +30,6 @@ observations :
         path : observations.tar.gz
         rename :  background:mix_background
         tracer : co2
-    uncertainty :
-        default_weekly_error : 1.5                          # warning
-        systematicErrEstim   : 1.0   # percent of observation value
-        model                : 1.5   # any estimate is better than zero
-        background           : 1.822 # percent; derived from drought 2018 data set with 65553 observations
-        frequency            : dyn
-        setup                : False
-        obs_field            : err   # err_obs
-        dyn :
-            freq             : 7D
-    validation_file          : False
-    co2:
-        units                : ppm
-
-
-optimize :
-    emissions :
-        co2 :
-            biosphere :
-                annual_uncertainty : 0.47 PgC
-                spatial_correlation : 500-g
-                temporal_correlation : 30D
-                npoints : 2500
-                optimization_interval : 7d
-            resample : False
-    observations :
-        co2 :
-            uncertainty :
-                type : weekly    # or 'dyn' dynamic
-
-
-congrad :
-    gradient_norm_reduction : 1.e12
-    max_number_of_iterations : 60
-    communication_file : ${run.paths.temp}/congrad.nc
-    executable : ${lumiacode.homedir}/src/congrad/congrad.exe    # ${lumia:src/congrad/congrad.exe}       # /home/cec-ami/nateko/dev/lumia/src/congrad/congrad.exe
-
-
-model :
-    transport :
-        exec    : ${lumiacode.homedir}/transport/multitracer.py # ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
-        serial  : False
-    output :
-        steps : ['apri', 'apos']
-    paths :
-        output : ${run.paths.output}
-        temp   : ${run.paths.temp}
-        footprints : ${run.paths.footprints}
 
 
 # not needed / deprecated?
-correlation.inputdir        : ./data/corr
-emissions.*.error_structure : linear
-obs.uncertainty.setup       : False
-obs.co2.units               : ppm
