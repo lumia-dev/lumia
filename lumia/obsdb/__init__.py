@@ -4,7 +4,7 @@ import shutil
 import tarfile
 import tempfile
 from numpy import unique, nan
-from pandas import DataFrame, read_csv, read_hdf, Timestamp
+from pandas import DataFrame, read_csv, read_hdf, Timestamp, to_datetime
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
@@ -17,7 +17,13 @@ class obsdb:
         else:
             self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
             self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt'])
-            self.observations.loc[:, 'time'] = self.observations.time.astype(datetime64)
+            # self.observations.loc[:, 'time'] = self.observations.time.astype(datetime64)
+            # Moving from Python 3.9 to 3.10.10 this results in the error:
+            #   TypeError: Casting to unit-less dtype 'datetime64' is not supported. Pass e.g. 'datetime64[ns]' instead.
+            # However, if I use datetime64[ns], then I get another error: NameError: name 'ns' is not defined. Did you mean: 'os'?
+            # Hence I tried to fix from pandas insteread (https://stackoverflow.com/questions/16158795/cant-convert-dates-to-datetime64)
+            self.observations.loc[:, 'time'] = to_datetime(self.observations.time)
+            
             self.files = DataFrame(columns=['filename'])
             self.start = Timestamp(start) if start is not None else None
             self.end = Timestamp(end) if end is not None else None
