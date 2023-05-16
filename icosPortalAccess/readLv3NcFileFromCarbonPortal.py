@@ -10,8 +10,6 @@ from datetime import datetime
 import xarray as xr
 
 #Import ICOS tools:
-from icoscp.sparql import sparqls, runsparql
-from icoscp.sparql.runsparql import RunSparql
 
 # latest version: 2022-11-07a
 
@@ -97,6 +95,7 @@ def remove_unwanted_characters(string):
 
 
 def check_cp(cp_path,sFilenameKeyword, timeStart, timeEnd, iVerbosityLv=1):
+    from icoscp.sparql.runsparql import RunSparql
     """ Find the requested level3 netcdf file (by name) on the ICOS data portal (using sparql queries) 
         and directly access that file via the data app """
     cp_name = ''

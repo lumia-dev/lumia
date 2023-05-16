@@ -17,7 +17,7 @@ class obsdb:
         else:
             self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height', 'mobile'])
             self.observations = DataFrame(columns=['time', 'site', 'lat', 'lon', 'alt'])
-            self.observations.loc[:, 'time'] = self.observations.time.astype(datetime64)
+            self.observations.loc[:, 'time'] = self.observations.time.astype('datetime64[ns]')
             self.files = DataFrame(columns=['filename'])
             self.start = Timestamp(start) if start is not None else None
             self.end = Timestamp(end) if end is not None else None

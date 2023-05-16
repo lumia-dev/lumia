@@ -26,7 +26,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.9',
-    install_requires=['loguru', 'pandas>=1.4', 'tqdm', 'netcdf4', 'tables', 'h5py', 'cartopy', 'xarray', 'pint', 'scipy', 'omegaconf', 'h5netcdf', 'mkdocs'],
+    install_requires=['loguru', 'pandas>=1.4', 'tqdm', 'netcdf4', 'h5py', 'cartopy', 'xarray', 'pint', 'scipy', 'omegaconf', 'h5netcdf', 'mkdocs'],
     extras_require={
         'interactive': ['ipython'],
         'icos': ['icoscp']

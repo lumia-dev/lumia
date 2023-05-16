@@ -108,35 +108,6 @@ class Interface :
                 self.ancilliary_data[cat] = struct[cat]
         return vec
 
-    # def VecToStruct_(self, vector):
-    #
-    #     # 1. Create container structure, same as ancilliary data but with optimized cats set to zero
-    #     struct = Struct()
-    #     for cat in self.categories:
-    #         struct[cat.name] = deepcopy(self.ancilliary_data[cat.name])
-    #         if cat.optimize :
-    #             struct[cat.name]['emis'][:] = 0.
-    #
-    #     # 2. Retrieve the prior control vector
-    #     prior = self.ancilliary_data['vec2struct'].prior.values
-    #
-    #     # 3. Disaggregate
-    #     for cat in self.temporal_mapping :
-    #         tmap = self.temporal_mapping[cat]['map']
-    #         nt = tmap.shape[0]
-    #         for it in range(nt):
-    #             sel = (self.ancilliary_data['vec2struct'].category == cat) & (self.ancilliary_data['vec2struct'].itime == it)
-    #             dx = (vector-prior).loc[sel].values
-    #             emcat = dot(dx, self.spatial_mapping['vts']).reshape((self.region.nlat, self.region.nlon))
-    #
-    #             # switch to model temporal resolution
-    #             struct[cat]['emis'][tmap[it, :], :, :] = self.ancilliary_data[cat]['emis'][tmap[it, :], :, :] + emcat
-    #
-    #     # 4. Convert to umol/m2/s
-    #     if self.rcf.get('optim.unit.convert', default=True):
-    #         struct.to_intensive()
-    #     return struct
-
     def VecToStruct(self, vector):
         """
         Converts a state vector to flux array(s). The conversion follows the steps:
@@ -161,22 +132,6 @@ class Interface :
         if self.rcf.get('optim.unit.convert', default=True):
             struct.to_intensive()
         return struct
-
-    # def VecToStruct_adj_(self, adjstruct):
-    #     # 1. Convert adj to umol (from umol/m2/s)
-    #     if self.rcf.get('optim.unit.convert', default=True):
-    #         adjstruct.to_intensive()
-    #
-    #     # 2. Aggregate
-    #     adjvec = []
-    #     for cat in self.temporal_mapping :
-    #         tmap = self.temporal_mapping[cat]['map']
-    #         nt = tmap.shape[0]
-    #         for it in range(nt):
-    #             emcat = adjstruct[cat]['emis'][tmap[it, :], :, :].sum(0).reshape(-1)
-    #             emcat = dot(self.spatial_mapping['vts'], emcat)
-    #             adjvec.extend(emcat)
-    #     return adjvec
 
     def VecToStruct_adj(self, adjstruct):
         if self.rcf.get('optim.unit.convert', default=True):
@@ -298,10 +253,8 @@ class Interface :
             if lsm is not None :
                 lsm = lsm.reshape(-1)
             for icl, cl in enumerate(tqdm(clusters)) :
-                #indices = cl.ind.reshape(-1)
                 indices = cl.ind[cl.mask]
                 mapping[cat.name]['clusters_map'].reshape(-1)[indices] = icl
-                #cl.ind = icl
                 cl.indices = indices
                 cl.ipos = icl
                 cl.lats = lats[indices]
