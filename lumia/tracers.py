@@ -12,6 +12,11 @@ class Specie:
     unit_budget : Unit
     unit_optim  : Unit
 
+    def __hash__(self):
+        # This is a workaround for python>=3.11, where dataclasses only accept hashable objects as defaults (but don't actually check the hash)
+        raise NotImplementedError
+        
+
 
 CO2 = Specie(
     unit_emis=units('umol/m**2/s').units, 

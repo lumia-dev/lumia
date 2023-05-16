@@ -7,7 +7,7 @@ from datetime import datetime
 from pandas import DataFrame, concat
 from loguru import logger
 from tqdm import tqdm
-from typing import List
+from typing import List, Tuple
 
 
 class obsdb(obsdb):
@@ -32,7 +32,7 @@ class obsdb(obsdb):
         self.SelectTimes(start, end, copy=False)
         logger.info(f'Done importing {self.observations.shape[0]} observations from {self.sites.shape[0]} sites')
 
-    def read_footprintFiles(self, path_or_pattern) -> (DataFrame, DataFrame):
+    def read_footprintFiles(self, path_or_pattern) -> Tuple[DataFrame, DataFrame]:
         if os.path.isdir(path_or_pattern):
             pattern = f'{path_or_pattern}/*.*m.????-??.hdf'
         else :
@@ -75,14 +75,18 @@ class obsdb(obsdb):
             # - the release height
             # ==> more flags would be helpful but unavailable
 
-            data = dict()
-            data['site'] = [o.split('.')[0] for o in obs]
-            data['time'] = [datetime.strptime(fid[o].attrs['release_end'], '%Y-%m-%d %H:%M:%S') for o in obs]
-            data['lat'] = [float(fid[o].attrs['release_lat1']) for o in obs]
-            data['lon'] = [float(fid[o].attrs['release_lon1']) for o in obs]
-            data['alt'] = [float(fid[o].attrs['release_z1']) for o in obs]
-            data['obsid'] = [fid[o].attrs['release_name'] for o in obs]
-            data['kindz'] = [int(fid[o].attrs['release_kindz']) for o in obs]
-            data['height'] = [int(o.split('.')[1][:-1]) for o in data['obsid']]
+            try :
+                data = dict()
+                data['site'] = [o.split('.')[0] for o in obs]
+                data['time'] = [datetime.strptime(fid[o].attrs['release_end'], '%Y-%m-%d %H:%M:%S') for o in obs]
+                data['lat'] = [float(fid[o].attrs['release_lat1']) for o in obs]
+                data['lon'] = [float(fid[o].attrs['release_lon1']) for o in obs]
+                data['alt'] = [float(fid[o].attrs['release_z1']) for o in obs]
+                data['obsid'] = [fid[o].attrs['release_name'] for o in obs]
+                data['kindz'] = [int(fid[o].attrs['release_kindz']) for o in obs]
+                data['height'] = [int(o.split('.')[1][:-1]) for o in data['obsid']]
+            except Exception as e:
+                logger.exception(e)
+                raise
 
         return DataFrame.from_dict(data)

@@ -12,7 +12,6 @@ from datetime import datetime
 from pandas import PeriodIndex, Timestamp, DatetimeIndex
 from loguru import logger
 from lumia.units import units_registry as ureg
-from gridtools import grid_from_rc
 from pandas import date_range
 from pandas.tseries.frequencies import DateOffset, to_offset
 from lumia.tracers import species, Unit
@@ -227,9 +226,7 @@ class TracerEmis(xr.Dataset):
     def add_cat(self, name: str, value: ndarray, attrs: dict = None):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
-        assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value)}")
-        # print(value.shape,  flush=True)
-        # print(self.shape,  flush=True)
+        assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value) = }")
         assert value.shape == self.shape, logger.error(f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
         if attrs is None:
             attrs = {}
@@ -767,6 +764,7 @@ class Data:
                     )
                 )
                 
+            for cat in rcf.get(f'emissions.{tr}.categories'):
                 origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
                 logger.debug("tr.path= "+rcf.get(f'emissions.{tr}.path'))
                 #logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))   # !! one cannot simply assign a Grid to a string

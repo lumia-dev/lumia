@@ -78,15 +78,17 @@ congrad :
 
 
 model :
+    exec    : ${lumiacode.homedir}/transport/multitracer.py # ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
     transport :
-        exec    : ${lumiacode.homedir}/transport/multitracer.py # ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
         serial  : False
     output :
         steps : ['apri', 'apos']
-    paths :
+    path :
         output : ${run.paths.output}
         temp   : ${run.paths.temp}
         footprints : ${run.paths.footprints}
+    options :
+        serial  : False
 
 
 # not needed / deprecated?

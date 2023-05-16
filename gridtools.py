@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 from dataclasses import dataclass, field
-from numpy import meshgrid, ndarray, linspace, pi, zeros, float64, sin, diff, searchsorted, array, pad, moveaxis, arange, typing
+from numpy import meshgrid, ndarray, linspace, pi, zeros, float64, sin, diff, searchsorted, array, pad, moveaxis, arange, typing, put_along_axis, ceil, append
 from types import SimpleNamespace
 from loguru import logger
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 from h5py import File
 import xarray as xr
 from cartopy.io import shapereader
 from shapely.geometry import Point
 from shapely.ops import unary_union
-from typing import List, Union
+from typing import List, Union, Tuple
 from shapely.prepared import prep
+import xarray as xr
 
 
 class LandMask:
@@ -39,6 +40,393 @@ class LandMask:
 
 land_mask = LandMask()
 
+
+@dataclass
+class RectiLinearGrid:
+    lon_corners  : typing.NDArray
+    lat_corners  : typing.NDArray
+    dlon         : float = None
+    radius_earth : float = field(default=6_378_100.0, repr=False)
+    cyclic       : bool = None
+    _global      : bool = False
+    
+    def __post_init__(self):
+        if self.east - self.west == 360 and self.cyclic is None:
+            self.cyclic = True
+        elif self.cyclic is None :
+            self.cyclic = False
+        if self.cyclic and self.south == -90 and self.north == 90:
+            self._global = True
+
+    @property
+    def south(self) -> float:
+        return self.lat_corners.min()
+    
+    @property
+    def north(self) -> float:
+        return self.lat_corners.max()
+
+    @property
+    def west(self) -> float:
+        return self.lon_corners.min()
+
+    @property
+    def east(self) -> float:
+        return self.lon_corners.max()
+
+    @property
+    def nlat(self) -> int:
+        return len(self.lat_corners) - 1
+    
+    @property
+    def nlon(self) -> int:
+        return len(self.lon_corners) - 1
+
+    @property
+    def lonc(self) -> typing.NDArray:
+        return (self.lon_corners[1:] + self.lon_corners[:-1]) / 2.
+    
+    @property
+    def latc(self) -> typing.NDArray:
+        return (self.lat_corners[1:] + self.lat_corners[:-1]) / 2.
+
+    @property
+    def latb(self) -> List[slice]:
+        return [slice(self.lat_corners[_], self.lat_corners[_ + 1]) for _ in range(self.nlat)]
+    
+    @property
+    def lat_b(self) -> List[slice]:
+        return [_.start for _ in self.latb] + [self.latb[-1].stop]
+    
+    @property
+    def lon_b(self) -> List[slice]:
+        return [_.start for _ in self.lonb] + [self.lonb[-1].stop]
+
+    @property
+    def lonb(self) -> List[slice]:
+        return [slice(self.lon_corners[_], self.lon_corners[_ + 1]) for _ in range(self.nlon)]
+    
+    @property
+    def xr_dataset(self) -> xr.Dataset:
+        return xr.Dataset(
+            dict(
+                lon = (['lon'], self.lonc, {'units' : 'degrees_north'}),
+                lat = (['lat'], self.latc, {'units' : 'degrees_east'}),
+                lat_b = (['lat_b'], self.lat_b, {'units' : 'degrees_north'}),
+                lon_b = (['lon_b'], self.lon_b, {'units' : 'degrees_east'}),
+            )
+        )
+    
+    @property
+    def area(self):
+        dlon_rad = self.dlon * pi / 180.
+        area = zeros((self.nlat+1, self.nlon), float64)
+        lats = ( pi / 180. ) * self.lat_corners
+        for ilat, lat in enumerate(lats):
+            area[ilat, :] = self.radius_earth**2 * dlon_rad * sin(lat)
+        return diff(area, axis=0)
+
+    def expand_longitudes(self, west: float, east: float) -> Tuple["RectiLinearGrid", int, int]:
+        """
+        Create a new grid, spanning (if necessary) a wider range of longitudes. 
+        """
+        nsteps_east = 0
+        nsteps_west = 0
+        if west < self.west:
+            nsteps_west = ceil((self.west - west) / self.dlon)
+            west = self.west - self.dlon * nsteps_west
+            
+        if east > self.east:
+            nsteps_east = ceil((east - self.east) / self.dlon)
+            east = self.east + self.dlon * nsteps_east
+            
+        lon_corners = linspace(west, east, self.nlon + nsteps_east + nsteps_east + 1)
+        return RectiLinearGrid(lon_corners=lon_corners, lat_corners=self.lat_corners, radius_earth=self.radius_earth, cyclic=False)
+
+    def calc_overlap_matrices(self, other : "RectiLinearGrid") -> SimpleNamespace:
+        """
+        Calculate the overlaping between two regular grids.
+        The function returns an namespace with a "lat" and "lon" attribute (arrays):
+        - lat[i1, j1] is the fraction of a grid cell of lat index "i1", in the original grid, that is contained by a grid cell of lat index "j1" in the new grid (assuming they have the same longitude boundaries)
+        - lon[i2, j2] is the fraction of a longitude interval "i2" (in the original grid) that is contained by a longitude interval "j2" in the new grid (assuming they have the same latitude boundaries).
+        The product lat[i1, j1] * lon[i2, j2] gives the fraction of the grid cell (i1, j1) in the original grid that is contained in the grid cell (i2, j2) in the new grid.
+        """
+
+        # If both grids are cyclic, create a temporary expanded grid that fully contains the original grid
+        # and wrap it around itself in a second time:
+        overlaps_lat = self.calc_overlaps_lat(other)
+        
+        if self.cyclic and other.cyclic:
+            # Create the temporary grid and calculate the overlaps for it
+            tmpgrid = other.expand_longitudes(self.west, self.east)
+            overlaps_lon = self.calc_overlaps_lon(tmpgrid)
+            
+            # Isolate the edge bands (whatever is outside the limits of the original grid)
+            west_band = overlaps_lon[:, tmpgrid.lonc < self.west]
+            east_band = overlaps_lon[:, tmpgrid.lonc > self.east]
+            
+            # Isolate the center band (what is within the limits of the original grid
+            overlaps_lon = overlaps_lon[:, (tmpgrid.lonc >= self.west) * (tmpgrid.lonc <= self.east)]
+            
+            # Add the edge bands to the center one
+            if west_band.shape[1] > 0 :
+                overlaps_lon[:, :west_band.shape[1]] += west_band
+            if east_band.shape[1] > 0 :
+                overlaps_lon[:, -east_band.shape[1]:] += east_band
+        else :
+            overlaps_lon = self.calc_overlaps_lon(other)
+        
+        return SimpleNamespace(lat=overlaps_lat, lon=overlaps_lon)
+        
+    def calc_overlaps_lat(self, other: "RectiLinearGrid") -> typing.NDArray:
+        overlaps = zeros((self.nlat, other.nlat))
+
+        for ilat1, latb1 in enumerate(self.latb):
+            for ilat2, latb2 in enumerate(other.latb):
+                # Calculate what fraction of a grid cell ilat1 would end up in a grid cell ilat2
+                minlat = max(latb1.start, latb2.start) * pi /180
+                maxlat = min(latb1.stop, latb2.stop) * pi /180
+                
+                if minlat < maxlat:
+                    area1 = sin(maxlat - minlat)
+                    area2 = sin(latb1.stop * pi / 180 - latb1.start * pi / 180)
+                    overlaps[ilat1, ilat2] = area1 / area2
+        return overlaps
+
+    def calc_overlaps_lon(self, other: "RectiLinearGrid") -> typing.NDArray:
+        overlaps = zeros((self.nlon, other.nlon))
+        for ilon1, lonb1 in enumerate(self.lonb):
+            for ilon2, lonb2 in enumerate(other.lonb):
+                # Calculate what fraction of a grid cell ilon1 would end up in a grid cell ilon2
+                minlon = max(lonb1.start, lonb2.start)
+                maxlon = min(lonb1.stop, lonb2.stop)
+                if minlon < maxlon :
+                    overlaps[ilon1, ilon2] = (maxlon - minlon) / (lonb1.stop - lonb1.start)
+        return overlaps
+        
+
+class LMDZGrid(RectiLinearGrid):
+    
+    @classmethod
+    def global_from_npoints(cls, nlon: int, nlat: int) -> "LMDZGrid":
+        """
+        Global LMDZ grid:
+        - doesn't start at -180
+        - has half-grids at the poles
+        """
+        dlon = 360. / nlon
+        west = -180 - dlon / 2.
+        east = 180 - dlon / 2.
+        lon_corners = linspace(west, east, nlon + 1)
+        
+        dlat = 180. / (nlat - 1)
+        south = -90 + dlat / 2.
+        north = 90 - dlat / 2.
+        lat_corners = append(append(-90, linspace(south, north, nlat - 1)), 90)
+        return cls(lon_corners=lon_corners, lat_corners=lat_corners, dlon=dlon)
+    
+
+@dataclass
+class TM5Grid(RectiLinearGrid):
+    dlat : float = 1.
+    
+    @classmethod
+    def global_from_steps(cls, dlon: float, dlat: float) -> "TM5Grid":
+        nlon = 360 / dlon
+        nlat = 180 / dlat
+        assert nlat == int(nlat)
+        assert nlon == int(nlon)
+        return cls(lon_corners=linspace(-180, 180, int(nlon)+1), lat_corners=linspace(-90, 90, int(nlat)+1), dlon=dlon, dlat=dlat)
+
+    @classmethod
+    def global1x1(cls) -> "TM5Grid":
+        return cls.global_from_steps(1, 1)
+
+
+@dataclass
+class LUMIAGrid(RectiLinearGrid):
+    dlat : float = 0.5
+    
+    @classmethod
+    def EUROCOM(cls, dlon: float=.5, dlat: Union[None, float]=None) -> "LUMIAGrid":
+        if dlat is None :
+            dlat = dlon
+        nlon = 50 / dlon
+        nlat = 40 / dlat
+        assert nlon == int(nlon)
+        assert nlat == int(nlat)
+        return cls(lon_corners=linspace(-15, 35, int(nlon) + 1), lat_corners = linspace(33, 73, int(nlat) + 1), dlon=dlon)
+        
+
+
+@dataclass
+class SpatialData:
+    data        : typing.NDArray
+    grid        : RectiLinearGrid
+    lon_axis    : int
+    lat_axis    : int
+    density     : bool = False
+
+    def to_quantity(self, inplace: bool = False) -> "SpatialData":
+        """ 
+        Converts amounts (e.g. kg, umol) to (spatial) fluxes (e.g. kg/m2, umol/m2, etc.).
+        The temporal dimension is unchanged (e.g. kg/s will be converted to kg/s/m**2)
+
+        Args:
+            inplace (bool, optional): whether to modify the object in memory or to return a new one. 
+        """
+        # 1) Move the lat and lon to last positions:
+        data = self.data.swapaxes(self.lon_axis, -1).swapaxes(self.lat_axis, -2)
+        data = self._reorder_axes(data=self.data, position='end')
+        data = data * self.grid.area
+        data = self._reset_axes(data=data, position='end')
+        
+        # Return
+        if inplace :
+            self.data = data
+            self.density = False
+            return self
+        else :
+            return SpatialData(data=data, grid=self.grid, lon_axis=self.lon_axis, lat_axis=self.lat_axis)
+
+    def _reorder_axes(self, data : typing.NDArray = None, position : str = 'end') -> typing.NDArray:
+        """
+        Move the lat and lon axis at the start or end (default) of the axis list
+        Arguments :
+            position : should be "start" (move lat axis to axis 0 and lon axis to axis 1) or "end" (move lat axis to axis -2 and lon axis to axis -1)
+            data: array to reorder (optional, default: self.data)
+        
+        Return:
+            reordered (view of the) axis 
+        """
+        if data is None :
+            data = self.data
+
+        if {'start':True, 'end':False}[position]:         # this will raise and error if position is not "start" or "end"
+            if self.lat_axis > self.lon_axis :
+                # lat after lon in original array ==> need to move lon first
+                data = moveaxis(data, self.lon_axis, 0)   # Move lon axis to first position (no change on lon position)
+                data = moveaxis(data, self.lat_axis, 0)   # Move lat axis on first position (changes lon position to axis 1)
+            else :
+                # lon after lat in original array ==> no change to their relative order
+                data = moveaxis(data, self.lat_axis, 0)   # Move lat axis to first position (no change on lon position)
+                data = moveaxis(data, self.lon_axis, 1)   # Move lon axis to second position (no change on lat position)
+        else :
+            if self.lat_axis > self.lon_axis:
+                # lat after lon in original array ==> move lat to last, then lon to last
+                data = moveaxis(data, self.lat_axis, -1)
+                data = moveaxis(data, self.lon_axis, -1)
+            else :
+                # lon after lat in original array ==> move lon to last, then lat to before last 
+                data = moveaxis(data, self.lon_axis, -1)
+                data = moveaxis(data, self.lat_axis, -2)
+        return data
+
+    def _reset_axes(self, data : typing.NDArray = None, position: str = 'end') -> typing.NDArray:
+        """
+        Undo the effect of "reorder_axes". The exact same arguments should be used.
+        """
+        if data is None :
+            data = self.data
+            
+        if {'start':True, 'end':False}[position]:         # this will raise and error if position is not "start" or "end"
+            if self.lat_axis > self.lon_axis:
+                # lat after lon in original array, but lat first in "data"
+                data = moveaxis(data, 0, self.lat_axis)     # move lat from position 0 to its final position. lon is now in position 0
+                data = moveaxis(data, 0, self.lon_axis)     # move lon from position 0 to its final position (no effect on lat)
+            else :
+                # lon after lat in original array and in "data" ==> just move lon, then lat
+                data = moveaxis(data, 1, self.lon_axis)     # move lon to its final position
+                data = moveaxis(data, 0, self.lat_axis)     # move lat to its final position
+        else :
+            if self.lat_axis > self.lon_axis:
+                # lat after lon in original array, but lat first in "data"
+                data = moveaxis(data, -1, self.lon_axis)    # move lon to its final position (now before lat). lat is now last axis
+                data = moveaxis(data, -1, self.lat_axis)    # move lat to its final position (no effect on lon)
+            else :
+                # lon after lat in original array and in "data"
+                data = moveaxis(data, -2, self.lat_axis)    # move lat to its final position (no effect on lon)
+                data = moveaxis(data, -1, self.lon_axis)    # move lon to its final position (no effect on lat)
+        return data
+    
+    def to_density(self, inplace: bool=True) -> "SpatialData":
+        """
+        Converts spatial fluxes (e.g. kg/m**2, umol/m**2, s/m**2) to amounts (kg, umol, s, etc.)
+        The non-spatial dimensions (if any) are unchanged (e.g. kg/s/m**2 will be converted to kg/s)
+
+        Args:
+            inplace (bool, optional): whether to modify the object in memory or to return a new one. 
+        """
+        # 1) Move the lat and lon to last positions:
+        data = self._reorder_axes(data=self.data, position='end')
+        data = data / self.grid.area
+        data = self._reset_axes(data=data, position='end')
+        
+        # Return
+        if inplace :
+            self.data = data
+            self.density = False
+            return self
+        else :
+            return SpatialData(data=data, grid=self.grid, lon_axis=self.lon_axis, lat_axis=self.lat_axis)
+            
+    def regrid(self, destgrid: RectiLinearGrid) -> "SpatialData":
+        
+        # Transition matrices:
+        trans = self.grid.calc_overlap_matrices(destgrid)
+
+        # Create destination array:
+        shp = list(self.data.shape)
+        shp[self.lon_axis] = destgrid.nlon
+        shp[self.lat_axis] = destgrid.nlat
+        if len(shp) == 2 :
+            shp.append(1)
+        data_out = zeros(shp)
+        
+        # Move the lat in first position and the lon in second:
+        data_out = self._reorder_axes(data=data_out, position='start')
+        
+        # Convert to units / grid-cell, if needed:
+        if self.density :
+            data = self.to_quantity(inplace=False).data
+        else :
+            data = self.data
+            
+        # Apply the regridding:
+        # For every gridcell of the output grid, the following does:
+        #   - multiply the original array by the latitude overlap matrix
+        #   - multiply the original array by the longitude overlap matrix
+        #   - sum up the result and store it in the (ilat, ilon) of the destination array
+        
+        for ilat in tqdm(arange(destgrid.nlat)):
+            # Ensure that the lat axis is in last position:
+            fraction_lat = data.swapaxes(self.lat_axis, -1).copy()
+            fraction_lat *= trans.lat[:, ilat]
+            fraction_lat = fraction_lat.swapaxes(-1, self.lat_axis)
+
+            for ilon in arange(destgrid.nlon):
+                fraction_lat_lon = fraction_lat.swapaxes(self.lon_axis, -1).copy()
+                fraction_lat_lon *= trans.lon[:, ilon]
+                fraction_lat_lon = fraction_lat_lon.swapaxes(-1, self.lon_axis)
+                data_out[ilat, ilon, :] = fraction_lat_lon.sum((self.lat_axis, self.lon_axis))
+
+        # Move the axes in their original positions:
+        data_out = self._reset_axes(data=data_out, position='start')
+
+        # collapse the extra dimension that may have been created:
+        if len(self.data.shape) < len(data_out.shape):
+            data_out = data_out.squeeze(axis=-1)
+        
+        # Create the output structure:
+        data_out = SpatialData(data=data_out, grid=destgrid, lon_axis=self.lon_axis, lat_axis=self.lat_axis) 
+
+
+        # Re-convert to density, if needed:
+        if self.density :
+            data_out.to_density()
+
+        return data_out
+    
 
 @dataclass
 class Grid:
@@ -254,7 +642,8 @@ def calc_overlap_lats(sgrid, dgrid):
             lat_max = min(lat1, dlatb[ilat_d + 1])
             lat_min = max(lat0, dlatb[ilat_d])
             overlap[ilat_s, ilat_d] = (lat_max - lat_min) / (lat1 - lat0)
-            if overlap[ilat_s, ilat_d] < 0 : print(lat_min, lat_max, lat0, lat1, ilat_s, ilat_d)
+            if overlap[ilat_s, ilat_d] < 0 : 
+                print(lat_min, lat_max, lat0, lat1, ilat_s, ilat_d)
     return overlap
 
 
@@ -312,7 +701,7 @@ class GriddedData:
         else :
             # If lon is before lat:
             data = moveaxis(data, -1, self.axis[1])  # Move lon from last position to original position
-            data = moveaxis(data, -1, self.axis[2])  # Move lat from last position to original position
+            data = moveaxis(data, -1, self.axis[0])  # Move lat from last position to original position
 
         # Return
         if inplace :
@@ -347,7 +736,7 @@ class GriddedData:
         else :
             # If lon is before lat:
             data = moveaxis(data, -1, self.axis[1])  # Move lon from last position to original position
-            data = moveaxis(data, -1, self.axis[2])  # Move lat from last position to original position
+            data = moveaxis(data, -1, self.axis[0])  # Move lat from last position to original position
 
         # Return
         if inplace :
@@ -382,10 +771,24 @@ class GriddedData:
         if data.grid.dlon < destgrid.dlon and data.grid.dlat < destgrid.dlat :
             data = data.coarsen(destgrid, inplace=inplace)
 
+        if data.grid.dlon > destgrid.dlon and data.grid.dlat > destgrid.dlat :
+            data = data.refine(destgrid, inplace=inplace)
+
         if density :
             data = data.to_density(inplace=inplace)
 
         return data
+
+    def rebin(self, destgrid: Grid, inplace: bool=False):
+        """
+        Regrid the data by simple rebinning. 
+
+        Args:
+            destgrid (Grid): Requested grid 
+            inplace (bool, optional): whether to return a new GriddedData instance, or to modify the data in the current one 
+        """
+        
+        overlaps = calc_overlap_matrices(self.grid, destgrid)
 
     def coarsen(self, destgrid : Grid, inplace=False):
         logger.info(destgrid)
@@ -438,55 +841,59 @@ class GriddedData:
             return GriddedData(coarsened, destgrid, axis=self.axis, density=self.density, dims=self.dims)
 
     def refine(self, destgrid : Grid, inplace=False) :
-        raise NotImplementedError
-
-        #TODO: the code below might work, but needs to be tested before being used.
-
-        # # Create an intermediate grid, with the same resolution as the new grid and the same boundaries as the original one:
-        # tgrid = Grid(lat0=self.grid.lat0, lat1=self.grid.lat1, dlat=destgrid.dlat,
-        #              lon1=self.grid.lon1, lon0=self.grid.lon0, dlon=destgrid.dlon)
-        #
-        # # Calculate transision matrices:
-        # trans = calc_overlap_matrices(self.grid, tgrid)
-        #
-        # # Do the regridding:
-        # shp = self.data.shape
-        # shp[self.axis[0]] = tgrid.nlat
-        # shp[self.axis[1]] = tgrid.nlon
-        # out = zeros(shp)
-        #
-        # for ilat in range(tgrid.nlat):
-        #     outlat = out.take(0, axis=self.axis[0]) * 0.
-        #     # Move lat axis in last position to perform the multiplication, then move it back to original position
-        #     data = self.data.swapaxes(self.axis[0], -1).copy()
-        #     data *= trans.lat
-        #     data = data.swapaxes(-1, self.axis[0])
-        #     data = data.sum(axis=self.axis[0])
-        #
-        #     for ilon in range(tgrid.nlon):
-        #         # We have lost one axis, account for it if needed:
-        #         ax1 = self.axis[1]
-        #         if self.axis[1] > self.axis[0] :
-        #             ax1 = self.axis[1] - 1
-        #
-        #         # Repeat the axis swap trick:
-        #         data = data.swapaxes(ax1, -1)
-        #         data *= trans.lon
-        #         data = data.swapaxes(-1, ax1)
-        #
-        #         data = data.sum(axis=ax1) # This has all dims of self.data except lat and lon
-        #
-        #         # Store this in output array:
-        #         put_along_axis(outlat, ilon, data, ax1) # outlat has all dims of self.data except lat
-        #     put_along_axis(out, ilat, outlat, self.axis[0])
-        #
-        # out = GriddedData(out, tgrid, axis=self.axis).crop(destgrid)
-        # if inplace :
-        #     self.data = out.data
-        #     self.grid = destgrid
-        #     return self
-        # else :
-        #     return out
+        # Create an intermediate grid, with the same resolution as the new grid and the same boundaries as the original one:
+        tgrid = Grid(lat0=self.grid.lat0, lat1=self.grid.lat1, dlat=destgrid.dlat,
+                     lon1=self.grid.lon1, lon0=self.grid.lon0, dlon=destgrid.dlon)
+        
+        # Calculate transision matrices:
+        trans = calc_overlap_matrices(self.grid, tgrid)
+        
+        # Do the regridding:
+        shp = self.data.shape
+        shp[self.axis[0]] = tgrid.nlat
+        shp[self.axis[1]] = tgrid.nlon
+        out = zeros(shp)
+        
+        for ilat in range(tgrid.nlat):
+            outlat = out.take(0, axis=self.axis[0]) * 0.
+            # This is the equivalent of outlat = out[:, 0, :] * 0., if self.axis[0] is 1
+            
+            # Move lat axis in last position to perform the multiplication, then move it back to original position
+            data = self.data.swapaxes(self.axis[0], -1).copy()
+            data *= trans.lat
+            data = data.swapaxes(-1, self.axis[0])
+            data = data.sum(axis=self.axis[0])
+       
+            for ilon in range(tgrid.nlon):
+                # We have lost one axis, account for it if needed:
+                ax1 = self.axis[1]
+                if self.axis[1] > self.axis[0] :
+                    ax1 = self.axis[1] - 1
+       
+                # Repeat the axis swap trick:
+                data = data.swapaxes(ax1, -1)
+                data *= trans.lon
+                data = data.swapaxes(-1, ax1)
+       
+                data = data.sum(axis=ax1) # This has all dims of self.data except lat and lon
+       
+                # Store this in output array:
+                put_along_axis(outlat, ilon, data, ax1) # outlat has all dims of self.data except lat
+                # this is the equivalent to :
+                # outlat[ilon, :, :] = data, if "ax1" is 0,
+                # outlat[:, ilon, :] = data, if "ax1" is 1, etc.
+                
+            put_along_axis(out, ilat, outlat, self.axis[0])
+            # This is the equivalent of :
+            # out[ilat, :, :] = outlat, if self.axis[0] is 0, etc.
+        
+        out = GriddedData(out, tgrid, axis=self.axis).crop(destgrid)
+        if inplace :
+            self.data = out.data
+            self.grid = destgrid
+            return self
+        else :
+            return out
 
     def crop(self, destgrid, inplace=False):
         logger.info(destgrid)

@@ -16,11 +16,11 @@ class transport(object):
         self.rcf = rcf
 
         # Set paths :
-        self.outputdir = self.rcf.get('model.paths.output')
-        self.tempdir = self.rcf.get('model.paths.temp', self.outputdir)
-        self.executable = self.rcf.get("model.transport.exec")  # could be lumia/transport/multitracer.py
-        self.serial = self.rcf.get("model.transport.serial", default=False)
-        self.footprint_path = self.rcf.get('model.paths.footprints')
+        self.outputdir = self.rcf.get('model.path.output')
+        self.tempdir = self.rcf.get('model.path.temp', self.outputdir)
+        self.executable = self.rcf.get("model.exec")
+        self.serial = self.rcf.get("model.options.serial", default=False)
+        self.footprint_path = self.rcf.get('model.path.footprints')
 
         # Initialize the obs if needed
         if obs is not None : 
@@ -85,10 +85,8 @@ class transport(object):
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
         # Output if needed:
-        if self.rcf.get('model.output', default=True):
-            if step in self.rcf.get('model.output.steps'):
-                self.save(tag=step, structf=emf)
-        self.db.observations.to_csv('obsoperator_init_LEAVING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        if step not in self.rcf.get('model.no_output', ['var4d']):
+            self.save(tag=step, structf=emf)
 
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]

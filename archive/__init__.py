@@ -170,7 +170,10 @@ class Rclone:
         if self.path is None :
             return
         cmd = [self.protocol, 'copy', f'{self.remote}:{remotepath}', localpath]
-        _ = subprocess.check_output(cmd)
+        try :
+            _ = subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as e:
+            logger.exception(f"File {remotepath} not found on archive {self.protocol}:{self.remote}", traceback=False)
 
     def get(self, filepath: str) -> bool:
         """
@@ -178,10 +181,13 @@ class Rclone:
         """
         if os.path.dirname(filepath) == '':
             filepath = os.path.join('.', filepath)
+        
+        logger.info(f"Getting file {filepath}")
         if self.path is not None:
             if not os.path.exists(filepath):
                 localpath, filename = os.path.split(filepath)
                 remotepath = os.path.join(self.path, filename)
+                logger.info(f"File not found. Try downlaod it from {self.protocol}:{self.remote}:{remotepath}")
                 self.download(remotepath, localpath)
         return os.path.exists(filepath)
 

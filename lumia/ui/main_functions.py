@@ -15,6 +15,15 @@ from lumia.formatters import xr
 from lumia.interfaces.multitracer import Interface
 from types import SimpleNamespace
 from configparser import ConfigParser
+import warnings
+
+
+# Ensure that warnings are captured by the logger (https://loguru.readthedocs.io/en/stable/resources/recipes.html#capturing-standard-stdout-stderr-and-warnings)
+showwarning_ = warnings.showwarning
+def showwarning(message, *args, **kwargs):
+    logger.warning(message)
+    showwarning_(message, *args, **kwargs)
+warnings.showwarning = showwarning
 
 
 def apptainer_wrapper(args: List):
@@ -107,7 +116,30 @@ def parse_args(args: List) -> Namespace:
 
 def parse_config(args: Namespace) -> RcFile:
     rcf = RcFile(args.rcf)
+    
+    # Deprecated keys:
+    # The dictionary below contains the list of keys that should no longer be used, and what their replacement key is.
+    # - If a deprecated key is found in the settings, then a warning is raised, and the correct key is set to the value of the deprecated one (respecting resolvers).
+    # - the deprecated key is set to point to the new one, with a deprecation warning (${oc.deprecated} resolver), so accessing the old key in the code will raise a deprecation warning
+    # - If both the deprecated key and its replacement are found, an exception is raised.
+    deprecated_keys = {
+        'time.start': 'run.start',
+        'time.end': 'run.end',
+        'path.footprints': 'model.footprints',
+        'model.transport.exec': 'model.exec',
+        'model.transport.serial': 'model.options.serial'
+    }
+    for k, v in deprecated_keys.items():
+        if k in rcf :
+            logger.warning(f'The "{k}" key is deprecated. Use "{v}" instead')
+            if v in rcf :
+                msg = f'Only one of the keys "{k}" and "{v}" should be defined. Please fix your settings ...'
+                logger.exception(RuntimeError(msg))
+            rcf.set(v, rcf.get(k.rsplit('.', -1)[0])._content[k.split('.')[-1]])
 
+        # Regardless of
+        rcf.set(k, f'${{oc.deprecated:{v}}}')
+    
     # handle the --setkey option(s) 
     if args.setkey:
         for kv in args.setkey:
@@ -116,16 +148,16 @@ def parse_config(args: Namespace) -> RcFile:
 
     # handle the --start and --end options
     if args.start is None:
-        start = Timestamp(rcf.get('time.start'))
+        start = Timestamp(rcf.get('run.start'))
     else:
         start = Timestamp(args.start)
-        rcf.setkey('time.start', start.strftime('%Y-%m-%d'))
+        rcf.setkey('run.start', start.strftime('%Y-%m-%d'))
 
     if args.end is None:
-        end = Timestamp(rcf.get('time.end'))
+        end = Timestamp(rcf.get('run.end'))
     else:
         end = Timestamp(args.end)
-        rcf.setkey('time.end', end.strftime('%Y-%m-%d'))
+        rcf.setkey('run.end', end.strftime('%Y-%m-%d'))
 
     # handle the --fakeobs option
     if args.fakeobs:
@@ -135,9 +167,9 @@ def parse_config(args: Namespace) -> RcFile:
     tag = args.tag
     if not tag :
         tag = f'{start:%Y%m%d}-{end:%Y%m%d}'
-    rcf['run']['paths']['output'] = os.path.join(rcf.get('run.paths.output'), tag)
     rcf['run']['paths']['temp'] = os.path.join(rcf.get('run.paths.output'), tag)
-
+    rcf['run']['paths']['output'] = os.path.join(rcf.get('run.paths.output'), tag)
+    
     return rcf
 
 
@@ -156,7 +188,7 @@ def load_observations(rcf: RcFile) -> obsdb:
     """
     if rcf.get('observations.make_from_footprints', default=False):
         from lumia.obsdb.runflex import obsdb
-        db = obsdb(rcf.get('path.footprints'), rcf.get('time.start'), rcf.get('time.end'), tracers=list(rcf.get('tracers')))
+        db = obsdb(rcf['observations.footprints'], rcf['run.start'], rcf['run.end'], tracers=list(rcf['run.tracers']))
     else:
         from lumia.obsdb.InversionDb import obsdb
         db = obsdb.from_rc(rcf)
@@ -211,7 +243,7 @@ def forward(rcf: RcFile) -> SimpleNamespace:
     do a forward model run
     """
     obs, emis, model = init_model(rcf)
-    model.calcDepartures(emis, 'forward')
+    model.calcDepartures(emis, step = rcf['run'].get('tag', 'forward'))
     return SimpleNamespace(obs=obs, emis=emis, model=model)
 
 

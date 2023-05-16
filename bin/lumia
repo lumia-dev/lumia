@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # Most basic case: just run lumia
     logger.remove()
-    logger.add(sys.stderr, level=args.verbosity)
+    logger.add(sys.stderr, level=args.verbosity, backtrace=False, diagnose=True)
 
     # Read and append configuration file
     rcf = ui.parse_config(args)
