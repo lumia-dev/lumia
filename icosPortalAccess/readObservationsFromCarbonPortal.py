@@ -219,7 +219,7 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
     Function 
 
     @param dobj the object returned from the SPARQL query that contains the PIDs of all the files we want to extract
-    @type a structured dictionary of strings
+    @cpDir Location where to look for the existance of the files we expect to find from the SPARQL query
     @return a list of strings. Each strings contains the name of one file on the carbon portal that we later need to read.
     @rtype List[strings]
     
@@ -260,12 +260,12 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
                             # Make sure this file actually exists and is accessible on the portal
                             f=open(sFileNameOnCarbonPortal, 'rb')
                             f.close()
+                            if(iVerbosityLv>0):
+                                logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
+                            fNameLst.append(sPID)
                         except:
                             logger.error('The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal. Please check first of all the directory you provided for observations.file.cpDir in your .yml resource file.')
-                            sys.exit(-1)
-                        if(iVerbosityLv>0):
-                            logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
-                        fNameLst.append(sPID)
+                            # sys.exit(-1)   /data/dataAppStorage/asciiAtcProductTimeSer/ZZb1E_dJQtRICzobwg0ib86C
     except:
         logger.error("No valid observational data found in SPARQL query dobj=")
         logger.error(f"{dobj}")
@@ -350,10 +350,11 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     Returns (...-dataset) if successful; (None) if unsuccessful.
     """
     if(tracer=='CO2'):
-        getCo2DryMolFractionObjectsFromSparql(pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd,  timeStep=timeStep, iVerbosityLv=iVerbosityLv)
+        dobj=getCo2DryMolFractionObjectsFromSparql(pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd,  timeStep=timeStep, iVerbosityLv=iVerbosityLv)
     else:        
         dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
     dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
+    logger.debug(f"dobjLst={dobjLst}")
     return(dobjLst, cpDir)
 
 

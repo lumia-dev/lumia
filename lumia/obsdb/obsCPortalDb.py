@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 from datetime import timedelta
 from numpy import zeros, sqrt
 import rctools
@@ -99,6 +100,9 @@ class obsdb(obsdb):
         pdSliceEndTime=pdTimeEnd.to_datetime64()
         (dobjLst, cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
+        if((dobjLst is None) or (len(dobjLst)<1)):
+            logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")
+            sys.exit(-1)
         for pid in dobjLst:
             # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
             # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')

@@ -22,9 +22,9 @@ class obsdb:
             #   TypeError: Casting to unit-less dtype 'datetime64' is not supported. Pass e.g. 'datetime64[ns]' instead.
             # However, if I use datetime64[ns], then I get another error: NameError: name 'ns' is not defined. Did you mean: 'os'?
             # Hence I tried to fix this from a pandas angle instead (https://stackoverflow.com/questions/16158795/cant-convert-dates-to-datetime64), which seems to work fine:
-            # self.observations.loc[:, 'time'] = to_datetime(self.observations.time)
+            self.observations.loc[:, 'time'] = to_datetime(self.observations.time)
             
-            self.observations.loc[:, 'time'] = self.observations.time.astype('datetime64[ns]')
+            # self.observations.loc[:, 'time'] = self.observations.time.astype('datetime64[ns]')
             self.files = DataFrame(columns=['filename'])
             self.start = Timestamp(start) if start is not None else None
             self.end = Timestamp(end) if end is not None else None

@@ -66,8 +66,8 @@ class transport(object):
     def calcDepartures(self, struct, step=None, serial=False):
         emf, dbf = self.runForward(struct, step, serial)
         db = obsdb.from_hdf(dbf)
-        logger.info(f"Dbg: self.db.observations: {self.db.observations}")
-        self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
+        logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
+        # if DEBUG: self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
         if self.rcf.get('model.split_categories', default=True):
             import time
             time.sleep(5)
