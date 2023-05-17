@@ -21,7 +21,7 @@ ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time di
                              times representing the beginning of an observation period.
 '''
 
-def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
+def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
     '''
     Function ensureCorrectGrid
     interpolate the spatial coordinates in sExistingFile if necessary
@@ -43,7 +43,7 @@ def ensureCorrectGrid(sExistingFile,  grid: Grid = None):
     '''
     tim0=None
     if(grid is None) or (sExistingFile is None) :
-        print("Fatal error in xr.ensureCorrectGrid(): no grid provided or no existing file provided.")
+        print("Fatal error in cdoWrapper:ensureCorrectGrid(): no grid provided or no existing file provided.")
         sys.exit(1)
     # step 1: check if a file with the right spatial resolution already exist. If yes, return that file name and we are done
     # grid may look something like Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
@@ -140,7 +140,7 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0, grid: Gr
             # we are good. No need to shift. Time dimension starts at zero.
             return(sExistingFile)
     if(grid is None) or (sExistingFile is None) :
-        print("Fatal error in xr.ensureCorrectGrid(): no grid provided or no existing file provided.")
+        print("Fatal error in cdoWrapper:ensureReportedTimeIsStartOfMeasurmentInterval(): no grid provided or no existing file provided.")
         sys.exit(1)
     sdlat=str(int(grid.dlat*1000))
     sdlon=str(int(grid.dlon*1000))

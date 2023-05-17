@@ -19,6 +19,7 @@ from lumia.tracers import species, Unit
 from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
 import icosPortalAccess.readLv3NcFileFromCarbonPortal as fromICP
+from icoscp.cpb.dobj import Dobj
 import numbers
 from lumia.formatters import cdoWrapper
 from archive import Rclone
@@ -886,14 +887,16 @@ def load_preprocessed(
                     sScndKeyWord='EDGARv4.3' 
             fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
             if(fname is None):
-                print('Abort in lumia/formatter/xr.py: '+sKeyWord+' '+sScndKeyWord+' file '+fname+' is not found at the given path.',  flush=True)
+                logger.error(f"Abort in lumia/formatter/xr.py: No valid data opbject was found for sKeyWord={sKeyWord} and sScndKeyWord={sScndKeyWord} on the carbon portal")
                 sys.exit(1)
         else:
+            #dob = Dobj(pidUrl)
             fname = f'{prefix}{year}.nc'
             try:
-                archive.get(fname)
+                archive.get(fname)            
+                # archive = dob.get()   
             except:
-                print('Abort in lumia/formatters/xr.py: Unable to obtain archive.get(fname) with fname='+fname,  flush=True)
+                logger.error(f"Abort in lumia/formatters/xr.py: Unable to read pidUrl={fname} into a data frame.")
                 sys.exit(1)
         # It is helpful to know how the data is organised. 
         # Downloaded files are already sliced to the area needed at a quarter degree resolution: 
@@ -903,7 +906,7 @@ def load_preprocessed(
         # Looking at the 16 Gbyte  ncdump of the VPRM data set I can see that the same lat/lon area is stored within, but with a stepsize 
         # of 1/8 of a degree (as opposed to a 1/4 degree). So we need to interpolate and reduce the number of data points.
         tim0=None
-        (fname, tim0)=cdoWrapper.ensureCorrectGrid(fname,  grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
+        (fname, tim0)=cdoWrapper.ensureCorrectGrid(fname, grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         # TODO: Issue: files on the carbon portal may have their time axis apparently shifted by one time step, because I found netcdf
         # co2 flux files that use the END of the time interval for the observation times reported: time:long_name = "time at end of interval" ;
         

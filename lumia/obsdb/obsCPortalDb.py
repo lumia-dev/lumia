@@ -52,11 +52,15 @@ class obsdb(obsdb):
         # Rename fields, if required by the config file or dict:
         # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
         # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
-        renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
-        renameLst.append(rcf['observations'][filekey].get('rename', []))
-        logger.info('Renaming the following columns in the observations data:')
-        logger.info(renameLst)
-        db.map_fields(renameLst)
+        
+        # if not read from carbon portal, then this renaming happens later and 
+        # thus should not be done here: lumia.obsdb.InversionDb:from_rc:51
+        # renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
+        # renameLst.append(rcf['observations'][filekey].get('rename', []))
+        # logger.info('Renaming the following columns in the observations data:')
+        # logger.info(renameLst)
+        # db.map_fields(renameLst)
+        
         #db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
@@ -78,9 +82,10 @@ class obsdb(obsdb):
         timeStep=self.rcf['run']['timestep']
         # sLocation=rcf['observations']['file']['location']
         # if ('CARBONPORTAL' in sLocation):
-        # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is empty and so is the data frame resulting from it.
+        # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is (always) empty - thus unimportant - and so is the data frame resulting from it.
         # bFromCarbonportal=True
         bFirstDf=True
+        nDataSets=0
         # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
         # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
         cpDir=rcf['observations']['file']['cpDir']
@@ -103,6 +108,7 @@ class obsdb(obsdb):
         if((dobjLst is None) or (len(dobjLst)<1)):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")
             sys.exit(-1)
+        nBadies=0
         for pid in dobjLst:
             # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
             # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
@@ -110,110 +116,139 @@ class obsdb(obsdb):
             # TODO: remove next line· - for testing only
             # pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
             # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
-            dob = Dobj("https://meta.icos-cp.eu/objects/"+pid)
+            pidUrl="https://meta.icos-cp.eu/objects/"+pid
+            dob = Dobj(pidUrl)
             logger.info(f"dobj: {dob}")
             logger.info(f"Reading observed co2 data from: station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
             obsData1site = dob.get()
             logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
-            # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
-            obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'stddev','Flag':'icos_flag'}, inplace=True)
-            # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
-            # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
-            # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
-            # Hence I decided to mimic the behaviour of a local observations.tar.gz file
-            # However, that said, invdb.setupUncertainties() later in the game replaces the contents of 'err' with the total error from all sources 
-            # of uncertainties. Therefore perhaps it is best to have that column twice with both names - at least until I fully understand what is actually going on.
-            absErrEst=self.rcf['observations']['uncertainty']['systematicErrEstim']
-            logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
-            obsData1site.loc[:,'err_obs']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
-            obsData1site.loc[:,'err']=obsData1site.loc[:,'err_obs'] 
-            # Parameters like site-code, latitude, longitude, elevation, and sampling height are not present as data columns, but can be 
-            # extracted from the header, which really is written as a comment. Thus the following columns need to be created: 
-            # 'SamplingHeight':'height' (taken from metadata)
-            obsData1site.loc[:,'site'] = dob.station['id'].lower()
-            obsData1site.loc[:,'lat']=dob.lat
-            obsData1site.loc[:,'lon']=dob.lon
-            obsData1site.loc[:,'alt']=dob.alt
-            obsData1site.loc[:,'height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
-            # site name/code is in capitals, but needs conversion to lower case:
-            obsData1site.loc[:,'code'] = dob.station['id'].lower()
-            obsData1siteTimed = obsData1site.loc[(
-                (obsData1site.time >= pdSliceStartTime) &
-                (obsData1site.time <= pdSliceEndTime) &
-                (obsData1site['NbPoints'] > 0)
-            )]  
-            # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
-            # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
-            # I tried to pull my hair out converting the series into a timestamp object or similar and format the output,
-            # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
-            # (not a timestamp type variable) and since I'm reading the data here directly into the dataframe, and not 
-            # elsewhere, no further changes are required.
-            logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
-            #if(bFirstDf):
-            #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')
-            #else:
-            #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='a', sep=',', header=False)
-            if(bFirstDf):
-                allObsDfs= obsData1siteTimed.copy()
+            availColNames = list(obsData1site.columns.values)
+            if ('Site' not in availColNames):
+                obsData1site.loc[:,'Site'] = dob.station['id'].lower()
+            if ( ('TIMESTAMP' not in availColNames)  or ('co2' not in availColNames) or ('Stdev' not in availColNames) or ('Flag' not in availColNames)):
+                logger.warning(f"Suspicious data object {pidUrl}  :")
+                logger.warning("This data set is missing at least one of the expected columns >> obs, TIMESTAMP, Site, co2, stdde or Flag <<. This data object will be ignored.")
+                nBadies+=1  # Have: icos_LTR, icos_SMR, icos_STTB, icos_datalevel, qc_flag, time, value, value_std_dev, Site
             else:
-                allObsDfs= concat([allObsDfs, obsData1siteTimed])
-            # Now let's create the list of sites and store it in self....
-            # The example I have from the observations.tar.gz files looks like this:
-            # site,code,name,lat,lon,alt,height,mobile,file,sitecode_CSR,err
-            # trn,trn,Trainou,47.9647,2.1125,131.0,180.0,,/proj/inversion/LUMIA/observations/eurocom2018/rona/TRN_180m_air.hdf.all.COMBI_Drought2018_20190522.co2,dtTR4i,1.5
-            sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
-            logger.info(f"station name: {dob.station['org']['name']}")
-            logger.info(f"file name cpb: {sFileNameOnCarbonPortal}")
-            logger.info(f"file name (csv) for download {dob.meta['fileName']}")
-            logger.info(f"file name (url): {dob.meta['accessUrl']}")
-            # logger.info(f"mobile flag: {}")
-            mobileFlag=None
-            scCSR=getSitecodeCsr(dob.station['id'].lower())
-            logger.info(f"sitecode_CSR: {scCSR}")
-            # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)                    
-            if(errorEstimate is None):
-                errorEstimate=CrudeErrorEstimate
-                logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations of CO2 has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
-            else:
-                logger.info(f"errorEstimate (observations): {errorEstimate}")
-            data =( {
-              "site":dob.station['id'].lower() ,
-              "code": dob.station['id'].lower(),
-              "name": dob.station['org']['name'] ,
-              "fnameCpb": sFileNameOnCarbonPortal ,
-              "fnameUrl": dob.meta['accessUrl'] ,
-              "lat": dob.lat,
-              "lon":dob.lon ,
-              "alt": dob.alt,
-              "height": dob.meta['specificInfo']['acquisition']['samplingHeight'],
-              "mobile": mobileFlag,
-              "file": sFileNameOnCarbonPortal,
-              "sitecode_CSR": scCSR,
-              "err": errorEstimate
-            })
-            df = DataFrame([data])                    
-            #if(bFirstDf):
-            #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
-            #else:
-            #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
-            if(bFirstDf):
-                allSitesDfs = df.copy()
-                bFirstDf=False
-            else:
-                allSitesDfs = concat([allSitesDfs, df])
-            
+                # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
+                obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'stddev','Flag':'icos_flag'}, inplace=True)
+                # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
+                # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
+                # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
+                # Hence I decided to mimic the behaviour of a local observations.tar.gz file
+                # However, that said, invdb.setupUncertainties() later in the game replaces the contents of 'err' with the total error from all sources 
+                # of uncertainties. Therefore perhaps it is best to have that column twice with both names - at least until I fully understand what is actually going on.
+                absErrEst=self.rcf['observations']['uncertainty']['systematicErrEstim']
+                logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
+                obsData1site.loc[:,'err_obs']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
+                obsData1site.loc[:,'err']=obsData1site.loc[:,'err_obs'] 
+                # Parameters like site-code, latitude, longitude, elevation, and sampling height are not present as data columns, but can be 
+                # extracted from the header, which really is written as a comment. Thus the following columns need to be created: 
+                # 'SamplingHeight':'height' (taken from metadata)
+                obsData1site.loc[:,'site'] = dob.station['id'].lower()
+                obsData1site.loc[:,'lat']=dob.lat
+                obsData1site.loc[:,'lon']=dob.lon
+                obsData1site.loc[:,'alt']=dob.alt
+                obsData1site.loc[:,'height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
+                # site name/code is in capitals, but needs conversion to lower case:
+                obsData1site.loc[:,'code'] = dob.station['id'].lower()
+                obsData1siteTimed = obsData1site.loc[(
+                    (obsData1site.time >= pdSliceStartTime) &
+                    (obsData1site.time <= pdSliceEndTime) &
+                    (obsData1site['NbPoints'] > 0)
+                )]  
+                # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
+                # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
+                # I tried to pull my hair out converting the series into a timestamp object or similar and format the output,
+                # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
+                # (not a timestamp type variable) and since I'm reading the data here directly into the dataframe, and not 
+                # elsewhere, no further changes are required.
+                logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
+                logger.debug(f"columns present:{obsData1siteTimed.columns}")
+                #if(bFirstDf):
+                #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='w', sep=',')
+                #else:
+                #    obsData1siteTimed.to_csv('obsData1siteTimed.csv', encoding='utf-8', mode='a', sep=',', header=False)
+                availColNames = list(obsData1siteTimed.columns.values)
+                if ('obs' in availColNames):
+                    if(bFirstDf):
+                        allObsDfs= obsData1siteTimed.copy()
+                    else:
+                        allObsDfs= concat([allObsDfs, obsData1siteTimed])
+                    # Now let's create the list of sites and store it in self....
+                    # The example I have from the observations.tar.gz files looks like this:
+                    # site,code,name,lat,lon,alt,height,mobile,file,sitecode_CSR,err
+                    # trn,trn,Trainou,47.9647,2.1125,131.0,180.0,,/proj/inversion/LUMIA/observations/eurocom2018/rona/TRN_180m_air.hdf.all.COMBI_Drought2018_20190522.co2,dtTR4i,1.5
+                    # sFileNameOnCarbonPortal = ICOS_ATC_L2_L2-2022.1_TOH_147.0_CTS_CO2.zip
+                    sFileNameOnCarbonPortal = dob.meta['fileName']
+                    logger.info(f"station name    : {dob.station['org']['name']}")
+                    logger.info(f"PID             : {pid}")
+                    logger.info(f"file name (csv) : {dob.meta['fileName']}")
+                    logger.info(f"access url      : {dob.meta['accessUrl']}")
+                    # logger.info(f"mobile flag: {}")
+                    mobileFlag=None
+                    scCSR=getSitecodeCsr(dob.station['id'].lower())
+                    logger.info(f"sitecode_CSR: {scCSR}")
+                    # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)                    
+                    if(errorEstimate is None):
+                        errorEstimate=CrudeErrorEstimate
+                        logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations of CO2 has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
+                    else:
+                        logger.info(f"errorEstimate (observations): {errorEstimate}")
+                    data =( {
+                      "site":dob.station['id'].lower() ,
+                      "code": dob.station['id'].lower(),
+                      "name": dob.station['org']['name'] ,
+                      "dataObject": pidUrl ,
+                      "fnameUrl": dob.meta['accessUrl'] ,
+                      "lat": dob.lat,
+                      "lon":dob.lon ,
+                      "alt": dob.alt,
+                      "height": dob.meta['specificInfo']['acquisition']['samplingHeight'],
+                      "mobile": mobileFlag,
+                      "file": sFileNameOnCarbonPortal,
+                      "sitecode_CSR": scCSR,
+                      "err": errorEstimate
+                    })
+                    df = DataFrame([data])                    
+                    #if(bFirstDf):
+                    #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
+                    #else:
+                    #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
+                    if(bFirstDf):
+                        allSitesDfs = df.copy()
+                        bFirstDf=False
+                    else:
+                        allSitesDfs = concat([allSitesDfs, df])
+                    nDataSets+=1
+                else:
+                    logger.error("Houston we have a problem. This datafame has no column by the name of >>obs<<. Please check (all) your dry mole fraction observational files for the selected tracer.")
+                    logger.info(f"Available columns in the file with pid= {pid} are: {availColNames}")
+                    logger.error(f"Data from pid={pid} is discarded.")
+        
+        if(nBadies>0):
+            logger.warning(f"A total of {nBadies} out of {len(dobjLst)} data objects were rejected.")
+        if(nDataSets==0):
+                logger.error("Houston we have a big problem. No valid input files were found or the data within did not comply with what I was programmed to handle... ")
+                logger.error("Mission Abort!")
+                sys.exit(-1)
+        else:
+            logger.info(f"Read observational dry mole fraction data from {nDataSets} input files into a common data frame object.")
         # TODO: The observational data does not provide the background concentration. For testing we can brutally estimate a background. 
         # However, we expect to read the background from a separate external file, read it into a DF, and only if points are missing could we either 
         # abort LUMIA or use the crude estimate - perhaps with a threshold if no more than NmaxMissing points are missing, then use the crude 
         # estimate -- and ample uncertainties(!) for those points.
         bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
-        allSitesDfs.loc[:,'crudeBgEstimate']=(allSitesDfs.loc[:,'obs'] - bruteForceObsBgBias) 
-        allSitesDfs.loc[:,'background']=None
+        allObsDfs.loc[:,'crudeBgEstimate']=(allObsDfs.loc[:,'obs'] - bruteForceObsBgBias) 
+        allObsDfs.loc[:,'background']=(allObsDfs.loc[:,'obs'] - bruteForceObsBgBias) 
+
+        #allObsDfs.loc[:,'background']=None
+        #allObsDfs.loc[allObsDfs['background']  is None, 'background'] = allObsDfs.loc['crudeBgEstimate']
+
         # instead of replacing all, replace only those background points we are missing   allSitesDfs.loc[:,'background']=allSitesDfs.loc[:,'crudeBgEstimate']
         # TODO bgDf=readBackground(self.rcf,allSitesDfs)
         # allSitesDfs.loc[:,'background']=bgDf.loc[:,'background']
         # allSitesDfs['background'] = np.where(allSitesDfs['background'] is None, allSitesDfs['crudeBgEstimate'], allSitesDfs['background'])
-        allSitesDfs.loc[allSitesDfs['background']  is None, 'background'] = allSitesDfs.loc['crudeBgEstimate']
         # df.loc[df['Fee'] > 22000, 'Fee'] = 15000
         # TODO: add ample background error for crude estimates.
         setattr(self, 'observations', allObsDfs)

@@ -142,7 +142,7 @@ def getCo2DryMolFractionObjectsFromSparql(pdTimeStart: datetime=None, pdTimeEnd:
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     logger.info(f'SPARQL query= {query}')    
     dobj = RunSparql(query,output_format='nc').run()
-    logger.info(f'dobj= {dobj}')
+    logger.debug(f'dobj= {dobj}')
     return(dobj)
 
 
@@ -255,17 +255,19 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
                         # Grab the PID from the end of the http value string, may look like gibberish "nBGgNpQxPYXBYiBuGGFp2VRF"
                         bGrabNextUrl=False
                         #  /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
-                        sFileNameOnCarbonPortal = cpDir+sPID+'.cpb'
-                        try:
-                            # Make sure this file actually exists and is accessible on the portal
-                            f=open(sFileNameOnCarbonPortal, 'rb')
-                            f.close()
-                            if(iVerbosityLv>0):
-                                logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
-                            fNameLst.append(sPID)
-                        except:
-                            logger.error('The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal. Please check first of all the directory you provided for observations.file.cpDir in your .yml resource file.')
-                            # sys.exit(-1)   /data/dataAppStorage/asciiAtcProductTimeSer/ZZb1E_dJQtRICzobwg0ib86C
+                        fNameLst.append(sPID)
+                        if(1==0): # Let's disable this for now. We use the icoscp library that read the file via the pid and we may easily miss a valid file location here.
+                            sFileNameOnCarbonPortal = cpDir+sPID+'.cpb'
+                            try:
+                                # Make sure this file actually exists and is accessible on the portal
+                                f=open(sFileNameOnCarbonPortal, 'rb')
+                                f.close()
+                                if(iVerbosityLv>0):
+                                    logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
+                                fNameLst.append(sPID)
+                            except:
+                                logger.error('The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal. Please check first of all the directory you provided for observations.file.cpDir in your .yml resource file.')
+                                # sys.exit(-1)   /data/dataAppStorage/asciiAtcProductTimeSer/ZZb1E_dJQtRICzobwg0ib86C
     except:
         logger.error("No valid observational data found in SPARQL query dobj=")
         logger.error(f"{dobj}")
@@ -355,7 +357,18 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
         dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
     dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
     logger.debug(f"dobjLst={dobjLst}")
-    return(dobjLst, cpDir)
+    # remove any possible duplicates from the list of objects
+    finalDobjLst=set(dobjLst)
+    lf=len(finalDobjLst)
+    l=len(dobjLst)
+    n=l-lf
+    logger.debug(f"removed {n} duplicates")
+    logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
+    # TODO: for simplicity let's reject for now the huge 1972-2023 Obspack as it is an aggregate of dataframes that I need to deal with in a better fashion....
+    finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
+    lf=len(finalDobjLst)
+    logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
+    return(finalDobjLst, cpDir)
 
 
 '''
