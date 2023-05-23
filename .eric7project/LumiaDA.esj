@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-05-17, 16:50:11"
+    "saved": "2023-05-23, 21:28:56"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,8 +14,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
-        908,
-        57
+        756,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
-        26,
-        14
+        60,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -50,8 +50,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
       "Cursor": [
-        50,
-        76
+        52,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,11 +62,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        62,
-        8
+        85,
+        0
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 2,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
@@ -110,8 +110,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        402,
-        6
+        410,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -158,11 +158,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        105,
-        47
+        0,
+        0
       ],
       "Folds": [],
-      "Zoom": 1,
+      "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 12
@@ -182,8 +182,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
       "Cursor": [
-        23,
-        46
+        56,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -216,63 +216,9 @@
       "Editorindex": 16
     }
   ],
-  "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-    "Cursor": [
-      62,
-      8
-    ]
-  },
+  "ActiveWindow": {},
   "Breakpoints": [
     [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      664,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      676,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      678,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      664,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      676,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      678,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/cec-ami/nateko/dev/flex/runflex/bin/runflex",
       165,
       "",
@@ -347,14 +293,6 @@
     [
       "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
       678,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      745,
       "",
       false,
       true,
@@ -731,14 +669,6 @@
     [
       "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
       678,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/opt/conda/envs/flex/lib/python3.10/site-packages/omegaconf/base.py",
-      745,
       "",
       false,
       true,
@@ -63841,14 +63771,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
-      40,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py",
       38,
       "",
@@ -63898,7 +63820,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      260,
+      0,
       "",
       false,
       true,
@@ -63929,14 +63851,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      270,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
       70,
       "",
@@ -63954,7 +63868,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      71,
+      0,
       "",
       false,
       true,
@@ -63985,14 +63899,6 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      27,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       399,
       "",
@@ -64011,22 +63917,6 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       888,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      241,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      253,
       "",
       false,
       true,
@@ -64127,6 +64017,134 @@
       false,
       true,
       0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      869,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      894,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      895,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      921,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      928,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      941,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      815,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      820,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      0,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/test/test.py",
+      27,
+      "",
+      false,
+      true,
+      0
     ]
   ],
   "Watchpoints": [],
@@ -64169,8 +64187,10 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@489",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
@@ -64179,7 +64199,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py@@21",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@27",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@29",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@12",

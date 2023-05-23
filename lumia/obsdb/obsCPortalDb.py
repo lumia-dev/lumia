@@ -4,11 +4,13 @@ import sys
 from datetime import timedelta
 from numpy import zeros, sqrt
 import rctools
+import tarfile
 from lumia.obsdb import obsdb
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
-from pandas import DataFrame, to_datetime, concat  # , read_csv, read_hdf, Series, Timestamp
+from time import sleep
+from pandas import DataFrame, to_datetime, concat , read_csv  #, read_hdf, Series, Timestamp
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
 from icoscp.cpb.dobj import Dobj
@@ -71,6 +73,22 @@ class obsdb(obsdb):
         return db
  
     def load_fromCPortal(self, filename,  rcf=None,  errorEstimate=None) -> "obsdb":
+        # 1st step: read all dry mole fraction files from all available stations - these obviously have no background co2 concentration values
+        (self, obsDf,  obsFile)=self.gatherObs_fromCPortal(rcf)
+        # all matching data was written to the obsFile
+        
+        # Read the file that has the background co2 concentrations
+        bgFname=self.rcf['observations']['file']['backgroundCo2File']
+        # bgDf = DataFrame()
+        bgDf=self.load_background(bgFname)
+        # Now we have to match the 2 data sets.....
+        (self, nMatched, nUnmatched)=self.combineObsAndBgnd(obsDf,  bgDf)
+        sleep(5)
+        sys.exit(1)
+        # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
+        
+        
+    def gatherObs_fromCPortal(self, rcf=None,  errorEstimate=None) -> "obsdb":
         # TODO: ·errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
        # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 
        # The value actually matters, in some cases: it can be used as a value for the weekly uncertainty, or for the default 
@@ -238,9 +256,9 @@ class obsdb(obsdb):
         # However, we expect to read the background from a separate external file, read it into a DF, and only if points are missing could we either 
         # abort LUMIA or use the crude estimate - perhaps with a threshold if no more than NmaxMissing points are missing, then use the crude 
         # estimate -- and ample uncertainties(!) for those points.
-        bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
-        allObsDfs.loc[:,'crudeBgEstimate']=(allObsDfs.loc[:,'obs'] - bruteForceObsBgBias) 
-        allObsDfs.loc[:,'background']=(allObsDfs.loc[:,'obs'] - bruteForceObsBgBias) 
+        # bruteForceObsBgBias=float(2.739) # ppm  Average over 65553 observations (drought 2018 data set), on average this estimate is wrong by 7.487ppm            
+        # allObsDfs.loc[:,'crudeBgEstimate']=(allObsDfs.loc[:,'obs'] - bruteForceObsBgBias) 
+        # allObsDfs.loc[:,'background']=(allObsDfs.loc[:,'obs'] - bruteForceObsBgBias) 
 
         #allObsDfs.loc[:,'background']=None
         #allObsDfs.loc[allObsDfs['background']  is None, 'background'] = allObsDfs.loc['crudeBgEstimate']
@@ -251,14 +269,57 @@ class obsdb(obsdb):
         # allSitesDfs['background'] = np.where(allSitesDfs['background'] is None, allSitesDfs['crudeBgEstimate'], allSitesDfs['background'])
         # df.loc[df['Fee'] > 22000, 'Fee'] = 15000
         # TODO: add ample background error for crude estimates.
-        setattr(self, 'observations', allObsDfs)
+        # setattr(self, 'observations', allObsDfs)
         setattr(self, 'sites', allSitesDfs)
-        self.observations.to_csv('obsDataAll2-slf-load_fromCPortal-201.csv', encoding='utf-8', mode='w', sep=',')
-        allObsDfs.to_csv('obsDataAll.csv', encoding='utf-8', mode='w', sep=',')
+        allObsDfs.to_csv('obsData-NoBkgnd.csv', encoding='utf-8', mode='w', sep=',')
         allSitesDfs.to_csv('mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
         # self.load_tar(filename)
-        logger.info(f"{self.observations.shape[0]} observation read from {filename}")
-        return(self)
+        # logger.info(f"{allObsDfs.shape[0]} observation read from {filename}")
+        return(self,  allObsDfs,  'obsData-NoBkgnd.csv')
+
+
+
+    def  combineObsAndBgnd(self, obsDf,  bgDf) -> "obsdb":
+        nMatched=0 
+        nUnmatched =0
+        # Merging of the 2 dataframes is a little more complicated as matches are not guaranteed....
+        # we need to match the
+        #   1. 3-letter site code
+        #   2. the height
+        #   3. the time
+        # all within reasonable tolerance. For ideas, look here:
+        # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.merge.html
+        # https://stackoverflow.com/questions/53549492/joining-two-pandas-dataframes-based-on-multiple-conditions
+        # https://stackoverflow.com/questions/41815079/pandas-merge-join-two-data-frames-on-multiple-columns
+        # we do want 'left' here as opposed to 'inner'
+        obsDf['time'] = to_datetime(obsDf['time'], utc = True)
+        bgDf['time'] = to_datetime(bgDf['time'], utc = True)
+        newDf = obsDf.merge(bgDf,  how='left',on=['code','height', 'time'], indicator=True)
+        newDf.to_csv('newDf.csv', encoding='utf-8', mode='w', sep=',')
+        newDf.to_csv('newDfLft.csv', encoding='utf-8', mode='w', sep=',')
+        newDf = obsDf.merge(bgDf,  how='left', left_on=['code','height', 'time'], right_on = ['code','height', 'time'], indicator=True)
+        newDfinner = obsDf.merge(bgDf,  how='inner', left_on=['code','height', 'time'], right_on = ['code','height', 'time'], indicator=True)
+        newDfinner.to_csv('newDfinner.csv', encoding='utf-8', mode='w', sep=',')
+        newDfouter = obsDf.merge(bgDf,  how='outer', left_on=['code','height', 'time'], right_on = ['code','height', 'time'], indicator=True)
+        newDfouter.to_csv('newDfouter.csv', encoding='utf-8', mode='w', sep=',')
+        newDf.dropna()
+        setattr(self, 'observations', newDf)
+        return(self, nMatched, nUnmatched)
+
+
+    def load_background(self,  bgFname) -> "obsdb":
+        logger.info(f"Reading co2 background concentrations from file {bgFname}...")
+        try:
+            if('.tar.gz' in bgFname):
+                with tarfile.open(bgFname, 'r:gz') as tar:
+                    with tar.extractfile("observations.csv") as extracted:
+                        bgDf = read_csv(extracted)
+            else:
+                bgDf = read_csv(bgFname)
+        except:
+            logger.error(f"Abort! Unable to read co2 background concentrations from file {bgFname}. That file should be a .csv file or the containing .tar.gz archive. In the latter case the contained csv file must be named observations.csv")
+            sys.exit(-1)
+        return(bgDf)
 
     def setup_uncertainties(self, *args, **kwargs):
         errtype = self.rcf.get('observations.uncertainty.frequency')

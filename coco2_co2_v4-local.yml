@@ -39,6 +39,7 @@ observations :
         path : observations.tar.gz
         rename :  background:mix_background
         tracer : co2
+        backgroundCo2File : ignored   # path+filename to the file containing the co2 'background' dry mole fractions - this is only evaluated if observations:file:location is set to CARBONPORTAL
     uncertainty :
         default_weekly_error : 1.5                          # warning
         systematicErrEstim   : 1.0   # percent of observation value

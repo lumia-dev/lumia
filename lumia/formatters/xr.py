@@ -814,12 +814,12 @@ class Data:
                     # myarchivePseudoDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=myarchivePseudoDict, \
                                                                 sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
-                    print(emis.shape,  flush=True)
+                    logger.info(f"Emissions data: emis.shape = {emis.shape}")
                 else:
                     # myarchivePseudoDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
                     emis = load_preprocessed(prefix, start, end, freq=freq, archive=myarchivePseudoDict,  grid=grid)
                     # self contains in its dictionary #    'emissions.co2.archive': 'rclone:lumia:fluxes/nc/${emissions.co2.region}/${emissions.co2.interval}/'
-                    print(emis.shape,  flush=True)
+                    logger.info(f"Emissions data: emis.shape = {emis.shape}")
                 # emis is a Data object containing the emissions values in a lat-lon-timestep cube for one category
                 em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
         return em
@@ -917,10 +917,10 @@ def load_preprocessed(
             fname=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname,  tim0, grid)  
         
         try:
-            print('Reading contents from flux file %s'%fname,  flush=True)
+            logger.info(f"Reading contents from flux file {fname}")
             data.append(xr.load_dataarray(fname))
         except:
-            print('Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname) with fname='+fname,  flush=True)
+            logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname) with fname={fname}")
             sys.exit(1)
     data = xr.concat(data, dim='time').sel(time=slice(start, end))
 
@@ -938,7 +938,7 @@ def load_preprocessed(
             data = data.reindex(time=times_dest).ffill('time')
 
     times = data.time.to_pandas()
-    data = data[(times >= start) * (times < end), :, :]
+    data = data[(times >= start) * (times < end), :, :]  # xarray.dataarray[time:lat:lon] co2 emission values for the given 3D space
     # Coarsen if needed
     # # # if grid is not None :    raise NotImplementedError
     # obsolete - that's what ensureCorrectGrid() is for.... 
