@@ -49,7 +49,7 @@ class obsdb:
             self.extraFields = {}
         if filename is not None:
             if (bFromCPortal):
-                self=self.load_fromCPortal(self, rcFile)
+                self=self.load_fromCPortal(rcFile)
             else:
                 self.load_tar(filename)
             # self.observations.to_csv('obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')

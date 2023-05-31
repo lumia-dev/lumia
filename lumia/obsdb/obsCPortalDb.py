@@ -57,13 +57,6 @@ class obsdb(obsdb):
         
         # if not read from carbon portal, then this renaming happens later and 
         # thus should not be done here: lumia.obsdb.InversionDb:from_rc:51
-        # renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
-        # renameLst.append(rcf['observations'][filekey].get('rename', []))
-        # logger.info('Renaming the following columns in the observations data:')
-        # logger.info(renameLst)
-        # db.map_fields(renameLst)
-        
-        #db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:
@@ -72,17 +65,25 @@ class obsdb(obsdb):
             db.observations.loc[:, 'tracer'] = tracer
         return db
  
-    def load_fromCPortal(self, filename,  rcf=None,  errorEstimate=None) -> "obsdb":
-        # 1st step: read all dry mole fraction files from all available stations - these obviously have no background co2 concentration values
+    def load_fromCPortal(self, rcf=None) -> "obsdb":
+        """
+        Public method  load_fromCPortal
+
+        @param rcf name of the rc or yaml resource file. Usually taken from self (defaults to None)
+        @type RCF (optional)
+        
+        Description: 1st step: Read all dry mole fraction files from all available records on the carbon portal
+         - these obviously have no background co2 concentration values (which need to be provided by other means)
+        """
         (self, obsDf,  obsFile)=self.gatherObs_fromCPortal(rcf)
         # all matching data was written to the obsFile
         
         # Read the file that has the background co2 concentrations
         bgFname=self.rcf['observations']['file']['backgroundCo2File']
-        # bgDf = DataFrame()
         bgDf=self.load_background(bgFname)
-        # Now we have to match the 2 data sets.....
-        (self, nMatched, nUnmatched)=self.combineObsAndBgnd(obsDf,  bgDf)
+        # Now we have to merge the background CO2 concentrations into the observational data...
+        (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf)
+        setattr(self,'observations', mergedDf)
         sleep(5)
         sys.exit(1)
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
@@ -278,8 +279,63 @@ class obsdb(obsdb):
         return(self,  allObsDfs,  'obsData-NoBkgnd.csv')
 
 
+    def  combineObsAndBgnd(self,  obsDf,  bgDf) -> "obsdb":
+        """
+        Function combineObsAndBgnd  Merges the background CO2 concentrations into the obsDf
+    
+        @param obsDf  the dataframe that holds all the observed dry mole fraction CO2 concentrations that were collected from the carbon portal
+        @type df Pandas dataframe
+        @param bgDf the dataframe that holds the background CO2 concentrations - must also contain 'time' and 'code' (=station name) columns
+                                matching names and conventions from the obsDf.
+        @type  df Pandas dataframe
+        @returns The merged obsDf+background dataframe. The background may have been interpolated to provide meaningful values in all rows.
+        @type  df Pandas dataframe
+        
+        # Merging of the 2 dataframes is a little more complicated as matches are not guaranteed....
+        # we need to match the
+        #   1. 3-letter site code
+        #   2. the height (however, we have to ignore height, because Guillaume's co2 background concentrations are only stored for one height per observation site)
+        #   3. the time
+        # For ideas, look here:
+        # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.merge.html
+        # https://stackoverflow.com/questions/53549492/joining-two-pandas-dataframes-based-on-multiple-conditions
+        # https://stackoverflow.com/questions/41815079/pandas-merge-join-two-data-frames-on-multiple-columns
+        # https://stackoverflow.com/questions/74550482/pandas-interpolate-within-a-groupby-for-one-column
+        # we do want 'left' here as opposed to 'inner'
+        """
+        xBgDf = bgDf[['code', 'time', 'background']].copy()  # turns time into an integer it seems....
+        xBgDf.to_csv('./xBgDf.csv', encoding='utf-8', mode='w', sep=',')
+        obsDf['time'] = to_datetime(obsDf['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        xBgDf['time'] = to_datetime(xBgDf['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        obsDfWthBg = obsDf.merge(xBgDf,  how='left', on=['code','time'], indicator=True)
+        obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        obsDfWthBg.to_csv('./obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
+        # This has merged the 'background' column from the external file into the obsDf that holds all the observations from the carbon portal
+        # However, we may not have background values for all sites and date-times....hence we interpolate in the background column 
+        # linearly to cope with this in a reasonable way
+        # Simple, first step: Works, but ignores the change of observation location: dfLin=newDf.[['background']].interpolate('linear')
 
-    def  combineObsAndBgnd(self, obsDf,  bgDf) -> "obsdb":
+        # the following trick taken from here: https://stackoverflow.com/questions/39384749/groupby-pandas-incompatible-index-of-inserted-column-with-frame-index
+        obsDfWthBg["intpBackground"]=obsDfWthBg[['code','background']].groupby(['code']).apply(lambda group: group.interpolate(method='linear', limit_direction='both'))["background"].reset_index().set_index('level_1').drop('code',axis=1)   
+        obsDfWthBg.to_csv('./obsDfLinGrpInterpolatedBg.csv', encoding='utf-8', mode='w', sep=',')
+        # mergedDf=newDf[['code','background']].groupby(['code']).apply(lambda group: group.interpolate(method='linear', limit_direction='both'))['background']   
+        # mergedDf.to_csv('./mergedDfGrpInterpBg.csv', encoding='utf-8', mode='w', sep=',')
+        
+        # Trying to interpolate over the actual corresponding date-time values results in some strange interpolation results
+        # with resulting background values well below any supporting values...
+        # However, given that we use equal time steps, linear interpolation really does the same thing and we need not bother
+        # with a more complicated time axis.
+        # newDf.set_index('time',inplace=True)
+        # df2=newDf[['background']].interpolate('time')
+        # df2.to_csv('/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/newDfinterpolatedBg-time.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.drop(columns=['background','_merge'], inplace=True)
+        obsDfWthBg.rename(columns={'intpBackground':'background'}, inplace=True)
+        obsDfWthBg.to_csv('./finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',')
+        # setattr('observations', newDf)
+        return(obsDfWthBg)
+
+
+    def  combineObsAndBgndOld(self, obsDf,  bgDf) -> "obsdb":
         nMatched=0 
         nUnmatched =0
         # Merging of the 2 dataframes is a little more complicated as matches are not guaranteed....
@@ -321,6 +377,7 @@ class obsdb(obsdb):
             sys.exit(-1)
         return(bgDf)
 
+
     def setup_uncertainties(self, *args, **kwargs):
         errtype = self.rcf.get('observations.uncertainty.frequency')
         if errtype == 'weekly':
@@ -332,6 +389,7 @@ class obsdb(obsdb):
         else :
             logger.error(f'The rc-key "obs.uncertainty" has an invalid value: "{errtype}"')
             raise NotImplementedError
+
 
     def setup_uncertainties_weekly(self):
         res = []

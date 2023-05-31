@@ -27,7 +27,9 @@ path_cp = '/data/dataAppStorage/netcdf/'
 # The pre-processed data used by Lumia (as a-priori) is described e.g. here:
 # https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
 # There you can find links to the anthropogenic (EDGARv4.3), ocean (Mikaloff-Fletcher 2007) and to the diagnostic biosphere model VPRM
-#
+# the biosphere-atmosphere exchange fluxes for CO2 were taken from simulations with the Vegetation Photosynthesis and Respiration 
+# Model VPRM (Mahadevan et al., 2008, https://doi.org/10.1029/2006GB002735), the ocean fluxes and fossil fuel emissions are taken 
+# from Mikaloff-Fletecher et al. (2007) https://doi.org/10.1029/2006GB002751 and EDGAR_v4.3 https://doi.org/10.18160/2M77-62E6, respectively
 
 
 # ********************************************

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-05-23, 21:28:56"
+    "saved": "2023-05-31, 12:26:45"
   },
   "MultiProject": "",
   "Project": "",
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
-        60,
-        0
+        51,
+        43
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,11 +62,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        85,
+        162,
         0
       ],
       "Folds": [],
-      "Zoom": 2,
+      "Zoom": 1,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
@@ -110,8 +110,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        410,
-        0
+        27,
+        11
       ],
       "Folds": [],
       "Zoom": 0,
@@ -206,7 +206,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
       "Cursor": [
-        352,
+        17,
         0
       ],
       "Folds": [],
@@ -63900,7 +63900,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      399,
+      401,
       "",
       false,
       true,
@@ -63924,7 +63924,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      353,
+      355,
       "",
       false,
       true,
@@ -63932,7 +63932,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      403,
+      405,
       "",
       false,
       true,
@@ -63956,7 +63956,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
-      273,
+      275,
       "",
       false,
       true,
@@ -64139,8 +64139,80 @@
       0
     ],
     [
-      "/home/cec-ami/nateko/data/icos/DICE/test/test.py",
-      27,
+      "/home/arndt/nateko/data/icos/DICE/test/test.py",
+      34,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/nateko/data/icos/DICE/test/test.py",
+      24,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      86,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      85,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      88,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      15,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      51,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      184,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
+      85,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
+      57,
       "",
       false,
       true,
@@ -64151,15 +64223,15 @@
   "DebugInfo": {
     "VirtualEnv": "",
     "ScriptName": "",
-    "CommandLine": "--optimize --start 20180101 --end 20180201 --serial  --ymf ./coco2_co2_v4.yml  ",
-    "WorkingDirectory": "/home/arndt/nateko/data/icos/DICE",
+    "CommandLine": "",
+    "WorkingDirectory": "",
     "Environment": "",
     "ReportExceptions": true,
     "Exceptions": [],
     "IgnoredExceptions": [],
     "AutoClearShell": true,
-    "TracePython": true,
-    "AutoContinue": false,
+    "TracePython": false,
+    "AutoContinue": true,
     "EnableMultiprocess": true,
     "MultiprocessNoDebug": "",
     "GlobalConfigOverride": {
