@@ -38,7 +38,6 @@ class Control:
 
         # Preconditioner (+ initialization)
         self.preco = preconditioner
-        self.preco.init()
 
         if rcf is not None :
             self.loadrc(rcf)
