@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import os, sys, subprocess, tempfile, operator, h5py, shutil
+import os, sys, subprocess, tempfile, operator, h5py
 from lumia.Tools import rctools
 from lumia.obsdb import obsdb
 from lumia.Tools.logging_tools import colorize
 from lumia.formatters.lagrange import ReadStruct, Struct, WriteStruct, CreateStruct
 from numpy import unique, array
-from lumia import tqdm
+from tqdm import tqdm
 from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from lumia.Tools.time_tools import tinterv, time_interval
@@ -37,7 +37,7 @@ class Footprint:
 
     def loadObs(self, time):
         self.varname = time.strftime('%Y%m%d%H%M%S')
-        if not self.varname in self.ds.keys() :
+        if self.varname not in self.ds.keys() :
             return None
         times = self.ds[self.varname].keys()
         data = {}
@@ -54,8 +54,10 @@ class Footprint:
 
     def applyEmis(self, time, emis, categories=None, scalefac=1.):
         fp = self.loadObs(time)
-        if fp is None : return None, None
-        if categories is None: categories = emis.keys()
+        if fp is None : 
+            return None, None
+        if categories is None: 
+            categories = emis.keys()
         dym = {}
         fptot = 0.
         for cat in categories :
@@ -65,11 +67,11 @@ class Footprint:
             for tt in sorted(fp, key=operator.attrgetter('start')):
                 try :
                     ilats = fp[tt]['ilats'][:]
-                    ilons = fp[tt]['ilons' ][:]
+                    ilons = fp[tt]['ilons'][:]
                 except KeyError :
                     try :
                         ilats = fp[tt]['ilat'][:]
-                        ilons = fp[tt]['ilon' ][:]
+                        ilons = fp[tt]['ilon'][:]
                     except KeyError :
                         logger.error(f"Error reading ilats/ilons from footprint {tt.varname} in file {self.filename}")
                         raise KeyError 
@@ -93,7 +95,8 @@ class Footprint:
 
     def applyAdjoint(self, time, dy, adjEmis, cats, scalefac=1.):
         fp = self.loadObs(time)
-        if fp is None : return adjEmis
+        if fp is None : 
+            return adjEmis
         for cat in cats :
             times_cat = [tinterv(t1, t2) for (t1, t2) in zip(adjEmis[cat]['time_interval']['time_start'], adjEmis[cat]['time_interval']['time_end'])]
             for tt in sorted(fp, key=operator.attrgetter('end')):
@@ -108,6 +111,7 @@ class Footprint:
                 except ValueError :
                     return adjEmis
         return adjEmis
+
 
 class Lagrange:
     def __init__(self, rcf, obs, emfile, mp=False, checkfile=None):
@@ -162,10 +166,7 @@ class Lagrange:
                     dy['model'].append(dym)
             fp.close()
 
-        try :
-            self.obs.observations.loc[dy['id'], 'id'] = dy['id']
-        except :
-            import pdb; pdb.set_trace()
+        self.obs.observations.loc[dy['id'], 'id'] = dy['id']
         self.obs.observations.loc[dy['id'], 'totals'] = dy['tot']
         self.obs.observations.loc[dy['id'], 'model'] = dy['model']
         self.obs.observations.loc[:, 'foreground'] = 0.
@@ -193,22 +194,25 @@ class Lagrange:
     def runAdjoint_sp(self):
         # Create an empty adjoint structure:
         region = Region(self.rcf)
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c) == 1]
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c, default=0) == 1]
         start = datetime(*self.rcf.get('time.start'))
         end = datetime(*self.rcf.get('time.end'))
-        dt = time_interval(self.rcf.get('emissions.*.interval'))
+        dt = time_interval(self.rcf.get('emissions.interval'))
         adj = CreateStruct(categories, region, start, end, dt)
 
         # Loop over the footprint files:
         db = self.obs.observations
         files = unique(db.footprint.dropna())
-        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=False, disable=self.batch):
+        for fpfile in tqdm(files, total=len(files), desc='Adjoint run', leave=True, disable=self.batch):
             fp = Footprint(fpfile)
             msg = f"Adjoint run {fpfile}"
 
             # Loop over the obs in the file
             for obs in tqdm(db.loc[db.footprint == fpfile, :].itertuples(), desc=msg, leave=False, disable=self.batch):
                 adj = fp.applyAdjoint(obs.time, obs.dy, adj, categories)
+                #print(obs.site, obs.time, obs.dy, adj['biosphere']['emis'].sum())
+                #if obs.time.day == 21 :
+                #    import pdb; pdb.set_trace()
             fp.close()
 
         # Write the adjoint field
@@ -248,7 +252,7 @@ class Lagrange:
             pids.append(subprocess.Popen(cmd, close_fds=True))
 
         # Let the subprocesses finish
-        sigterm = [x.wait() for x in pids]
+        _ = [x.wait() for x in pids]
 
         # Check success
         self.check_success(checkfiles)
@@ -269,7 +273,8 @@ class Lagrange:
         else :
             chunk_size = int(nobs/nchunks)
             remain = nobs%nchunks
-            if remain != 0 : chunk_size += 1
+            if remain != 0 : 
+                chunk_size += 1
             for ichunk in range(nchunks):
                 logger.debug(f"Extract chunk {ichunk}, from iloc {ichunk*chunk_size} to {(ichunk+1)*chunk_size}")
                 logger.debug(f"Database size: {nobs} rows")
@@ -295,6 +300,7 @@ class Lagrange:
                 else :
                     logger.error("Forward run failed, exiting ...")
                     raise 
+
 
 if __name__ == '__main__':
     logger = logging.getLogger(os.path.basename(__file__))

@@ -68,13 +68,12 @@ class Interface:
         return fine_data
 
     def VecToStruct_adj(self, adjstruct):
-        dt = {'y': relativedelta(years=1), 'm': relativedelta(months=1), 'd': timedelta(1)}
         adjvec = array(())
 
         for cat in [x for x in self.categories if x.optimize]:
             adjCat = refineTime_adj(
                 deepcopy(adjstruct[cat.name]),
-                dt[cat.optimization_interval]
+                cat.optimization_interval
             )
 
             # 2) Coarsen:
@@ -87,17 +86,14 @@ class Interface:
         return adjvec
 
 
-def coarsenTime(emis, interval, compute_std=False):
+def coarsenTime(emis, dt, compute_std=False):
     intervals_emis = emis['time_interval']['time_start']
-    if interval == 'y':
+    if dt == relativedelta(years=1):
         intervals_optim = [datetime(x.year, 1, 1) for x in intervals_emis]
-        dt = relativedelta(years=1)
-    elif interval == 'm':
+    elif dt == relativedelta(months=1):
         intervals_optim = [datetime(x.year, x.month, 1) for x in intervals_emis]
-        dt = relativedelta(months=1)
-    elif interval == 'd':
+    elif dt == relativedelta(days=1):
         intervals_optim = [datetime(x.year, x.month, x.day) for x in intervals_emis]
-        dt = timedelta(1)
     else:
         raise NotImplementedError
     emisOut = []
@@ -106,10 +102,7 @@ def coarsenTime(emis, interval, compute_std=False):
     emisOut_max = []
     intervals_optim = array(intervals_optim)
     for tt in unique(intervals_optim):
-        try:
-            emisOut.append(emis['emis'][intervals_optim == tt, :, :].sum(0))
-        except:
-            import pdb; pdb.set_trace()
+        emisOut.append(emis['emis'][intervals_optim == tt, :, :].sum(0))
         nt = sum(intervals_optim == tt)
         if compute_std:
             emisOut_std.append(emis['emis'][intervals_optim == tt, :, :].std(0) * nt)

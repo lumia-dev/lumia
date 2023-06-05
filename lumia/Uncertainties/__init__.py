@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import os
 from copy import deepcopy
-import logging
 from datetime import datetime
 from numpy import dot, unique, array
 from lumia.Tools import Categories
 from lumia.Tools import Region
 from .tools import read_latlon, horcor, calc_temp_corr
-logger = logging.getLogger(__name__)
+from loguru import logger
+
 
 class Uncertainties:
     def __init__(self, rcf, interface=None):
@@ -18,6 +18,7 @@ class Uncertainties:
         self.rcf = rcf
         self.region = Region(self.rcf)
         self.interface = interface
+        self.corrfile = None
 
     def __call__(self, data, *args, **kwargs):
         self.calcPriorUncertainties(data, *args, **kwargs)
@@ -29,35 +30,22 @@ class Uncertainties:
             'Tcor':self.temporal_correlations
         }
 
-#    def calcPriorUncertainties(self, data):
-#        """
-#        example method, but instead, use that of one of the derived classes
-#        """
-#        self.data = data
-#        for cat in self.categories :
-#            if cat.optimize :
-#                errfact = cat.uncertainty*0.01
-#                errcat = abs(self.data.loc[self.data.category == cat, 'state_prior'].values)*errfact
-#                min_unc = cat.min_uncertainty*errcat.max()/100.
-#                land_filter = self.data.land_fraction.values
-#                errcat[(errcat < min_unc) & (land_filter > 0)] = min_unc
-#                self.data.loc[self.data.category == cat, 'prior_uncertainty'] = errcat
-#
-    def setup_Hcor_old(self):
-        for cat in self.categories :
-            if cat.optimize :
-                if not cat.horizontal_correlation in self.horizontal_correlations :
-                    fname = self.checkCorFile(cat.horizontal_correlation, cat) # TODO: Move this to a completely external code/module?
-                    P_h, D_h = read_latlon(fname)
-                    Hor_L = P_h * D_h
-                    self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
-                    del P_h, D_h
+    # def setup_Hcor_old(self):
+    #     for cat in self.categories :
+    #         if cat.optimize :
+    #             if cat.horizontal_correlation not in self.horizontal_correlations :
+    #                 fname = self.checkCorFile(cat.horizontal_correlation, cat) # TODO: Move this to a completely external code/module?
+    #                 P_h, D_h = read_latlon(fname)
+    #                 Hor_L = P_h * D_h
+    #                 self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
+    #                 del P_h, D_h
 
     def setup_Hcor(self):
         for cat in self.categories :
             if cat.optimize :
-                if not cat.horizontal_correlation in self.horizontal_correlations :
+                if cat.horizontal_correlation not in self.horizontal_correlations :
                     fname = self.checkCorFile_vres(cat.horizontal_correlation, cat)
+                    self.corrfile = fname
                     P_h, D_h = read_latlon(fname)
                     Hor_L = P_h * D_h
                     self.horizontal_correlations[cat.horizontal_correlation] = Hor_L
@@ -66,11 +54,12 @@ class Uncertainties:
     def setup_Tcor(self):
         for cat in self.categories :
             if cat.optimize :
-                if not cat.temporal_correlation in self.temporal_correlations :
+                if cat.temporal_correlation not in self.temporal_correlations :
                     temp_corlen = float(cat.temporal_correlation[:3].strip())
 
                     # Time interval of the optimization
-                    dt = {'y':12., 'm':1, 'd':1/30.}[cat.optimization_interval]
+                    #dt = {'y':12., 'm':1, 'd':1/30.}[cat.optimization_interval]
+                    dt = cat.optimization_interval.months + 12*cat.optimization_interval.years + cat.optimization_interval.days/30. + cat.optimization_interval.hours/30/24
 
                     # Number of time steps :
                     times = self.data.loc[self.data.category == cat, 'time'].drop_duplicates()
@@ -79,24 +68,25 @@ class Uncertainties:
                     P_t, D_t = calc_temp_corr(temp_corlen, dt, nt)
                     self.temporal_correlations[cat.temporal_correlation] = dot(P_t, D_t)
 
-    def checkCorFile(self, hcor, cat):
-        # Generate the correlation file name
-        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
-        corlen, cortype = hcor.split('-')
-        corlen = int(corlen)
-        fname = 'Bh:%s:%5.5i_%s.nc'%(self.region.name, corlen, cortype)
-        fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
-        if not os.path.exists(fname):
-            logger.info("Correlation file <p:%s> not found. Computing it",fname)
-            hc = horcor(corlen, cortype, data)
-            hc.calc_latlon_covariance()
-            hc.write(fname)
-            del hc
-        return fname
+    # def checkCorFile(self, hcor, cat):
+    #     # Generate the correlation file name
+    #     data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+    #     corlen, cortype = hcor.split('-')
+    #     corlen = int(corlen)
+    #     fname = 'Bh:%s:%5.5i_%s.nc'%(self.region.name, corlen, cortype)
+    #     fname = os.path.join(self.rcf.get('correlation.inputdir'), fname)
+    #     if not os.path.exists(fname):
+    #         logger.info("Correlation file <p:%s> not found. Computing it",fname)
+    #         hc = horcor(corlen, cortype, data)
+    #         hc.calc_latlon_covariance()
+    #         hc.write(fname)
+    #         del hc
+    #     return fname
 
     def checkCorFile_vres(self, hcor, cat):
         # Generate the correlation file name
-        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+#        data = self.data.loc[self.data.category == cat, ('lat', 'lon')].drop_duplicates()
+        data = self.data.loc[(self.data.category == 'biosphere') & (self.data.time == self.data.iloc[0].time), ('lat', 'lon')]
         corlen, cortype = hcor.split('-')
         corlen = int(corlen)
         nclusters = data.shape[0] 

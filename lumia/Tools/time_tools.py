@@ -1,13 +1,20 @@
 from datetime import datetime, timedelta
+from numpy import array, ndarray
+from typing import Union
+from pandas import PeriodIndex, Timedelta, period_range, Timestamp
+
 
 class tinterv:
     def __init__(self, start, end):
         self.start = start
         self.end = end
-        self.dt = self.end - self.start
+
+    @property
+    def dt(self) -> timedelta:
+        return self.end-self.start
 
     def __repr__(self):
-        return "%s to %s"%(self.start.strftime("%d %b %Y %H:%M"), self.end.strftime("%d %b %Y %H:%M"))
+        return f'{self.start:%d %b %Y %H:%M} to {self.end:%d %b %Y %H:%M}'
 
     def __ge__(self, other):
         if isinstance(other, datetime) :
@@ -45,7 +52,7 @@ class tinterv:
     def overlaps(self, other):
         return self.start < other.end and self.end > other.start
 
-    def overlap_percent(self, other):
+    def overlap_percent(self, other, dtype='float64'):
         if self.within(other):
             return 1.
         elif self.overlaps(other):
@@ -71,8 +78,23 @@ class tinterv:
         )
         return line
 
+
 def time_interval(tstr):
     if 'h' in tstr:
         return timedelta(hours=int(tstr.strip('h')))
     else :
-        raise NotImplemented
+        raise NotImplementedError
+
+
+def periods_to_intervals(periods:PeriodIndex) -> ndarray:
+    start = periods.start_time
+    end = periods.end_time + Timedelta(1)
+    start.freq = None
+    end.freq = None
+    return array([tinterv(s, e) for (s, e) in zip(start, end)])
+
+
+def interval_range(start: Union[datetime, Timestamp], end: Union[datetime, Timestamp], freq: str) -> ndarray:
+    intv = periods_to_intervals(period_range(start, end, freq=freq))
+    intv[-1].end = end 
+    return intv

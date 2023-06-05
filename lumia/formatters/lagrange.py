@@ -1,18 +1,59 @@
 import os
+
 from netCDF4 import Dataset
 from numpy import array, zeros, arange, array_equal
 from datetime import datetime
 from lumia.Tools.system_tools import checkDir
-import logging
 from tqdm import tqdm
-from numpy import *
+from numpy import unique, append
 import xarray as xr
 from pandas import Timestamp
-logger = logging.getLogger(__name__)
+from lumia.Tools.regions import region
+from archive import Archive
+from lumia.Tools.geographical_tools import GriddedData
+from loguru import logger
+from pandas import date_range
+
+
+class Emissions:
+    def __init__(self, rcf, start, end):
+        self.start = start
+        self.end = end
+        self.rcf = rcf
+        self.categories = dict.fromkeys(rcf.get('emissions.categories'))
+        self.tracer = rcf.get('tracer')
+        for cat in self.categories :
+            self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
+        resample = None
+        if rcf.get('emissions.resample', default=False):
+            resample = rcf.get('emissions.interval')
+        prefix = os.path.join(rcf.get('emissions.prefix'), f'flux_{self.tracer}.')
+        self.data = ReadArchive(prefix, self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None), freq=resample)
+
+        if rcf.get('optim.unit.convert', default=False):
+            logger.info("Trying to convert fluxes to umol (from umol/m2/s")
+            self.data.to_extensive()   # Convert to umol
+            self.print_summary(unit=self.rcf.get(f'emissions.{self.tracer}.unit'))
+
+        # Coarsen the data if needed:
+        reg = region(
+            lon0=self.rcf.get('region.lon0'),
+            lon1=self.rcf.get('region.lon1'),
+            lat0=self.rcf.get('region.lat0'),
+            lat1=self.rcf.get('region.lat1'),
+            dlat=self.rcf.get('region.dlat'),
+            dlon=self.rcf.get('region.dlon')
+        )
+        self.data.coarsen(reg)
+
+    def print_summary(self, unit='PgC'):
+        self.data.print_summary(unit)
+
 
 class Struct(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.unit_type = 'intensive'
 
     def __add__(self, other):
         allcats = set(list(self.keys())+list(other.keys()))
@@ -52,6 +93,40 @@ class Struct(dict):
                 'lons':self[cat]['lons']
             }
         return outstruct
+
+    def coarsen(self, destreg):
+        """
+        Coarsen the data to a lower resolution
+        """
+        for cat in self.keys():
+            sourcereg = region(latitudes=self[cat]['lats'], longitudes=self[cat]['lons'])
+            if sourcereg != destreg :
+                data = GriddedData(self[cat]['emis'], sourcereg)
+                self[cat]['emis'] = data.regrid(destreg, weigh_by_area=self.unit_type == 'intensive')
+                self[cat]['lats'] = destreg.lats
+                self[cat]['lons'] = destreg.lons
+
+    def to_extensive(self):
+        assert self.unit_type == 'intensive'
+        for cat in self.keys():
+            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
+            dt=array([t.total_seconds() for t in dt])
+            area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
+            self[cat]['emis'] *= area[None, :, :]
+            self[cat]['emis'] *= dt[:, None, None]
+        self.unit_type = 'extensive'
+        logger.info("Converted fluxes to extensive units (i.e. umol)")
+
+    def to_intensive(self):
+        #assert self.unit_type == 'extensive', pdb.set_trace()
+        for cat in self.keys():
+            dt = self[cat]['time_interval']['time_end']-self[cat]['time_interval']['time_start']
+            dt=array([t.total_seconds() for t in dt])
+            area = region(longitudes=self[cat]['lons'], latitudes=self[cat]['lats']).area
+            self[cat]['emis'] /= area[None, :, :]
+            self[cat]['emis'] /= dt[:, None, None]
+        self.unit_type = 'intensive'
+        logger.info("Converted fluxes to intensive units (i.e. umol/m2/s)")
 
     def append(self, other, overwrite=True):
         """
@@ -99,16 +174,46 @@ class Struct(dict):
             }
         return new
 
-
     def _get_boundaries_t(self):
         beg = [self[cat]['time_interval']['time_start'].min() for cat in self.keys()]
         end = [self[cat]['time_interval']['time_end'].max() for cat in self.keys()]
         assert all([b == beg[0] for b in beg] + [e == end[0] for e in end]), f"All categories do not share the same time boundaries, cannot append {beg}, {end}"
         return beg[0], end[0]
 
+    def print_summary(self, unit='PgC'):
+        unit_type = self.unit_type + ''
+        if self.unit_type == 'intensive':
+            self.to_extensive()
+        scaling_factor = {
+            'PgC':12 * 1.e-21,
+            'PgCO2': 44 * 1.e-21,
+            'TgCH4': 16.0425 * 1.e-18
+        }[unit]
+        for cat in self.keys() :
+            tstart = self[cat]['time_interval']['time_start']
+            unit_source = self[cat].get('unit', 'umol/m2/s')
+            scf = scaling_factor * {
+                'umol/m2/s':1.,
+                'nmol/m2/s':1.e-3
+            }[unit_source]
+            years = unique([t.year for t in tstart])
+            logger.info("===============================")
+            logger.info(f"{cat}:")
+            logger.info('')
+            for year in years :
+                logger.info(f'{year}:')
+                for month in unique([t.month for t in tstart if t.year == year]):
+                    tot = self[cat]['emis'][[t.year == year and t.month == month for t in tstart]].sum()*scf
+                    logger.info(f"    {datetime(2000, month, 1).strftime('%B'):10s}: {tot:7.2f} {unit}")
+                tot = self[cat]['emis'][[t.year == year for t in tstart]].sum()*scf
+                logger.info("    --------------------------")
+                logger.info(f"   Total : {tot:7.2f} {unit}")
+                logger.info('')
+        if unit_type != self.unit_type :
+            self.to_intensive()
 
 
-def WriteStruct(data, path, prefix=None):
+def WriteStruct(data, path, prefix=None, zlib=False, complevel=1):
     """
     Write the model input (control parameters)
     """
@@ -122,13 +227,15 @@ def WriteStruct(data, path, prefix=None):
 
     # Write to a netCDF format
     with Dataset(filename, 'w') as ds:
+        if zlib:
+            logger.info(f"Writing model data to {filename}, with compression.")
         ds.createDimension('time_components', 6)
-        for cat in [c for c in data.keys() if not 'cat_list' in c]:
+        for cat in [c for c in data.keys() if 'cat_list' not in c]:
             gr = ds.createGroup(cat)
             gr.createDimension('nt', data[cat]['emis'].shape[0])
             gr.createDimension('nlat', data[cat]['emis'].shape[1])
             gr.createDimension('nlon', data[cat]['emis'].shape[2])
-            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
+            gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'), zlib=zlib, complevel=complevel)
             gr['emis'][:] = data[cat]['emis']
             gr.createVariable('times_start', 'i', ('nt', 'time_components'))
             gr['times_start'][:] = array([x.timetuple()[:6] for x in data[cat]['time_interval']['time_start']])
@@ -142,14 +249,15 @@ def WriteStruct(data, path, prefix=None):
     return filename
 
 
-def ReadStruct(path, prefix=None):
+def ReadStruct(path, prefix=None, structClass=Struct, categories=None):
     if prefix is None :
         filename = path
     else :
         filename = os.path.join(path, '%s.nc' % prefix)
     with Dataset(filename) as ds:
-        categories = ds.groups.keys()
-        data = Struct()
+        if categories is None :
+            categories = ds.groups.keys()
+        data = structClass()
         for cat in categories:
             data[cat] = {
                 'emis': ds[cat]['emis'][:],
@@ -182,7 +290,7 @@ def CreateStruct(categories, region, start, end, dt):
     return data
 
 
-def ReadArchive(prefix, start, end, **kwargs):
+def ReadArchive(prefix, start, end, freq=None, **kwargs):
     """
     Create an internal model data structure (i.e. Struct() instance) from a set of netCDF files.
     The files are loaded using xarray, the file name follows the format {prefix}{field}.{year}.nc, with prefix provided
@@ -196,12 +304,19 @@ def ReadArchive(prefix, start, end, **kwargs):
     :return:
     """
 
-    # TODO: remove the dependency to xarray
     data = Struct()
     if kwargs.get('categories',False):
         categories = kwargs.get('categories')
     else :
         categories = kwargs
+
+    if kwargs.get('archive', False):
+        archive = Archive(kwargs['archive'])
+    else :
+        archive = None
+    localArchive = Archive(os.path.dirname(f'local:{prefix}'), parent=archive, mkdir=True)
+
+    dirname, prefix = os.path.split(prefix)
 
     for cat in tqdm(categories, leave=False) :
         field = categories[cat]
@@ -215,17 +330,31 @@ def ReadArchive(prefix, start, end, **kwargs):
         for year in tqdm(range(start.year, end_year), desc=f"Importing data for category {cat}"):
             fname = f"{prefix}{field}.{year}.nc"
             tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
-            ds.append(xr.load_dataset(fname))
+            # Make sure that the file is here:
+            localArchive.get(fname, dirname)
+            ds.append(xr.load_dataarray(os.path.join(dirname, fname)))
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
+
+        # Resample to a higher frequency?
+        if freq is not None :
+            times_dest = date_range(start, end, freq=freq, closed='left')
+            tres1 = Timestamp(ds.time.data[1])-Timestamp(ds.time.data[0])
+            tres2 = times_dest[1]-times_dest[0]
+            if tres1 != tres2 :
+                assert tres1 > tres2
+                assert (tres1 % tres2).total_seconds() == 0
+                logger.info(f"Increase the resolution of the emissions from {tres1.total_seconds()/3600:.0f}h to {tres2.total_seconds()/3600:.0f}h")
+                ds = ds.reindex(time=times_dest).ffill('time')
+
         times = array([Timestamp(x).to_pydatetime() for x in ds.time.values])
 
         # The DataArray.sel command includes the time step starting at "end", so we normally would need to trim the last time step. But if it is a 1st january at 00:00, then the corresponding file
         # hasn't been loaded, so there is nothing to trim
         if times[-1] == end :
             times = times[:-1]
-            emis = ds.co2flux.values[:-1,:,:]
+            emis = ds.values[:-1,:,:]
         else :
-            emis = ds.co2flux.values
+            emis = ds.values
             
         data[cat] = {
             'emis':emis,
@@ -236,4 +365,13 @@ def ReadArchive(prefix, start, end, **kwargs):
             'lats':ds.lat[:],
             'lons':ds.lon[:]
         }
+
+        try :
+            data[cat]['unit'] = ds.unit
+        except AttributeError :
+            data[cat]['unit'] = 'umol/m2/s'
+            logger.warning(f'"unit" attribute missing in files {prefix}{field}.YYYY.nc. Assuming {data[cat]["unit"]}')
+
+    if kwargs.get('extensive_units', False) : 
+        data.to_extensive()
     return data

@@ -5,15 +5,17 @@ import logging
 from datetime import datetime
 import h5py
 from pandas import DataFrame, read_hdf
-from numpy import *
-from lumia.Tools.rctools import rc
+from numpy import zeros_like, float64
+from rctools import RcFile as rc
 from lumia.precon import preconditioner as precon
 from lumia.Tools import Region, Categories
 
 logger = logging.getLogger(__name__)
 
+
 class Control:
     name = 'monthlytot'
+
     def __init__(self, rcf=None, filename=None, preconditioner=precon):
         # Data containers :
         self.horizontal_correlations = {}
@@ -36,7 +38,6 @@ class Control:
 
         # Preconditioner (+ initialization)
         self.preco = preconditioner
-        self.preco.init()
 
         if rcf is not None :
             self.loadrc(rcf)
@@ -70,8 +71,9 @@ class Control:
                 Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
                 Temp_L = self.temporal_correlations[cat.temporal_correlation]
                 ipos = catIndex.index(cat.name)
-                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.run'))
-        if add_prior: state += self.vectors.loc[:, 'state_prior']
+                state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('path.temp'))
+        if add_prior: 
+            state += self.vectors.loc[:, 'state_prior']
 
         # Store the current state and state_preco
         self.vectors.loc[:,'state'] = state
@@ -88,7 +90,7 @@ class Control:
                 Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
                 Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
                 ipos = catIndex.index(cat.name)
-                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.run'))
+                g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('path.temp'))
         return g_c
         
     def _to_hdf(self, filename):
@@ -158,7 +160,7 @@ class Control:
         try:
             self.vectors.loc[:, item] = values
         except ValueError:
-            logger.critical("Parameter value for '%s' could not be stored, because its dimension '%i' doesn't conform with that of the control vector (%i)", key, len(values), self.size)
+            logger.critical(f"Parameter value for {item} could not be stored, because its dimension {len(values)} doesn't conform with that of the control vector ({self.size})")
             raise
     
     def __getattr__(self, item):

@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
-from numpy import arange, ones_like, array, cumsum, meshgrid
-from lumia import tqdm
+import sys
+import re
+from dateutil.relativedelta import relativedelta
+from numpy import arange, ones_like, array, cumsum
+from tqdm import tqdm
+
 
 class Categories:
     def __init__(self, rcf=None):
@@ -10,7 +14,7 @@ class Categories:
             self.setup(rcf)
 
     def add(self, name):
-        if not name in self.list :
+        if name not in self.list :
             setattr(self, name, Category(name))
             self.list.append(name)
         else :
@@ -27,18 +31,35 @@ class Categories:
             yield getattr(self, item)
 
     def setup(self, rcf):
-        catlist = rcf.get('emissions.categories')
+        catlist = rcf.get(f'emissions.categories')
         for cat in catlist :
             self.add(cat)
-            self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool)
+            self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
             self[cat].is_ocean = rcf.get('emissions.%s.is_ocean'%cat, totype=bool, default=False)
+            self[cat].unit = rcf.get('emissions.%s.unit', default='PgC')
             if self[cat].optimize :
                 self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
-#                self[cat].uncertainty_type = rcf.get('emissions.%s.error_type'%cat, default='tot')
                 self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
+                self[cat].error_structure = rcf.get(f'emissions.{cat}.error_structure')
                 self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
-                self[cat].optimization_interval = rcf.get('optimization.interval')
+                self[cat].apply_lsm = rcf.get(f'emissions.{cat}.apply_lsm', default=True)
+                optint = rcf.get('optimization.interval')
+                if re.match('\d*y', optint):
+                    n = re.split('d', optint)[0]
+                    u = relativedelta(years=1)
+                elif re.match('\d*m', optint):
+                    n = re.split('m', optint)[0]
+                    u = relativedelta(months=1)
+                elif re.match('\d*d', optint):
+                    n = re.split('d', optint)[0]
+                    u = relativedelta(days=1)
+                elif re.match('\d*h', optint):
+                    n = re.split('h', optint)[0]
+                    u = relativedelta(hours=1)
+                n = int(n) if n != '' else 1
+                self[cat].optimization_interval = n*u 
+                #self[cat].optimization_interval = rcf.get('optimization.interval')
 
     def __len__(self):
         return len(self.list)
@@ -55,7 +76,7 @@ class Category:
         return self.name == other
     
 
-class costFunction:
+class CostFunction:
     def __init__(self, bg=0, obs=None):
         self.J_obs = obs
         self.J_bg = bg
@@ -84,6 +105,9 @@ class costFunction:
         
         
 class Cluster:
+    minxsize = 1
+    minysize = 1
+
     def __init__(self, data, indices=None, mask=None, dy=None, crop=True):
         self.data = data
         self.shape = self.data.shape
@@ -98,8 +122,31 @@ class Cluster:
             mask = ones_like(data, dtype=bool)
         self.mask=mask
         self.rank = abs(self.data.sum())
-        if self.size == 1 : self.rank = -1
-        if crop: self.crop()
+        if self.size == 1 : 
+            self.rank = -1
+        if crop: 
+            self.crop()
+
+    # def reduce_res(self, ax, ay):
+        
+    #     # new dimensions:
+    #     new_ny = self.ny/ay
+    #     new_nx = self.nx/ax
+    #     assert new_ny == int(new_ny)
+    #     assert new_nx == int(new_nx)
+    #     new_nx = int(new_nx)
+    #     new_ny = int(new_ny)
+
+    #     newclusters = []
+    #     for xx in new_nx :
+    #         for yy in new_ny:
+    #             newclusters.append(Cluster(
+    #                 self.data[yy*ay:(yy+1)*ay, xx*ax:(xx+1)*ax],
+    #                 indices=self.ind[yy*ay:(yy+1)*ay, xx*ax:(xx+1)*ax],
+    #                 mask=self.mask[yy*ay:(yy+1)*ay, xx*ax:(xx+1)*ax],
+    #                 dy=self.dy)
+    #             )
+    #     return newclusters
 
     def splitx(self):
         self.transpose()
@@ -114,7 +161,8 @@ class Cluster:
         if npt%2 == 1 :
             d1 = abs(self.data[:isplit,:].sum()-self.data[isplit:,:].sum())
             d2 = abs(self.data[:isplit+1,:].sum()-self.data[isplit+1:,:].sum())
-            if d2 < d1 : isplit = isplit+1
+            if d2 < d1 : 
+                isplit = isplit+1
         c1 = Cluster(self.data[:isplit,:], indices=self.ind[:isplit,:], mask=self.mask[:isplit,:], dy=self.dy)
         c2 = Cluster(self.data[isplit:,:], indices=self.ind[isplit:,:], mask=self.mask[isplit:,:], dy=self.dy)
         return [c1, c2]
@@ -127,9 +175,9 @@ class Cluster:
         self.shape = self.data.shape
 
     def split(self):
-        if self.ny > self.nx :
+        if self.ny > self.nx or self.nx == self.minxsize :
             c1, c2 = self.splity()
-        elif self.nx > self.ny :
+        elif self.nx > self.ny or self.ny == self.minysize :
             c1, c2 = self.splitx()
         else :
             c11, c21 = self.splity()
@@ -179,28 +227,41 @@ class Cluster:
         return [n for n in neighbours if n in self.ind[self.mask>0]]
 
     def _walk(self, n0, neighbours=[]):
-        if len(neighbours) == 0 : neighbours = [n0]
+        if len(neighbours) == 0 : 
+            neighbours = [n0]
         new_neigbours = self._find_neighbours(n0)
-        new_neigbours = [n for n in new_neigbours if not n in neighbours]
+        new_neigbours = [n for n in new_neigbours if n not in neighbours]
         neighbours.extend(new_neigbours)
         for nb in new_neigbours:
             neighbours = self._walk(nb, neighbours)
         return neighbours
 
-def clusterize(field, nmax, mask=None):
-    clusters = [Cluster(field, mask=mask, crop=False)]
+
+def clusterize(field, nmax, mask=None, minxsize=1, minysize=1, cat='', indices=None):
+    Cluster.minxsize = minxsize
+    Cluster.minysize = minysize
+    clusters = [Cluster(field, mask=mask, crop=False, indices=indices)]
+    rlim = sys.getrecursionlimit()
+    sys.setrecursionlimit(clusters[0].size+1)
     clusters_final = []   # Offload the clusters that cannot be further divided to speed up the calculations
+
+    # if coarsen is not None :
+    #     clusters = clusters[0].reduce_res(coarsen)
+
     nclmax = min(nmax, (clusters[0].mask > 0).sum())
-    with tqdm(total=nclmax, desc="spatial aggregation") as pbar:
+    with tqdm(total=nclmax, desc=f"spatial aggregation {cat}") as pbar:
         ncl = len(clusters+clusters_final)
-        while ncl < nclmax :# and len(Cluster) > 0 :
+        while ncl < nclmax :  # and len(Cluster) > 0 :
             ranks = [c.rank for c in clusters]
             ind = ranks.index(max(ranks))
             new_clusters = clusters[ind].split()
             clusters.pop(ind)
             for cl in new_clusters :
                 if cl.mask.any() :
-                    if cl.size == 1 :
+                    #if cl.size == 1 or (cl.nx == cl.minxsize and cl.ny == cl.minysize) :
+                    if cl.nx <= cl.minxsize and cl.ny <= cl.minysize :
+                        #if cl.nx == 1:
+                        #    import pdb; pdb.set_trace()
                         clusters_final.append(cl)
                     else :
                         if mask is not None :
@@ -210,4 +271,6 @@ def clusterize(field, nmax, mask=None):
             inc = len(clusters+clusters_final)-ncl
             pbar.update(inc)
             ncl += inc
+
+    sys.setrecursionlimit(rlim)
     return clusters+clusters_final

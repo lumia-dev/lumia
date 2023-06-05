@@ -4,7 +4,7 @@ from lumia import obsdb as obsdb_base
 import logging
 import glob
 from netCDF4 import Dataset
-from lumia import tqdm
+from tqdm import tqdm
 from datetime import datetime
 from pandas import DataFrame
 import os
@@ -104,4 +104,4 @@ class obsdb(obsdb_base):
                     obs.loc[:, 'site'] = isite
 
                     # Append to self.observations:
-                    self.observations = self.observations.append(obs, sort=False)
+                    self.observations = self.observations.append(obs)#, sort=False)

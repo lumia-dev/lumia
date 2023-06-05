@@ -1,8 +1,21 @@
 #!/usr/bin/env python
 import logging
-from lumia import tqdm
+from tqdm import tqdm
 import shutil
 columns = shutil.get_terminal_size().columns
+
+
+# from loguru import logger as logurulogger
+# def log(func):
+#     def wrapper(*args, **kwargs):
+#         logurulogger.info(f"Called function {func}")
+#         return func(*args, **kwargs)
+#
+# # use with:
+# # @log
+# # def func(*args, **kwargs):
+# #     """ ...
+
 
 def colorize(msg, color=None):
     if color is not None :
@@ -44,6 +57,7 @@ def colorize(msg, color=None):
     msg = msg.replace('</u>', '\x1b[24m')
     return msg
 
+
 try :
     import colorlog
     base_handler = colorlog.StreamHandler
@@ -65,12 +79,13 @@ try :
             'CRITICAL': 'white,bg_red'}},
 
     )
-except :
+except ModuleNotFoundError :
     base_handler = logging.StreamHandler
     formatter = logging.Formatter(
         "%(name)30s | %(levelname)-8s (line %(lineno)d) | %(message)s",
         datefmt=None
     )
+
 
 class TqdmHandler(base_handler):
     def __init__(self):
@@ -82,11 +97,12 @@ class TqdmHandler(base_handler):
             tqdm.write(msg)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception:
             self.handleError(record)
 
 #handler = hl()
 #handler.setFormatter(formatter)
+
 
 handler = TqdmHandler()
 handler.setFormatter(formatter)

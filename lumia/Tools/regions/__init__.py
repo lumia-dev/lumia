@@ -6,17 +6,21 @@ from shapely.ops import unary_union
 from shapely.prepared import prep
 from matplotlib.pyplot import axhline, axvline
 import logging 
-from numpy import *
+from numpy import iterable, linspace, zeros, floor, diff, unique, around, amax, size, array, average, pi, sin, float64
 from h5py import File
+from numpy.typing import NDArray
 logger = logging.getLogger(__name__)
+
 
 class LandMask:
     def __init__(self):
         land_shp_fname = shpreader.natural_earth(resolution='50m', category='physical', name='land')
         land_geom = unary_union(list(shpreader.Reader(land_shp_fname).geometries()))
         self.land = prep(land_geom)
+
     def is_land(self, lat, lon):
         return self.land.contains(sgeom.Point(lat, lon))
+
 
 class region:
     def __init__(self, name=None, longitudes=None, latitudes=None, lon0=None, lon1=None, lat0=None, lat1=None, dlon=None, dlat=None, nlon=None, nlat=None):
@@ -28,12 +32,12 @@ class region:
             self.dlon = 1.
             self.dlat = 1.
         if name in ['glb6x4','glb600x400'] :
-           self.lonmin = -180
-           self.lonmax = 180
-           self.latmin = -90
-           self.latmax = 90
-           self.dlon = 6.
-           self.dlat = 4.
+            self.lonmin = -180
+            self.lonmax = 180
+            self.latmin = -90
+            self.latmax = 90
+            self.dlon = 6.
+            self.dlat = 4.
         if name in ['glb1x1','glb100x100'] :
             self.lonmin = -180
             self.lonmax = 180
@@ -42,22 +46,36 @@ class region:
             self.dlon = 1.
             self.dlat = 1.
         self.name = name
-        if iterable(longitudes) : self.lons = longitudes
-        if iterable(latitudes) : self.lats = latitudes
-        if lon0 is not None : self.lonmin = lon0
-        if lat0 is not None : self.latmin = lat0
-        if lon1 is not None : self.lonmax = lon1
-        if lat1 is not None : self.latmax = lat1
-        if dlon is not None : self.dlon = dlon
-        if dlat is not None : self.dlat = dlat
-        if not None in [nlon, lon0, lon1]:
+        if iterable(longitudes) : 
+            self.lons = longitudes
+            if dlon is None and len(unique(diff(longitudes))) == 1 :
+                self.dlon = self.lons[1]-self.lons[0]
+        if iterable(latitudes) : 
+            self.lats = latitudes
+            if dlat is None and len(unique(diff(latitudes))) == 1 :
+                self.dlat = self.lats[1]-self.lats[0]
+        if lon0 is not None : 
+            self.lonmin = lon0
+        if lat0 is not None : 
+            self.latmin = lat0
+        if lon1 is not None : 
+            self.lonmax = lon1
+        if lat1 is not None : 
+            self.latmax = lat1
+        if dlon is not None : 
+            self.dlon = dlon
+        if dlat is not None : 
+            self.dlat = dlat
+        if None not in [nlon, lon0, lon1]:
             self.longitudes = linspace(lon0, lon1, nlon+1)
             self.longitudes = (self.longitudes[1:]+self.longitudes[:-1])/2.
-            if dlon is None : self.dlon = (lon1-lon0)/nlon
-        if not None in [nlat, lat0, lat1]:
+            if dlon is None : 
+                self.dlon = (lon1-lon0)/nlon
+        if None not in [nlat, lat0, lat1]:
             self.latitudes = linspace(lat0, lat1, nlat+1)
             self.latitudes = (self.latitudes[1:]+self.latitudes[:-1])/2.
-            if dlat is None : self.dlat = (lat1-lat0)/nlat
+            if dlat is None : 
+                self.dlat = (lat1-lat0)/nlat
         self.setup()
 
     def zeros(self):
@@ -80,8 +98,10 @@ class region:
                 self.dlon = unique(dlon)
                 self.dlat = unique(dlat)
             else :
-                if amax(dlon-around(dlon, decimals=2)) < 1.e-5 : self.dlon=around(dlon, decimals=2)[0]
-                if amax(dlat-around(dlat, decimals=2)) < 1.e-5 : self.dlat=around(dlat, decimals=2)[0]
+                if amax(dlon-around(dlon, decimals=2)) < 1.e-5 : 
+                    self.dlon=around(dlon, decimals=2)[0]
+                if amax(dlat-around(dlat, decimals=2)) < 1.e-5 : 
+                    self.dlat=around(dlat, decimals=2)[0]
             self.lon0 = self.lons-self.dlon/2.
             self.lon1 = self.lons+self.dlon/2.
             self.lat1 = self.lats+self.dlat/2.
@@ -100,22 +120,20 @@ class region:
             self.isglobal = False
 
     def GetIndicesFromLons(self, lons):
-        try:
-            ndat = len(lons)
-        except TypeError:
+        if not iterable(lons):
             lons = [lons]
-        if type(lons) in [list, tuple]: lons = array(lons)
+        if type(lons) in [list, tuple]: 
+            lons = array(lons)
         ilons = array([int((x - self.lonmin) / self.dlon) for x in lons])
         ilons[ilons < 0] = -1
         ilons[ilons >= self.nlon] = -1
         return ilons
 
     def GetIndicesFromLats(self, lats):
-        try:
-            ndat = len(lats)
-        except TypeError:
+        if not iterable(lats):
             lats = [lats]
-        if type(lats) in [list, tuple]: lats = array(lats)
+        if type(lats) in [list, tuple]: 
+            lats = array(lats)
         ilats = array([int((x - self.latmin) / self.dlat) for x in lats])
         ilats[ilats < 0] = -1
         ilats[ilats >= self.nlat] = -1
@@ -133,7 +151,7 @@ class region:
         ax.set_extent([self.lonmin, self.lonmax, self.latmin, self.latmax], cartopy.crs.PlateCarree())
         return ax
 
-    def get_land_mask(self, refine_factor=1, from_file=False):
+    def get_land_mask(self, refine_factor=1, from_file=False) -> NDArray:
         """ Returns the proportion (from 0 to 1) of land in each pixel
         By default, if the type (land or ocean) of the center of the pixel determines the land/ocean type of the whole pixel.
         If the optional argument "refine_factor" is > 1, the land/ocean mask is first computed on the refined grid, and then averaged on the region grid (accounting for grid box area differences)"""
@@ -158,8 +176,10 @@ class region:
     def plotGrid(self, color='cyan'):
         m1 = self.basemap()
         m1.drawcoastlines()
-        for lon in self.lon0 : axvline(lon, c=color)
-        for lat in self.lat0 : axhline(lat, c=color)
+        for lon in self.lon0 : 
+            axvline(lon, c=color)
+        for lat in self.lat0 : 
+            axhline(lat, c=color)
 
     def calc_area(self):
         #self.area_m2 = calc_area_m2(self.lons0, self.lons1, self.lats0, self.lats1)
@@ -181,7 +201,8 @@ class region:
         return self.lonmin == region.lonmin and self.lonmax == region.lonmax and self.latmin == region.latmin and self.latmax == region.latmax and self.dlat == region.dlat and self.dlon == region.dlon
 
     def containsPoint(self, lon, lat):
-        if lon >= self.lonmin and lon <= self.lonmax and lat >= self.latmin and lat <= self.latmax : return True
+        if lon >= self.lonmin and lon <= self.lonmax and lat >= self.latmin and lat <= self.latmax : 
+            return True
         return False
 
     def __eq__(self, other):
@@ -191,7 +212,7 @@ class region:
             return False
 
     def __ne__(self, other):
-        return True-self.__eq__(other)
+        return not self.__eq__(other)
 
     def __lt__(self, other):
         return self.is_contained_by(other)
@@ -213,7 +234,8 @@ class region:
         returns a string describing the main characteristics of the region
         """
         line = ''
-        if self.name is not None : line = '          <m>name: <w><i>%s\n'%self.name
+        if self.name is not None : 
+            line = '          <m>name: <w><i>%s\n'%self.name
         latmin = '%.2fN'%self.latmin if self.latmin >= 0 else '%.2fS'%abs(self.latmin)
         latmax = '%.2fN'%self.latmax if self.latmax >= 0 else '%.2fS'%abs(self.latmax)
         lonmin = '%.2fE'%self.lonmin if self.lonmin >= 0 else '%.2fW'%abs(self.lonmin)
@@ -222,6 +244,7 @@ class region:
         line += '  <m>lat interval: <w><i>%.1f\n'%self.dlat
         line += '  <m>lon interval: <w><i>%.1f'%self.dlon
         return line
+
 
 def surfaceAreaGrid(lat_specs, lon_specs):
     lat_beg, lat_end, lat_div = lat_specs
@@ -239,4 +262,3 @@ def surfaceAreaGrid(lat_specs, lon_specs):
     dS = diff(dS, axis=0)
     # dS is now (lat_div x lon_div)
     return dS
-

@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.sif
 
 # C extensions
 *.so
@@ -17,5 +18,17 @@ dist/
 *.exe
 *.o
 *.mod
+
+# Others ...
 scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 .vscode/settings.json
+/singularity/lumia
+/.idea/*
+.idea/
+.idea
+*.log
+.eric7project/*
+.jedi/*
+
+*.simg
+site/
