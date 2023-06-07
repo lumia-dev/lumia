@@ -6,13 +6,13 @@ from types import SimpleNamespace
 from loguru import logger
 from tqdm.autonotebook import tqdm
 from h5py import File
-import xarray as xr
 from cartopy.io import shapereader
 from shapely.geometry import Point
 from shapely.ops import unary_union
 from typing import List, Union, Tuple
 from shapely.prepared import prep
 import xarray as xr
+from numpy.typing import NDArray
 
 
 class LandMask:
@@ -460,14 +460,14 @@ class Grid:
                 self.dlon = self.lonb[1] - self.lonb[0]
             elif self.lon0 is not None and self.lon1 is not None and self.nlon is not None :
                 self.dlon = (self.lon1 - self.lon0)/self.nlon
-            logger.debug(f"Set {self.dlon = }")
+            # logger.debug(f"Set {self.dlon = }")
 
         if self.lon0 is None:
             if self.lonb is not None :
                 self.lon0 = self.lonb.min()
             elif self.lonc is not None :
                 self.lon0 = self.lonc.min() - self.dlon / 2
-            logger.debug(f"Set {self.lon0 = }")
+            # logger.debug(f"Set {self.lon0 = }")
 
         if self.nlon is None :
             if self.lonc is not None :
@@ -557,7 +557,7 @@ class Grid:
             area[ilat, :] = self.radius_earth**2 * dlon_rad * sin(lat)
         return diff(area, axis=0)
 
-    def get_land_mask(self, refine_factor=1, from_file=False):
+    def get_land_mask(self, refine_factor=1, from_file=False) -> NDArray:
         """ Returns the proportion (from 0 to 1) of land in each pixel
         By default, if the type (land or ocean) of the center of the pixel determines the land/ocean type of the whole pixel.
         If the optional argument "refine_factor" is > 1, the land/ocean mask is first computed on the refined grid, and then averaged on the region grid (accounting for grid box area differences)"""

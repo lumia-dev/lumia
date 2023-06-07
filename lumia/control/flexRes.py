@@ -27,7 +27,6 @@ class Control:
 
         # Preconditioner (+ initialization)
         self.preco = preconditioner
-        self.preco.init()
 
         if optimized_categories is not None :
             self.optimized_categories = optimized_categories
@@ -74,7 +73,7 @@ class Control:
             ipos = catIndex.index(cat.name)
             g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos)
         return g_c
-        
+
     def _to_hdf(self, filename):
         savedir = os.path.dirname(filename)
         if not os.path.exists(savedir):

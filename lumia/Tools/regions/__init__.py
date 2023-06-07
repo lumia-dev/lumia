@@ -8,6 +8,7 @@ from matplotlib.pyplot import axhline, axvline
 import logging 
 from numpy import iterable, linspace, zeros, floor, diff, unique, around, amax, size, array, average, pi, sin, float64
 from h5py import File
+from numpy.typing import NDArray
 logger = logging.getLogger(__name__)
 
 
@@ -150,7 +151,7 @@ class region:
         ax.set_extent([self.lonmin, self.lonmax, self.latmin, self.latmax], cartopy.crs.PlateCarree())
         return ax
 
-    def get_land_mask(self, refine_factor=1, from_file=False):
+    def get_land_mask(self, refine_factor=1, from_file=False) -> NDArray:
         """ Returns the proportion (from 0 to 1) of land in each pixel
         By default, if the type (land or ocean) of the center of the pixel determines the land/ocean type of the whole pixel.
         If the optional argument "refine_factor" is > 1, the land/ocean mask is first computed on the refined grid, and then averaged on the region grid (accounting for grid box area differences)"""
