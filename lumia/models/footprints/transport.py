@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Tuple
 from omegaconf import DictConfig, OmegaConf
 from ...observations.protocols import Observations
-from pandas import DataFrame
+from pandas import DataFrame, read_hdf
 from .io.xr import Data
 from ...utils.system import runcmd
 import shutil
@@ -72,19 +72,20 @@ class Transport:
     def calc_departures(self, emissions: Emissions, step: str = None, setup_uncertainties : bool = False) -> Departures:
         _, obsfile = self.run_forward(emissions, step)
 
-        db = self._observations.from_hdf(obsfile)
+        # db = self._observations.from_hdf(obsfile)
+        db : DataFrame = read_hdf(obsfile)
 
         if self.settings.split_categories:
             for cat in emissions.transported_categories:
-                self.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
-        self.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
-        self.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
-        self.observations.loc[:, 'mix_foreground'] = db.observations.mix.values - db.observations.mix_background.values
-        self.observations.loc[:, 'mismatch'] = db.observations.mix.values - self.observations.loc[:, 'obs']
+                self.observations.loc[:, f'mix_{cat.name}'] = db.loc[:, f'mix_{cat.name}'].values
+        self.observations.loc[:, f'mix_{step}'] = db.mix.values
+        self.observations.loc[:, 'mix_background'] = db.mix_background.values
+        self.observations.loc[:, 'mix_foreground'] = db.mix.values - db.mix_background.values
+        self.observations.loc[:, 'mismatch'] = db.mix.values - self.observations.loc[:, 'obs']
 
         # Optional: store extra columns that the transport model may have written, if requested:
         for key in self.settings.extra_fields :
-            self.observations.loc[:, key] = db.observations.loc[:, key].values
+            self.observations.loc[:, key] = db.loc[:, key].values
 
         # Output if requested:
         # if step in self.settings.output_steps:
@@ -103,7 +104,8 @@ class Transport:
 
         # Write departures file
         self.observations.loc[:, 'dy'] = forcings
-        departures_file = self._observations.to_hdf(self.settings.tempdir / 'departures.hdf')
+        departures_file = self.settings.tempdir / 'departures.hdf'
+        self.observations.to_hdf(departures_file, 'departures')
 
         # Point to the existing emissions file (just used as a template)
         adjemis_file = self.settings.tempdir / 'emissions.nc'
@@ -128,7 +130,8 @@ class Transport:
         emf = emissions.to_netcdf(self.settings.tempdir / 'emissions.nc', zlib=compression, only_transported=True)
 
         # Write the observations:
-        dbf = self._observations.to_hdf(str(self.settings.tempdir / 'observations.hdf'))
+        dbf = self.settings.tempdir / 'observations.hdf'
+        self.observations.to_hdf(dbf, 'observations')
 
         # Run the model:
         cmd = self.settings.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.settings.footprint_path, '--tmp', self.settings.tempdir]
