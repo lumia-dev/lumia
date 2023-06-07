@@ -3,7 +3,7 @@
 from omegaconf import OmegaConf
 from pandas import Timestamp
 from types import SimpleNamespace
-from .gridtools import Grid
+from gridtools import Grid
 from importlib import resources
 from pathlib import Path
 import sys

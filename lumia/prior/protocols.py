@@ -1,6 +1,6 @@
 #!/usr/bin/env pythn
 
-from typing import Protocol, Hashable, Any, Iterable
+from typing import Protocol, Hashable, Iterable
 from dataclasses import dataclass
 from pint import Quantity, Unit
 from ..optimizer.protocols import Mapping, ModelData

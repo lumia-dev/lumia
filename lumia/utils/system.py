@@ -2,7 +2,6 @@
 
 import subprocess
 from loguru import logger
-import sys
 
 
 def colorize(msg, color=None):

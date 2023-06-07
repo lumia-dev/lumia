@@ -7,7 +7,7 @@ from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field, asdict
 from numpy import ndarray, unique, array, zeros, nan
-from ....utils.gridtools import Grid
+from gridtools import Grid
 from datetime import datetime
 from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, IntervalIndex
 from loguru import logger

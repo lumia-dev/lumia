@@ -258,7 +258,6 @@ class LUMIAGrid(RectiLinearGrid):
         return cls(lon_corners=linspace(-15, 35, int(nlon) + 1), lat_corners = linspace(33, 73, int(nlat) + 1), dlon=dlon)
         
 
-
 @dataclass
 class SpatialData:
     data        : typing.NDArray

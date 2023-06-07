@@ -8,8 +8,6 @@ from dataclasses import dataclass
 import netCDF4 as nc
 import xarray as xr
 from numpy import ndarray, array, append
-from types import SimpleNamespace
-from loguru import logger
 
 
 @dataclass
@@ -44,7 +42,7 @@ class EmissionFields(xr.Dataset):
     __slots__ = []
 
     @property
-    def grid(self) -> SimpleNamespace:
+    def grid(self) -> Grid:
         return Grid(
             lonc=self.lon.data,
             latc=self.lat.data

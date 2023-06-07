@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from netCDF4 import Dataset
-import subprocess, os
+import subprocess
+import os
 from distutils.file_util import copy_file
 import shutil
 from omegaconf import DictConfig
