@@ -1,1 +1,0 @@
-The "lumia_tool" library is a place for developing code, that may or may not end up in the "lumia" library itself (either it needs to be finalized, or it's just pre- or post-processing tools that may not be supported longer in the future)

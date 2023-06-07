@@ -1,67 +1,66 @@
 #!/usr/bin/env python
+
 from netCDF4 import Dataset
 import subprocess, os
 from distutils.file_util import copy_file
 import shutil
-import logging
-from lumia.Tools.logging_tools import colorize
-
-logger = logging.getLogger(__name__)
+from omegaconf import DictConfig
+from loguru import logger
+from numpy.typing import NDArray
 
 
 class Minimizer:
-    def __init__(self, rcf, nstate=None, filename: str = None):
-        self.rcf = rcf
-        self.nstate = nstate
-        filename = self.rcf.get('congrad.communication_file') if filename is None else filename
-        self.commfile = CommFile(filename, rcf)
-        self.file_initialized = True
-        if nstate is not None :
-            self.init(nstate)
+    def __init__(self, dconf: DictConfig, filename: str = None):
+        self.dconf = dconf
+        if filename is None:
+            filename = self.dconf.communication_file
+        self.commfile = CommFile(filename, dconf)
         self.iter = 0
-        self.converged = False
-        self.finished = False
         self.read_eigsys = self.commfile.read_eigsys
         self.readState = self.commfile.readState
 
-    def reset(self):
-        self.init(self.nstate)
-        self.iter = 0
-        self.converged = False
-        self.finished = False
+        # Compatiblity with the newer code:
+        self._status: int = -1
 
-    def resume(self, trim=0):
-        self.commfile.resume(self.nstate, trim=trim)
-        self.iter = self.commfile.len_x
-        return self.commfile.readState()
+    @property
+    def status(self) -> int:
+        return self._status
 
-    def init(self, nstate):
-        self.nstate = nstate
-        self.commfile.createFile(nstate)
+    @property
+    def converged(self) -> bool:
+        return self._status == 2
 
-    def calc_update(self, state_preco, gradient_preco, J_tot):
-        if self.iter == 0 :
-            self.commfile.write_state(state_preco)
+    @property
+    def finished(self) -> bool:
+        return self._status > 0
+
+    @property
+    def initialized(self) -> bool:
+        return self.status != -1
+
+    def init(self, state_preco: NDArray) -> None:
+        self.commfile.create_file(len(state_preco))
+        self.commfile.write_state(state_preco)
+
+    def calc_update(self, state_preco, gradient_preco, J_tot) -> NDArray:
+        if not self.initialized:
+            self.init(state_preco)
         self.commfile.update(gradient_preco, J_tot)
-        self.runMinimizer()
-        status = self.commfile.checkUpdate()
-        if status > 0 : 
-            self.finished = True
-        if status == 2 : 
-            self.converged = True
+        self.run_minimizer()
+        self._status = self.commfile.checkUpdate()
         self.iter += 1
-        return status
+        return self.readState()
 
-    def runMinimizer(self):
-        exec_name = self.rcf.get('congrad.executable', default='congrad.exe')
+    def run_minimizer(self):
+        exec_name = self.dconf.get('executable', 'congrad.exe')
         cmd = [exec_name, '--write-traject', '--state-file', self.commfile.filepath]
-        logger.info(colorize(' '.join([str(_) for _ in cmd]), 'g'))
+        logger.info(' '.join([str(_) for _ in cmd]))
         subprocess.check_call(cmd)
 
-    def update(self, gradient, J_tot):
+    def update_gradient(self, gradient, J_tot):
         self.commfile.update(gradient, J_tot)
-        
-    def save(self, path: str) -> None :
+
+    def save(self, path: str) -> None:
         copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
         copy_file(os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out'), path)
 
@@ -72,9 +71,9 @@ class Minimizer:
 
 
 class CommFile(object):
-    def __init__(self, filename, rcf):
+    def __init__(self, filename: str, dconf: DictConfig):
         self.filepath = filename
-        self.rcf = rcf
+        self.dconf = dconf
         self.initialized = False
         self.len_x = 0
         self.len_g = 0
@@ -87,40 +86,18 @@ class CommFile(object):
         the same number of iterations in the netCDF file itself, then the last gradient is erased
         (this would happen if the inversion crashed during the call to the minimizer itself)"""
         self.trim(trim)
-        with Dataset(self.filepath, 'r') as ds :
-            self.len_x = len(ds.dimensions['dim_x'])-1
+        with Dataset(self.filepath, 'r') as ds:
+            self.len_x = len(ds.dimensions['dim_x']) - 1
             self.len_g = len(ds.dimensions['dim_g'])
-            # if self.len_x == self.len_g :
-            #     self.trim(0)
-            #     with Dataset(f'{self.filepath}_2', 'w') as dsw :
-            #         # copy the attributes
-            #         dsw.congrad_finished = 0 
-            #         dsw.iter_max = ds.iter_max
-            #         dsw.iter_convergence = ds.iter_convergence
-            #         dsw.preduc = ds.preduc
-            #         dsw.J_tot = ds.J_tot
-
-            #         # copy the dimensions
-            #         dsw.createDimension('n_state', nstate)
-            #         dsw.createDimension('dim_x', 0)
-            #         dsw.createDimension('dim_g', 0)
-
-            #         # copy the variables
-            #         dsw.createVariable('x_c', 'd', ('n_state','dim_x'))
-            #         dsw['x_c'][:] = ds['x_c'][:,:]
-            #         dsw.createVariable('g_c', 'd', ('n_state','dim_g'))
-            #         dsw['g_c'][:] = ds['g_c'][:,:-1]
-            #     self.len_g -= 1
-            #     shutil.move(f'{self.filepath}_2', self.filepath)
         self.initialized = True
-    
+
     def trim(self, trim):
-        with Dataset(self.filepath, 'r') as ds :
+        with Dataset(self.filepath, 'r') as ds:
             ng = len(ds.dimensions['dim_g'])
             nstate = len(ds.dimensions['n_state'])
-            ngnew = ng-trim
-            nxnew = ng-trim+1
-            with Dataset(f'{self.filepath}_2', 'w') as dsw :
+            ngnew = ng - trim
+            nxnew = ng - trim + 1
+            with Dataset(f'{self.filepath}_2', 'w') as dsw:
                 # copy the attributes
                 dsw.congrad_finished = int(0)
                 dsw.iter_max = ds.iter_max
@@ -134,13 +111,13 @@ class CommFile(object):
                 dsw.createDimension('dim_g', 0)
 
                 # copy the variables
-                dsw.createVariable('x_c', 'd', ('n_state','dim_x'))
-                dsw['x_c'][:] = ds['x_c'][:,:nxnew]
-                dsw.createVariable('g_c', 'd', ('n_state','dim_g'))
-                dsw['g_c'][:] = ds['g_c'][:,:ngnew]
+                dsw.createVariable('x_c', 'd', ('n_state', 'dim_x'))
+                dsw['x_c'][:] = ds['x_c'][:, :nxnew]
+                dsw.createVariable('g_c', 'd', ('n_state', 'dim_g'))
+                dsw['g_c'][:] = ds['g_c'][:, :ngnew]
         shutil.move(f'{self.filepath}_2', self.filepath)
 
-    def createFile(self, nstate):
+    def create_file(self, nstate):
         logger.info(self.filepath)
         if not os.path.exists(os.path.dirname(self.filepath)):
             os.makedirs(os.path.dirname(self.filepath))
@@ -148,9 +125,9 @@ class CommFile(object):
         fid.createDimension('n_state', nstate)
         fid.createDimension('dim_x', 0)
         fid.createDimension('dim_g', 0)
-        fid.iter_max = self.rcf.get('var4d.max_iter', default=1000)
-        fid.iter_convergence = self.rcf.get('var4d.fixed_iterations', default=1000)
-        fid.preduc = 1./self.rcf.get('var4d.gradient.norm.reduction', default=1.e12)
+        fid.iter_max = self.dconf.get('max_number_of_iterations', 1000)
+        fid.iter_convergence = self.dconf.get('number_of_iterations', 1000)
+        fid.preduc = 1. / self.dconf.get('gradient_norm_reduction', 1.e12)
         fid.congrad_finished = 0
         fid.J_tot = 0
         fid.createVariable('x_c', 'd', ('n_state', 'dim_x'))
@@ -168,28 +145,28 @@ class CommFile(object):
     def update(self, gradient_preco, J_tot):
         with Dataset(self.filepath, 'a') as ds:
             ds['g_c'][:, self.len_g] = gradient_preco
-            logger.info("Cost function updated to %.2e"%J_tot)
+            logger.info("Cost function updated to %.2e" % J_tot)
             ds.J_tot = float(J_tot)
         self.len_g += 1
 
     def readState(self):
         with Dataset(self.filepath, 'r') as ds:
-            state = (ds['x_c'][:, self.len_x-1]).data
-        return state
+            return (ds['x_c'][:, self.len_x - 1]).data
 
     def checkUpdate(self):
         with Dataset(self.filepath, 'r') as ds:
             len_x = len(ds.dimensions['dim_x'])
             len_g = len(ds.dimensions['dim_g'])
-            if len_x != self.len_x + 1 and not ds.congrad_finished :
+            if len_x != self.len_x + 1 and not ds.congrad_finished:
                 raise RuntimeError(
-                    'The number of state vectors should have increased from %i to %i, instead it is %i'%(
-                        self.len_x, self.len_x+1, len_x
+                    'The number of state vectors should have increased from %i to %i, instead it is %i' % (
+                        self.len_x, self.len_x + 1, len_x
                     )
                 )
-            if len_g != self.len_g and not ds.congrad_finished :
-                raise RuntimeError(f'The number of gradients should have remained unchanged at {self.len_g}, instead it is {len_g}')
-            else :
+            if len_g != self.len_g and not ds.congrad_finished:
+                raise RuntimeError(
+                    f'The number of gradients should have remained unchanged at {self.len_g}, instead it is {len_g}')
+            else:
                 self.len_x = len_x
             status = ds.congrad_finished
         return status
@@ -199,12 +176,12 @@ class CommFile(object):
             eigvals = ds['eigenvalues'][:].data
             eigvecs = ds['eigenvectors'][:].data
         return eigvals, eigvecs
-    
+
     def read_traject(self):
-        with Dataset(self.filepath, 'r') as ds :
-            if 'xc_traject' in ds.variables :
+        with Dataset(self.filepath, 'r') as ds:
+            if 'xc_traject' in ds.variables:
                 traject = ds['xc_traject'][:]
-            else :
+            else:
                 raise RuntimeError(
                     "No state trajectory found. Either the inversion did not converge yet, or the computing of intermediate trajectories was not requested (see rcfile)"
                 )

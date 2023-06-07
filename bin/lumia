@@ -2,15 +2,12 @@
 
 import sys
 from loguru import logger
-import lumia
 from lumia import ui
 
 
 if __name__ == '__main__':
 
-    args = ui.apptainer_wrapper(sys.argv[1:])
-
-    args = ui.parse_args(args)
+    args = ui.parse_args(sys.argv[1:])
 
     # Most basic case: just run lumia
     logger.remove()
@@ -18,9 +15,6 @@ if __name__ == '__main__':
 
     # Read and append configuration file
     rcf = ui.parse_config(args)
-
-    # Adjust the paths in memory
-#    lumia.paths.setup(rcf)
 
     match args.action:
         case 'forward':
@@ -39,7 +33,7 @@ if __name__ == '__main__':
             results = ui.gradtest(rcf)
 
         case 'emis':
-            emis = ui.prepare_emis(rcf)
+            emis = ui.load_emissions(rcf)
 
         case 'validate':
             results = ui.validate(rcf)

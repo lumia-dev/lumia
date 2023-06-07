@@ -5,7 +5,6 @@ numpy~=1.24.3
 pandas~=2.0.1
 loguru~=0.7.0
 icoscp
-lumia~=0.0.1
 tqdm~=4.65.0
 Cartopy~=0.21.1
 shapely~=2.0.1
