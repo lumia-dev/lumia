@@ -65,6 +65,7 @@ class obsdb(obsdb):
             db.observations.loc[:, 'tracer'] = tracer
         return db
  
+ 
     def load_fromCPortal(self, rcf=None) -> "obsdb":
         """
         Public method  load_fromCPortal
@@ -84,8 +85,8 @@ class obsdb(obsdb):
         # Now we have to merge the background CO2 concentrations into the observational data...
         (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf)
         setattr(self,'observations', mergedDf)
-        sleep(5)
-        sys.exit(1)
+        filename="observations.tar.gz"
+        self.filename = filename
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
         
         
@@ -305,10 +306,13 @@ class obsdb(obsdb):
         """
         xBgDf = bgDf[['code', 'time', 'background']].copy()  # turns time into an integer it seems....
         xBgDf.to_csv('./xBgDf.csv', encoding='utf-8', mode='w', sep=',')
-        obsDf['time'] = to_datetime(obsDf['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
-        xBgDf['time'] = to_datetime(xBgDf['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        # obsDf['time'] = to_datetime(obsDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        # Using 'yearfirst=True' is the better option in case the time column already contains a series or time object and not an integer as assumed above.
+        obsDf['time'] = to_datetime(obsDf['time'], yearfirst=True, utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        xBgDf['time'] = to_datetime(xBgDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        # xBgDf['time'] = to_datetime(xBgDf['time'], yearfirst=True, utc = True)  # Did not work for me....
         obsDfWthBg = obsDf.merge(xBgDf,  how='left', on=['code','time'], indicator=True)
-        obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        # obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
         obsDfWthBg.to_csv('./obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
         # This has merged the 'background' column from the external file into the obsDf that holds all the observations from the carbon portal
         # However, we may not have background values for all sites and date-times....hence we interpolate in the background column 
@@ -330,24 +334,89 @@ class obsdb(obsdb):
         # df2.to_csv('/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/newDfinterpolatedBg-time.csv', encoding='utf-8', mode='w', sep=',')
         obsDfWthBg.drop(columns=['background','_merge'], inplace=True)
         obsDfWthBg.rename(columns={'intpBackground':'background'}, inplace=True)
+        nTotal=len(obsDfWthBg)
+        obsDfWthBg.dropna(subset=['obs'], inplace=True)
+        nDroppedObsRows=nTotal - len(obsDfWthBg)
+        nRemaining=len(obsDfWthBg)
+        if(nDroppedObsRows>0):
+            logger.info(f"Dropped {nDroppedObsRows} rows with no valid co2 observations. {nRemaining} good rows are remaining")
+        obsDfWthBg.dropna(subset=['background'], inplace=True)
+        nRemaining=len(obsDfWthBg)
+        nDroppedBgRows=nTotal - nRemaining - nDroppedObsRows
+        if(nDroppedBgRows>0):
+            logger.info(f"Dropped {nDroppedBgRows} rows with bad background co2 concentrations. {nRemaining} good rows are remaining")
         obsDfWthBg.to_csv('./finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',')
         # setattr('observations', newDf)
         return(obsDfWthBg)
 
 
-    def  combineObsAndBgndOld(self, obsDf,  bgDf) -> "obsdb":
-        nMatched=0 
-        nUnmatched =0
+    def  altCombineObsAndBgnd(self,  obsDf,  bgDf) -> "obsdb":
+        """
+        Function combineObsAndBgnd  Merges the background CO2 concentrations into the obsDf
+    
+        @param obsDf  the dataframe that holds all the observed dry mole fraction CO2 concentrations that were collected from the carbon portal
+        @type df Pandas dataframe
+        @param bgDf the dataframe that holds the background CO2 concentrations - must also contain 'time' and 'code' (=station name) columns
+                                matching names and conventions from the obsDf.
+        @type  df Pandas dataframe
+        @returns The merged obsDf+background dataframe. The background may have been interpolated to provide meaningful values in all rows.
+        @type  df Pandas dataframe
+        
         # Merging of the 2 dataframes is a little more complicated as matches are not guaranteed....
         # we need to match the
         #   1. 3-letter site code
-        #   2. the height
+        #   2. the height (however, we have to ignore height, because Guillaume's co2 background concentrations are only stored for one height per observation site)
         #   3. the time
-        # all within reasonable tolerance. For ideas, look here:
+        # For ideas, look here:
         # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.merge.html
         # https://stackoverflow.com/questions/53549492/joining-two-pandas-dataframes-based-on-multiple-conditions
         # https://stackoverflow.com/questions/41815079/pandas-merge-join-two-data-frames-on-multiple-columns
+        # https://stackoverflow.com/questions/74550482/pandas-interpolate-within-a-groupby-for-one-column
         # we do want 'left' here as opposed to 'inner'
+        """
+        xBgDf = bgDf[['code', 'time', 'background']].copy()  # turns time into an integer it seems....
+        xBgDf.to_csv('./xBgDf.csv', encoding='utf-8', mode='w', sep=',')
+        # obsDf['time'] = to_datetime(obsDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        # Using 'yearfirst=True' is the better option in case the time column already contains a series or time object and not an integer as assumed above.
+        obsDf['time'] = to_datetime(obsDf['time'], yearfirst=True, utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        xBgDf['time'] = to_datetime(xBgDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        # xBgDf['time'] = to_datetime(xBgDf['time'], yearfirst=True, utc = True)  # Did not work for me....
+        obsDfWthBg = obsDf.merge(xBgDf,  how='left', on=['code','time'], indicator=True)
+        # obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        obsDfWthBg.to_csv('./obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
+        # This has merged the 'background' column from the external file into the obsDf that holds all the observations from the carbon portal
+        # However, we may not have background values for all sites and date-times....hence we interpolate in the background column 
+        # linearly to cope with this in a reasonable way
+        # Simple, first step: Works, but ignores the change of observation location: dfLin=newDf.[['background']].interpolate('linear')
+
+        # the following trick taken from here: https://stackoverflow.com/questions/39384749/groupby-pandas-incompatible-index-of-inserted-column-with-frame-index
+        obsDfWthBg["intpBackground"]=obsDfWthBg[['code','background']].groupby(['code']).apply(lambda group: group.interpolate(method='linear', limit_direction='both'))["background"].reset_index().set_index('level_1').drop('code',axis=1)   
+        obsDfWthBg.to_csv('./obsDfLinGrpInterpolatedBg.csv', encoding='utf-8', mode='w', sep=',')
+        # mergedDf=newDf[['code','background']].groupby(['code']).apply(lambda group: group.interpolate(method='linear', limit_direction='both'))['background']   
+        # mergedDf.to_csv('./mergedDfGrpInterpBg.csv', encoding='utf-8', mode='w', sep=',')
+        
+        # Trying to interpolate over the actual corresponding date-time values results in some strange interpolation results
+        # with resulting background values well below any supporting values...
+        # However, given that we use equal time steps, linear interpolation really does the same thing and we need not bother
+        # with a more complicated time axis.
+        # newDf.set_index('time',inplace=True)
+        # df2=newDf[['background']].interpolate('time')
+        # df2.to_csv('/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/newDfinterpolatedBg-time.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.drop(columns=['background','_merge'], inplace=True)
+        obsDfWthBg.rename(columns={'intpBackground':'background'}, inplace=True)
+        nTotal=len(obsDfWthBg)
+        obsDfWthBg.dropna(subset=['obs'], inplace=True)
+        nDroppedObsRows=nTotal - len(obsDfWthBg)
+        obsDfWthBg.dropna(subset=['background'], inplace=True)
+        nRemaining=len(obsDfWthBg)
+        nDroppedBgRows=nTotal - nRemaining - nDroppedObsRows
+        if(nDroppedObsRows>0):
+            logger.info(f"Dropped {nDroppedObsRows} rows with no valid co2 observations. {nRemaining} good rows are remaining")
+        if(nDroppedBgRows>0):
+            logger.info(f"Dropped {nDroppedBgRows} rows with bad background co2 concentrations. {nRemaining} good rows are remaining")
+        obsDfWthBg.to_csv('./finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',')
+
+        """
         obsDf['time'] = to_datetime(obsDf['time'], utc = True)
         bgDf['time'] = to_datetime(bgDf['time'], utc = True)
         newDf = obsDf.merge(bgDf,  how='left',on=['code','height', 'time'], indicator=True)
@@ -361,6 +430,10 @@ class obsdb(obsdb):
         newDf.dropna()
         setattr(self, 'observations', newDf)
         return(self, nMatched, nUnmatched)
+        
+        #setattr(self, 'observations', newDf)
+        """
+        return(obsDfWthBg)
 
 
     def load_background(self,  bgFname) -> "obsdb":
