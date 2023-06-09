@@ -87,8 +87,9 @@ class obsdb(obsdb):
         setattr(self,'observations', mergedDf)
         filename="observations.tar.gz"
         self.filename = filename
+        logger.info("Observed and background concentrations of CO2 have been read and merged successfully.")
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
-        
+        return(self)
         
     def gatherObs_fromCPortal(self, rcf=None,  errorEstimate=None) -> "obsdb":
         # TODO: ·errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
