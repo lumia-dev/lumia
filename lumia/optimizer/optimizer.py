@@ -11,6 +11,8 @@ from numpy import zeros, inner
 from loguru import logger
 from ..minimizers.congrad import Minimizer as Congrad
 from .preconditioning import xc_to_x, g_to_gc
+from lumia.utils.dconf import prefix
+from typing import Dict
 
 
 @dataclass(kw_only=True)
@@ -31,21 +33,38 @@ class CostFunction:
         return self.prior + self.obs
 
 
+@dataclass
+class Settings :
+    output_path : Path
+    communication_file : Path
+    gradient_norm_reduction : float = 1.e8
+    number_of_iterations : int = 100
+    max_number_of_iterations : int = 1000
+    executable : Path = prefix / 'bin/congrad.exe'
+
+    def __post_init__(self):
+        self.output_path = Path(self.output_path)
+        self.communication_file = Path(self.communication_file)
+        self.executable = Path(self.executable)
+
+
 @dataclass(kw_only=True)
 class Var4D:
-    prior : Prior                   # Contains the prior uncertainty (B) as sigmas + correlation matrices
-    model : Model                   # Calculates y = H(X) and x* = H*(dy)
-    mapping : Mapping               # Contains the mapping between state vector and model params
-    forcings : Observations         # Contains the obs, obs uncertainties
-    minimizer_settings : DictConfig # settings required to setup the minimizer
-    settings : DictConfig           # settings requires by the optimizer class (i.e. this class)
+    prior : Prior                           # Contains the prior uncertainty (B) as sigmas + correlation matrices
+    model : Model                           # Calculates y = H(X) and x* = H*(dy)
+    mapping : Mapping                       # Contains the mapping between state vector and model params
+    observations : Observations             # Contains the obs, obs uncertainties
+    settings : Settings | DictConfig | Dict # settings requires by the optimizer class (i.e. this class)
     iteration : int = 0
     _vectors : DataFrame | None = None
     
     def __post_init__(self):
 
+        if isinstance(self.settings, (dict, DictConfig)):
+            self.settings = Settings(**self.settings) # {k: v for (k, v) in self.settings.items() if k in Settings.__annotations__})
+
         # Setup minimizer
-        self.minimizer = Congrad(self.minimizer_settings)
+        self.minimizer = Congrad(self.settings)
 
         # Setup preconditioning
         self.xc_to_x = partial(
@@ -64,84 +83,74 @@ class Var4D:
         )
 
         # Setup model
-        self.model.setup_observations(self.forcings)
-
-        # Ensure that the required paths exist:
-        self.settings.paths.output = Path(self.settings.paths.output)
-        self.settings.paths.output.mkdir(exist_ok=True, parents=True)
+        self.model.setup_observations(self.observations)
 
     @property
     def nobs(self) -> int:
-        return len(self.forcings.observations)
+        return len(self.observations.observations)
 
     @property
     def vectors(self) -> DataFrame:
         if self._vectors is None :
             self._vectors = self.prior.vectors.copy()
         return self._vectors
-    
-    def solve(self):
 
-        state_preco = zeros(self.prior.size)
-        step = 'apri'
-        while not self.minimizer.converged: # self.minimizer.status < 2 :
-            # Forward run:
+    @property
+    def step(self) -> str:
+        if self.iteration == 0 :
+            return 'apri'
+        elif self.minimizer.converged:
+            return 'apos'
+        return 'var4d'
 
-            # state = self.xc_to_x(state_preco)
-            # model_data = self.mapping.vec_to_struct(state)
-            # obs_departures = self.model.calc_departures(model_data, step=step)
-            obs_departures = self.forward_step(state_preco, step, setup_uncertainties = step == 'apri')
+    def solve(self) -> NDArray:
 
-            # Calculate cost function:
-            cost_func = CostFunction(prior_departures=state_preco, obs_departures=obs_departures)
+        state_preco = self.prior.state_preco
 
-            # Adjoint run:
-            # model_data_adj = self.model.calc_departures_adj(obs_departures.mismatch / obs_departures.sigma ** 2)
-            # state_vec_adj = self.mapping.vec_to_struct_adj(model_data_adj)
-            # gradient_preco = self.g_to_gc(state_vec_adj) + state_preco
-            gradient_preco = self.adjoint_step(obs_departures) + state_preco
+        finished = False
+        while not finished: # self.minimizer.converged:
+            logger.info(f'Start iteration {self.iteration}, {self.step} step')
 
-            # diagnostics
-            self.diagnostics(step, cost_func)
+            # Full forward-adjoint loop
+            obs_departures = self.forward_step(state_preco)
+            prior_departures = state_preco - self.prior.state_preco
+            cost_func = CostFunction(prior_departures=prior_departures, obs_departures=obs_departures)
+            gradient_preco = self.adjoint_step(obs_departures) + prior_departures
 
-            # Determine next step:
-            step = 'var4d' if not self.minimizer.finished else 'apos'
-            self.iteration += 1
+            # Diagnostics and saving in the prior and posterior steps:
+            if self.step in ['apri', 'apos']:
+                self.diagnostics(cost_func)
+                self.model.save(self.step)
 
-            logger.info(self.minimizer.status)
-            logger.info(step)
-
-            if not self.minimizer.finished:
-                # Calculate next step:
+            # Determine next step or just store the final gradient
+            if not self.minimizer.converged:
                 state_preco = self.minimizer.calc_update(state_preco, gradient_preco, cost_func.value)
+                self.iteration += 1
             else :
                 self.minimizer.update_gradient(gradient_preco, cost_func.value)
+                finished = True
 
-        # finishup
         self.calc_posterior_uncertainties()
+        return state_preco
 
-    def forward_step(self, state_preco: NDArray, step: str = None, setup_uncertainties : bool = False) -> Departures:
+    def forward_step(self, state_preco: NDArray) -> Departures:
         state = self.xc_to_x(state_preco)
         model_data = self.mapping.vec_to_struct(state)
-        return self.model.calc_departures(model_data, step=step, setup_uncertainties=setup_uncertainties)
+        return self.model.calc_departures(model_data, step=self.step)
 
     def adjoint_step(self, obs_departures : Departures) -> NDArray:
         model_data_adj = self.model.calc_departures_adj(obs_departures.mismatch / obs_departures.sigma ** 2)
         state_adj = self.mapping.vec_to_struct_adj(model_data_adj)
         return self.g_to_gc(state_adj)
 
-    def diagnostics(self, step : str, J: CostFunction) -> None:
+    def diagnostics(self, J: CostFunction) -> None:
         """
         Perform a chi2 goodness of fit test for the inversion result.
         """
-
-        if step not in ['apri', 'apos']:
-            return
-
         ndof = self.nobs - self.iteration
-        with open(self.settings.paths.output / f'chi2.{step}.txt', 'w') as fid:
+        with open(self.settings.output_path / f'chi2.{self.step}.txt', 'w') as fid:
             fid.write(f'Inversion performed with {self.nobs = } observations and niter = {self.iteration} iterations\n')
-            fid.write(f'{step} cost function (chi2) value: {J.value}\n')
+            fid.write(f'{self.step} cost function (chi2) value: {J.value}\n')
             fid.write(f'      Reduced chi2 (chi2 / ndof): {J.value / ndof :.2f}\n')
 
     def calc_posterior_uncertainties(self, store_eigenvec: bool = False) -> None:
@@ -163,6 +172,14 @@ class Var4D:
         dapos = (self.vectors.prior_uncertainty ** 2 + inner(LE ** 2, mat2)) ** .5
         self.vectors.loc[:, 'posterior_uncertainty'] = dapos
 
+    def reset(self):
+        """
+        Reset optimization:
+        - set iteration number to 0
+        - reset minimizer
+        """
+        self.iteration = 0
+        self.minimizer = Congrad(self.settings)
 
 def adjoint_test(opt: Var4D):
     from numpy import random
@@ -202,7 +219,7 @@ def gradient_test(opt: Var4D):
     
     # 1) Compute the gradient and cost function for a (random) control vector:
     state_preco1 = random.randn(opt.prior.size)
-    y1 = opt.forward_step(state_preco1, step='step1')
+    y1 = opt.forward_step(state_preco1)
     j0 = CostFunction(prior_departures=state_preco1, obs_departures=y1)
     gradient_preco = opt.adjoint_step(y1) + state_preco1
     
@@ -212,7 +229,7 @@ def gradient_test(opt: Var4D):
     while alpha > 1.e-15:
         alpha /= 10
         state_preco2 = state_preco1 - alpha * dx
-        y2 = opt.forward_step(state_preco2, step='step2')
+        y2 = opt.forward_step(state_preco2)
         j1 = CostFunction(prior_departures=state_preco2, obs_departures=y2)
 
         # Gradient test: (J(x + dx) - J(x)) / (dJ @ (alpha * dx))

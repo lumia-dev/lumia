@@ -61,7 +61,10 @@ class Model(Protocol):
     """
     This class defines a template for the model object used by the optimizer
     """
-    def setup_observations(observations: Observations) -> None: 
+
+    def __init__(self, **settings): ...
+
+    def setup_observations(self, observations: Observations) -> None:
         """
         Provide the observations data to the model
         """
@@ -72,20 +75,27 @@ class Model(Protocol):
         """
         DataFrame storing the observations, their coordinates, model estimates, etc.
         """
+        ...
         
     def calc_departures(
-        self, 
-        model_data: ModelData | Any, 
-        step : str | None = None,
-        setup_uncertainties: bool = False
-        ) -> Departures: 
+            self,
+            model_data: ModelData | Any,
+            step : str | None = None,
+            ) -> Departures:
         """
         Calculates the departures + their uncertainties for a given set of model inputs
         """
         ...
-    def calc_departures_adj(self, obs_departures : NDArray) -> ModelData: 
+
+    def calc_departures_adj(self, obs_departures : NDArray) -> ModelData:
         """
         Calculate the adjoint model data corresponding to a vector of forcings (departures / sigma**2).
+        """
+        ...
+
+    def save(self, step: str) -> None:
+        """
+        Save whatever may be useful to save (observations, emissions, etc.)
         """
         ...
         
@@ -105,22 +115,22 @@ class Mapping(Protocol):
         """
         Adjoint of Mapping.vec_to_struct
         """
+        ...
         
         
 class Prior(Protocol):
     """
     Template for objects storing prior information (prior estimates + uncertainties)
     """
-    temporal_correlation : Dict
-    horizontal_correlation : Dict
+    temporal_correlations : Dict
+    horizontal_correlations : Dict
     sigmas : Dict
     vectors : DataFrame
+    state_preco : NDArray
     
     @property
     def size(self) -> int: return self.vectors.shape[0]
-    
+
     @property
     def coordinates(self) -> DataFrame: 
-        """
-        """
         ...

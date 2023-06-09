@@ -13,7 +13,7 @@ else :
 
 setuptools.setup(
     name="lumia",
-    version="0.0.1",
+    version="1.0",
     author="Guillaume Monteil",
     author_email="guillaume.monteil@nateko.lu.se",
     description=long_description,

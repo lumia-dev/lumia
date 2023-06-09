@@ -53,7 +53,7 @@ class Minimizer:
         return self.readState()
 
     def run_minimizer(self):
-        exec_name = self.dconf.get('executable', 'congrad.exe')
+        exec_name = self.dconf.executable
         cmd = [exec_name, '--write-traject', '--state-file', self.commfile.filepath]
         logger.info(' '.join([str(_) for _ in cmd]))
         subprocess.check_call(cmd)
@@ -126,9 +126,9 @@ class CommFile(object):
         fid.createDimension('n_state', nstate)
         fid.createDimension('dim_x', 0)
         fid.createDimension('dim_g', 0)
-        fid.iter_max = self.dconf.get('max_number_of_iterations', 1000)
-        fid.iter_convergence = self.dconf.get('number_of_iterations', 1000)
-        fid.preduc = 1. / self.dconf.get('gradient_norm_reduction', 1.e12)
+        fid.iter_max = self.dconf.max_number_of_iterations
+        fid.iter_convergence = self.dconf.number_of_iterations
+        fid.preduc = 1. / self.dconf.gradient_norm_reduction
         fid.congrad_finished = 0
         fid.J_tot = 0
         fid.createVariable('x_c', 'd', ('n_state', 'dim_x'))

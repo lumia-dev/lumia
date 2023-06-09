@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import os
 from typing import Union, List, Tuple
 from pathlib import Path
 from pint import Quantity
 import xarray as xr
-from dataclasses import dataclass, field, asdict
-from numpy import ndarray, unique, array, zeros, nan
+from dataclasses import dataclass, field
+from numpy import ndarray, unique, array, zeros
 from gridtools import Grid
 from datetime import datetime
 from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, IntervalIndex
@@ -20,68 +19,7 @@ import numbers
 from ....utils.archive import Rclone
 from typing import Iterator
 from omegaconf import DictConfig
-from collections.abc import Hashable
-
-
-@dataclass
-class Constructor:
-    _value: Union[str, dict] = None
-
-    def __post_init__(self):
-        if isinstance(self._value, Constructor):
-            self._value = self._value.dict
-
-    @property
-    def dict(self) -> dict:
-        if isinstance(self._value, dict):
-            return self._value
-        cats = [c.split('*') for c in self._value.replace(' ', '').replace('-', '+-1*').split('+')]
-        return {v[-1]: array(v[:-1], dtype=float).prod() for v in cats}
-
-    @property
-    def str(self) -> str:
-        if isinstance(self._value, str):
-            return self._value
-        return '+'.join([f'{v}*{k}' for (k, v) in self._value.items()])
-
-    @property
-    def items(self):
-        return self.dict.items
-
-    @property
-    def keys(self):
-        return self.dict.keys
-
-
-@dataclass
-class Category(Hashable):
-    name: str
-    tracer: str
-    optimized: bool = False
-    optimization_interval: DateOffset = None
-    apply_lsm: bool = True
-    is_ocean: bool = False
-    n_optim_points: int = None
-    horizontal_correlation: str = None
-    temporal_correlation: str = None
-    total_uncertainty: Quantity = nan
-    unit_emis: Quantity = None
-    unit_mix: Quantity = None
-    # unit_budget : Quantity = None
-    unit_optim: Quantity = None
-    meta: bool = False
-    constructor: Constructor = None
-    transported: bool = True
-
-    def as_dict(self):
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, name, kwargs):
-        return cls(name, **{k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__})
-
-    def __hash__(self):
-        return hash((self.name, self.tracer))
+from lumia.optimizer.categories import Category, attrs_to_nc, Constructor
 
 
 def offset_to_pint(offset: DateOffset):
@@ -446,50 +384,6 @@ class TracerEmis(xr.Dataset):
         return self.units.dimensionality.get(f'[{dim}]')
 
 
-def attrs_to_nc(attrs: dict) -> dict:
-    """
-    Convert items of a dictionary that cannot be written as netCDF attributes to a netCDF-compliant format.
-    """
-    # Make sure we work on a copy of the dictionary
-    attrs = {k: v for (k, v) in attrs.items()}
-
-    # Store the name of the variables that have been converted
-    to_bool = []
-    to_units = []
-
-    # Do the actual conversion
-    for k, v in attrs.items():
-        if isinstance(v, bool):
-            attrs[k] = int(v)
-            to_bool.append(k)
-        if isinstance(v, Unit):
-            attrs[k] = str(v)
-            to_units.append(k)
-        if isinstance(v, Constructor):
-            attrs[k] = v.str
-
-    # add attributes listing the variable conversions (for converting back)
-    if to_bool:
-        attrs['_bool'] = to_bool
-    if to_units:
-        attrs['_units'] = to_units
-    return attrs
-
-
-def nc_to_attrs(attrs: dict) -> dict:
-    for attr in attrs.get('_bool', []):
-        attrs[attr] = bool(attrs[attr])
-    for attr in attrs.get('_units', []):
-        attrs[attr] = ureg(attrs[attr]).units
-    if '_bool' in attrs:
-        del attrs['_bool']
-    if '_units' in attrs:
-        del attrs['_units']
-    if 'constructor' in attrs:
-        attrs['constructor'] = Constructor(attrs['constructor'])
-    return attrs
-
-
 @dataclass
 class Data:
     _tracers: dict = field(default_factory=dict)
@@ -818,21 +712,21 @@ def load_preprocessed(
     return data.data
 
 
-# Interfaces:
-def WriteStruct(data: Data, path: str, prefix=None, zlib=False, complevel=1, only_transported=False):
-    if prefix is None:
-        filename, path = path, os.path.dirname(path)
-    else:
-        filename = os.path.join(path, f'{prefix}.nc')
-    Path(path).mkdir(exist_ok=True, parents=True)
-    data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported)
-    return filename
-
-
-def ReadStruct(path, prefix=None, categories=None):
-    if categories is not None:
-        logger.warning(f"categories argument ignored (not implemented yet)")
-    filename = path
-    if prefix is not None:
-        filename = os.path.join(path, f'{prefix}.nc')
-    return Data.from_file(filename)
+# # Interfaces:
+# def WriteStruct(data: Data, path: str, prefix=None, zlib=False, complevel=1, only_transported=False):
+#     if prefix is None:
+#         filename, path = path, os.path.dirname(path)
+#     else:
+#         filename = os.path.join(path, f'{prefix}.nc')
+#     Path(path).mkdir(exist_ok=True, parents=True)
+#     data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported)
+#     return filename
+#
+#
+# def ReadStruct(path, prefix=None, categories=None):
+#     if categories is not None:
+#         logger.warning(f"categories argument ignored (not implemented yet)")
+#     filename = path
+#     if prefix is not None:
+#         filename = os.path.join(path, f'{prefix}.nc')
+#     return Data.from_file(filename)

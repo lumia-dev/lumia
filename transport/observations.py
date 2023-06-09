@@ -77,7 +77,6 @@ class Observations(DataFrame):
                 footprints.extend(fpf.footprints)
         self.loc[~self.obsid.isin(footprints), 'footprint'] = nan
 
-
     def check_footprints(self, archive: str, cls: Type[FootprintFile], local: str=None) -> None:
         """
         Search for/lumia/transport/multitracer.py the footprint corresponding to the observations

@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 from pandas import DataFrame, concat
 from pandas.tseries.frequencies import to_offset
 from .protocols import Mapping
 from loguru import logger
 from .uncertainties import calc_temporal_correlation, calc_horizontal_correlation, calc_total_uncertainty
+from numpy import zeros
+from lumia.optimizer.categories import Category
+from pathlib import Path
 
 
 @dataclass
@@ -15,6 +18,9 @@ class PriorConstraints:
     horizontal_correlations: Dict
     sigmas: Dict
     vectors: DataFrame
+
+    def __post_init__(self):
+        self.state_preco = zeros(self.size)
 
     @property
     def coordinates(self) -> DataFrame:
@@ -65,3 +71,13 @@ class PriorConstraints:
         vectors = concat(vectors)
 
         return cls(sigmas=sigmas, temporal_correlations=corr_t, horizontal_correlations=corr_h, vectors=vectors)
+
+    @property
+    def categories(self) -> List[Category]:
+        return list(self.sigmas.keys())
+
+    def save(self, dest: Path):
+        for cat in self.categories:
+            tbl = self.vectors.loc[(self.vectors.tracer == cat.tracer) & (self.vectors.category == cat.name)].to_xarray()
+            tbl.attrs = cat.ncattrs
+            tbl.to_netcdf(dest, group=f'{cat.tracer}.{cat.name}')

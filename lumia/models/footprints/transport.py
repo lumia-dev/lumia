@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from numpy.typing import NDArray
 from .protocols import Emissions
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple, List
 from omegaconf import DictConfig, OmegaConf
 from ...observations.protocols import Observations
 from pandas import DataFrame, read_hdf
@@ -19,48 +19,35 @@ class Departures:
     mismatch : NDArray
     sigma : NDArray
     index : NDArray
-    
+
     
 @dataclass
-class Settings:
-    tempdir : Path
+class Transport:
+    path_temp : Path
+    path_output : Path
+    path_footprints : Path
     executable : List[str]
-    footprint_path : Path
-    output_path : Path
-    split_categories : bool = True
-    output_steps : List[str] = field(default_factory=list)
-    extra_arguments : List[str] = field(default_factory=list)
-    extra_fields : List[str] = field(default_factory=list)
-    serial : bool = False
+    split_categories : bool
+    output_steps : List[str]
+    extra_arguments : List[str]
+    extra_fields : List[str]
+    serial : bool
+    setup_uncertainties : List[str] = field(default_factory=list)
+    emissions_file : Path | None = None
 
     def __post_init__(self):
-        if isinstance(self.executable, str):
-            self.executable = [self.executable]
-            
-            
-class Transport:
-    def __init__(self, dconf: DictConfig, observations : Observations = None):
-        self.dconf = dconf
-        self.settings = Settings(
-            tempdir = Path(dconf.paths.temp),
-            executable = dconf.transport.exec,
-            footprint_path = Path(dconf.paths.footprints),
-            output_path = Path(dconf.paths.output),
-            split_categories = dconf.get('split_categories', True),
-            output_steps = dconf.output_steps,
-            extra_arguments = dconf.transport.get('extra_arguments', []),
-            extra_fields = dconf.get('store_extra_fields', []),
-            serial = dconf.transport.get('serial', False)
-        )
-        self._observations = observations
+        self._observations = None
+        self.path_temp = Path(self.path_temp)
+        self.path_output = Path(self.path_output)
+        self.path_footprints = Path(self.path_footprints)
+        if self.emissions_file is None :
+            self.emissions_file = self.path_temp / 'emissions.nc'
 
-    def setup_observations(self, observations: Observations) -> None:
-        self._observations = observations
+    def setup_observations(self, obs : Observations):
+        self._observations = obs
 
     @property
     def observations(self) -> DataFrame | None:
-        if self._observations is None :
-            return None
         return self._observations.observations
 
     @property
@@ -69,13 +56,14 @@ class Transport:
             return None
         return self._observations.sites
 
-    def calc_departures(self, emissions: Emissions, step: str = None, setup_uncertainties : bool = False) -> Departures:
+    # Main methods:
+    def calc_departures(self, emissions: Emissions, step: str = None) -> Departures:
         _, obsfile = self.run_forward(emissions, step)
 
         # db = self._observations.from_hdf(obsfile)
         db : DataFrame = read_hdf(obsfile)
 
-        if self.settings.split_categories:
+        if self.split_categories:
             for cat in emissions.transported_categories:
                 self.observations.loc[:, f'mix_{cat.name}'] = db.loc[:, f'mix_{cat.name}'].values
         self.observations.loc[:, f'mix_{step}'] = db.mix.values
@@ -84,38 +72,36 @@ class Transport:
         self.observations.loc[:, 'mismatch'] = db.mix.values - self.observations.loc[:, 'obs']
 
         # Optional: store extra columns that the transport model may have written, if requested:
-        for key in self.settings.extra_fields :
+        for key in self.extra_fields :
             self.observations.loc[:, key] = db.loc[:, key].values
 
-        # Output if requested:
-        # if step in self.settings.output_steps:
-        #     self.save(tag = step, emis_file = emfile)
-
-        if setup_uncertainties:
+        if step in self.setup_uncertainties:
             self.calc_uncertainties(step=step)
 
         dept = self.observations.dropna(subset=['mismatch', 'err']).loc[:, ['mismatch', 'err']]
         dept.loc[:, 'sigma'] = dept.err
 
+        # Save output if requested:
+        if step is None or step in self.output_steps :
+            self.save(path=self.path_output, tag=step)
+
         return dept.loc[:, ['mismatch', 'sigma']]
-        # return Departures(dept.mismatch.values, dept.err.values, dept.index.values)
 
     def calc_departures_adj(self, forcings : NDArray) -> Data:
 
         # Write departures file
         self.observations.loc[:, 'dy'] = forcings
-        departures_file = self.settings.tempdir / 'departures.hdf'
+        departures_file = self.path_temp / 'departures.hdf'
         self.observations.to_hdf(departures_file, 'departures')
 
         # Point to the existing emissions file (just used as a template)
-        adjemis_file = self.settings.tempdir / 'emissions.nc'
+        adjemis_file = self.emissions_file
 
         # Create command
-        cmd = self.settings.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.settings.footprint_path, '--tmp', self.settings.tempdir]
-        # cmd = [sys.executable, '-u', self.settings.executable, '--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.settings.footprint_path, '--tmp', self.settings.tempdir]
-        if self.settings.serial :
+        cmd = self.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.path_footprints, '--tmp', self.path_temp]
+        if self.serial :
             cmd.append('--serial')
-        cmd.extend(self.settings.extra_arguments)
+        cmd.extend(self.extra_arguments)
 
         # Run
         runcmd(cmd)
@@ -126,43 +112,40 @@ class Transport:
     def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
-        compression = step in self.settings.output_steps
-        emf = emissions.to_netcdf(self.settings.tempdir / 'emissions.nc', zlib=compression, only_transported=True)
+        compression = step in self.output_steps
+        emf = emissions.to_netcdf(self.emissions_file, zlib=compression, only_transported=True)
 
         # Write the observations:
-        dbf = self.settings.tempdir / 'observations.hdf'
+        dbf = self.path_temp / 'observations.hdf'
         self.observations.to_hdf(dbf, 'observations')
 
         # Run the model:
-        cmd = self.settings.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.settings.footprint_path, '--tmp', self.settings.tempdir]
-        # cmd = [sys.executable, '-u', self.settings.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.settings.footprint_path, '--tmp', self.settings.tempdir]
+        cmd = self.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.path_footprints, '--tmp', self.path_temp]
 
-        if self.settings.serial or serial:
+        if self.serial or serial:
             cmd.append('--serial')
 
-        cmd.extend(self.settings.extra_arguments)
+        cmd.extend(self.extra_arguments)
         runcmd(cmd)
 
         return emf, dbf
 
-    def save(self, path: Path = None, tag : str = None, emis_file : Path = None) -> None:
+    def save(self, tag : str | None = None, path: Path | None = None):
         """
         Copies the last model I/O to "path", with an optional tag to identify it
         Arguments:
             - path: folder where files should be written. Defaults to the "output_path" attribute
             - tag: tag appended to the file names (e.g. observations.{tag}.tar.gz)
-            - emis_file: location of the emission file to be copied to "path" (optional).
         """
 
         tag = '' if tag is None else tag.strip('.')+'.'
         if not path :
-            path = self.settings.output_path
+            path = self.path_output
         path.mkdir(exist_ok=True, parents=True)
 
         OmegaConf.save(OmegaConf.structured(self), path / f'transport.{tag}yaml')
         self._observations.save_tar(path / f'observations.{tag}tar.gz')
-        if emis_file is not None :
-            shutil.copy(emis_file, path)
+        shutil.copy(self.emissions_file, path / f'emissions.{tag}nc')
 
     def calc_uncertainties(self, err_obs : str = 'err_obs', err_min : float = 0, step: str = None, freq : str = '7D') -> None:
         # Ensure that all observations have a measurement error:
@@ -207,7 +190,7 @@ class Transport:
 
     def calc_sensi_map(self, emissions: Emissions):
         departures = ones(self.observations.shape[0])
-        emissions.to_netcdf(self.settings.tempdir / 'emissions.nc', zlib=False, only_transported=True)
+        emissions.to_netcdf(self.path_temp / 'emissions.nc', zlib=False, only_transported=True)
         adjfield = self.calc_departures_adj(departures)
         sensi = {}
         for tracer in adjfield.tracers:
