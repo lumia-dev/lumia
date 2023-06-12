@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 from dataclasses import dataclass, field
 from numpy.typing import NDArray
 from .protocols import Emissions
@@ -42,6 +43,11 @@ class Transport:
         self.path_footprints = Path(self.path_footprints)
         if self.emissions_file is None :
             self.emissions_file = self.path_temp / 'emissions.nc'
+        self.path_output.mkdir(parents=True, exist_ok=True)
+        self.path_temp.mkdir(parents=True, exist_ok=True)
+        if isinstance(self.executable, (str, Path)):
+            # Assume it's a python file, and run it with the current interpreter (i.e. in the same virtual environment)
+            self.executable = [sys.executable, str(self.executable)]
 
     def setup_observations(self, obs : Observations):
         self._observations = obs
@@ -143,7 +149,7 @@ class Transport:
             path = self.path_output
         path.mkdir(exist_ok=True, parents=True)
 
-        OmegaConf.save(OmegaConf.structured(self), path / f'transport.{tag}yaml')
+        # OmegaConf.save(OmegaConf.structured(self), path / f'transport.{tag}yaml')
         self._observations.save_tar(path / f'observations.{tag}tar.gz')
         shutil.copy(self.emissions_file, path / f'emissions.{tag}nc')
 
@@ -171,7 +177,7 @@ class Transport:
             resid_mod = mix.loc[:, f'mix_{step}'] - mod_averaged
 
             # 3) Calculate the standard deviation of the residuals model-data mismatches. Store it in sites dataframe for info.
-            sigma = (resid_obs - resid_mod).values.std()
+            sigma = (resid_obs - resid_mod).dropna().values.std()
             self.sites.loc[self.sites.code == code, 'err'] = sigma
             logger.info(f'Model uncertainty for site {code} set to {sigma:.2f}')
 
