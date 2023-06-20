@@ -30,6 +30,13 @@ emissions :
         prefix : flux_co2.
 
 
+background :
+    concentrations :
+        co2:
+            stationWithoutBackgroundConcentration : DROP   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
+            userProvidedBackgroundConcentration : 410 # ppm - only used if stationWithoutBackgroundConcentration==FIXED
+
+
 observations :
     start: '2018-01-01 00:00:00'
     end:   '2018-02-01 00:00:00'

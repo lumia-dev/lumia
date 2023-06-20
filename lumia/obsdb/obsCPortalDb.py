@@ -310,8 +310,10 @@ class obsdb(obsdb):
         # obsDf['time'] = to_datetime(obsDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
         # Using 'yearfirst=True' is the better option in case the time column already contains a series or time object and not an integer as assumed above.
         obsDf['time'] = to_datetime(obsDf['time'], yearfirst=True, utc = True)  # confirmed: 'time' is Timestamp type after this operation
-        xBgDf['time'] = to_datetime(xBgDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
-        # xBgDf['time'] = to_datetime(xBgDf['time'], yearfirst=True, utc = True)  # Did not work for me....
+        try:
+            xBgDf['time'] = to_datetime(xBgDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+        except:
+            xBgDf['time'] = to_datetime(xBgDf['time'], yearfirst=True, utc = True)  # Did not work for me....
         obsDfWthBg = obsDf.merge(xBgDf,  how='left', on=['code','time'], indicator=True)
         # obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
         obsDfWthBg.to_csv('./obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
@@ -341,12 +343,66 @@ class obsdb(obsdb):
         nRemaining=len(obsDfWthBg)
         if(nDroppedObsRows>0):
             logger.info(f"Dropped {nDroppedObsRows} rows with no valid co2 observations. {nRemaining} good rows are remaining")
-        obsDfWthBg.dropna(subset=['background'], inplace=True)
-        nRemaining=len(obsDfWthBg)
+
+        #  How do we handle any missing information on background concentrations where interpolation was not a sensible option:
+        #  background :
+        #     concentrations :
+        #       stationWithoutBackgroundConcentration : DROP   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
+        #       userProvidedBackgroundConcentration : 410 # ppm - only used if stationWithoutBackgroundConcentration==FIXED
+        #
+        # How many lines are affected?
+        dfGoodBgValuesOnly=obsDfWthBg.dropna(subset=['background'])
+        nRemaining=len(dfGoodBgValuesOnly)
         nDroppedBgRows=nTotal - nRemaining - nDroppedObsRows
-        if(nDroppedBgRows>0):
-            logger.info(f"Dropped {nDroppedBgRows} rows with bad background co2 concentrations. {nRemaining} good rows are remaining")
-        obsDfWthBg.to_csv('./finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',')
+        if(nDroppedBgRows > 0):
+            whatToDo= 'DAILYMEAN' # 'DAILYMEAN' # self.rcf.get('background.concentrations.co2.stationWithoutBackgroundConcentration')
+            if(whatToDo=='DAILYMEAN'):
+                dfDailyMeans = dfGoodBgValuesOnly[['time','background']].resample('D', on='time').mean()
+                dfDailyMeans.to_csv('./dMeans.csv', encoding='utf-8', mode='w', sep=',')
+                # dfDailyMeans contains one mean background concentration across all good background values per day.
+                dfDailyMeans['time2'] = to_datetime(dfDailyMeans.index)
+                dfDailyMeans['date'] = to_datetime(dfDailyMeans['time2']).dt.date
+                obsDfWthBg['date'] = to_datetime(obsDfWthBg['time']).dt.date
+                # now we are sure we are dealing with datetime objects as opposed to int64 time values in seconds since a reference date.
+                df = obsDfWthBg.merge(dfDailyMeans,  how='left', on=['date'], indicator=True)
+                # df.to_csv('/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/dfFinalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',')
+                # Now we have a termporal df that contains in an additional column the daily mean background values for all observations
+                
+                # obsDfWthBg["dMeanBg"]=obsDfWthBg[['date','background']].groupby(['date']).merge(dfDailyMeans,  how='left', on=['date', 'dMeanBg'])
+    
+                # it would be more elegant to do it this way, but in practice it does not fill NaN values.... obsDfWthBg.fillna(obsDfWthBg.groupby('date')['background'].transform('mean'), inplace = True)
+                # Now we replace all NaN values in the background column with estimates from the daily mean background value column
+                # df['col1'] = df['col1'].fillna(df['col2'])
+                obsDfWthBg['background']=obsDfWthBg['background'].fillna(df['background_y'])
+                logger.info(f"Filled {nDroppedBgRows} rows with daily-mean values of the background co2 concentration across all valid sites. {nRemaining} good rows are remaining")
+            elif(whatToDo=='FIXED'):
+                # replace background CO2 concentration values that are missing with the fixed user-provided estimate of the background co2 concentrations
+                EstimatedBgConcentration=410.0 # float(self.rcf.get('background.concentrations.co2.userProvidedBackgroundConcentration'))
+                if(EstimatedBgConcentration<330.0):
+                    logger.error(f'The user provided value for background.concentrations.co2.userProvidedBackgroundConcentration={EstimatedBgConcentration} is <330ppm,  which seems unreasonable. Please review you yml configuration file.')
+                if(EstimatedBgConcentration>500.0):
+                    logger.error(f'The user provided value for background.concentrations.co2.userProvidedBackgroundConcentration={EstimatedBgConcentration} is >500ppm,  which seems unreasonable. Please review you yml configuration file.')
+                obsDfWthBg.fillna({'background':EstimatedBgConcentration},inplace=True)
+                logger.info(f"Filled {nDroppedBgRows} rows with user-provided estimate of the background co2 concentration of {EstimatedBgConcentration}ppm. {nRemaining} good rows did not require intervention")
+            else : #(whatToDo=='DROP'
+                obsDfWthBg.dropna(subset=['background'], inplace=True)
+                logger.info(f"Dropped {nDroppedBgRows} rows with bad background co2 concentrations. {nRemaining} good rows are remaining")
+    
+        # ..some prettification for easier human reading. However, I did not bother to format the index column. You could look
+        # at https://stackoverflow.com/questions/16490261/python-pandas-write-dataframe-to-fixed-width-file-to-fwf   for ideas....
+        obsDfWthBg.drop(columns=['date'], inplace=True)
+        obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)
+        obsDfWthBg['NbPoints'] = obsDfWthBg['NbPoints'].map(lambda x: '%3d' % x)
+        obsDfWthBg['background'] = obsDfWthBg['background'].map(lambda x: '%10.5f' % x)
+        obsDfWthBg['obs'] = obsDfWthBg['obs'].map(lambda x: '%10.5f' % x)
+        obsDfWthBg['err'] = obsDfWthBg['err'].map(lambda x: '%8.5f' % x)
+        obsDfWthBg['err_obs'] = obsDfWthBg['err_obs'].map(lambda x: '%8.5f' % x)
+        obsDfWthBg['stddev'] = obsDfWthBg['stddev'].map(lambda x: '%10.7f' % x)
+        obsDfWthBg['lat'] = obsDfWthBg['lat'].map(lambda x: '%8.4f' % x)
+        obsDfWthBg['lon'] = obsDfWthBg['lon'].map(lambda x: '%8.4f' % x)
+        obsDfWthBg['alt'] = obsDfWthBg['alt'].map(lambda x: '%6.1f' % x)
+        obsDfWthBg['height'] = obsDfWthBg['height'].map(lambda x: '%6.1f' % x)
+        obsDfWthBg.to_csv('./finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         # setattr('observations', newDf)
         return(obsDfWthBg)
 
