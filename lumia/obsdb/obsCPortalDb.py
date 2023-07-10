@@ -375,6 +375,7 @@ class obsdb(obsdb):
                 # df['col1'] = df['col1'].fillna(df['col2'])
                 obsDfWthBg['background']=obsDfWthBg['background'].fillna(df['background_y'])
                 logger.info(f"Filled {nDroppedBgRows} rows with daily-mean values of the background co2 concentration across all valid sites. {nRemaining} good rows are remaining")
+                obsDfWthBg.drop(columns=['date'], inplace=True)
             elif(whatToDo=='FIXED'):
                 # replace background CO2 concentration values that are missing with the fixed user-provided estimate of the background co2 concentrations
                 EstimatedBgConcentration=410.0 # float(self.rcf.get('background.concentrations.co2.userProvidedBackgroundConcentration'))
@@ -384,14 +385,17 @@ class obsdb(obsdb):
                     logger.error(f'The user provided value for background.concentrations.co2.userProvidedBackgroundConcentration={EstimatedBgConcentration} is >500ppm,  which seems unreasonable. Please review you yml configuration file.')
                 obsDfWthBg.fillna({'background':EstimatedBgConcentration},inplace=True)
                 logger.info(f"Filled {nDroppedBgRows} rows with user-provided estimate of the background co2 concentration of {EstimatedBgConcentration}ppm. {nRemaining} good rows did not require intervention")
-            else : #(whatToDo=='DROP'
+            else : #(whatToDo=='DROP')
                 obsDfWthBg.dropna(subset=['background'], inplace=True)
-                logger.info(f"Dropped {nDroppedBgRows} rows with bad background co2 concentrations. {nRemaining} good rows are remaining")
+                logger.info(f"Dropped {nDroppedBgRows} rows with missing background co2 concentrations. {nRemaining} good rows are remaining")
     
         # ..some prettification for easier human reading. However, I did not bother to format the index column. You could look
         # at https://stackoverflow.com/questions/16490261/python-pandas-write-dataframe-to-fixed-width-file-to-fwf   for ideas....
-        obsDfWthBg.drop(columns=['date'], inplace=True)
-        obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)
+        # obsDfWthBg.to_csv('./finalObsDfWthBgBeforeCleaning.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+        # column_names = obsDfWthBg.columns
+        # print(column_names,  flush=True)
+        # obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)
+        # the above line works n the test code, but not here, as the index is not named or reset here. Just leave it unformatted for now.
         obsDfWthBg['NbPoints'] = obsDfWthBg['NbPoints'].map(lambda x: '%3d' % x)
         obsDfWthBg['background'] = obsDfWthBg['background'].map(lambda x: '%10.5f' % x)
         obsDfWthBg['obs'] = obsDfWthBg['obs'].map(lambda x: '%10.5f' % x)

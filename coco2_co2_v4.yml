@@ -33,7 +33,7 @@ emissions :
 background :
     concentrations :
         co2:
-            stationWithoutBackgroundConcentration : DROP   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
+            stationWithoutBackgroundConcentration : DAILYMEAN   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
             userProvidedBackgroundConcentration : 410 # ppm - only used if stationWithoutBackgroundConcentration==FIXED
 
 
