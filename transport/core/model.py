@@ -13,6 +13,7 @@ import os
 from pandas import Timestamp, Timedelta
 from pandas import DataFrame as Observations
 from transport.emis import EmissionFields, Emissions, Grid
+from lumia.utils import debug
 
 
 class Footprint(Protocol):
@@ -159,6 +160,7 @@ class Forward(BaseTransport):
 
 
 class Adjoint(BaseTransport):
+    @debug.timer
     def run(self, adj_emis: Emissions, obs: Observations) -> Emissions :
         # Create an empty adjoint structure :
         for adj in adj_emis.tracers:
@@ -189,7 +191,7 @@ class Adjoint(BaseTransport):
         shared_memory.grid = adjemis.grid
         shared_memory.time = adjemis.times
 
-        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files', leave=False):
+        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files', leave=self.silent):
             with File(adjfile, 'r') as ds :
                 coords = ds['coords'][:]
                 values = ds['values'][:]

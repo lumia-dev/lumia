@@ -49,6 +49,9 @@ class Transport:
             # Assume it's a python file, and run it with the current interpreter (i.e. in the same virtual environment)
             self.executable = [sys.executable, str(self.executable)]
 
+        # Ensure that the "extra_arguments" (if any) are str:
+        self.extra_arguments = [str(arg) for arg in self.extra_arguments]
+
     def setup_observations(self, obs : Observations):
         self._observations = obs
 

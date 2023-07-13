@@ -72,7 +72,7 @@ class Observations(DataFrame):
         # Check in the files which footprints are actually present:
         fnames = self.footprint.drop_duplicates().dropna()
         footprints = []
-        for fname in fnames:
+        for fname in tqdm(fnames, desc="check_footprint_files"):
             with cls(fname) as fpf:
                 footprints.extend(fpf.footprints)
         self.loc[~self.obsid.isin(footprints), 'footprint'] = nan

@@ -39,7 +39,7 @@ if __name__ == '__main__':
     p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--tmp', default='/tmp', help='Path to a temporary directory where (big) files can be written')
-    p.add_argument('--ncpus', '-n', default=os.cpu_count())
+    p.add_argument('--ncpus', '-n', default=os.cpu_count(), type=int)
     p.add_argument('--max-footprint-length', type=Timedelta, default='14D')
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
