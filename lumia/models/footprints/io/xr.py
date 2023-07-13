@@ -6,12 +6,13 @@ from pint import Quantity
 import xarray as xr
 from dataclasses import dataclass, field
 from numpy import ndarray, unique, array, zeros
+from numpy.typing import NDArray
 from gridtools import Grid
 from datetime import datetime
 from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, IntervalIndex
 from loguru import logger
 from ....utils.units import units_registry as ureg
-from pandas import date_range, DateOffset
+from pandas import date_range, DateOffset, Timedelta
 from pandas.tseries.frequencies import to_offset
 from ....utils.tracers import species, Unit
 from netCDF4 import Dataset
@@ -20,6 +21,8 @@ from ....utils.archive import Rclone
 from typing import Iterator
 from omegaconf import DictConfig
 from lumia.optimizer.categories import Category, attrs_to_nc, Constructor
+from lumia.utils import debug
+import dask
 
 
 def offset_to_pint(offset: DateOffset):
@@ -164,7 +167,7 @@ class TracerEmis(xr.Dataset):
         self._mapping['space'] = value
 
     # Regular methods
-    def add_cat(self, name: str, value: ndarray, attrs: dict = None):
+    def add_cat(self, name: str, value: NDArray, attrs: dict = None):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
         assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value) = }")
@@ -176,6 +179,7 @@ class TracerEmis(xr.Dataset):
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
 
+    @debug.logged
     def add_metacat(self, name: str, constructor: Union[dict, str], attrs: dict = None):
         """
         A meta-category is a category that is constructed based on a linear combination of several other categories. Besides this, it is treated as any other category by the inversion.
@@ -656,13 +660,13 @@ class Data:
 
 
 def load_preprocessed(
-        prefix: str,
-        start: datetime,
-        end: datetime,
-        freq: str = None,
-        grid: Grid = None,
-        archive: str = None,
-) -> ndarray:
+    prefix: str,
+    start: Timestamp | str,
+    end: Timestamp | str,
+    freq: str = None,
+    grid: Grid = None,
+    archive: str = None,
+) -> NDArray:
     """
     Construct an emissions DataArray by reading, and optionally up-sampling, the pre-processed emission files for one
     category.
@@ -681,35 +685,34 @@ def load_preprocessed(
 
     archive = Rclone(archive)
 
-    # Import a file for each year at least partially covered:
-    years = unique(date_range(start, end, freq='MS', inclusive='left').year)
-    data = []
-    for year in years:
-        fname = f'{prefix}{year}.nc'
-        archive.get(fname)
-        data.append(xr.load_dataarray(fname))
-    data = xr.concat(data, dim='time').sel(time=slice(start, end))
+    with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+        data = xr.open_mfdataset(f'{prefix}*nc')
+    
+        # Ensure that the start and end are Timestamp:
+        start = Timestamp(start)
+        end = Timestamp(end)
+        
+        # There should be a single dataarray in the file: get it:
+        assert len(data.data_vars) == 1, logger.error("The file(s) contains multiple data variables. I don't know what to do with them!")
+        data = data[list(data.data_vars)[0]]
 
-    # Resample if needed
-    if freq is not None:
-        times_dest = date_range(start, end, freq=freq, inclusive='left')
-        tres1 = Timestamp(data.time.data[1]) - Timestamp(data.time.data[0])
-        tres2 = times_dest[1] - times_dest[0]
-        if tres1 != tres2:
-            assert tres1 > tres2, f"Temporal resolution can only be upscaled (resolution in the data files: {tres1}; requested resolution: {tres2})"
-            assert (tres1 % tres2).total_seconds() == 0
-            logger.info(
-                f"Increase the resolution of the emissions from {tres1.total_seconds() / 3600:.0f}h to {tres2.total_seconds() / 3600:.0f}h")
+        # Resample if needed:
+        if freq is not None :
+            times_dest = date_range(start, end, freq=freq, inclusive='left')
+            dt1 = Timedelta(data.time.values[1] - data.time.values[0])   # first interval of the data
+            dt2 = times_dest[1] - times_dest[0]                          # first interval requested
+            assert (dt1 % dt2).total_seconds() == 0, f"The requested temporal resolution ({freq}) is not an integer fraction of the temporal resolution of the data ({xr.infer_freq(data.time)})"
             data = data.reindex(time=times_dest).ffill('time')
 
-    times = data.time.to_pandas()
-    data = data[(times >= start) * (times < end), :, :]
-
-    # Coarsen if needed
-    if grid is not None:
-        raise NotImplementedError
-
-    return data.data
+        else :
+            # just select the right time interval:
+            data = data.sel(time=(data.time >= start) & (data.time < end))
+            
+        # Coarsen, if needed:
+        if grid is not None:
+            raise NotImplementedError
+    
+    return data.values
 
 
 # # Interfaces:
