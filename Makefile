@@ -8,3 +8,7 @@ envcontainer:
 
 container:
 	apptainer build --fakeroot lumia.simg lumia.def
+
+congrad:
+	make -C src/congrad -f makefile.opensuse.gfortran congrad.exe
+	mv src/congrad/congrad.exe bin/
