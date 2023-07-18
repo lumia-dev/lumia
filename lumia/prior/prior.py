@@ -10,6 +10,7 @@ from .uncertainties import calc_temporal_correlation, calc_horizontal_correlatio
 from numpy import zeros
 from lumia.optimizer.categories import Category
 from pathlib import Path
+from lumia.utils import debug
 
 
 @dataclass
@@ -31,6 +32,7 @@ class PriorConstraints:
         return self.vectors.shape[0]
 
     @classmethod
+    @debug.trace_call
     def setup(cls, mapping: Mapping) -> "PriorConstraints":
         vectors = []
         sigmas, corr_t, corr_h = {}, {}, {}

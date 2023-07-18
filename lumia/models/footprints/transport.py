@@ -96,12 +96,12 @@ class Transport:
 
         return dept.loc[:, ['mismatch', 'sigma']]
 
-    def calc_departures_adj(self, forcings : NDArray) -> Data:
+    def calc_departures_adj(self, forcings : DataFrame) -> Data:
 
         # Write departures file
-        self.observations.loc[:, 'dy'] = forcings
+        self.observations.loc[forcings.index, 'dy'] = forcings
         departures_file = self.path_temp / 'departures.hdf'
-        self.observations.to_hdf(departures_file, 'departures')
+        self.observations.dropna(subset=['dy']).to_hdf(departures_file, 'departures')
 
         # Point to the existing emissions file (just used as a template)
         adjemis_file = self.emissions_file

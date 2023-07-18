@@ -2,6 +2,49 @@ from loguru import logger
 from functools import wraps
 import time
 from .system import colorize
+import inspect
+
+
+def trace_call(func):
+    """
+    Simple decorator that calls when a function is called
+    
+    Usabe example
+    ```
+    from lumia.utils import debug
+    
+    @trace_call
+    def my_func(*args, **kwargs):
+        ...
+    ```
+    
+    Calling "my_func" will lead to a debug logging message
+    """
+    @wraps(func)
+    def inner(*args, **kwargs):
+        frame = inspect.stack()[1]
+        
+        # Ensure that the "<" are escaped
+        try :
+            modname = func.__module__.replace('<', '\<')#.replace('>', '\>')
+            funcname = func.__name__.replace('<', '\<')
+            if inspect.getmodule(frame.frame):
+                callmodname = inspect.getmodule(frame.frame).__name__.replace('<', '\<') + '.'
+            else :
+                callmodname = '__main__.'
+            callfuncname = frame.function.replace('<', '\<')
+            filename = f'file {frame.filename}, '
+            if frame.filename == '<string>':
+                filename = ''
+        
+            # Log
+            logger.opt(ansi=True).debug(f"Function <u>{modname}.{funcname}</> called by <u>{callmodname}{callfuncname}</> ({filename}line {frame.lineno})")
+        except :
+            import pdb; pdb.set_trace()
+        
+        # Return the actual function result
+        return func(*args, **kwargs)
+    return inner
 
 
 def logged(func):

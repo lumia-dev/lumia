@@ -4,8 +4,10 @@ from numpy.typing import NDArray
 from typing import Dict
 from numpy import array, append
 from pandas import DataFrame
+from lumia.utils import debug
 
 
+@debug.timer
 def xc_to_x(xc: NDArray, temporal_correlations: Dict, horizontal_correlations: Dict, sigmas: Dict,
             coordinates: DataFrame) -> NDArray:
     x = array(())
@@ -18,6 +20,7 @@ def xc_to_x(xc: NDArray, temporal_correlations: Dict, horizontal_correlations: D
     return x
 
 
+@debug.timer
 def g_to_gc(g: NDArray, temporal_correlations: Dict, horizontal_correlations: Dict, sigmas: DataFrame,
             coordinates: DataFrame) -> NDArray:
     gc = array(())

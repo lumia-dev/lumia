@@ -179,7 +179,6 @@ class TracerEmis(xr.Dataset):
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
 
-    @debug.logged
     def add_metacat(self, name: str, constructor: Union[dict, str], attrs: dict = None):
         """
         A meta-category is a category that is constructed based on a linear combination of several other categories. Besides this, it is treated as any other category by the inversion.
@@ -309,6 +308,7 @@ class TracerEmis(xr.Dataset):
 
         self.attrs['units'] = dest
 
+    @debug.logged
     def to_netcdf(self, filename, group=None, only_transported=False, **kwargs) -> Path:
 
         # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
@@ -707,6 +707,9 @@ def load_preprocessed(
         else :
             # just select the right time interval:
             data = data.sel(time=(data.time >= start) & (data.time < end))
+
+        # Ensure that we have no nan values (i.e. nan == 0):
+        data = data.fillna(0)
             
         # Coarsen, if needed:
         if grid is not None:

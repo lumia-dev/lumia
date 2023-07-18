@@ -5,36 +5,38 @@ from omegaconf import DictConfig
 from dataclasses import dataclass, field
 from loguru import logger
 from pandas import Timedelta, Timestamp, DataFrame, concat
-from numpy import float32, zeros, average, meshgrid, array
+from numpy import float32, zeros, average, meshgrid, array, eye
 from tqdm import tqdm
-from ....models.footprints.io import xr
+from ....models.footprints.io.xr import Data
 from ....utils.units import units_registry as ureg
 from ....utils.tracers import species
 from ....utils.clusters import clusterize
 from ....utils.time_utils import overlap_percent, interval_range
+from lumia.optimizer.categories import Category
 from numpy.typing import NDArray
 from typing import Dict
 from collections.abc import Iterable
+from lumia.utils import debug
 
 
 @dataclass(kw_only=True)
 class Mapping:
-    model_data : xr.Data
+    model_data : Data
     dconf : DictConfig = None
     sensi_map : NDArray = None
     optim_data : DataFrame = None
-    spatial_mapping : Dict[xr.Category, Dataset] = field(default_factory=dict)
-    temporal_mapping : Dict[xr.Category, Dataset] = field(default_factory=dict)
+    spatial_mapping : Dict[Category, Dataset] = field(default_factory=dict)
+    temporal_mapping : Dict[Category, Dataset] = field(default_factory=dict)
 
     @classmethod
-    def init(cls, dconf: DictConfig, emis: xr.Data, sensi_map: NDArray = None) -> "Mapping":
+    def init(cls, dconf: DictConfig, emis: Data, sensi_map: NDArray = None) -> "Mapping":
         mapping = cls(model_data=emis, dconf=dconf, sensi_map=sensi_map)
         mapping.setup_optimization()
         mapping.setup_coarsening(mapping.sensi_map)
         mapping.setup_prior()
         return mapping
 
-    def vec_to_struct(self, vector: NDArray) -> xr.Data:
+    def vec_to_struct(self, vector: NDArray) -> Data:
         """
         Converts a state vector to flux array(s). The conversion follows the steps:
         0. The input state vector contains fluxes in umol, for each space/time cluster
@@ -59,7 +61,7 @@ class Mapping:
         struct.to_intensive()
         return struct
 
-    def vec_to_struct_adj(self, adjemis : xr.Data) -> NDArray:
+    def vec_to_struct_adj(self, adjemis : Data) -> NDArray:
         adjemis.to_intensive_adj()
 
         adjvec = []
@@ -69,7 +71,7 @@ class Mapping:
             adjvec.extend(emcoarse_adj)
         return array(adjvec)
 
-    def distribflux_time(self, emcoarse: NDArray, cat: xr.Category) -> NDArray:
+    def distribflux_time(self, emcoarse: NDArray, cat: Category) -> NDArray:
         """
         Distribute the fluxes from the optimization time steps to the model time steps
         inputs:
@@ -91,7 +93,7 @@ class Mapping:
         # Remap by matrix product (emfine = Tmap^t * emcoarse)
         return disaggregation_matrix.transpose() @ emcoarse
 
-    def distribflux_time_adj(self, emcoarse_adj: NDArray, cat: xr.Category):
+    def distribflux_time_adj(self, emcoarse_adj: NDArray, cat: Category):
         """
         Adjoint of distribuflux_time.
         Inputs:
@@ -110,7 +112,7 @@ class Mapping:
         # 3) Reshape as a vector and return
         return emcoarse_adj.reshape(-1)
 
-    def distribflux_space(self, emcoarse : NDArray, cat: xr.Category) -> NDArray:
+    def distribflux_space(self, emcoarse : NDArray, cat: Category) -> NDArray:
         """
         Distribute the fluxes from the spatial clusters used in the optimization to the model grid.
         Input:
@@ -129,7 +131,7 @@ class Mapping:
         return emfine.reshape(self.model_data[cat.tracer].shape)
         # return emfine.reshape((-1, self.model_data[cat.tracer].grid.nlat, self.model_data[cat.tracer].grid.nlon))
 
-    def distribflux_space_adj(self, emcoarse_adj: NDArray, cat: xr.Category) -> NDArray:
+    def distribflux_space_adj(self, emcoarse_adj: NDArray, cat: Category) -> NDArray:
         """
         Adjoint of distribflux_space.
         Inputs:
@@ -154,7 +156,7 @@ class Mapping:
             yield tr
 
     @property
-    def optimized_categories(self) -> Iterable[xr.Category]:
+    def optimized_categories(self) -> Iterable[Category]:
         for cat in self.model_data.optimized_categories :
             yield cat
 
@@ -197,7 +199,8 @@ class Mapping:
             smap = sensi_map[cat.tracer] if sensi_map else None
             self.spatial_mapping[cat] = self.calc_spatial_coarsening(cat, sensi_map=smap)
 
-    def calc_temporal_coarsening(self, cat: xr.Category) -> Dataset :
+    @debug.trace_call
+    def calc_temporal_coarsening(self, cat: Category) -> Dataset :
         mapping = Dataset()
 
         # Model times :
@@ -234,24 +237,58 @@ class Mapping:
 
         return mapping
 
-    def calc_spatial_coarsening(self,
-                                cat: xr.Category,
-                                lsm_from_file: bool = False,
-                                sensi_map : NDArray | None = None
-                                ) -> Dataset :
-        mapping = Dataset()
+    @debug.trace_call
+    def calc_spatial_coarsening(
+        self, 
+        cat: Category, 
+        sensi_map : NDArray = None,
+        aggregate_lon : int = 1,
+        aggregate_lat : int = 1,
+        lsm_from_file : bool = False,
+        ) -> Dataset :
+        """
+        Determine if (and how) the gridded emissions should be coarsened.
+        Arguments :
+        - cat: category descriptor (i.e. an instance of lumia.optimizer.categories.Category)
+        Optional arguments :
+        - sensi_map : a map of the (average) sensitivity of the network to the emissions (or whatever, really), used to determine how pixels should be clustered.
+        - aggregate_lon : whether pixels should be aggregated in the longitude dimension (e.g. 2 means that the optimization will be done at half the resolution compared to the transport, i.e. at 0.5° if the transport is at 0.25°).
+        - aggregate_lat : whether pixels should be aggregated in the latgitude dimension (e.g. 4 means that the optimization will be done at half the resolution compared to the transport, i.e. at 1° if the transport is at 0.25°).
+        - lsm_from_file : whether a land-sea mask should be read from a file (this should only be needed to repeat inversions that have been computed with an older land-sea mask. Normally, it gets generated automatically.
+        
+        If a "sensi_map" is provided, then the aggregation will be done using it (i.e. on a non-regular grid). Otherwise, if either of "aggregate_lon" or "aggregate_lat" is larger than 1, a regular aggregation will be preformed (i.e. optimization on a regular grid, coarser than that of the transport). Finally, if neither of the three are provided, the optimization will be done on the same grid as the transport.
+        In either case, a land-sea mask will be applied, unless specifically disabled by the category description (cat).
+        
+        Output:
+        The method returns an xarray Dataset with five data variables :
+        - overlap_fraction: This is a 2D dataset (npoint_model, npoint_optim), which tells how much a given pixel in the model space contributes to a flux component in the optimization space
+        - lat, lon, area, landfraction: these are 1D datasets (npoint_optim), which provide the center coordinates, area and land-fraction of the optimized flux components.
+        """
+
+        # Determine land-sea mask (if needed):
+        grid = self.model_data[cat.tracer].grid
+        lsm = None
+        if cat.apply_lsm :   # This is the default behaviour
+            lsm = grid.get_land_mask(refine_factor=2, from_file = lsm_from_file)
+            if cat.is_ocean : # This is not the default behaviour
+                lsm = 1 - lsm
+
+        if sensi_map is not None :
+            return self.aggregate_in_spatial_clusters(cat, sensi_map, lsm)
+        elif aggregate_lon > 1 or aggregate_lat > 1:
+            return self.reduce_resolution(cat, aggregate_lon, aggregate_lat, lsm)
+        else :
+            return self.optimize_at_native_spatial_resolution(cat, lsm)
+
+    @debug.trace_call
+    def reduce_resolution(self, cat: Category, aggregate_lat : int, aggregate_lon : int, lsm : None | NDArray) -> Dataset:
+        raise NotImplementedError
+    
+    @debug.trace_call
+    def aggregate_in_spatial_clusters(self, cat: Category, sensi_map: NDArray, lsm : None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
         # Determine if we want to use a land-sea mask (and construct it!)
-        lsm = None
-        if cat.apply_lsm :
-            lsm = grid.get_land_mask(refine_factor=2, from_file=lsm_from_file)
-            if cat.is_ocean :
-                lsm = 1 - lsm
-
-        if sensi_map is None :
-            sensi_map = grid.area
-
         # Calculate the clusters
         indices = grid.indices.reshape(grid.shape)
         clusters = clusterize(sensi_map, cat.n_optim_points, mask=lsm, cat=cat.name, indices=indices)
@@ -278,6 +315,8 @@ class Mapping:
         for cluster in clusters :
             stv_matrix[cluster.ipos, cluster.indices] = True
         vts_matrix = stv_matrix.transpose()/stv_matrix.sum(1).astype(float32)
+        
+        mapping = Dataset()
         mapping["overlap_fraction"] = DataArray(
             vts_matrix,
             dims=['points_model', f'points_optim_{cat.name}'],
@@ -290,10 +329,45 @@ class Mapping:
 
         return mapping
 
+    @debug.trace_call
+    def optimize_at_native_spatial_resolution(self, cat, lsm: None | NDArray) -> Dataset:
+        grid = self.model_data[cat.tracer].grid
+
+        # Select only the pixels where lsm is > 0:
+        sel = lsm.reshape(-1) > 0
+        
+        # Calculate the transition matrix itself
+        nm = grid.nlat * grid.nlon
+        nv = (lsm > 0).sum()
+        vts_matrix = eye(nm, dtype=bool)[:, sel]
+        
+        # Calculate the coordinates:
+        lons, lats = grid.mesh()
+        lons = lons.reshape(-1)[sel]
+        lats = lats.reshape(-1)[sel]
+        areas = grid.area.reshape(-1)[sel]
+        land_fractions = lsm.reshape(-1)[sel]
+        
+        mapping = Dataset()
+        mapping['overlap_fraction'] = DataArray(
+            vts_matrix,
+            dims = ['points_model', f'points_optim_{cat.name}'],
+            coords={'points_model': grid.indices, f'points_optim_{cat.name}': range(nv)}
+        )
+        mapping[f'lat'] = DataArray(lons, dims=[f'points_optim_{cat.name}'])
+        mapping[f'lon'] = DataArray(lats, dims=[f'points_optim_{cat.name}'])
+        mapping[f'area'] = DataArray(areas, dims=[f'points_optim_{cat.name}'])
+        mapping[f'landfraction'] = DataArray(land_fractions, dims=[f'points_optim_{cat.name}'])
+        
+        return mapping
+
+    @debug.trace_call
     def setup_prior(self) -> None :
         self.optim_data = self.control_vector.loc[:, ['category', 'tracer', 'state_prior']]
 
-    def coarsen_cat(self, cat : xr.Category, data : NDArray = None, value_field : str = 'state_prior') -> DataFrame:
+    @debug.trace_call
+    @debug.timer
+    def coarsen_cat(self, cat : Category, data : NDArray = None, value_field : str = 'state_prior') -> DataFrame:
         if data is None :
             data = self.model_data[cat.tracer][cat.name].data
 
@@ -316,12 +390,12 @@ class Mapping:
         vec.loc[:, 'tracer'] = cat.tracer
         vec.loc[:, 'ipos'] = ipos
         vec.loc[:, 'itime'] = itime
-        vec.loc[:, 'lon'] = [self.spatial_mapping[cat].lon.values[i] for i in ipos]
-        vec.loc[:, 'lat'] = [self.spatial_mapping[cat].lat.values[i] for i in ipos]
-        vec.loc[:, 'area'] = [self.spatial_mapping[cat].area.values[i] for i in ipos]
-        vec.loc[:, 'land_fraction'] = [self.spatial_mapping[cat].landfraction.values[i] for i in ipos]
-        vec.loc[:, 'time'] = [self.temporal_mapping[cat].time_optim.values[t] for t in itime]
-        vec.loc[:, 'dt'] = [self.temporal_mapping[cat].timestep.values[t] for t in itime]
+        vec.loc[:, 'lon'] = self.spatial_mapping[cat].lon.values[ipos]
+        vec.loc[:, 'lat'] = self.spatial_mapping[cat].lat.values[ipos]
+        vec.loc[:, 'area'] = self.spatial_mapping[cat].area.values[ipos]
+        vec.loc[:, 'land_fraction'] = self.spatial_mapping[cat].landfraction.values[ipos]
+        vec.loc[:, 'time'] = self.temporal_mapping[cat].time_optim.values[itime]
+        vec.loc[:, 'dt'] = self.temporal_mapping[cat].timestep.values[itime]
         vec.loc[:, 'state_prior_preco'] = 0.
 
         return vec

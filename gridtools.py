@@ -265,6 +265,7 @@ class SpatialData:
     lon_axis    : int
     lat_axis    : int
     density     : bool = False
+    silent      : bool = True
 
     def to_quantity(self, inplace: bool = False) -> "SpatialData":
         """ 
@@ -397,7 +398,7 @@ class SpatialData:
         #   - multiply the original array by the longitude overlap matrix
         #   - sum up the result and store it in the (ilat, ilon) of the destination array
         
-        for ilat in tqdm(arange(destgrid.nlat)):
+        for ilat in tqdm(arange(destgrid.nlat), disable=self.silent):
             # Ensure that the lat axis is in last position:
             fraction_lat = data.swapaxes(self.lat_axis, -1).copy()
             fraction_lat *= trans.lat[:, ilat]
@@ -668,6 +669,7 @@ class GriddedData:
     axis    : list = None
     density : bool = False
     dims    : list = None
+    silent  : bool = True
 
     def __post_init__(self):
         if self.dims is not None :
@@ -808,7 +810,7 @@ class GriddedData:
         self.data = moveaxis(self.data, self.axis[1], -1)
 
         # Do the longitude coarsening:
-        for ilon in tqdm(range(destgrid.nlon)):
+        for ilon in tqdm(range(destgrid.nlon), disable=self.silent):
             temp[ilon, :] = (self.data * overlaps.lon[:, ilon]).sum(-1)
 
         # Put the dimensions back in the right order:
@@ -824,7 +826,7 @@ class GriddedData:
         temp = moveaxis(temp, self.axis[0], -1)
 
         # Do the latitude coarsening:
-        for ilat in tqdm(range(destgrid.nlat)):
+        for ilat in tqdm(range(destgrid.nlat), disable=self.silent):
             coarsened[ilat, :] = (temp * overlaps.lat[:, ilat]).sum(-1)
 
         # Put the dimensions back in place:

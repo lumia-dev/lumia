@@ -8,6 +8,8 @@ from loguru import logger
 from pint import Unit, Quantity
 from pandas import DateOffset, DataFrame
 from tqdm.autonotebook import tqdm
+from lumia.utils import debug
+from typing import Tuple
 
 
 _common = {}   # common for multiprocessing
@@ -69,6 +71,7 @@ class SpatialCorrelation:
     stretch_ratio : float = 1.
     min_corr : float = 1.e-7
 
+    @debug.trace_call
     def __post_init__(self):
         self.n = len(self.lats)
 
@@ -87,7 +90,8 @@ class SpatialCorrelation:
         self.mat[self.mat < self.min_corr] = 0.
         self.eigen_vectors, self.eigen_values = self.calc_eigen_decomposition()
 
-    def calc_eigen_decomposition(self) -> (NDArray, NDArray):
+    @debug.trace_call
+    def calc_eigen_decomposition(self) -> Tuple[NDArray, NDArray]:
         lam, p = linalg.eigh(self.mat)
 
         # Make positive semidefinite
@@ -108,8 +112,9 @@ class SpatialCorrelation:
         return p, lam**.5
 
     @property
+    @debug.trace_call
     def L(self) -> NDArray:
-        return self.eigen_vectors * self.eigen_values # TODO: check why this is not a dot product
+        return self.eigen_vectors * self.eigen_values 
 
     @property
     def B(self) -> NDArray:
@@ -133,7 +138,7 @@ class TemporalCorrelation:
 
         self.eigen_vectors, self.eigen_values = self.calc_eigen_decomposition()
 
-    def calc_eigen_decomposition(self) -> (NDArray, NDArray):
+    def calc_eigen_decomposition(self) -> Tuple[NDArray, NDArray]:
         lam, evec = linalg.eigh(self.B)
         sort_order = flipud(argsort(lam))
         lam = lam[sort_order]
@@ -146,6 +151,7 @@ class TemporalCorrelation:
 
     @property
     def L(self) -> NDArray:
+        # TODO: check why eigen_values is not just a vector here (instead of a diagonal matrix).
         return self.eigen_vectors @ self.eigen_values
 
 
@@ -162,6 +168,7 @@ def aggregate_uncertainty(it1: int) -> float:
     return err
 
 
+@debug.trace_call
 def calc_total_uncertainty(
         errvec: DataFrame,
         temporal_correlation: NDArray,
@@ -170,25 +177,35 @@ def calc_total_uncertainty(
         unit_budget : Unit,
         field : str = 'prior_uncertainty') -> Quantity:
     unitconv = (1 * unit_optim).to(unit_budget).magnitude
-    _common['Ch'] = spatial_correlation
-    _common['Ct'] = temporal_correlation
-    _common['sigmas'] = errvec.loc[:, field].values * unitconv
-    _common['itimes'] = errvec.itime.values
 
-    nt = len(unique(_common['itimes']))
+    nt = temporal_correlation.shape[0]
+    sigmas = errvec.loc[:, field].values * unitconv
+    ch = spatial_correlation
+    ct = temporal_correlation
 
-    with Pool() as pp :
-        errm = pp.imap(aggregate_uncertainty, range(nt))
-        err = sum(tqdm(errm, total=nt, leave=False))
+    # The formula below is equivalent (but much faster) to:
+    #for it1 in range(nt):
+    #    for it2 in range(nt):
+    #        for ip1 in range(nh):
+    #            for ip2 in range(nh):
+    #                errtot += sigmas[it1, ip1] * sigmas[it2, ip2] * Ct[it1, it2] * Ch[ip1, ip2]
+    #errtot = sqrt(errtot)
 
-    # here "err" is the variance, in units of [flux_unit]^2. We want something in [flux_unit] so take the square root.
-    errtot = sqrt(err)
+    # This relies :
+    # - on the property of the kronecker vector that:
+    #   kron(A, B) @ vec(V) = vec(A @ V @ B.T)
+    #   with "vec" the vectorization operator (i.e. V.reshape(-1) here
+    # - on the property that the sum of a covariance matrix can be inferred from the equation s @ Q @ s,
+    #   with "s" the vector of standard deviations (sigmas) and Q the correlation matrix
+    # - combining the two, we have: s @ kron(Qt, Qh) @ s === s @ vec(Qh @ E @ Qt), with "E" the matrix form
+    #   of the vector of standard deviations "s". 
+    # - the matrix form of the standard deviations need to be (np, nt), however, the data are stored in a (nt, np) order ==> we must use the transpose of the reshaped matrix, and, likewise, we must transpose the outcome of the matrix product before reshaping it as a vector
 
-    for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
-        del _common[key]
-    return errtot
+    return (sigmas @ (ch @ sigmas.reshape(nt, -1).T @ ct).T.reshape(-1))**.5
+    
 
 
+@debug.trace_call
 def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFrame) -> TemporalCorrelation:
     assert dt.base == corlen.base
 
@@ -199,10 +216,13 @@ def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFr
     return TemporalCorrelation(corlen=corlen.n / dt.n, dt=1., n=nt)
 
 
+@debug.trace_call
 def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame) -> SpatialCorrelation:
     corlen, cortype = corstring.split('-')
     corlen = int(corlen)
-    logger.warning("poor implementation. fix needed")
-    vec = sigmas.loc[(sigmas.category == catname)] # two categories with the same name can exist, in different tracers ...
+    logger.warning("poor implementation. fix might be needed ...")
+    # Two categories with the same name can exist, in different tracers ...
+    # It would be better to have unique categories that have cat name and cat tracer as properties
+    vec = sigmas.loc[(sigmas.category == catname)]
     vec = vec.loc[vec.time == vec.iloc[0].time]
     return SpatialCorrelation(corlen=corlen, cortype=cortype, lats=vec.lat.values, lons=vec.lon.values)
