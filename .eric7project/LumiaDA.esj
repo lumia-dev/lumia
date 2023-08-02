@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-07-02, 23:47:01"
+    "saved": "2023-07-13, 00:59:28"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,8 +14,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       "Cursor": [
-        8,
-        26
+        920,
+        23
       ],
       "Folds": [],
       "Zoom": 0,
@@ -26,8 +26,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        101,
-        4
+        2,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -50,7 +50,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
       "Cursor": [
-        0,
+        50,
         0
       ],
       "Folds": [],
@@ -122,33 +122,21 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        377,
-        8
+        541,
+        16
       ],
       "Folds": [],
       "Zoom": 1,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 9
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-      "Cursor": [
-        41,
-        100
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 10
     }
   ],
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
     "Cursor": [
-      377,
-      8
+      541,
+      16
     ]
   },
   "Breakpoints": [
@@ -159,21 +147,69 @@
       false,
       true,
       0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      89,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      573,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      577,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
+      237,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
+      222,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
+      201,
+      "",
+      false,
+      true,
+      0
     ]
   ],
   "Watchpoints": [],
   "DebugInfo": {
     "VirtualEnv": "",
     "ScriptName": "",
-    "CommandLine": "--optimize --start 20180101 --end 20180201 --serial  --ymf ./coco2_co2_v4.yml  ",
-    "WorkingDirectory": "/home/arndt/nateko/data/icos/DICE",
+    "CommandLine": "",
+    "WorkingDirectory": "",
     "Environment": "",
     "ReportExceptions": true,
     "Exceptions": [],
     "IgnoredExceptions": [],
     "AutoClearShell": true,
     "TracePython": false,
-    "AutoContinue": false,
+    "AutoContinue": true,
     "EnableMultiprocess": true,
     "MultiprocessNoDebug": "",
     "GlobalConfigOverride": {
@@ -194,6 +230,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@489",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py@@99",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
@@ -207,7 +244,11 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py@@15",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",

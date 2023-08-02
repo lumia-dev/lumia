@@ -9,7 +9,7 @@ from lumia.obsdb import obsdb
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
-from time import sleep
+import xarray as xr
 from pandas import DataFrame, to_datetime, concat , read_csv  #, read_hdf, Series, Timestamp
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
@@ -80,13 +80,13 @@ class obsdb(obsdb):
         # all matching data was written to the obsFile
         
         # Read the file that has the background co2 concentrations
-        bgFname=self.rcf['observations']['file']['backgroundCo2File']
+        bgFname=self.rcf['background']['concentrations']['co2']['backgroundCo2File']
         bgDf=self.load_background(bgFname)
         # Now we have to merge the background CO2 concentrations into the observational data...
         (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf)
         setattr(self,'observations', mergedDf)
-        filename="observations.tar.gz"
-        self.filename = filename
+        # filename="observations.tar.gz"
+        self.filename = bgFname # filename
         logger.info("Observed and background concentrations of CO2 have been read and merged successfully.")
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
         return(self)
@@ -500,14 +500,88 @@ class obsdb(obsdb):
     def load_background(self,  bgFname) -> "obsdb":
         logger.info(f"Reading co2 background concentrations from file {bgFname}...")
         try:
-            if('.tar.gz' in bgFname):
+            # chop = bgFname[-3:]
+            if('.tar.gz' in bgFname[-7:]):
                 with tarfile.open(bgFname, 'r:gz') as tar:
                     with tar.extractfile("observations.csv") as extracted:
                         bgDf = read_csv(extracted)
-            else:
+            elif('.tar' in bgFname[-4:]):
+                with tarfile.open(bgFname, 'r:') as tar:
+                    with tar.extractfile("observations.csv") as extracted:
+                        bgDf = read_csv(extracted)
+            elif('.csv' in bgFname[-4:]):
                 bgDf = read_csv(bgFname)
+            elif('.nc' in bgFname[-3:]):
+                fnametrunk=bgFname[:-7]
+                startyr=self.start.year
+                endyr=self.end.year
+                bgFnames=[]
+                for yr in range(startyr,  endyr+1,  1):
+                    bgFnames.append(fnametrunk+str(yr)+'.nc')
+                ds = xr.open_mfdataset(bgFnames)
+                bgDf = ds.to_dataframe()
+                bgDf = bgDf.reset_index()
+                # Guillaume's files are organised completely differently. The table needs to be transposed in a somewhat
+                # complicated manner. We do need a column for mix_background and the station codes also in a single 
+                # column after the time column. Presently the netcdf file is organised as:
+                # 	time	                            field	                    bik	            bir	            bsd	            cbw	            cgr	            cmn	            dec	            dig	gat	hei	hel	hpb	htm	hun	ipr	jfj	kas	kit	kre	lin	lmp	lmp_wdcgg	lmu	lut	nor	ope	oxk	pal	prs	puy	rgl	sac	smr	snb	ssl	ste	svb	tac	toh	trn	uto	wao	zsf
+                # 0	2018-01-01 00:30:00	mix	                    423.31825	414.54709	411.99981	413.71381	411.15119	410.22423	410.92848	422.58164	415.18681	416.34113	413.86561	414.02218	417.64854	418.09004	418.42125	410.04927	409.77242	416.37753	415.57684	415.15033	410.23125	410.23125	411.20165	413.71363	421.84517	414.7046	412.32581	420.09796	409.99839	411.61891	412.29216	412.87999	424.33518	409.44515	412.71231	414.41855	423.48789	412.78749	412.50768	412.84079	422.34918	412.70306	410.57669
+                # 1	2018-01-01 00:30:00	mix_background	410.99988	410.38451	411.66074	410.82046	409.35623	408.91705	409.44143	410.79327	409.39662	409.35538	410.23275	409.33394	409.46179	410.58845	409.18821	409.48239	408.79192	409.38533	409.53914	408.85297	409.46583	409.46583	410.09292	410.52195	411.03353	410.21645	409.42688	412.00559	409.43838	411.02189	411.84737	411.12235	413.99581	408.70579	409.83367	409.93449	411.84127	411.52936	409.80963	411.04295	411.56516	411.51942	409.2546
+                # 2	2018-01-01 01:30:00	mix	                    423.37996	414.43735	412.02914	413.83583	411.25651	410.29187	411.0536	422.74757	415.2549	416.56408	413.91888	414.70403	416.94752	418.24933	418.22997	410.30616	409.78407	416.59712	415.95695	415.41202	410.18699	410.18699	411.2712	413.80076	421.8801	414.82928	412.55697	420.37188	410.23973	411.72636	412.23861	412.90815	424.47821	409.68731	413.06432	414.53945	423.70908	412.82136	412.54559	412.85981	422.39996	412.73577	410.82798
+                # 3	2018-01-01 01:30:00	mix_background	410.8847	    410.45984	411.69677	410.98005	409.34674	408.9595	409.58232	410.64421	409.51679	409.52997	410.40376	409.45563	409.49234	410.57717	409.25395	409.69497	408.7619	409.55768	409.57349	408.90673	409.46272	409.46272	410.21754	410.6795	410.93197	410.38774	409.58552	412.00482	409.63514	411.20169	411.84318	411.26573	414.17626	408.82313	410.05339	410.11872	411.80154	411.6195	410.02377	411.19102	411.47584	411.60547	409.43357
+                # 1) drop all lines we are not interested in...
+                bgDf = bgDf[bgDf['field'] == 'mix_background']
+                if (len(bgDf.index) < 99) :
+                    try:
+                        colRename=self.rcf['background']['concentrations']['co2']['rename']
+                        bgDf = bgDf[bgDf['field'] == colRename]
+                    except:
+                        logger.error(f"Abort! The co2 background concentrations file {bgFname} seems to have no valid background concentrations or uses a non-recognised name.")
+                        sys.exit(-1)
+                bgDf.to_csv('./backgroundCo2Concentrations/background_2018-1.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+                # 	time	                            field	                    bik	            bir	            bsd	            cbw	            cgr	            cmn	            dec	            dig	gat	hei	hel	hpb	htm	hun	ipr	jfj	kas	kit	kre	lin	lmp	lmp_wdcgg	lmu	lut	nor	ope	oxk	pal	prs	puy	rgl	sac	smr	snb	ssl	ste	svb	tac	toh	trn	uto	wao	zsf
+                # 1, 2018-01-01 00:30:00,mix_background,410.99988,410.38451,411.66074,410.82046,409.35623,408.91705,409.44143,410.79327,409.39662,409.35538,410.23275,409.33394,409.46179,410.58845,409.18821,409.48239,408.79192,409.38533,409.53914,408.85297,409.46583,409.46583,410.09292,410.52195,411.03353,410.21645,409.42688,412.00559,409.43838,411.02189,411.84737,411.12235,413.99581,408.70579,409.83367,409.93449,411.84127,411.52936,409.80963,411.04295,411.56516,411.51942,409.25460
+                # 3, 2018-01-01 01:30:00,mix_background,410.88470,410.45984,411.69677,410.98005,409.34674,408.95950,409.58232,410.64421,409.51679,409.52997,410.40376,409.45563,409.49234,410.57717,409.25395,409.69497,408.76190,409.55768,409.57349,408.90673,409.46272,409.46272,410.21754,410.67950,410.93197,410.38774,409.58552,412.00482,409.63514,411.20169,411.84318,411.26573,414.17626,408.82313,410.05339,410.11872,411.80154,411.61950,410.02377,411.19102,411.47584,411.60547,409.43357
+                # 5, 2018-01-01 02:30:00,mix_background,410.76600,410.53569,411.72298,411.13424,409.33660,409.02065,409.73427,410.50218,409.65776,409.73303,410.57675,409.59576,409.54582,410.55909,409.34219,409.91442,408.74663,409.75560,409.60251,408.97831,409.45644,409.45644,410.33926,410.83786,410.82834,410.55535,409.76107,412.00653,409.83817,411.35131,411.82704,411.38360,414.34691,408.95472,410.28572,410.32049,411.76479,411.69092,410.25045,411.31323,411.37745,411.67425,409.62380
+                counter=0
+                for col in bgDf.columns:
+                    if (('time' not in col) and ('field' not in col)):
+                        tmpBgDf=bgDf[['time', 'field', col]].copy()  # turns time into an integer it seems....
+                        tmpBgDf['field']=col
+                        tmpBgDf.rename(columns={col:'background'}, inplace=True)
+                        if(counter==0):
+                            trspBgDf=tmpBgDf[['time', 'field', 'background']].copy()
+                        else:
+                            trspBgDf=pd.concat([trspBgDf, tmpBgDf], ignore_index=True)
+                        counter+=1
+                if(counter==0):
+                    logger.error(f"Abort! The co2 background concentrations file {bgFname} seems to have no valid data or site codes.")
+                    sys.exit(-1)
+                trspBgDf.rename(columns={'field':'code'}, inplace=True)
+                # obsDf['time'] = to_datetime(obsDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+                # Using 'yearfirst=True' is the better option in case the time column already contains a series or time object and not an integer as assumed above.
+                trspBgDf['time'] = to_datetime(trspBgDf['time'], yearfirst=True, utc = True)  # confirmed: 'time' is Timestamp type after this operation
+                try:
+                    trspBgDf['time'] = to_datetime(trspBgDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
+                except:
+                    trspBgDf['time'] = to_datetime(trspBgDf['time'], yearfirst=True, utc = True)  # Did not work for me....
+                trspBgDf.to_csv('./backgroundCo2Concentrations/background_2018-f.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+                bgDf=trspBgDf[['time', 'code', 'background']].copy()
+                bgDf.to_csv('./backgroundCo2Concentrations/background_2018a.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+                colRename=""
+                try:
+                    colRename=self.rcf['background']['concentrations']['co2']['rename']
+                    if colRename in self.sites.columns :
+                        bgDf.rename(columns={colRename:'background'}, inplace=True)
+                except:
+                    if (('mix_background' not in self.sites.columns) and ('background' not in self.sites.columns)) :
+                        logger.error(f"Abort! The user provided co2 background concentrations file {bgFname}does not contain a column named {colRename} or background. Please review also the value of the >>background:concentrations:co2:rename<< key in your yaml file.")
+                        sys.exit(-1)
+            else:
+                logger.error(f"Abort! Unsupported data format for co2 background concentrations (file {bgFname}). That file should be in .csv format (which may be inside a .tar or .tar.gz archive) or a netcdf file terminating in YYYY.nc and contain a column named background")
+                sys.exit(-1)
         except:
-            logger.error(f"Abort! Unable to read co2 background concentrations from file {bgFname}. That file should be a .csv file or the containing .tar.gz archive. In the latter case the contained csv file must be named observations.csv")
+            logger.error(f"Abort! Unable to read co2 background concentrations from file {bgFname}. That file should be in .csv format (which may be inside a .tar or .tar.gz archive) or a netcdf file terminating in YYYY.nc")
             sys.exit(-1)
         return(bgDf)
 

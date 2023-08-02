@@ -32,9 +32,11 @@ emissions :
 
 background :
     concentrations :
-        co2:
+        co2 :
+            backgroundCo2File : ./backgroundCo2Concentrations/background_2018.nc # Valid file formats/extensions are .csv, .tar.gz (containing .csv), *YYYY.nc (netcdf with YYYY representing the year) Don't worry about the year(s) - all times needed from observations 'start' to 'end' date will be read
             stationWithoutBackgroundConcentration : DAILYMEAN   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
             userProvidedBackgroundConcentration : 410 # ppm - only used if stationWithoutBackgroundConcentration==FIXED
+            rename :  mix_background    # the specified column will renamed to background
 
 
 observations :
@@ -46,7 +48,6 @@ observations :
         path : observations.tar.gz
         rename :  background:mix_background
         tracer : co2
-        backgroundCo2File : observations.tar.gz   # path+filename to the file containing the co2 'background' dry mole fractions - this is only evaluated if observations:file:location is set to CARBONPORTAL
     uncertainty :
         default_weekly_error : 1.5                          # warning
         systematicErrEstim   : 1.0   # percent of observation value
