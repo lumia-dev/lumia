@@ -33,7 +33,7 @@ emissions :
 background :
     concentrations :
         co2 :
-            backgroundCo2File : ./backgroundCo2Concentrations/background_2018.nc # Valid file formats/extensions are .csv, .tar.gz (containing .csv), *YYYY.nc (netcdf with YYYY representing the year) Don't worry about the year(s) - all times needed from observations 'start' to 'end' date will be read
+            backgroundCo2File : ./backgroundCo2Concentrations/background_2018.nc # ./observations.tar.gz Valid file formats/extensions are .csv, .tar.gz (containing .csv), *YYYY.nc (netcdf with YYYY representing the year) Don't worry about the year(s) - all times needed from observations 'start' to 'end' date will be read
             stationWithoutBackgroundConcentration : DAILYMEAN   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
             userProvidedBackgroundConcentration : 410 # ppm - only used if stationWithoutBackgroundConcentration==FIXED
             rename :  mix_background    # the specified column will renamed to background

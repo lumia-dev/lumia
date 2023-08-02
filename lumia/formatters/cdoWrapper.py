@@ -4,6 +4,8 @@ import xarray as xr
 import pandas as pd
 from gridtools import grid_from_rc
 from gridtools import Grid
+from loguru import logger
+
 
 '''
 This is a collection of wrapper scripts to call the Climate Data Operator (cdo) to achieve common
@@ -106,21 +108,21 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
             #     subprocess.run(cdoCmd)
             os.system(cdoCmd)
         except:
-            print("Fatal error: Calling cdo failed. Please make sure cdo is installed and working for you. Try running >>"+cdoCmd+"<< yourself in your working directory before running Lumia again.")
+            logger.error(f"Fatal error: Calling cdo failed. Please make sure cdo is installed and working for you. Try running >>{cdoCmd}<< yourself in your working directory before running Lumia again.")
             sys.exit(-1)
         try:
             # Did cdo create the re-gridded flux file as expected?
             f=open(fnameOut, 'rb')
             f.close()
         except:
-            print("Fatal error: cdo did not create the re-gridded output file "+fnameOut+" as expected from the command >>cdo "+cdoCmd+"<<.")
+            logger.error(f"Fatal error: cdo did not create the re-gridded output file {fnameOut} as expected from the command >>cdo {cdoCmd}<<.")
             sys.exit(-1)
         else:
             return(fnameOut, tim0)
     return(fnameOut, tim0) # we will use a re-gridded file we created earlier or that already exists
     
 
-def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0, grid: Grid = None):
+def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = None,  checkGrid = True,  tim0=0):
     '''  
     ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is one (undesired)
                              or zero (as it should). Normally the netcdf header should provide whether the times reported
@@ -128,8 +130,10 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0, grid: Gr
                              Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
                              elegance: if the first time step starts at one, then measurments are assumed to be reported at the
                              end of each time step, while Lumia expect this time to represent the beginning of the time interval.
-                             Therefor we the time axis back in time by one timestep which is then equivalent to having
+                             Therefore we shift the time axis back in time by one timestep which is then equivalent to having
                              times representing the beginning of an observation period.
+                             I had to add a fix for background co2 concentration netcdf files that are reported at the middle of
+                            the time step and that need to be shifted by 30 minutes
         # TODO: If Time starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement interval
         #             as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
         # We can fix this by shifting the time axis by one hour (with cdo):
@@ -139,11 +143,15 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0, grid: Gr
     if((tim0 is not None) and (tim0==0)):
             # we are good. No need to shift. Time dimension starts at zero.
             return(sExistingFile)
-    if(grid is None) or (sExistingFile is None) :
-        print("Fatal error in cdoWrapper:ensureReportedTimeIsStartOfMeasurmentInterval(): no grid provided or no existing file provided.")
+    if ((checkGrid) and (grid is None)):
+        logger.error("Fatal error in cdoWrapper:ensureReportedTimeIsStartOfMeasurmentInterval(): no grid provided.")
         sys.exit(1)
-    sdlat=str(int(grid.dlat*1000))
-    sdlon=str(int(grid.dlon*1000))
+    if (sExistingFile is None) :
+        logger.error("Fatal error in cdoWrapper:ensureReportedTimeIsStartOfMeasurmentInterval(): no input file provided.")
+        sys.exit(1)
+    if (checkGrid):
+        sdlat=str(int(grid.dlat*1000))
+        sdlon=str(int(grid.dlon*1000))
     
     # Do we have to shift the time axis or not? 
     # read the first value from the time dimension and see if it is zero.
@@ -151,30 +159,92 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0, grid: Gr
     dTime=xrExisting.time.data
     t1 = pd.Timestamp(dTime[0])
     tim0=t1.hour
+    tim0m=t1.minute
     # print('tim0=%d'%tim0, flush=True)
-    if(tim0==0):
+    if((tim0==0) and (tim0m==0)):
             # we are good. No need to shift. Time dimension starts at zero.
-            return(sExistingFile)
+            return(sExistingFile,  True)
+    if(os.path.exists(sExistingFile[:-3]+'_0hours.nc')): # Perhaps we already have a fixed file?
+        try:
+            xrExisting = xr.open_dataset(sExistingFile[:-3]+'_0hours.nc', drop_variables='NEE') # only read the dimensions
+            dTime=xrExisting.time.data
+            t1 = pd.Timestamp(dTime[0])
+            tim0=t1.hour
+            tim0m=t1.minute
+            # print('tim0=%d'%tim0, flush=True)
+            if((tim0==0) and (tim0m==0)):
+                    # we are good. No need to shift. Time dimension starts at zero.
+                    return(sExistingFile[:-3]+'_0hours.nc',  True)
+        except:
+            print("No worries")
     tStep=dTime[1] - dTime[0]
     tStep*=1e-9  # from nanoseconds to seconds - we expect 3600s=1h
-    timeStep=int(tStep/3600) # time step in hours
+    timeStep=int(tStep/60) # time step in minutes
     # print('time step= %dh'%timeStep, flush=True)
-    # We expect tim0==tStep at this stage, which is the reason for shifting the time dimension by one time unit.
-    if(tim0!=timeStep): 
-        print('Warning in Lumia formatter/cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(): First time axis value is not zero(=midnight) or one time step.', flush=True)
-    sRenameCmd=''
-    fnameOutput='.'+os.path.sep+'regridded'+os.path.sep+sdlat+'x'+sdlon+os.path.sep+os.path.basename(sExistingFile).split(os.path.sep)[-1]
-    if('./regridded/' in sExistingFile):
-        #  move the existing local file with time representing eots (end of time step) out of the way
-        sRenameCmd='mv '+sExistingFile+' '+fnameOutput+'.eots'
+    # We expect tim0==tStep or half a time step at this stage, which is the reason for shifting the time dimension by one time unit.
+    dtim=(tim0*60)+tim0m
+    if((dtim!=timeStep) and (2*dtim!=timeStep)):
+        logger.warning(f"First time axis value in input file {sExistingFile} is not zero(=midnight) nor zero plus half nor zero plus one time step.")
+    if(checkGrid):
+        sRenameCmd=''
+        fnameOutput='.'+os.path.sep+'regridded'+os.path.sep+sdlat+'x'+sdlon+os.path.sep+os.path.basename(sExistingFile).split(os.path.sep)[-1]
+        if('./regridded/' in sExistingFile):
+            #  move the existing local file with time representing eots (end of time step) out of the way
+            sRenameCmd='mv '+sExistingFile+' '+fnameOutput+'.eots'
+            rvalue=os.system(sRenameCmd)  
+            print(sRenameCmd, flush=True)
+        cdoCmd='cdo shifttime,-%dminute %s.eots  %s'%(dtim, fnameOutput, fnameOutput)
     else:
-        # it is a file straight from the carbon portal with correct grid to start with, but time alone is shifted.
-        sRenameCmd='cp '+sExistingFile+' '+fnameOutput+'.eots'
-    os.system(sRenameCmd)  
-    print(sRenameCmd, flush=True)
-    cdoCmd='cdo shifttime,-%dhour %s.eots  %s'%(timeStep, fnameOutput, fnameOutput)
+        fnameOutput=sExistingFile[:-3]+'_0hours.nc'
+        cdoCmd='cdo shifttime,-%dminute %s  %s'%(dtim, sExistingFile, fnameOutput)
     print(cdoCmd, flush=True)
-    os.system(cdoCmd) 
-    return(sExistingFile)
-    
-
+    rvalue=os.system(cdoCmd)
+    if(rvalue!=0):
+        if (checkGrid):
+            logger.error(f"The call to cdo to fix the lat/lon grid failed ({cdoCmd}). Abort.")
+        else:
+            # cdo has issues with the netcdf co2 background concentration files that Guillaume created. Try one last alternative approach:
+            # dump the netcdf file to a text file and modify the start time, then use ncgen to reassemble.
+            os.system("rm "+fnameOutput)
+            sCmd='ncdump '+sExistingFile+' >'+sExistingFile+'.dump'
+            rvalue=os.system(sCmd)
+            with open(sExistingFile+'.dump') as f:
+                lines = f.readlines()
+        f.close()
+        # outLines=[]
+        with open(sExistingFile+'.dump2', 'w') as file:
+            for line in lines:
+                newline=''
+                bReplaceLine=False
+                if 'time:units = \"hours since ' in line:
+                    # time:units = "hours since 2018-01-01 00:30:00" ;  => time:units = "hours since 2018-01-01 00:00:00" ;
+                    bNextChunkIsHours=False
+                    chunks=line.split(' ')
+                    for chunk in chunks:
+                        if any(chars.isdigit() for chars in chunk):  # must be the date chunk 2018-01-01
+                            bNextChunkIsHours=True
+                        newline=newline+chunk+' '
+                        if(bNextChunkIsHours):
+                            newline=newline+'00:00:00\" ;\r\n'
+                            bReplaceLine=True
+                            break
+                if(bReplaceLine==True):
+                    # outLines.append(newline)
+                    file.write(newline)
+                else:
+                    # outLines.append(line)
+                    file.write(line)
+                bReplaceLine=False
+        file.close()
+        # Now outLines should have all the data as before, but with the start time set to 00:00:00 as expected by Lumia
+        sCmd='ncgen -o '+sExistingFile[:-3]+'_0hours.nc '+sExistingFile+'.dump2 '
+        rvalue=os.system(sCmd)
+        sCmd='rm '+sExistingFile+'.dump2'
+        os.system(sCmd)
+        sCmd='rm '+sExistingFile+'.dump'
+        os.system(sCmd)
+        if(rvalue==0):
+            return(sExistingFile[:-3]+'_0hours.nc',  True)
+        else:
+            return(sExistingFile,  False)
+    return(sExistingFile,  True)
