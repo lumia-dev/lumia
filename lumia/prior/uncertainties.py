@@ -10,6 +10,9 @@ from pandas import DateOffset, DataFrame
 from tqdm.autonotebook import tqdm
 from lumia.utils import debug
 from typing import Tuple
+from pathlib import Path
+from h5py import File
+import hashlib
 
 
 _common = {}   # common for multiprocessing
@@ -70,9 +73,15 @@ class SpatialCorrelation:
     min_eigval : float = 0.00001
     stretch_ratio : float = 1.
     min_corr : float = 1.e-7
+    cache_dir : Path | None = None
 
-    @debug.trace_call
+    @debug.trace_args()
     def __post_init__(self):
+        
+        # Ensure that cache_dir is a Path and not a str (if not None)
+        if self.cache_dir :
+            self.cache_dir = Path(self.cache_dir)
+            
         self.n = len(self.lats)
 
         # Calculate the covariance matrix:
@@ -89,9 +98,31 @@ class SpatialCorrelation:
                 raise ValueError
         self.mat[self.mat < self.min_corr] = 0.
         self.eigen_vectors, self.eigen_values = self.calc_eigen_decomposition()
+        
+    @property
+    def hash(self) -> int :
+        """
+        hash of the class instance, used to avoid re-computing the eigen-decomposition if it has been done already
+        """
+        return hashlib.md5(self.mat).hexdigest()
 
-    @debug.trace_call
+    @debug.trace_args()
     def calc_eigen_decomposition(self) -> Tuple[NDArray, NDArray]:
+        """
+        Calculate the eigen decomposition of the spatial correlation matrix.
+        Since it can be quite time consuming for large matrices, the eigen decomposition can be read from a file, computed in a previous run. For that, the "cache_dir" attribute must be set to a valid path.
+        The cached file is named after the "hash" attribute of the object (itself computed based on the combined hashes of the main attributes), e.g. "horizontal_correlation.{hash}.nc". 
+        - If a valid cache file is found, then the eigen decomposition is simply read from it
+        - If no valid cache file is found but a "cache_dir" attribute exists (and is not None), then the eigen decomposition will be calculated and written to a new cache file.
+        """
+        if self.cache_dir is not None :
+            corrfile = self.cache_dir / f'horizontal_correlation.{self.hash}.nc'
+            logger.info(f"Reading correlations from {corrfile}")
+            if corrfile.exists():
+                logger.info(f"Reading correlations from {corrfile}")
+                with File(self.cache_dir / f'horizontal_correlation.{self.hash}.nc') as fid :
+                    return fid['eigen_vectors'][:], fid['eigen_values'][:]**.5
+                
         lam, p = linalg.eigh(self.mat)
 
         # Make positive semidefinite
@@ -108,11 +139,33 @@ class SpatialCorrelation:
             logger.error(f"{n_neg - n_neg2} large negative eigen values set to 0. Maybe it's a bug?")
         if n_neg > 0 :
             logger.debug(f"Set {n_neg} eigenvalues to {min_eigval:15.11f}")
+            
+        if self.cache_dir :
+            # Create the directory if needed
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Write the eigen decomposition in it
+            with File(self.cache_dir / f'horizontal_correlation.{self.hash}.nc', 'w') as fid :
+                fid.create_dataset('eigen_vectors', p.shape, compression='gzip')
+                fid.create_dataset('eigen_values', lam.shape, compression='gzip')
+                fid.create_dataset('lats', self.lats.shape, compression='gzip')
+                fid.create_dataset('lons', self.lons.shape, compression='gzip')
+                #fid.create_dataset('B', self.mat.shape, compression='gzip')
+                fid['eigen_vectors'][:] = p
+                fid['eigen_values'][:] = lam
+                fid['lats'][:] = self.lats
+                fid['lons'][:] = self.lons
+                #fid['B'] = self.mat
+                fid.attrs['corlen'] = self.corlen
+                fid.attrs['cortype'] = self.cortype
+                fid.attrs['min_eigval'] = self.min_eigval
+                fid.attrs['stretch_ratio'] = self.stretch_ratio
+                fid.attrs['min_corr'] = self.min_corr
 
         return p, lam**.5
 
     @property
-    @debug.trace_call
+    @debug.trace_args()
     def L(self) -> NDArray:
         return self.eigen_vectors * self.eigen_values 
 
@@ -168,7 +221,7 @@ def aggregate_uncertainty(it1: int) -> float:
     return err
 
 
-@debug.trace_call
+@debug.trace_args()
 def calc_total_uncertainty(
         errvec: DataFrame,
         temporal_correlation: NDArray,
@@ -205,7 +258,7 @@ def calc_total_uncertainty(
     
 
 
-@debug.trace_call
+@debug.trace_args("corlen")
 def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFrame) -> TemporalCorrelation:
     assert dt.base == corlen.base
 
@@ -216,8 +269,8 @@ def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFr
     return TemporalCorrelation(corlen=corlen.n / dt.n, dt=1., n=nt)
 
 
-@debug.trace_call
-def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame) -> SpatialCorrelation:
+@debug.trace_args('catname', 'corstring', 'cache_dir')
+def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame, cache_dir : Path = None) -> SpatialCorrelation:
     corlen, cortype = corstring.split('-')
     corlen = int(corlen)
     logger.warning("poor implementation. fix might be needed ...")
@@ -225,4 +278,10 @@ def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame)
     # It would be better to have unique categories that have cat name and cat tracer as properties
     vec = sigmas.loc[(sigmas.category == catname)]
     vec = vec.loc[vec.time == vec.iloc[0].time]
-    return SpatialCorrelation(corlen=corlen, cortype=cortype, lats=vec.lat.values, lons=vec.lon.values)
+    return SpatialCorrelation(
+        corlen=corlen, 
+        cortype=cortype, 
+        lats=vec.lat.values, 
+        lons=vec.lon.values, 
+        cache_dir=cache_dir
+    )

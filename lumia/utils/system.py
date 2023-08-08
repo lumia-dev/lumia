@@ -45,11 +45,14 @@ def colorize(msg, color=None):
     return msg
 
 
-def runcmd(cmd):
-    logger.info(colorize(' '.join([str(x) for x in cmd]), 'g'))
+def runcmd(cmd, shell : bool = False):
+    cmdstr = ' '.join([str(x) for x in cmd])
+    logger.info(colorize(cmdstr), 'g')
+    if shell :
+        cmd = cmdstr
     try :
         # p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        p = subprocess.run(cmd)
+        p = subprocess.run(cmd, shell=shell)
     except subprocess.CalledProcessError :
         logger.error("external command failed, exiting ...")
         raise subprocess.CalledProcessError

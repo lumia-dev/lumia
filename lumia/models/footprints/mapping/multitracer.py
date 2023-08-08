@@ -199,7 +199,7 @@ class Mapping:
             smap = sensi_map[cat.tracer] if sensi_map else None
             self.spatial_mapping[cat] = self.calc_spatial_coarsening(cat, sensi_map=smap)
 
-    @debug.trace_call
+    @debug.trace_args()
     def calc_temporal_coarsening(self, cat: Category) -> Dataset :
         mapping = Dataset()
 
@@ -237,7 +237,7 @@ class Mapping:
 
         return mapping
 
-    @debug.trace_call
+    @debug.trace_args()
     def calc_spatial_coarsening(
         self, 
         cat: Category, 
@@ -280,11 +280,11 @@ class Mapping:
         else :
             return self.optimize_at_native_spatial_resolution(cat, lsm)
 
-    @debug.trace_call
+    @debug.trace_args()
     def reduce_resolution(self, cat: Category, aggregate_lat : int, aggregate_lon : int, lsm : None | NDArray) -> Dataset:
         raise NotImplementedError
     
-    @debug.trace_call
+    @debug.trace_args()
     def aggregate_in_spatial_clusters(self, cat: Category, sensi_map: NDArray, lsm : None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
@@ -329,7 +329,7 @@ class Mapping:
 
         return mapping
 
-    @debug.trace_call
+    @debug.trace_args()
     def optimize_at_native_spatial_resolution(self, cat, lsm: None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
@@ -361,11 +361,11 @@ class Mapping:
         
         return mapping
 
-    @debug.trace_call
+    @debug.trace_args()
     def setup_prior(self) -> None :
         self.optim_data = self.control_vector.loc[:, ['category', 'tracer', 'state_prior']]
 
-    @debug.trace_call
+    @debug.trace_args()
     @debug.timer
     def coarsen_cat(self, cat : Category, data : NDArray = None, value_field : str = 'state_prior') -> DataFrame:
         if data is None :

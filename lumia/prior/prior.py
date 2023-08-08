@@ -11,6 +11,7 @@ from numpy import zeros
 from lumia.optimizer.categories import Category
 from pathlib import Path
 from lumia.utils import debug
+from omegaconf import DictConfig
 
 
 @dataclass
@@ -32,8 +33,8 @@ class PriorConstraints:
         return self.vectors.shape[0]
 
     @classmethod
-    @debug.trace_call
-    def setup(cls, mapping: Mapping) -> "PriorConstraints":
+    @debug.trace_args()
+    def setup(cls, dconf: Dict | DictConfig, mapping: Mapping) -> "PriorConstraints":
         vectors = []
         sigmas, corr_t, corr_h = {}, {}, {}
         for cat in mapping.optimized_categories:
@@ -50,7 +51,10 @@ class PriorConstraints:
                 errvec
             )
             corr_h[cat] = calc_horizontal_correlation(
-                cat.name, cat.horizontal_correlation, errvec
+                cat.name, 
+                cat.horizontal_correlation, 
+                errvec,
+                cache_dir=dconf.get('cache_dir', None)
             )
 
             # Calculate the current total uncertainty for the category:
