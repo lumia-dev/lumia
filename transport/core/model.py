@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from h5py import File
 import tempfile
 import os
-from pandas import Timestamp, Timedelta
+from pandas import Timestamp, Timedelta, DataFrame
 from pandas import DataFrame as Observations
 from transport.emis import EmissionFields, Emissions, Grid
 from lumia.utils import debug
@@ -26,13 +26,24 @@ class Footprint(Protocol):
 class FootprintFile(Protocol):
     footprints : List[Footprint]
 
-    def __getitem__(self, obsid: str) -> Footprint:
+    def __getitem__(self, obsid: str) -> Footprint: ...
+
+    def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp) -> int: ...
+
+    def get_endpoints(self, obsids: List[str]) -> DataFrame :
+        """
+        This method should return these endpoints as a DataFrame, with
+        the following columns: 
+            - lon : float
+            - lat : float
+            - height : float
+            - time : Timestamp
+            - obsid : str
+        If background info (trajectories endpoints) is not present in the file, an error should be raised.
+        """
         ...
-
-    def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp) -> int:
-        ...
-
-
+     
+        
 @dataclass
 class SharedMemory:
     footprint_class: Type[FootprintFile] = None
@@ -45,6 +56,7 @@ class SharedMemory:
             args = self.__dataclass_fields__
         for k in args:
             setattr(self, k, None)
+
 
 shared_memory = SharedMemory()
 
@@ -143,7 +155,6 @@ class Forward(BaseTransport):
         """
         Do a forward run on the selected footprint file. Set silent to False to enable progress bar
         """
-
         obslist = shared_memory.obs
         obslist = obslist.loc[obslist.footprint == filename, ['obsid',]]
         emis = shared_memory.emis
@@ -253,6 +264,55 @@ class Adjoint(BaseTransport):
         return fname
 
 
+# @dataclass
+# class Background:
+#     footprint_class : Type[FootprintFile]
+#     parallel : bool = False
+#     ncpus : int = cpu_count()
+#     tempdir : Path = Path('/tmp')
+#     _silent : bool | None = None
+    
+#     def run(self, conc_field : xr.Dataset, obs: DataFrame) -> DataFrame:
+        
+#         for tracer in conc_field.tracers :
+#             obs_tracer = self.interp_tracer(
+#                 tracer, 
+#                 conc_field[[tracer, 'height_above_ground']], obs.loc[obs.tracer == tracer]
+#                 )
+#             obs.loc[obs_tracer.index, 'mix_background'] = obs_tracer.mix_background
+#         return obs
+            
+#     def interp_tracer(self, tracer_name : str, conc : xr.Dataset, obs : DataFrame):
+#         bg = []
+#         for fpfile in tqdm(obs.footprint.dropna().drop_duplicates()):
+#             # No parallelization, for now:
+#             bg.append(self.interp_footprint_file(tracer_name, conc, obs, fpfile))
+#         return concat(bg)
+
+#     @staticmethod
+#     def interp_footprint_file(self, tracer_name : str, conc : xr.Dataset, obs: DataFrame, footprint_file : str):
+#             with self.footprint_class(footprint_file) as fpf:
+#                 endpoints = fpf.endpoints
+
+#             # Interpolate columns at the particles positions:
+#             columns = conc.interp(
+#                 longitude = ('particles', endpoints.lon),
+#                 latitude = ('particles', endpoints.lat),
+#                 time = ('particles', endpoints.time)
+#                 )
+            
+#             # Interpolate the columns at the particles height:
+#             layer = columns.height_above_ground.values
+#             column_conc = columns[tracer_name].values
+#             level = (layer[:, :1] + layer[:, :-1]) / 2.
+#             conc_interp = [interp(endpoints.height[ipos], level[ipos], column_conc[ipos]) for ipos in range(len(endpoints))]
+            
+#             # Calculate the average for each release:
+#             df = DataFrame.from_dict({'mix_background': conc_interp, 'obsid': endpoints.obsid})
+#             df = df.groupby('obsid').mean()
+#             return df.reset_index()
+        
+
 @dataclass
 class Model(ABC):
     parallel : bool = False
@@ -264,6 +324,10 @@ class Model(ABC):
 
     def run_adjoint(self, obs: Observations, adj_emis: Emissions) -> Emissions:
         return Adjoint(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(adj_emis, obs)
+
+    # def interpolate_backgrounds(self, obs: Observations, conc_field : xr.Dataset) -> Observations:
+    #     return Background(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(conc_field, obs)
+        
 
     @property
     @abstractmethod

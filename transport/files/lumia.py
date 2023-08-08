@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-from pandas import Timedelta, Timestamp
+from pandas import Timedelta, Timestamp, DataFrame, TimedeltaIndex, concat
 import h5py
 from gridtools import Grid
 from numpy import inf
 from loguru import logger
 from typing import List
 from types import SimpleNamespace
+from dataclasses import asdict
 
 
 class LumiaFootprintFile(h5py.File):
@@ -37,6 +38,32 @@ class LumiaFootprintFile(h5py.File):
     @property
     def footprints(self) -> List[str]:
         return [k for k in self.keys() if isinstance(self[k], h5py.Group)]
+
+    @property
+    def endpoints(self) -> DataFrame | None:
+        # Get list of footprints that have a "background" subgroup:
+        footprints_with_background = [f for f in self.footprints if 'background' in self[f]]
+        
+        # If endpoints have not been calculated by FLEXPART, just return None
+        if not footprints_with_background :
+            return None
+        
+        # Retrieve all endpoints and return them in as a DataFrame:
+        return self.get_endpoints(footprints_with_background)
+        
+    def get_endpoint(self, obsid : str) -> DataFrame:
+        
+        df = DataFrame(dict(
+            lon = self[obsid]['background']['lon'][:],
+            lat = self[obsid]['background']['lat'][:],
+            height = self[obsid]['background']['height'][:],
+            time = self.origin + TimedeltaIndex(self[obsid]['background']['time'][:], unit='s')
+        ))
+        df.loc[:, 'obsid'] = obsid
+        return df
+
+    def get_endpoints(self, obsids : List[str]) -> DataFrame :
+        return concat([self.get_endpoint(obsid) for obsid in obsids])
 
     def align(self, grid: Grid, timestep: Timedelta, origin: Timestamp):
         assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"

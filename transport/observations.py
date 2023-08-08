@@ -8,6 +8,13 @@ from tqdm import tqdm
 from loguru import logger
 from transport.core.model import FootprintFile
 from typing import Type
+import xarray as xr
+from transport.concentrations import interp_file
+from multiprocessing import Pool
+from functools import partial
+
+
+common = {}
 
 
 def check_migrate(source, dest):
@@ -86,3 +93,17 @@ class Observations(DataFrame):
         self.find_footprint_files(archive, local)
         self.gen_obsid()
         self.check_footprint_files(cls)
+
+    def interp_background(self, conc_field : xr.Dataset, footprint_class: Type[FootprintFile]):
+        # single process implementation:
+        files = self.loc[:, ['footprint', 'tracer']].drop_duplicates().dropna()
+        self.loc[:, 'mix_background'] = nan
+        pbar = tqdm(files.itertuples(), total=len(files))
+        for fpfile in pbar:
+            obs = self.loc[(self.footprint == fpfile.footprint) & (self.tracer == fpfile.tracer), ['footprint', 'obsid', 'tracer']]
+            with footprint_class(fpfile.footprint) as fpf:
+                endpoints = fpf.get_endpoints(obs.obsid)
+            bg = interp_file(conc_field, endpoints, fpfile.tracer.upper(), field='mix_interpolated')
+            tqdm.write(f'Mean {fpfile.tracer} background for file {fpfile.footprint}: {bg.mix_interpolated.mean()}')
+            bg = self.merge(bg, on='obsid', how='left').set_index(self.index).mix_interpolated.dropna()
+            self.loc[bg.index, 'mix_background'] = bg

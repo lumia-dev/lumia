@@ -6,7 +6,9 @@ from transport.emis import Emissions
 from transport.observations import Observations
 from transport.files.lumia import LumiaFootprintFile
 from transport.files.stilt import StiltFootprintFile
+from transport.concentrations import read_conc_file
 from pandas import Timedelta
+from pathlib import Path
 
 
 class MultiTracer(Model):
@@ -42,6 +44,7 @@ if __name__ == '__main__':
     p.add_argument('--ncpus', '-n', default=os.cpu_count(), type=int)
     p.add_argument('--max-footprint-length', type=Timedelta, default='14D')
     p.add_argument('--verbosity', '-v', default='INFO')
+    p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
     p.add_argument('args', nargs=REMAINDER)
@@ -50,17 +53,31 @@ if __name__ == '__main__':
     # Set the verbosity in the logger (loguru quirks ...)
     logger.remove()
     logger.add(sys.stderr, level=args.verbosity)
+    logger.debug('test')
 
     obs = Observations.read(args.obs)
 
     # Set the max time limit for footprints:
     LumiaFootprintFile.maxlength = args.max_footprint_length
 
+    # Optional: detect footprints
     if args.check_footprints or 'footprint' not in obs.columns:
+        logger.info(f'Searching footprints in {args.footprints}')
         obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints)
 
+    # Optional: interpolate a background field:
+    if args.background:# and 'mix_background' not in obs.columns:
+        logger.info(f'Interpolating backgrounds from {args.background}')
+        logger.debug(args.background)
+        bg = read_conc_file(args.background)
+        obs.interp_background(bg, LumiaFootprintFile)
+        if not args.forward or args.adjoint or args.adjtest:
+            obs.write(args.obs)
+
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
+
     emis = Emissions.read(args.emis)
+
     if args.forward:
         obs = model.run_forward(obs, emis)
         obs.write(args.obs)
