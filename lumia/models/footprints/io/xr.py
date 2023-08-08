@@ -23,6 +23,8 @@ from omegaconf import DictConfig
 from lumia.optimizer.categories import Category, attrs_to_nc, Constructor
 from lumia.utils import debug
 import dask
+import pprint
+import glob
 
 
 def offset_to_pint(offset: DateOffset):
@@ -308,7 +310,7 @@ class TracerEmis(xr.Dataset):
 
         self.attrs['units'] = dest
 
-    @debug.logged
+    @debug.trace_args()
     def to_netcdf(self, filename, group=None, only_transported=False, **kwargs) -> Path:
 
         # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
@@ -634,6 +636,8 @@ class Data:
         - emissions.{tracer}.interval
         - emissions.{tracer}.{cat}.origin
         - emissions.{tracer}.prefix
+        - emissions.{tracer}.{cat}.resample_from
+        - emissions.{tracer}.{cat}.field
 
         Additionally, start and time arguments must be provided
         """
@@ -648,17 +652,40 @@ class Data:
                 TracerEmis(tracer_name=tracer, grid=tr.region, time=time, units=unit_emis, timestep=tr.interval))
 
             for catname, cat in tr.categories.items():
+                # The name of the files should follow the pattern {path}/{prefix}{origin}.*.nc
+                # - path is given by the key "emissions.{tracer}.path"
+                # - prefix is given by the key "emissions.{tracer}.prefix"
+                # - origin is either given by the key "emissions.{tracer}.categories.{cat}" (as for "categ1" in the example below) or by the key "emissions.{tracer}.categories.{cat}.origin" (as for "categ2" in the example below).
+                #
+                # Example:
+                # emissions:
+                #   tracer :
+                #       prefix : flux_tracer.
+                #       categories :
+                #           categ1 : cat1_origin
+                #           categ2 : 
+                #               origin : cat2_origin
                 origin = cat if isinstance(cat, str) else cat.origin
-                freq_src = cat.resample_from if isinstance(cat, DictConfig) else tr.get('resample_from', tr.interval)
-                attrs = {'origin': cat} if isinstance(cat, str) else cat
 
+                # If there are several fields in the nc files, then the relevant field may need to be specified via the "emissions.{tracer}.categories.{cat}.field" key
+                field = cat.get('field', None) if isinstance(cat, DictConfig) else None
+                
+                # Optionally, the data can be resampled from another temporal resolution. This is specified via the "emissions.{tracer}/categories.{cat}.resample_from" key
+                freq_src = cat.get('resample_from', tr.interval) if isinstance(cat, DictConfig) else tr.interval
+                
+                # Construct the full file pattern
                 prefix = Path(tr.path) / freq_src / (tr.prefix + origin + '.')
 
-                emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=tr.get('archive', None))
+                # Load the emissions
+                emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=tr.get('archive', None), field=field)
+                
+                # Add them to the current data structure
+                attrs = {'origin': cat} if isinstance(cat, str) else cat
                 em[tracer].add_cat(catname, emis, attrs=attrs)
         return em
 
 
+@logger.catch
 def load_preprocessed(
     prefix: str,
     start: Timestamp | str,
@@ -666,6 +693,7 @@ def load_preprocessed(
     freq: str = None,
     grid: Grid = None,
     archive: str = None,
+    field : str = None
 ) -> NDArray:
     """
     Construct an emissions DataArray by reading, and optionally up-sampling, the pre-processed emission files for one
@@ -681,6 +709,7 @@ def load_preprocessed(
                   be up-sampled (by simple rebinning, no change in the actual flux distribution).
     - grid      : grid definition of the produced emissions. Not fully implemented, should be left to default value
     - archive   : alternative location for the pre-processed emission files. Should be a rclone remote, (e.g. rclone:lumia:path/to/the/emissions). The remote must be configured on the system (i.e. "rclone lsf rclone:lumia:path/to/the/emissions should return the list of emission files on the rclone remote)
+    - field     : name of the field to be read, in case there are several fields in the pre-processed emission file
     """
 
     archive = Rclone(archive)
@@ -693,7 +722,12 @@ def load_preprocessed(
         end = Timestamp(end)
         
         # There should be a single dataarray in the file: get it:
-        assert len(data.data_vars) == 1, logger.error("The file(s) contains multiple data variables. I don't know what to do with them!")
+        if field is None and len(data.data_vars) == 1:
+            field = list(data.data_vars)[0]
+        elif field is None :
+            logger.error("The file(s) contains multiple data variables. I don't know what to do with them:")
+            logger.error(pprint.pformat(glob.glob(f'{prefix}*nc')))
+            raise RuntimeError
         data = data[list(data.data_vars)[0]]
 
         # Resample if needed:
