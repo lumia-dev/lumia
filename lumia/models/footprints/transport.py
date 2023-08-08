@@ -12,6 +12,7 @@ from .io.xr import Data
 from ...utils.system import runcmd
 import shutil
 from loguru import logger
+from lumia.utils import debug
 from numpy import ones, array
 
 
@@ -30,7 +31,7 @@ class Transport:
     executable : List[str]
     split_categories : bool
     output_steps : List[str]
-    extra_arguments : List[str]
+    extra_arguments : DictConfig
     extra_fields : List[str]
     serial : bool
     setup_uncertainties : List[str] = field(default_factory=list)
@@ -50,7 +51,8 @@ class Transport:
             self.executable = [sys.executable, str(self.executable)]
 
         # Ensure that the "extra_arguments" (if any) are str:
-        self.extra_arguments = [str(arg) for arg in self.extra_arguments]
+        #for k, v in self.extra_arguments.items():
+        #    self.extra_arguments[k] = [str(arg) for arg in self.extra_arguments[k]]
 
     def setup_observations(self, obs : Observations):
         self._observations = obs
@@ -66,6 +68,7 @@ class Transport:
         return self._observations.sites
 
     # Main methods:
+    @debug.trace_args("step")
     def calc_departures(self, emissions: Emissions, step: str = None) -> Departures:
         _, obsfile = self.run_forward(emissions, step)
 
@@ -96,7 +99,8 @@ class Transport:
 
         return dept.loc[:, ['mismatch', 'sigma']]
 
-    def calc_departures_adj(self, forcings : DataFrame) -> Data:
+    @debug.trace_args()
+    def calc_departures_adj(self, forcings : DataFrame, step='adjoint') -> Data:
 
         # Write departures file
         self.observations.loc[forcings.index, 'dy'] = forcings
@@ -110,14 +114,17 @@ class Transport:
         cmd = self.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.path_footprints, '--tmp', self.path_temp]
         if self.serial :
             cmd.append('--serial')
-        cmd.extend(self.extra_arguments)
-
+        if step in self.extra_arguments:
+            cmd.append(self.extra_arguments[step])
+        if "*" in self.extra_arguments:
+            cmd.append(self.extra_arguments['*'])
         # Run
-        runcmd(cmd)
+        runcmd(cmd, shell=True)
 
         # Read result and return:
         return Data.from_file(adjemis_file)
 
+    @debug.trace_args()
     def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
@@ -134,11 +141,15 @@ class Transport:
         if self.serial or serial:
             cmd.append('--serial')
 
-        cmd.extend(self.extra_arguments)
-        runcmd(cmd)
+        if step in self.extra_arguments:
+            cmd.append(self.extra_arguments[step])
+        if '*' in self.extra_arguments:
+            cmd.append(self.extra_arguments['*'])
+        runcmd(cmd, shell=True)
 
         return emf, dbf
 
+    @debug.trace_args()
     def save(self, tag : str | None = None, path: Path | None = None):
         """
         Copies the last model I/O to "path", with an optional tag to identify it
@@ -156,6 +167,7 @@ class Transport:
         self._observations.save_tar(path / f'observations.{tag}tar.gz')
         shutil.copy(self.emissions_file, path / f'emissions.{tag}nc')
 
+    @debug.trace_args()
     def calc_uncertainties(self, err_obs : str = 'err_obs', err_min : float = 0, step: str = None, freq : str = '7D') -> None:
         # Ensure that all observations have a measurement error:
         sel = self.observations.loc[:, err_obs] <= 0
@@ -197,6 +209,7 @@ class Transport:
             self.observations.loc[self.observations.code == code, 'obs_detrended'] = obs_averaged.values
             self.observations.loc[self.observations.code == code, 'mod_detrended'] = mod_averaged.values
 
+    @debug.trace_args()
     def calc_sensi_map(self, emissions: Emissions):
         departures = ones(self.observations.shape[0])
         emissions.to_netcdf(self.path_temp / 'emissions.nc', zlib=False, only_transported=True)
