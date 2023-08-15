@@ -1,0 +1,16 @@
+tables
+h5py
+numpy
+pandas
+loguru
+tqdm
+Cartopy
+matplotlib
+python-dateutil
+netCDF4
+xarray
+Pint
+omegaconf
+scipy
+PyYAML
+setuptools
