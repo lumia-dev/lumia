@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from abc import ABC, abstractmethod
 from functools import partial
-from numpy import array, argsort, dot, finfo, ndarray, zeros, arange, nonzero
+from numpy import array, argsort, dot, finfo, ndarray, zeros, arange, nonzero, ndarray
 from typing import List, Protocol, Type
 from tqdm import tqdm
 from loguru import logger
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, shared_memory
 from dataclasses import dataclass
 from h5py import File
 import tempfile
@@ -58,7 +58,7 @@ class SharedMemory:
             setattr(self, k, None)
 
 
-shared_memory = SharedMemory()
+shared_mem = SharedMemory()
 
 
 @dataclass
@@ -70,7 +70,7 @@ class BaseTransport:
     _silent: bool = None
 
     def __post_init__(self):
-        shared_memory.footprint_class = self.footprint_class
+        shared_mem.footprint_class = self.footprint_class
 
     @property
     def silent(self):
@@ -118,14 +118,14 @@ class Forward(BaseTransport):
         nobs = array([obs.loc[obs.footprint == f].shape[0] for f in filenames])
         filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
 
-        shared_memory.emis = emis
-        shared_memory.obs = obs
+        shared_mem.emis = emis
+        shared_mem.obs = obs
 
         for obslist in self.run_files(filenames):
             for field in emis.categories:
                 obs.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, f'mix_{field}']#.astype(float)
 
-        shared_memory.clear('emis', 'obs')
+        shared_mem.clear('emis', 'obs')
 
         # Combine the flux components :
         try:
@@ -155,10 +155,10 @@ class Forward(BaseTransport):
         """
         Do a forward run on the selected footprint file. Set silent to False to enable progress bar
         """
-        obslist = shared_memory.obs
+        obslist = shared_mem.obs
         obslist = obslist.loc[obslist.footprint == filename, ['obsid',]]
-        emis = shared_memory.emis
-        with shared_memory.footprint_class(filename) as fpf :
+        emis = shared_mem.emis
+        with shared_mem.footprint_class(filename) as fpf :
 
             # Align the coordinates
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
@@ -193,25 +193,29 @@ class Adjoint(BaseTransport):
         filenames = [filenames.values[i] for i in argsort(nobs)[::-1]]
 
         # Run the separate chunks
-        shared_memory.obs = obs
+        shared_mem.obs = obs
 
         # Set the current data to 0:
         adjemis.setzero()
 
         # Get the shape of the adjoint field, store it in memory and create a new container for the data
-        shared_memory.grid = adjemis.grid
-        shared_memory.time = adjemis.times
+        shared_mem.grid = adjemis.grid
+        shared_mem.time = adjemis.times
 
-        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files', leave=self.silent):
-            with File(adjfile, 'r') as ds :
-                coords = ds['coords'][:]
-                values = ds['values'][:]
-                for cat in adjemis.categories :
-                    adjemis[cat].data.reshape(-1)[coords] += values
-            os.remove(adjfile)
-
-        shared_memory.clear('grid', 'time', 'obs')
-
+        # Attempt of a new implementation using the multiprocessing.shared_memory module:
+        adjfield = adjemis[adjemis.categories[0]].data                                          # Just get the first category for reference (shape, size and dtype)
+        shm = shared_memory.SharedMemory(name='adjfield', create=True, size=adjfield.nbytes)    # Create the shared memory object
+        adjfield = ndarray(adjfield.shape, dtype=adjfield.dtype, buffer=shm.buf)                # Populate it with a numpy array
+        adjfield[:] = 0.                                                                        # Ensure the array is initialized with zeros
+         
+        _ = tqdm(self.run_files(filenames), desc='Calculate adjoint chunks', leave=self.silent) # The subprocesses will then add data to it
+        for cat in adjemis.categories :
+            #if adjemis[cat].optimized:
+            adjemis[cat].data[:] = adjfield[:]
+            #else :
+            #    del adjemis[cat]
+        shm.close()
+        shared_mem.clear('grid', 'time', 'obs')
         return adjemis
 
     def run_files_serial(self, filenames: List[str]) -> List[str]:
@@ -236,32 +240,28 @@ class Adjoint(BaseTransport):
             return list(tqdm(pool.imap(func, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks', leave=False))
 
     @staticmethod
-    def run_subset(filenames: List[str], silent: bool = True, tempdir: str = '/tmp') -> str :
+    def run_subset(filenames: List[str], silent: bool = True, tempdir: str = '/tmp') -> None :
         #observations = shared_memory.obs
-        times = shared_memory.time
-        grid = shared_memory.grid
-
+        times = shared_mem.time
+        grid = shared_mem.grid
         adj_emis = zeros((times.nt, grid.nlat, grid.nlon))
 
         for file in tqdm(filenames, disable=silent) :
-            observations = shared_memory.obs.loc[shared_memory.obs.footprint == file]
+            observations = shared_mem.obs.loc[shared_mem.obs.footprint == file]
 
-            with shared_memory.footprint_class(file) as fpf :
+            with shared_mem.footprint_class(file) as fpf :
                 fpf.align(grid, times.timestep, times.min)
 
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
 
-        with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.h5') as fid :
-            fname = fid.name
-        with File(fname, 'w') as fid :
-            adj_emis = adj_emis.reshape(-1)
-            nz = nonzero(adj_emis)[0]
-            fid['coords'] = nz
-            fid['values'] = adj_emis[nz]
+        # Save to shared memory
+        shm = shared_memory.SharedMemory(name='adjfield')
+        result = ndarray(adj_emis.shape, adj_emis.dtype, buffer=shm.buf)
+        result[:] += adj_emis
+        shm.close()
 
-        return fname
 
 
 # @dataclass
