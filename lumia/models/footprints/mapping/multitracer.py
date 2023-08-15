@@ -179,7 +179,7 @@ class Mapping:
                     'optimization_interval': optim_pars.optimization_interval,
                     'apply_lsm': optim_pars.get('apply_lsm', True),
                     'is_ocean': optim_pars.get('is_ocean', False),
-                    'n_optim_points': optim_pars.npoints,
+                    'n_optim_points': optim_pars.get('npoints', None),
                     'horizontal_correlation': optim_pars.spatial_correlation,
                     'temporal_correlation': optim_pars.temporal_correlation
                 })

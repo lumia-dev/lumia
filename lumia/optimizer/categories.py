@@ -103,11 +103,12 @@ def attrs_to_nc(attrs: dict) -> dict:
     Convert items of a dictionary that cannot be written as netCDF attributes to a netCDF-compliant format.
     """
     # Make sure we work on a copy of the dictionary
-    attrs = {k: v for (k, v) in attrs.items()}
+    attrs = attrs.copy()
 
     # Store the name of the variables that have been converted
     to_bool = []
     to_units = []
+    to_none = []
 
     # Do the actual conversion
     for k, v in attrs.items():
@@ -119,12 +120,17 @@ def attrs_to_nc(attrs: dict) -> dict:
             to_units.append(k)
         if isinstance(v, Constructor):
             attrs[k] = v.str
+        if v is None :
+            attrs[k] = str(v)
+            to_none.append(k)
 
     # add attributes listing the variable conversions (for converting back)
     if to_bool:
         attrs['_bool'] = to_bool
     if to_units:
         attrs['_units'] = to_units
+    if to_none:
+        attrs['_none'] = to_none
     return attrs
 
 
@@ -133,10 +139,14 @@ def nc_to_attrs(attrs: dict) -> dict:
         attrs[attr] = bool(attrs[attr])
     for attr in attrs.get('_units', []):
         attrs[attr] = units_registry(attrs[attr]).units
+    for attr in attrs.get('_none', []):
+        attrs[attr] = None
     if '_bool' in attrs:
         del attrs['_bool']
     if '_units' in attrs:
         del attrs['_units']
+    if '_none' in attrs:
+        del attrs['_none']
     if 'constructor' in attrs:
         attrs['constructor'] = Constructor(attrs['constructor'])
     return attrs
