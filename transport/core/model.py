@@ -202,19 +202,27 @@ class Adjoint(BaseTransport):
         shared_mem.grid = adjemis.grid
         shared_mem.time = adjemis.times
 
-        # Attempt of a new implementation using the multiprocessing.shared_memory module:
-        adjfield = adjemis[adjemis.categories[0]].data                                          # Just get the first category for reference (shape, size and dtype)
-        shm = shared_memory.SharedMemory(name='adjfield', create=True, size=adjfield.nbytes)    # Create the shared memory object
-        adjfield = ndarray(adjfield.shape, dtype=adjfield.dtype, buffer=shm.buf)                # Populate it with a numpy array
-        adjfield[:] = 0.                                                                        # Ensure the array is initialized with zeros
+        for adjfile in tqdm(self.run_files(filenames), desc='Concatenate adjoint files', leave=self.silent):
+            with File(adjfile, 'r') as ds :
+                coords = ds['coords'][:]
+                values = ds['values'][:]
+                for cat in adjemis.categories :
+                    adjemis[cat].data.reshape(-1)[coords] += values
+            os.remove(adjfile)
+
+        # # Attempt of a new implementation using the multiprocessing.shared_memory module:
+        # adjfield = adjemis[adjemis.categories[0]].data                                          # Just get the first category for reference (shape, size and dtype)
+        # shm = shared_memory.SharedMemory(name='adjfield', create=True, size=adjfield.nbytes)    # Create the shared memory object
+        # adjfield = ndarray(adjfield.shape, dtype=adjfield.dtype, buffer=shm.buf)                # Populate it with a numpy array
+        # adjfield[:] = 0.                                                                        # Ensure the array is initialized with zeros
          
-        _ = tqdm(self.run_files(filenames), desc='Calculate adjoint chunks', leave=self.silent) # The subprocesses will then add data to it
-        for cat in adjemis.categories :
-            #if adjemis[cat].optimized:
-            adjemis[cat].data[:] = adjfield[:]
-            #else :
-            #    del adjemis[cat]
-        shm.close()
+        # _ = tqdm(self.run_files(filenames), desc='Calculate adjoint chunks', leave=self.silent) # The subprocesses will then add data to it
+        # for cat in adjemis.categories :
+        #     #if adjemis[cat].optimized:
+        #     adjemis[cat].data[:] = adjfield[:]
+        #     #else :
+        #     #    del adjemis[cat]
+        # shm.close()
         shared_mem.clear('grid', 'time', 'obs')
         return adjemis
 
@@ -240,7 +248,7 @@ class Adjoint(BaseTransport):
             return list(tqdm(pool.imap(func, buckets, chunksize=1), total=self.ncpus, desc='Compute adjoint chunks', leave=False))
 
     @staticmethod
-    def run_subset(filenames: List[str], silent: bool = True, tempdir: str = '/tmp') -> None :
+    def run_subset(filenames: List[str], silent: bool = True, tempdir: str = '/tmp') -> str :
         #observations = shared_memory.obs
         times = shared_mem.time
         grid = shared_mem.grid
@@ -256,11 +264,20 @@ class Adjoint(BaseTransport):
                     fp = fpf.get(obs.obsid)
                     adj_emis[fp.itims, fp.ilats, fp.ilons] += obs.dy * fp.sensi
 
-        # Save to shared memory
-        shm = shared_memory.SharedMemory(name='adjfield')
-        result = ndarray(adj_emis.shape, adj_emis.dtype, buffer=shm.buf)
-        result[:] += adj_emis
-        shm.close()
+        with tempfile.NamedTemporaryFile(dir=tempdir, prefix='adjoint_', suffix='.h5') as fid :
+            fname = fid.name
+        with File(fname, 'w') as fid :
+            adj_emis = adj_emis.reshape(-1)
+            nz = nonzero(adj_emis)[0]
+            fid['coords'] = nz
+            fid['values'] = adj_emis[nz]
+        return fname
+
+        # # Save to shared memory
+        # shm = shared_memory.SharedMemory(name='adjfield')
+        # result = ndarray(adj_emis.shape, adj_emis.dtype, buffer=shm.buf)
+        # result[:] += adj_emis
+        # shm.close()
 
 
 
