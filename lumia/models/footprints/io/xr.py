@@ -686,6 +686,7 @@ class Data:
 
 
 @logger.catch
+@debug.trace_args('prefix', 'start', 'end', 'freq', 'grid', 'archive', 'field')
 def load_preprocessed(
     prefix: str,
     start: Timestamp | str,
@@ -714,9 +715,13 @@ def load_preprocessed(
 
     archive = Rclone(archive)
 
+    # Import a file for each year at least partially covered:
+    for year in unique(date_range(start, end, freq='MS', inclusive='left').year) :
+        archive.get(f'{prefix}{year}.nc')
+
     with dask.config.set(**{'array.slicing.split_large_chunks': True}):
         data = xr.open_mfdataset(f'{prefix}*nc')
-    
+        
         # Ensure that the start and end are Timestamp:
         start = Timestamp(start)
         end = Timestamp(end)

@@ -10,8 +10,7 @@ from transport.core.model import FootprintFile
 from typing import Type
 import xarray as xr
 from transport.concentrations import interp_file
-from multiprocessing import Pool
-from functools import partial
+from pathlib import Path
 
 
 common = {}
@@ -57,6 +56,8 @@ class Observations(DataFrame):
         fnames_local = local + '/' + self.footprint
 
         # 3) retrieve the files from archive if needed:
+        if local is not None :
+            Path(local).mkdir(exist_ok=True, parents=True)
         exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
         self.loc[:, 'footprint'] = fnames_local
 
