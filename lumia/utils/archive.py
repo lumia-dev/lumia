@@ -2,6 +2,7 @@ import os
 import subprocess
 from loguru import logger
 from dataclasses import dataclass
+from typing import List
 
 
 class RcloneArchive:
@@ -174,6 +175,12 @@ class Rclone:
             _ = subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
             logger.exception(f"File {remotepath} not found on archive {self.protocol}:{self.remote}", traceback=False)
+
+    def lsf(self) -> List[str]:
+        """
+        Return a list of the files present on the archive
+        """
+        return subprocess.check_output(['rclone', 'lsf', f'{self.remote}:{self.path}']).decode().split()
 
     def get(self, filepath: str) -> bool:
         """
