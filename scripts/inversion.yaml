@@ -1,0 +1,115 @@
+donkey :
+  temp : /tmp
+  footprints : /scratch/users/guillaume/footprints/footprints_coco2_v2/
+  emissions : /data/users/guillaume/Projects/CoCO2_WP4/fluxes/eurocom025x025
+  congrad : ${lumia:bin/congrad.exe}
+  output : /data/users/guillaume/Projects/CoCO2_WP4/lumia/output
+  backgrounds : ../../backgrounds/z_cams_l_lsce_*_v18r3_ra_ml_3h_co2.nc
+  correlations : correlations
+  ncores : 24
+
+
+cosmos :
+  temp : /dev/shm/lumia
+  footprints : /home/gmonteil/data/LUMIA/footprints/footprints_coco2_v2/
+  footprints_scratch :  ${oc.env:SNIC_TMP}
+  emissions : /home/gmonteil/data/LUMIA/fluxes/eurocom025x025
+  congrad : ${lumia:src/congrad/congrad.exe}
+  output : /home/gmonteil/data/CoCO2_WP4/inv
+  backgrounds : backgrounds/z_cams_l_lsce_*_v18r3_ra_ml_3h_co2.nc
+  correlations : correlations
+  ncores : ${oc.env:SLURM_TASKS_PER_NODE}
+
+
+laptop :
+  temp : /dev/shm/lumia
+  footprints : /scratch/LUMIA/footprints/footprints_coco2_v2/
+  footprints_scratch : ${.footprints}
+  emissions : /scratch/LUMIA/fluxes/nc
+  output : output
+  correlations : /scratch/LUMIA/correlations
+  ncores : 8
+
+
+observations :
+  file :
+    path : /home/guillaume/Projects/CoCO2_WP4/lumia/co2/obspack_co2_466_GLOBALVIEWplus_v8.0_2023-03-30.2018.flexpart_20230627.tar.gz
+
+
+run :
+  start : 1 jan 2018
+  end : 1 jan 2019
+  tag : fossil+biosphere_v3
+  ncores : ${machine.ncores}
+  domain : eurocom025x025
+  paths :
+    output : ${machine.output}/${..tag}
+    cache_dir : ${machine.correlations}
+    emissions : ${machine.emissions}
+    temp : ${machine.temp}
+    footprints : ${machine.footprints}
+    footprints_scratch : ${machine.footprints_scratch}
+
+
+emissions :
+  tracers : [co2]
+  co2 :
+    path : ${run.paths.emissions}/${run.domain}
+    prefix : flux_co2.
+    region : "${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}"
+    interval : H
+    categories :
+      GPP : VPRM_GPP_coco2
+      respiration : VPRM_RESP_coco2
+      ocean :
+        origin : mercator_coco2
+        resample_from : M
+        field : flux_co2
+      fires :
+        origin : gfas1.2
+        resample_from : D
+      anthropogenic :
+        origin : tno
+        field : flux_co2
+      # lateral :
+      #   origin : lateral_flux.lsce.coco2
+      #   resample_from : Y
+    metacategories :
+      biosphere : GPP + respiration
+    archive : rclone:lumia:fluxes/nc/${run.domain}
+
+
+model :
+  path_temp : ${run.paths.temp}
+  executable : ${lumia:transport/multitracer.py}
+  path_footprints : ${run.paths.footprints}
+  split_categories : yes
+  output_steps : [apri, apos]
+  extra_arguments :
+    apri : --check-footprints --copy-footprints ${run.paths.footprints_scratch}
+    "*" : -n ${run.ncores}
+  extra_fields : [footprint, mix_background, obsid]
+  serial : no
+  path_output : ${run.paths.output}
+  setup_uncertainties : ['apri']
+
+
+congrad:
+  output_path : ${run.paths.output}
+  number_of_iterations : 10
+  gradient_norm_reduction : 1.e6
+
+
+optimize:
+  emissions :
+    co2:
+      biosphere:
+        annual_uncertainty: 0.5 PgCO2
+        spatial_correlation: 500-e
+        temporal_correlation: 30D
+        optimization_interval: 1d
+#      anthropogenic:
+#        annual_uncertainty : 0.07 PgCO2
+#        spatial_correlation : 500-e
+#        temporal_correlation: 7D
+#        optimization_interval : 1d
