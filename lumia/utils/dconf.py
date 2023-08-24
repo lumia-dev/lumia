@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 from pandas import Timestamp
 from types import SimpleNamespace
 from gridtools import Grid
@@ -39,3 +39,57 @@ if Path(sys.prefix) in prefix.parents :
 else :
     prefix = prefix.parent
 OmegaConf.register_new_resolver('lumia', lambda p: prefix / p)
+
+
+def read_config(file : str | Path, machine: str = None) -> DictConfig:
+    """
+    Load a yaml configuration file.
+    The "machine" optional argument can be a string, pointing to the name of a section to be rename as "machine". The content of that section should be machine-specific settings (i.e. paths, libraries, number of CPUs, etc.). This allows having a single configuration file valid on different computers.
+    
+    For example, consider the following sections of a yaml file:
+    ```
+        laptop :
+            temp : /dev/shm/lumia
+            footprints : /data/LUMIA/footprints
+            correlations : /data/LUMIA/correlations
+            ncores : 8
+            output : output
+        
+        hpc :
+            temp : /tmp
+            footprints : /proj/LUMIA/footprints
+            correlations : /scratch/LUMIA/correlations
+            ncores : ${oc.env:SLURM_TASKS_PER_NODE}
+            output : /scratch/LUMIA/output
+            
+        run :
+            start : 1 jan 2018
+            end : 1 jan 2019
+            tag : my-project
+            ncpus : ${machine.ncpus}
+            paths : 
+                temp : ${machine.tmp}
+                footprints : ${machine.footprints}
+                correlations : ${machine.correlations}
+                output : ${machine.output}/${.tag}
+            
+    ```
+    
+    If loaded with "read_config(filename, machine='hpc')", the keys under the "run" section will read their value from the "hpc" section, e.g. "run.paths.footprints" will evaluate to "/proj/LUMIA/footprints".
+    
+    If no value is provided for "machine", an error will be raised when attempting to read keys pointing to the "machine" section. To prevent that, one solution can be to add a default "machine" section.
+    
+    ```
+        machine :
+            temp : /tmp
+            footprints : ???                # Setting a key to "???" will raise a "MissingMandatoryValue" error
+            correlations : correlations
+            output : output
+            ncores : 1
+    ```
+                
+    """
+    dconf = OmegaConf.load(file)
+    if machine :
+        dconf['machine'] = dconf[machine]
+    return dconf

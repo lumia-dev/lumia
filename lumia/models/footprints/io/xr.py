@@ -25,6 +25,7 @@ from lumia.utils import debug
 import dask
 import pprint
 import glob
+import fnmatch
 
 
 def offset_to_pint(offset: DateOffset):
@@ -675,9 +676,14 @@ class Data:
                 
                 # Construct the full file pattern
                 prefix = Path(tr.path) / freq_src / (tr.prefix + origin + '.')
+                
+                # Do the same for the archive (if needed):
+                archive = tr.get('archive', None)
+                if archive is not None :
+                    archive = archive + '/' + freq_src
 
                 # Load the emissions
-                emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=tr.get('archive', None), field=field)
+                emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=archive, field=field)
                 
                 # Add them to the current data structure
                 attrs = {'origin': cat} if isinstance(cat, str) else cat
@@ -714,10 +720,21 @@ def load_preprocessed(
     """
 
     archive = Rclone(archive)
+    files_on_archive = archive.lsf()
+    
+    # Try to import one file for each month of the simulation. If not available, fallback on one file per year, finally, try a non time-specific file (e.g. climatology).
+    # I haven't felt the use to implement finer resolution files (e.g. daily), but it should be simple if needed ...
+    files_to_get = set()
+    for tt in date_range(start, end, freq='MS', inclusive='left'):
+        files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y-%m.nc'))
+        if len(files) == 0 :
+            files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y.nc'))
+        if len(files) == 0 :
+            files = fnmatch.filter(files_on_archive, prefix + '.nc')
+        files_to_get.update(files)
 
-    # Import a file for each year at least partially covered:
-    for year in unique(date_range(start, end, freq='MS', inclusive='left').year) :
-        archive.get(f'{prefix}{year}.nc')
+    for file in files_to_get :
+        archive.get(prefix.parent / file)
 
     with dask.config.set(**{'array.slicing.split_large_chunks': True}):
         data = xr.open_mfdataset(f'{prefix}*nc')
