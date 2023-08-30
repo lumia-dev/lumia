@@ -88,7 +88,7 @@ class Transport:
             self.observations.loc[:, key] = db.loc[:, key].values
 
         if step in self.setup_uncertainties:
-            self.calc_uncertainties(step=step)
+            self.observations.calc_uncertainties(step=step)
 
         dept = self.observations.dropna(subset=['mismatch', 'err']).loc[:, ['mismatch', 'err']]
         dept.loc[:, 'sigma'] = dept.err
