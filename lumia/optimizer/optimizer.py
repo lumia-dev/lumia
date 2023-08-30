@@ -150,8 +150,8 @@ class Var4D:
         ndof = self.nobs - self.iteration
         with open(self.settings.output_path / f'chi2.{self.step}.txt', 'w') as fid:
             fid.write(f'Inversion performed with {self.nobs = } observations and niter = {self.iteration} iterations\n')
-            fid.write(f'{self.step} cost function (chi2) value: {J.value}\n')
-            fid.write(f'      Reduced chi2 (chi2 / ndof): {J.value / ndof :.2f}\n')
+            fid.write(f'{self.step} cost function value: {J.value}\n')
+            fid.write(f'      Reduced chi2 (chi2 / ndof): {2 * J.value / ndof :.2f}\n')
 
     def calc_posterior_uncertainties(self, store_eigenvec: bool = False) -> None:
         """
