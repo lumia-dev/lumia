@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pandas import DataFrame, Timestamp, read_csv, read_hdf
 from pathlib import Path
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from typing import Dict, List
 import tarfile
 from loguru import logger
@@ -11,6 +11,20 @@ import tempfile
 import os
 from numpy.typing import NDArray
 from datetime import datetime
+from lumia.utils import debug
+
+
+@dataclass
+class Settings :
+    err_min : float = 0
+    err_freq : str = '7D'
+    err_fac : float = 1
+    field_err_obs : str = 'err_obs'
+
+    def update(self, **kwargs):
+        for k, v in kwargs.items():
+            if k in self.__dataclass_fields__:
+                setattr(self, k, v)
 
 
 @dataclass
@@ -19,7 +33,8 @@ class Observations:
     observations : DataFrame = None
     start : Timestamp = None
     end : Timestamp = None
-
+    settings : Settings = field(default_factory=Settings)
+    
     def __post_init__(self):
         if self.sites is None :
             self.sites = DataFrame(columns=['code', 'name', 'lat', 'lon', 'alt', 'height'])
@@ -153,3 +168,50 @@ class Observations:
             self.observations = observations
             self.sites = sites_table
             return self
+        
+    @debug.trace_args()
+    def calc_uncertainties(self, step: str = None):
+        
+        # Ensure that all observations have measurement error:
+        sel = self.observations.loc[:, self.settings.field_err_obs] <= 0
+        self.observations.loc[sel, self.settings.field_err_obs] = self.settings.err_min
+
+        for code in self.observations.code.drop_duplicates():
+            
+            # 1) Select the data:
+            mix = self.observations.loc[self.observations.code == code].loc[:, ['time', 'obs', f'mix_{step}', self.settings.field_err_obs]].set_index('time').sort_index()
+            
+             # 2) Calculate weekly moving average and residuals from it
+            #trend = mix.rolling(freq).mean()
+            #resid = mix - trend
+            
+            # Use a weighted rolling average, to avoid giving too much weight to the uncertain obs:
+            weights = 1. / mix.loc[:, self.settings.field_err_obs] ** 2
+            total_weight = weights.rolling(self.settings.err_freq).sum()   # sum of weights in a week (for normalization)
+            obs_weighted = mix.obs * weights
+            mod_weighted = mix.loc[:, f'mix_{step}'] * weights
+            obs_averaged = obs_weighted.rolling(self.settings.err_freq).sum() / total_weight
+            mod_averaged = mod_weighted.rolling(self.settings.err_freq).sum() / total_weight
+            resid_obs = mix.obs - obs_averaged
+            resid_mod = mix.loc[:, f'mix_{step}'] - mod_averaged
+            
+            # 3) Calculate the standard deviation of the residuals model-data mismatches. Store it in sites dataframe for info.
+            sigma = (resid_obs - resid_mod).dropna().values.std()
+            self.sites.loc[self.sites.code == code, 'err'] = sigma
+            logger.info(f'Model uncertainty for site {code} set to {sigma:.2f}')
+            
+            # 4) Get the measurement uncertainties and calculate the error inflation
+#            s_obs = self.observations.loc[:, self.settings.field_err_obs].values
+#            nobs = len(s_obs)
+#            s_mod = sqrt((nobs * sigma**2 - (s_obs**2).sum()) / nobs)
+
+            # 5) Store the inflated errors:
+            self.observations.loc[self.observations.code == code, 'err'] = (
+                self.observations.loc[self.observations.code == code, self.settings.field_err_obs] ** 2 + sigma ** 2).values ** .5
+            self.observations.loc[self.observations.code == code, 'resid_obs'] = resid_obs.values
+            self.observations.loc[self.observations.code == code, 'resid_mod'] = resid_mod.values
+            self.observations.loc[self.observations.code == code, 'obs_detrended'] = obs_averaged.values
+            self.observations.loc[self.observations.code == code, 'mod_detrended'] = mod_averaged.values
+        
+        # Apply global scaling factor if needed:
+        self.observations.loc[:, 'err'] *= self.settings.err_fac

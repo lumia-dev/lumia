@@ -168,48 +168,6 @@ class Transport:
         shutil.copy(self.emissions_file, path / f'emissions.{tag}nc')
 
     @debug.trace_args()
-    def calc_uncertainties(self, err_obs : str = 'err_obs', err_min : float = 0, step: str = None, freq : str = '7D') -> None:
-        # Ensure that all observations have a measurement error:
-        sel = self.observations.loc[:, err_obs] <= 0
-        self.observations.loc[sel, err_obs] = self.observations.loc[sel, 'obs'] * err_min / 100.
-
-        for code in self.observations.code.drop_duplicates():
-            # 1) select the data
-            mix = self.observations.loc[self.observations.code == code].loc[:, ['time', 'obs', f'mix_{step}', err_obs]].set_index('time').sort_index()
-
-            # 2) Calculate weekly moving average and residuals from it
-            #trend = mix.rolling(freq).mean()
-            #resid = mix - trend
-
-            # Use a weighted rolling average, to avoid giving too much weight to the uncertain obs:
-            weights = 1. / mix.loc[:, err_obs] ** 2
-            total_weight = weights.rolling(freq).sum()   # sum of weights in a week (for normalization)
-            obs_weighted = mix.obs * weights
-            mod_weighted = mix.loc[:, f'mix_{step}'] * weights
-            obs_averaged = obs_weighted.rolling(freq).sum() / total_weight
-            mod_averaged = mod_weighted.rolling(freq).sum() / total_weight
-            resid_obs = mix.obs - obs_averaged
-            resid_mod = mix.loc[:, f'mix_{step}'] - mod_averaged
-
-            # 3) Calculate the standard deviation of the residuals model-data mismatches. Store it in sites dataframe for info.
-            sigma = (resid_obs - resid_mod).dropna().values.std()
-            self.sites.loc[self.sites.code == code, 'err'] = sigma
-            logger.info(f'Model uncertainty for site {code} set to {sigma:.2f}')
-
-            # 4) Get the measurement uncertainties and calculate the error inflation
-#            s_obs = self.observations.loc[:, err_obs].values
-#            nobs = len(s_obs)
-#            s_mod = sqrt((nobs * sigma**2 - (s_obs**2).sum()) / nobs)
-
-            # 5) Store the inflated errors:
-            self.observations.loc[self.observations.code == code, 'err'] = (
-                self.observations.loc[self.observations.code == code, err_obs] ** 2 + sigma ** 2).values ** .5
-            self.observations.loc[self.observations.code == code, 'resid_obs'] = resid_obs.values
-            self.observations.loc[self.observations.code == code, 'resid_mod'] = resid_mod.values
-            self.observations.loc[self.observations.code == code, 'obs_detrended'] = obs_averaged.values
-            self.observations.loc[self.observations.code == code, 'mod_detrended'] = mod_averaged.values
-
-    @debug.trace_args()
     def calc_sensi_map(self, emissions: Emissions):
         departures = ones(self.observations.shape[0])
         emissions.to_netcdf(self.path_temp / 'emissions.nc', zlib=False, only_transported=True)
