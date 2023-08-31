@@ -1,4 +1,5 @@
 shapely --no-binary=shapely
+dask
 tables
 h5py~=3.8.0
 numpy~=1.24.3
