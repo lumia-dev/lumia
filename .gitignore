@@ -35,3 +35,4 @@ site/
 
 # The "bin" folder should contain generic scripts. It isn't ignored totally, but files should be added manually to git
 bin/
+run/

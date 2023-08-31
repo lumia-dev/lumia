@@ -1,0 +1,104 @@
+cosmos :
+  emissions: ${oc.env:SNIC_TMP}/emissions
+  temp: /dev/shm/lumia
+  footprints_cache : /dev/shm/footprints 
+  footprints : /home/gmonteil/data/LUMIA/footprints/footprints_coco2_wp4_ch4
+  congrad: /home/gmonteil/lumia/src/congrad/congrad.exe
+  output: /home/gmonteil/data/CoCO2_WP5/lumia/${run.tag}
+  correlations : /home/gmonteil/data/LUMIA/correlations
+  cache_dir : ${.correlations}
+  ncores : ${oc.env:SLURM_TASKS_PER_NODE}
+
+donkey :
+  emissions: /scratch/users/guillaume/lumia/fluxes
+  temp: /dev/shm/lumia
+  footprints_cache : /dev/shm/footprints 
+  footprints : /scratch/users/guillaume/footprints/footprints_coco2_wp4_ch4
+  congrad: ${lumia:src/congrad/congrad.exe}
+  output: output/${run.tag}
+  correlations : /scratch/users/guillaume/lumia/correlations
+  cache_dir : ${.correlations}
+  ncores : 24 
+
+run:
+  start: 2018-01-01
+  end: 2019-01-01
+  paths: ${machine}
+  domain: eurocom025x025
+  optimizer : ${congrad}
+  tag : v3_20230830_core
+  interval : 1d
+  footprints_archive : swestore:LUMIA/footprints/${.domain}/${.interval}/
+  spinup : 1MS
+  spindown : 1MS
+
+
+grid:
+  eurocom025x025: "${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}"
+  eurocom05x05: "${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}"
+
+
+observations :
+  start : ${run.start}
+  end : ${run.end}
+  file : observations_coco2_ch4_core.tar.gz
+  validation_file : observations_coco2_ch4_valid.tar.gz
+  uncertainties :
+    err_min : 20.
+    err_fac : 1.
+  rename : 
+    mix_bg : mix_background
+  
+
+emissions:
+  tracers: [ ch4 ]
+  ch4:
+    region: ${grid.${run.domain}}
+    interval: ${run.interval}
+    categories:
+      fossil: fossil.CoCO2
+      agriwaste: agriwaste.CoCO2
+      termites: termites.CoCO2
+      geological: geological.CoCO2
+      lakes: lakes.CoCO2
+      ocean: ocean.CoCO2
+      wetlands: wetlands.CoCO2
+      bmb: bmb.CoCO2
+    metacategories:
+      total: fossil + agriwaste + bmb + wetlands + geological + termites + lakes + ocean
+    path: ${run.paths.emissions}/${run.domain}
+    prefix: flux_ch4.
+    archive: rclone:lumia:fluxes/nc/${run.domain}/${run.interval}
+
+
+optimize:
+  emissions:
+    ch4:
+      total:
+        annual_uncertainty: 5 TgCH4
+        spatial_correlation: 500-e
+        temporal_correlation: 30D
+        error_structure: linear
+        optimization_interval: 1d
+
+
+model:
+  path_temp : ${run.paths.temp}
+  executable : ${lumia:transport/multitracer.py}
+  path_footprints : ${run.paths.footprints}
+  split_categories: True
+  output_steps: ['apri', 'apos']
+  serial : no
+  path_output : ${run.paths.output}
+  setup_uncertainties : ['apri']
+  extra_arguments :
+    apri : --check-footprints --copy-footprints ${machine.footprints_cache}
+  extra_fields : [footprint, obsid]
+
+
+congrad:
+  gradient_norm_reduction: 1.e6
+  number_of_iterations: 80
+  communication_file: ${run.paths.temp}/congrad.nc
+  executable: ${run.paths.congrad}
+  output_path : ${run.paths.output}
