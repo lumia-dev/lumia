@@ -1,4 +1,4 @@
-from scipy.optimize import fmin_cg
+from scipy.optimize import fmin_cg, minimize
 from dataclasses import dataclass
 from lumia.optimizer import protocols
 from numpy.typing import NDArray
@@ -101,6 +101,13 @@ class Optimizer:
         return gradient_preco
         
     def solve(self) -> NDArray:
+        return minimize(
+            self.compute_cost,
+            self.prior.state_preco,
+            jac=self.compute_gradient,
+            method='Newton-CG'
+        )
+            
         return fmin_cg(
             self.compute_cost, 
             self.prior.state_preco, 
