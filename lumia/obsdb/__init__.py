@@ -5,6 +5,7 @@ import tarfile
 import tempfile
 from numpy import unique, nan
 from pandas import DataFrame, read_csv, read_hdf, Timestamp, to_datetime
+from pandas.api.types import is_float_dtype
 from loguru import logger
 from typing import List, Union
 from numpy import datetime64
@@ -226,18 +227,41 @@ class obsdb:
 
     @classmethod
     def from_dataframe(cls, df: DataFrame) -> "obsdb":
+        '''
+        Class method  from_dataframe()
+
+        @param df DESCRIPTION pandas dataframe that holds the observational data
+        @type DataFrame pandas dataframe
+        @return an obsdb object that contains (in a df?) the unique names of all observation sites (3-letter-code) and their respective heights among other.
+        @rtype TYPE  obsdb object
+        There are some issues: How does it pick the most adequate height at sites that report at multiple heights? Or is it whatever height is
+        the first or last one to be read for a site that is being pushed into the returned object? Even so, there are lots of NaN in the resulting 
+        obs object when reading all data from the carbon portal.  TODO:  This needs fixing.
+        '''
         obs = cls()
         for site in df.site.drop_duplicates():
-            dfs = df.loc[df.site == site]
-            site = {}
-            for col in dfs.columns:
+            dfs = df.loc[df.site == site]  # create one dfs dataframe for each site in turn
+            # dfs gives us 10977 instead of 175422 rows, columns 'code' and 'site' are identical and present in all rows
+            site = {}  # confusing naming - collects all columns that have only one value. But several sites may have up to 5 heights
+            for col in dfs.columns: # ['index', 'icos_flag', 'NbPoints', 'stddev', 'time', 'obs', 'code', 'err_obs', 'err', 'site', 'lat', 'lon', 'alt', 'height', 'background', 'tracer', 'file', 'dataObject', 'mobile', 'fnameUrl', 'name',  'sitecode_CSR']
                 values = dfs.loc[:, col].drop_duplicates().values
-                if len(values) == 1:
+                if ('height' in col):  # grab the highest above ground measurement available
+                    if ((len(values) > 1) and (len(values) < 8)):
+                        maxh = max(values)
+                        values[0] = maxh
+                    site[col] =  values[0]
+                elif (len(values) == 1):
                     site[col] = values[0]
             obs.sites.loc[site['site']] = site
 
-        # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondance
+        print('obs.sites=',  flush=True) 
+        print(obs.sites,  flush=True)
+        obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
+        # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondence
         obs.observations = df.loc[:, ['site'] + list(set(df.columns) - set(obs.sites.columns))]
+        obs.sites.to_csv('./obsSites2.csv',  encoding='utf-8', sep=',',  mode='w')
+        print('obsSites=',  flush=True) # obs.to_csv('./obs1.csv',  encoding='utf-8', sep=',',  mode='w')
+        print(obs,  flush=True)
 
         return obs
 
@@ -260,6 +284,14 @@ class obsdb:
     @classmethod
     def from_hdf(cls, filename: str) -> "obsdb":
         df = read_hdf(filename, key='observations')
+        #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
+        knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
+        for col in knownColumns:
+            if col in df.columns:
+                if(is_float_dtype(df[col])==False):
+                    df[col]=df[col].astype(float)
+        clsdf= cls.from_dataframe(df)
+        print(clsdf, flush=True)
         return cls.from_dataframe(df)
 
     def checkIndex(self, reindex=False):

@@ -323,6 +323,8 @@ class FootprintTransport:
     def runForward(self, categories=None):
         # Read the emissions:
         self.emis = Flux(self.emfile, categories=categories)
+        print('footprints.runForward() self.emis=', flush=True)
+        print(self.emis, flush=True)
 
         for tracer in self.emis.tracers :
             region = self.emis[tracer].grid
@@ -333,6 +335,8 @@ class FootprintTransport:
 
             filenames = self.obs.observations.footprint.loc[self.obs.observations.tracer == tracer]
             filenames = filenames.dropna().drop_duplicates()
+            print('footprints.runForward() filenames=', flush=True)
+            print(filenames, flush=True)
 
             common['emis'] = self.emis[tracer]
             common['obslist'] = self.obs.observations
@@ -344,6 +348,9 @@ class FootprintTransport:
 
 
             res = self._forward_loop(filenames)
+            print('footprints.runForward() res=', flush=True)
+            print(res, flush=True)
+         
 
             # Combine the results:
             for obslist in res:
@@ -360,6 +367,8 @@ class FootprintTransport:
                 self.obs.observations.loc[:, 'mix'] = 0.
             for cat in self.emis.categories :
                 self.obs.observations.mix += self.obs.observations.loc[:, f'mix_{cat.name}'].values
+        print('completed footprints.runForward() self.obs.observations.mix=', flush=True)
+        print(self.obs.observations.mix, flush=True)
 
         # self.obs.save_tar(self.obsfile) # ==> moved to __main__
 

@@ -94,7 +94,7 @@ logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
 # lumia.paths.setup(rcf)
 
-# Load the pre-processed emissions:
+# Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
 emis = xr.Data.from_rc(rcf, start, end)
 emis.print_summary()
 
@@ -111,6 +111,7 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
     else:
         from lumia.obsdb.InversionDb import obsdb
         db = obsdb.from_rc(rcf)
+        db.observations.to_csv('obsDataAllFromLocal3.csv', encoding='utf-8', mode='w', sep=',')
 else :
     # if we just want to write the emissions ...
     db = None

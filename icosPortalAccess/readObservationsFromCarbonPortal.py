@@ -365,7 +365,11 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     logger.debug(f"removed {n} duplicates")
     logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
     # TODO: for simplicity let's reject for now the huge 1972-2023 Obspack as it is an aggregate of dataframes that I need to deal with in a better fashion....
-    finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
+    # Obspacks: https://data.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9 (1972-2023)  SQxOn3waZ55FjDKxcXI41xVD (1972-2022)
+    if("SQxOn3waZ55FjDKxcXI41xVD" in finalDobjLst):
+        finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
+    if("UqPhG00TNqHmcRybZ1e43ZX9" in finalDobjLst):
+        finalDobjLst.remove("UqPhG00TNqHmcRybZ1e43ZX9")
     lf=len(finalDobjLst)
     logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
     return(finalDobjLst, cpDir)

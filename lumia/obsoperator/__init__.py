@@ -3,6 +3,7 @@ import sys
 import os
 import shutil
 from numpy import ones, array, prod, append
+from pandas.api.types import is_float_dtype
 from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
@@ -65,12 +66,38 @@ class transport(object):
 
     def calcDepartures(self, struct, step=None, serial=False):
         emf, dbf = self.runForward(struct, step, serial)
+        print('in calcDepartures() reading db from file dbf=', flush=True)
+        print(dbf, flush=True)
         db = obsdb.from_hdf(dbf)
+        # db = db.reset_index(drop=True)
+        print('in calcDepartures() db=', flush=True)
+        print(db, flush=True)
+        print('in calcDepartures() emf=', flush=True)
+        
+        print(emf, flush=True)
+        print('in calcDepartures() self.db.observations=', flush=True)
+        print(self.db.observations, flush=True)
+        print('in calcDepartures() self.db.observations.columns=', flush=True)
+        print(self.db.observations.columns, flush=True)
+        #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
+        knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
+        for col in knownColumns:
+            if col in db.sites.columns: # db.columns:
+                print('in calcDepartures() db.sites.col=', flush=True)
+                print(col, flush=True)
+                if(is_float_dtype(db.sites[col])==False):
+                    db.sites[col]=db.sites[col].astype(float)
         logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
         # if DEBUG: self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
         if self.rcf.get('model.split_categories', default=True):
             import time
             time.sleep(5)
+            print("obsoperator._init_.calcDepartures() L74 self=",  flush=True)
+            print(self,  flush=True)
+            print("obsoperator._init_.calcDepartures() L74 self.db.observations=",  flush=True)
+            print(self.db.observations,  flush=True)
+            print("obsoperator._init_.calcDepartures() L74 self.db.observations.columns=",  flush=True)
+            print(self.db.observations.columns,  flush=True)
             for cat in struct.transported_categories:
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
@@ -97,22 +124,43 @@ class transport(object):
         The eventual parallelization is handled by the subprocess directly. struct can hold the emissions on a lat/lon grid for ocean, anthropogenic and biosphere-model       
         """
 
+        print('Entering obsoperator.init.runForward()')
         # Write model inputs:
         if observations is None :
             observations = self.db
+            print('obsoperator.init.runForward(): observations set to self.db',  flush=True)
 
         compression = step in self.rcf.get('model.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
         emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
         del struct
         dbf = observations.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
+        
+        print('obsoperator.init.runForward(): dbf=',  flush=True)
+        print(dbf,  flush=True)
 
         # Run the model
         cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
 
         if self.serial or serial:
             cmd.append('--serial')
+            
+        print('obsoperator.init.runForward(): cmd=',  flush=True)
+        print(cmd,  flush=True)
+        
         cmd.extend(self.rcf.get('model.transport.extra_arguments', default=[]))
-        runcmd(cmd)
+        # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
+        # runcmd(cmd)
+
+        print('obsoperator.init.runForward(): emf2=',  flush=True)
+        if(emf is None):
+            print('Error: obsoperator.init.runForward(): emf is None. That is a problem...',  flush=True)
+        else:
+            print(emf,  flush=True)
+        print('obsoperator.init.runForward(): dbf2=',  flush=True)
+        if(dbf is None):
+            print('Error: obsoperator.init.runForward(): dbf is None. That is a problem...',  flush=True)
+        else:
+            print(dbf,  flush=True)
 
         # Retrieve results :
         return emf, dbf

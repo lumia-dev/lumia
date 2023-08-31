@@ -39,25 +39,9 @@ class Observations(DataFrame):
         self.to_hdf(filename, key='observations')
 
     def gen_filenames(self) -> None:
-        print ("gen_filename : self: ", flush=True)
-        print (self, flush=True)
-        print ("self.code.str.lower(): ", flush=True)
-        print (self.code.str.lower(), flush=True)
-        print ("self.height.map('.{:.0f}m.'.format) : ", flush=True)
-        # File "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py", line 47, in gen_filenames
-        # print (self.height.map('.{:.0f}m.'.format) , flush=True)
-        # ValueError: Unknown format code 'f' for object of type 'str'
-        print (self.height.map('.{:.0f}m.'.format) , flush=True)
-        print ("self.time.dt.strftime('%Y-%m.hdf'): ", flush=True)
-        print (self.time.dt.strftime('%Y-%m.hdf'), flush=True)
-        # TODO: execution fails in the next line, though no changes have been made to this part of the code.
-        # Could a python update be the cause? 
+        # h=self['height'].astype(float)  # the height column might be in Text format, which causes havoc....
+        # fnames = self.code.str.lower() + h.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
         fnames = self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
-        print('fnames=')
-        print(fnames,  flush=True)
-        #obsids = valid.code + valid.height.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
-        #fnames = path + '/' + self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')        
-        
         self.loc[:, 'footprint'] = fnames
 
     def find_footprint_files(self, archive: str, local: str=None) -> None:
@@ -87,6 +71,8 @@ class Observations(DataFrame):
         # assuming all traditional obsids are <=999,999.0, we could make them unique by replacing that 
         # index with newObsidx=obsidx+int(1e7*height); e.g. 50m: 12228 => 50012228
         valid=self.loc[~isnull(self.footprint)]
+        # h=valid['height'].astype(float)  # the height column might be in Text format, which causes havoc....
+        # obsids = valid.code + h.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
         obsids = valid.code + valid.height.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
         # logger.info(f"Dbg: obsids=\n{obsids}")
         obsids.to_csv('obsids.csv', encoding='utf-8', sep=',', mode='w')

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-08-02, 13:15:17"
+    "saved": "2023-08-31, 15:06:23"
   },
   "MultiProject": "",
   "Project": "",
@@ -26,11 +26,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        2,
-        0
+        112,
+        27
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 2,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 1
@@ -38,7 +38,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
-        49,
+        264,
         0
       ],
       "Folds": [],
@@ -50,11 +50,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
       "Cursor": [
-        50,
-        0
+        55,
+        23
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 2,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 3
@@ -62,7 +62,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
       "Cursor": [
-        0,
+        12,
         0
       ],
       "Folds": [],
@@ -122,8 +122,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        401,
-        124
+        502,
+        45
       ],
       "Folds": [],
       "Zoom": 1,
@@ -134,7 +134,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
       "Cursor": [
-        248,
+        142,
         0
       ],
       "Folds": [],
@@ -142,131 +142,195 @@
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 10
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
+      "Cursor": [
+        92,
+        49
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 11
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/stilt.py",
+      "Cursor": [
+        131,
+        28
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 12
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      "Cursor": [
+        66,
+        31
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 13
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
+      "Cursor": [
+        325,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 14
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
     "Cursor": [
-      401,
-      124
+      55,
+      23
     ]
   },
   "Breakpoints": [
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
-      143,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      135,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      599,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      159,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      607,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      286,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      678,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      154,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      428,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      150,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      493,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      293,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      549,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      288,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      451,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      294,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      88,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      261,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      86,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+      241,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
-      160,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
+      44,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
-      423,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      134,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/mergeBackgroundCO2Test.py",
-      151,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      102,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      420,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      101,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      580,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      90,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+      95,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      107,
       "",
       false,
       true,
@@ -302,26 +366,38 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/system_tools.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@13",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@14",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/InversionDb.py@@21",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/invdb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@31",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@286",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py@@18",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py@@124",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py@@22"
       ]

@@ -8,7 +8,8 @@ from observations import Observations
 import h5py
 from typing import List
 from types import SimpleNamespace
-from pandas import Timedelta, Timestamp
+from pandas import Timedelta, Timestamp # , to_numeric
+from pandas.api.types import is_float_dtype
 from gridtools import Grid
 from numpy import inf
 from dataclasses import asdict
@@ -130,6 +131,7 @@ class MultiTracer(Model):
 
 if __name__ == '__main__':
     import sys
+
     from argparse import ArgumentParser, REMAINDER
 
     p = ArgumentParser()
@@ -155,6 +157,14 @@ if __name__ == '__main__':
     logger.add(sys.stderr, level=args.verbosity)
 
     obs = Observations.read(args.obs)
+    #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
+    knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
+    for col in knownColumns:
+        if col in obs.columns:
+            if(is_float_dtype(obs[col])==False):
+                obs[col]=obs[col].astype(float)
+                # cf=obs[col]
+                # print(cf)
 
     # Set the max time limit for footprints:
     LumiaFootprintFile.maxlength = args.max_footprint_length
