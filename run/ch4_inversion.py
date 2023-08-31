@@ -21,6 +21,8 @@ p.add_argument('config', type=Path, help='Path to the config file (yaml file)')
 p.add_argument('--verbosity', '-v', help='Logging level', default='INFO')
 p.add_argument('--start', default=None)
 p.add_argument('--end', default=None)
+p.add_argument('--spinup', default=None, type=str)
+p.add_argument('--spindown', default=None, type=str)
 args = p.parse_args(sys.argv[1:])
 
 
@@ -58,6 +60,10 @@ OmegaConf.save(config=dconf, f=Path(dconf.run.paths.output) / 'config.yaml')
 
 
 # Handle the spin-up / spin-down:
+if args.spinup:
+    dconf.run.spinup = args.spinup
+if args.spindown:
+    dconf.run.spindown = args.spindown
 spinup = to_offset(dconf.run.get('spinup', '0h'))
 spindown = to_offset(dconf.run.get('spindown', '0h'))
 dconf.run.start = str(Timestamp(dconf.run.start) - spinup)
