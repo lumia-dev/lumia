@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/gmonteil/.conda/envs/coco2_wp5/bin/python
 #SBATCH -t 2:00:00 -n 48 --exclusive
 
 from omegaconf import OmegaConf
