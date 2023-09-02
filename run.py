@@ -94,9 +94,6 @@ logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
 # lumia.paths.setup(rcf)
 
-# Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
-emis = xr.Data.from_rc(rcf, start, end)
-emis.print_summary()
 
 # Load observations
 if args.noobs :
@@ -118,6 +115,9 @@ else :
 
 # TODO: Done. I have moved " Load the pre-processed emissions" to after Load observations block again - just for testing so we can 
 # work on reading co2 emissions via DA before being bugged down by reading observations in the debugger....
+# Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
+emis = xr.Data.from_rc(rcf, start, end)
+emis.print_summary()
 
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=xr)
