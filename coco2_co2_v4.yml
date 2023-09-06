@@ -24,8 +24,8 @@ emissions :
             biosphere : VPRM
             ocean : mikaloff01
         location :          # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory
-            biosphere : LOCAL #CARBONPORTAL
-            fossil : LOCAL #CARBONPORTAL
+            biosphere : CARBONPORTAL #CARBONPORTAL  LOCAL
+            fossil : CARBONPORTAL #CARBONPORTAL  LOCAL
             ocean : LOCAL
         prefix : flux_co2.
 
@@ -43,7 +43,7 @@ observations :
     start: '2018-01-01 00:00:00'
     end:   '2018-02-01 00:00:00'
     file :
-        location : LOCAL      # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory. In the former case the value of 'path' is ignored.
+        location : CARBONPORTAL # LOCAL      # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory. In the former case the value of 'path' is ignored.
         cpDir : '/data/dataAppStorage/asciiAtcProductTimeSer/'  # only used if location is CARBONPORTAL, e.g. /data/dataAppStorage/asciiAtcProductTimeSer/
         path : observations.tar.gz
         rename :  background:mix_background

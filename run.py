@@ -32,6 +32,8 @@ args = p.parse_args(sys.argv[1:])
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
+
+
 if(args.rcf is None):
     if(args.ymf is None):
         print("Lumia: Fatal error: no user configuration (yaml) file provided.")
@@ -80,6 +82,33 @@ if args.end is None :
 else :
     end = Timestamp(args.end)
     rcf.setkey('time.end', end.strftime('%Y,%m,%d'))
+
+# Save  all details of the configuration and the version of the software used:
+from datetime import datetime
+current_date = datetime.now()
+sNow=current_date.isoformat("T","minutes")
+if len(rcf['run']['paths']['output'])<1:
+    sLogCfgFile="./Lumia-runlog-"+sNow[:-3]+"config.yml"
+else:
+    sLogCfgFile=rcf['run']['paths']['output']+"/Lumia-runlog-"+sNow+"-config.yml"
+    sCmd=("mkdir -p "+rcf['run']['paths']['output'])
+    try:
+        os.system(sCmd)
+    except:
+        print(".")
+sCmd="cp "+args.ymf+" "+sLogCfgFile
+os.system(sCmd)
+myFile = open(sLogCfgFile, mode="a")
+myFile.write('\n')
+myFile.write('softwareUsed:\n')
+myFile.write('    lumia:\n')
+myFile.write('        branch : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
+myFile.write('        commit : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
+myFile.write('    runflex:\n')
+myFile.write('        branch : gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git\n')
+myFile.write('        commit : gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git\n')
+myFile.close()
+
 
 
 # Create subfolder based on the inversion time:

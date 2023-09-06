@@ -10,11 +10,15 @@ import os
 import re
 import datetime
 from loguru import logger
-
+import json
+import numpy as np
+from pandas import DataFrame, concat
 #Import ICOS tools:
 # from icoscp.sparql import sparqls, runsparql
 from icoscp.sparql.runsparql import RunSparql
-from icoscp.cpb import metadata as meta
+from icoscp.cpb.dobj import Dobj
+from icoscp.collection import collection
+from icoscp.cpb import metadata
 
 bDEBUG =False
 
@@ -362,18 +366,148 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     lf=len(finalDobjLst)
     l=len(dobjLst)
     n=l-lf
-    logger.debug(f"removed {n} duplicates")
-    logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
+    if(n>0):
+        logger.debug(f"removed {n} duplicates")
+    logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer) Removing duplicates and collections...")
+    if(0>1): #obsolete bit of code with new SPARQL query...but let's first test the new query thoroughly before removing this snipet
+        cpCollections=collection.getIdList()
+        for collitem in cpCollections.values:
+            pid=collitem[0].split('/')[-1]
+           #logger.info(f"Checking collection pid= {pid}")
+            if(pid in finalDobjLst):
+                logger.info(f"Removing collection {pid}")
+                finalDobjLst.remove(pid)
     # TODO: for simplicity let's reject for now the huge 1972-2023 Obspack as it is an aggregate of dataframes that I need to deal with in a better fashion....
     # Obspacks: https://data.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9 (1972-2023)  SQxOn3waZ55FjDKxcXI41xVD (1972-2022)
-    if("SQxOn3waZ55FjDKxcXI41xVD" in finalDobjLst):
-        finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
-    if("UqPhG00TNqHmcRybZ1e43ZX9" in finalDobjLst):
-        finalDobjLst.remove("UqPhG00TNqHmcRybZ1e43ZX9")
+    # if("SQxOn3waZ55FjDKxcXI41xVD" in finalDobjLst):
+    #    finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
+    # pid="UqPhG00TNqHmcRybZ1e43ZX9"
+    pid="5-kp-zFm31bQs47leuuGCBTZ"
+    # if("European Obspack compilation of atmospheric carbon dioxide data" in meta['specificInfo']['title'])
+    while(1<0) :  # TODO wait fur bugfix in ocscp Lib     (len(pid)>10):
+        pidUrl="https://meta.icos-cp.eu/objects/"+pid
+        if(pid in finalDobjLst):
+            finalDobjLst.remove(pid)
+            logger.info(f"Rejecting pidUrl: {pidUrl}    European_Obspack_compilation_of_atmospheric_carbon_dioxide_data in favour of its more up-to-date individual data records.")
+        dob = Dobj(pidUrl)  # TODO crashes with pidUrl=https://meta.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9     -- Why??
+        logger.info(f"dobj: {dob}")
+        dobnext=dob.next
+        if(dobnext):
+            pidUrl=dob.next
+            pid=pidUrl.split('/')[-1]
+        else:
+            pid=""
+        
+    # 5-kp-zFm31bQs47leuuGCBTZ  same as https://doi.org/10.18160/PEKQ-M4T1 which is a newer version of the above package
+    # if("5-kp-zFm31bQs47leuuGCBTZ" in finalDobjLst):
+    #     finalDobjLst.remove("5-kp-zFm31bQs47leuuGCBTZ")
+    # if("UqPhG00TNqHmcRybZ1e43ZX9" in finalDobjLst):
+    #     finalDobjLst.remove("UqPhG00TNqHmcRybZ1e43ZX9")
     lf=len(finalDobjLst)
     logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
-    return(finalDobjLst, cpDir)
+    
+    # Create a dataframe with meaningful parameters from which a user may filter subsets
+    with open( r'ListOfAllValidPIDs.txt', 'w') as fp:
+        for item in finalDobjLst:
+            fp.write("%s\n" % item)
+    '''
+    i=0  # testing with one site....
+    dfz=DataFrame()
+    for pid in {'SQxOn3waZ55FjDKxcXI41xVD', '1PzZfMB-J_k3II_sKwOwTuPl', 'RSX4UHMdPMJxno4zdFrkif4T', 'BAidrJp35bOkKVxhbJ91Yi8W', 'EMcPe1rorVhs2RaY1tdQoETL', 'khkZoH3p5yHPxTxU9hjmiAT_'}:
+        pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
+        print(pid,  flush=True)
+        with open( pid+'.json', 'w') as fp:
+            json.dump(pidMetadata, fp)
+        data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+        if(i==0):
+            stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
+            lat=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
+            lon=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
+            alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
+            samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
+            size=pidMetadata['size']
+            dataLevel=pidMetadata['specification']['dataLevel']
+            tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
+            productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
+            sUrl=pidMetadata['accessUrl']
+            fileName=pidMetadata['fileName']
+            dataSetLabel=pidMetadata['specification']['self']['label']
+            columnNames=['pid','stationID','latitude','longitude','altitude','samplingHeight','size','dataLevel','tmporalCoverage','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+            dfz=DataFrame(data=[data], columns=columnNames)
+        else:
+            #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+            if(len(dfz.columns)==len(data)):
+                dfz.loc[len(dfz)] = data
+            else:
+                logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
+        i+=1
+    dfz.to_csv('dfz.csv', mode='w', sep=',')
+    #df['col'].str.contains('partial_string').any()
+    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("Obspack", flags=re.IGNORECASE), int(4), int(0))
+    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), dfz['dClass'] )
+    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), dfz['dClass'] )
+    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("NRT "), int(1), dfz['dClass'] )
+    dfz.to_csv('dfz2.csv', mode='w', sep=',')
+    '''
+    i=0
+    df=DataFrame()
+    for pid in finalDobjLst:
+        pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
+        if pidMetadata is not None:
+            data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+            if(i==0):
+                '''
+                stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
+                lat=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
+                lon=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
+                alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
+                samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
+                size=pidMetadata['size']
+                dataLevel=pidMetadata['specification']['dataLevel']
+                tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
+                productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
+                sUrl=pidMetadata['accessUrl']
+                fileName=pidMetadata['fileName']
+                dataSetLabel=pidMetadata['specification']['self']['label']
+                '''
+                columnNames=['pid','stationID','latitude','longitude','altitude','samplingHeight','size','dataLevel','tmporalCoverage','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
+                df=DataFrame(data=[data], columns=columnNames)
+            else:
+                #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+                if(len(df.columns)==len(data)):
+                    df.loc[len(df)] = data
+                else:
+                    logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
+                
+            i+=1
+    
+    df['dClass'] = np.where(df.dataSetLabel.str.contains("Obspack", flags=re.IGNORECASE), int(4), int(0))
+    df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
+    df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
+    df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
+    df.to_csv('dfValidObsUnsorted.csv', mode='w', sep=',')
+    dfq = df[df['dataLevel'] ==2]
 
+    dfq.sort_values(by = ['stationID', 'samplingHeight', 'dClass', 'productionTime'], inplace = True, ascending = [True, False, False, False])
+    # applyUserFilters(finalDobjLst)
+    dfq.to_csv('dfValidObs.csv', mode='w', sep=',')
+    dfqdd=dfq.drop_duplicates(['stationID', 'samplingHeight'], keep='first')
+    dfqdd.to_csv('dfValidObsSelected.csv', mode='w', sep=',')
+    selectedDobjCol=dfqdd['pid']
+    selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
+    return(finalDobjLst, selectedDobjLst, dfqdd,  cpDir)
+
+def applyUserFilters(finalDobjLst):
+    '''
+    Function 
+
+    @description Applies all user defined filters to allow all or only a subset of ICOS observations be considered for the subsequent inverse modelling
+    @param finalDobjLst List of all valid Dobj PIDs that were found on the carbon portal
+    @type TYPE Dobj
+    '''
+    return(finalDobjLst)
+    
 
 '''
 Example of a dobj as returned by the sparql query.

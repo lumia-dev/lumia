@@ -13,6 +13,7 @@ from loguru import logger
 from typing import Union
 import xarray as xr
 from pandas import DataFrame, to_datetime, concat , read_csv, Timestamp, offsets  #, read_hdf, Series  #, read_hdf, Series
+from pandas.api.types import is_float_dtype
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
 from icoscp.cpb.dobj import Dobj
@@ -126,13 +127,13 @@ class obsdb(obsdb):
         # create a datetime64 version of these so we can extract the time interval needed from the pandas data frame
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
-        (dobjLst, cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
+        (dobjLst, selectedDobjLst, dfObsDataInfo,  cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
-        if((dobjLst is None) or (len(dobjLst)<1)):
+        if((selectedDobjLst is None) or (len(selectedDobjLst)<1)):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")
             sys.exit(-1)
         nBadies=0
-        for pid in dobjLst:
+        for pid in selectedDobjLst:
             # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
             # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
 
@@ -140,6 +141,7 @@ class obsdb(obsdb):
             # pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
             # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
             pidUrl="https://meta.icos-cp.eu/objects/"+pid
+            logger.info(f"pidUrl={pidUrl}")
             dob = Dobj(pidUrl)
             logger.info(f"dobj: {dob}")
             logger.info(f"Reading observed co2 data from: station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
@@ -250,7 +252,7 @@ class obsdb(obsdb):
                     logger.error(f"Data from pid={pid} is discarded.")
         
         if(nBadies>0):
-            logger.warning(f"A total of {nBadies} out of {len(dobjLst)} data objects were rejected.")
+            logger.warning(f"A total of {nBadies} out of {len(selectedDobjLst)} data objects were rejected.")
         if(nDataSets==0):
                 logger.error("Houston we have a big problem. No valid input files were found or the data within did not comply with what I was programmed to handle... ")
                 logger.error("Mission Abort!")
@@ -532,7 +534,8 @@ class obsdb(obsdb):
     
         # ..some prettification for easier human reading. However, I did not bother to format the index column. You could look
         # at https://stackoverflow.com/questions/16490261/python-pandas-write-dataframe-to-fixed-width-file-to-fwf   for ideas....
-        obsDfWthBg.drop(columns=['date'], inplace=True)
+        if 'date' in obsDfWthBg.columns:
+            obsDfWthBg.drop(columns=['date'], inplace=True)
         # obsDfWthBg.to_csv('finalObsDfWthBgUnformatted.csv', encoding='utf-8', mode='w', sep=',')
         obsDfWthBg.to_csv('./finalObsDfWthBgBeforeCleaning.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         column_names = obsDfWthBg.columns
@@ -743,6 +746,9 @@ class obsdb(obsdb):
         """
 
         # Ensure that all observations have a measurement error:
+        for col in {err_obs, 'obs'}:  # make sure float values have not been stored as strings - Python 3.10 wants to get smart on you compared to 3.9, where this goof-up did not happen....
+            if(is_float_dtype(self.observations[col])==False):
+                self.observations[col]=self.observations[col].astype(float)
         sel = self.observations.loc[:, err_obs] <= 0
         self.observations.loc[sel, err_obs] = self.observations.loc[sel, 'obs'] * err_min / 100.
 

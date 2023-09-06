@@ -103,6 +103,14 @@ class transport(object):
             print(self.db.observations.columns)
             for cat in struct.transported_categories:
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
+
+        if(is_float_dtype(db.observations.mix.values)==False):
+            db.observations.mix.values=db.observations.mix.values.astype(float)
+        if(is_float_dtype(db.observations.mix_background.values)==False):
+            db.observations.mix_background.values=db.observations.mix_background.values.astype(float)
+        if(is_float_dtype(self.db.observations.obs)==False):
+            self.db.observations.obs=self.db.observations.obs.astype(float)
+
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
         self.db.observations.loc[:, 'mix_foreground'] = db.observations.mix.values-db.observations.mix_background.values
@@ -110,6 +118,8 @@ class transport(object):
 
         # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
         for key in list(self.rcf.get('model.store_extra_fields', default=[])) :
+            if(is_float_dtype(db.observations.loc[:, key].values)==False):
+                db.observations.loc[:, key].values=db.observations.loc[:, key].values.astype(float)
             self.db.observations.loc[:, key] = db.observations.loc[:, key].values
 
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
