@@ -4,6 +4,7 @@ repo_url: https://github.com/lumia-dev/lumia
 edit_uri: edit/omegaconf/docs
 nav:
   - Home: index.md
+  - Installation: installation.md
   - Tutorial: tutorial.md
   - Settings: settings.md
   - Modules:
