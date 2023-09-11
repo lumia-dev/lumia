@@ -16,6 +16,5 @@ congrad:
 install-conda:
 	conda create -n lumia cartopy datashader ipython
 	conda activate lumia
-	conda install --file conda_requirements.txt
 	pip install -e .[interactive]
 	conda install -c pyviz datashader
