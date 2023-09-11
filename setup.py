@@ -26,9 +26,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.9',
-    install_requires=['loguru', 'pandas>=1.4', 'tqdm', 'netcdf4', 'h5py', 'cartopy', 'xarray', 'pint', 'scipy', 'omegaconf', 'h5netcdf', 'mkdocs'],
+    install_requires=['loguru', 'pandas>=2.0.1', 'dask', 'tables', 'numpy', 'h5py', 'matplotlib', 'python-dateutil', 'netCDF4', 'xarray', 'pint', 'omegaconf', 'scipy', 'setuptools', 'bottleneck', 'mkdocs', 'h5netcdf', 'tqdm'],
     extras_require={
-        'interactive': ['ipython'],
+        'interactive': ['ipython', 'ipywidgets', 'geoviews', 'hvplot', 'jupyter_bokeh'],
         'icos': ['icoscp']
     },
     scripts=['bin/lumia'],

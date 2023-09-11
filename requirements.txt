@@ -8,7 +8,6 @@ loguru~=0.7.0
 icoscp
 tqdm~=4.65.0
 Cartopy~=0.21.1
-shapely~=2.0.1
 matplotlib~=3.7.1
 python-dateutil~=2.8.2
 netCDF4~=1.6.3
