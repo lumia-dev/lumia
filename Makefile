@@ -14,7 +14,7 @@ congrad:
 	mv src/congrad/congrad.exe bin/
 
 install-conda:
-	conda create -n lumia cartopy datashader ipython
-	conda activate lumia
+	conda create -n NAME_OF_THE_ENVIRONMENT cartopy ipython
+	conda activate NAME_OF_THE_ENVIRONMENT
 	pip install -e .[interactive]
 	conda install -c pyviz datashader

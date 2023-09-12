@@ -29,7 +29,7 @@ setuptools.setup(
     install_requires=['loguru', 'pandas>=2.0.1', 'dask', 'tables', 'numpy', 'h5py', 'matplotlib', 'python-dateutil', 'netCDF4', 'xarray', 'pint', 'omegaconf', 'scipy', 'setuptools', 'bottleneck', 'mkdocs', 'h5netcdf', 'tqdm'],
     extras_require={
         'interactive': ['ipython', 'ipywidgets', 'geoviews', 'hvplot', 'jupyter_bokeh'],
-        'icos': ['icoscp']
+        'icos': ['icoscp'],
     },
     scripts=['bin/lumia'],
     data_files=data_files

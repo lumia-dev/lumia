@@ -79,7 +79,7 @@ mapping = lumia.models.footprints.Mapping.init(dconf, emis) #, sensi_map=sensi_m
 prior = lumia.prior.PriorConstraints.setup(dconf.run.paths, mapping)
 
 
-opt = lumia.optimizer.cg_scipy(
+opt = lumia.optimizer.optim_cg_scipy(
     prior=prior, 
     model=transport, 
     mapping=mapping, 
