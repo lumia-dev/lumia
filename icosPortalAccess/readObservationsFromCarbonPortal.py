@@ -146,7 +146,7 @@ def getCo2DryMolFractionObjectsFromSparql(pdTimeStart: datetime=None, pdTimeEnd:
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     logger.info(f'SPARQL query= {query}')    
     dobj = RunSparql(query,output_format='nc').run()
-    logger.debug(f'dobj= {dobj}')
+    # logger.debug(f'dobj= {dobj}')
     return(dobj)
 
 
@@ -212,7 +212,7 @@ def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datet
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     logger.info(f'SPARQL query= {query}')    
     dobj = RunSparql(query,output_format='nc').run()
-    logger.info(f'dobj= {dobj}')
+    # logger.info(f'dobj= {dobj}')
     return(dobj)
 
 

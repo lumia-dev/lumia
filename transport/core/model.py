@@ -232,7 +232,7 @@ class Adjoint(BaseTransport):
         #observations = shared_memory.obs
         times = shared_memory.time
         grid = shared_memory.grid
-        logger.info(f"size of times dimension={times.nt}")
+        # logger.info(f"size of times dimension={times.nt}")
         adj_emis = zeros((times.nt, grid.nlat, grid.nlon))
         nWanted=(times.nt) * grid.nlat*grid.nlon # number of data point we want to receive
         nPtsRead=0  # number of footprint space-time data points read
@@ -246,9 +246,9 @@ class Adjoint(BaseTransport):
                 # logger.info(f"grid={grid}")
 
                 desc=fpf.filename
-                logger.info(f" desc={desc}")
+                # logger.info(f" desc={desc}")
                 total=observations.shape[0]
-                logger.info(f"total={total}")
+                # logger.info(f"total={total}")
                 bFirst=True
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
@@ -257,16 +257,16 @@ class Adjoint(BaseTransport):
                         logger.info(f"obs={obs}")
                         logger.info(f"desc={desc},  obs.__dir__()=")
                         print(obs.__dir__(),  flush=True)
-                        logger.info(f" obs.mix_background={obs.mix_background}")
+                        # logger.info(f" obs.mix_background={obs.mix_background}")
                         bFirst=False
-                    logger.info(f"obs.site={obs.site},  obs.height={obs.height}")
+                    # logger.info(f"obs.site={obs.site},  obs.height={obs.height}")
                     # import signal
                     #    os.kill(os.getpid(), signal.SIGINT)
-                    logger.info(f"(pool_id({pool_id})): obs={obs}")
-                    logger.info(f"(pool_id({pool_id})): obs.dy={obs.dy}")
+                    # logger.info(f"(pool_id({pool_id})): obs={obs}")
+                    # logger.info(f"(pool_id({pool_id})): obs.dy={obs.dy}")
                     # logger.info(f"(pool_id({pool_id})): obs.dy * fp.sensi: {obs.dy} * {fp.sensi}")
                     nPtsRead+=fp.sensi.size
-                    logger.info(f"(pool_id({pool_id})): nWanted={nWanted},  cumulative number of points read:{nPtsRead}, number of points in this chunk: fp.sensi.size={fp.sensi.size}")
+                    # logger.info(f"(pool_id({pool_id})): nWanted={nWanted},  cumulative number of points read:{nPtsRead}, number of points in this chunk: fp.sensi.size={fp.sensi.size}")
                     # if(fp.sensi.size>times.nt):
                         # logger.warning(f"(pool_id({pool_id})): fp.sensi.size={fp.sensi.size} exceeds the size of the time dimension (axis 0) ({1+times.nt})")
                         #for idx, s in enumerate(fp.sensi):

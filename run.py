@@ -83,19 +83,22 @@ else :
     end = Timestamp(args.end)
     rcf.setkey('time.end', end.strftime('%Y,%m,%d'))
 
+
 # Save  all details of the configuration and the version of the software used:
 from datetime import datetime
 current_date = datetime.now()
 sNow=current_date.isoformat("T","minutes")
+sCmd=("mkdir -p "+rcf['run']['paths']['output'])
+try:
+    os.system(sCmd)
+except:
+    print(".")
 if len(rcf['run']['paths']['output'])<1:
     sLogCfgFile="./Lumia-runlog-"+sNow[:-3]+"config.yml"
 else:
     sLogCfgFile=rcf['run']['paths']['output']+"/Lumia-runlog-"+sNow+"-config.yml"
-    sCmd=("mkdir -p "+rcf['run']['paths']['output'])
-    try:
-        os.system(sCmd)
-    except:
-        print(".")
+# Shall we call the GUI to tweak some parameters before we start the ball rolling?
+
 sCmd="cp "+args.ymf+" "+sLogCfgFile
 os.system(sCmd)
 myFile = open(sLogCfgFile, mode="a")

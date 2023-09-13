@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2023 , ",
-    "saved": "2023-07-11, 11:28:19"
+    "saved": "2023-09-08, 16:21:55"
   },
   "project": {
     "AUTHOR": "",
@@ -16,15 +16,16 @@
     "FILETYPES": {
       "*.e4p": "OTHERS",
       "*.epj": "OTHERS",
-      "*.idl": "INTERFACES",
+      "*.json": "OTHERS",
       "*.md": "OTHERS",
-      "*.proto": "PROTOCOLS",
       "*.py": "SOURCES",
       "*.py3": "SOURCES",
       "*.pyw": "SOURCES",
       "*.pyw3": "SOURCES",
       "*.rst": "OTHERS",
       "*.txt": "OTHERS",
+      "*.yaml": "OTHERS",
+      "*.yml": "OTHERS",
       "GNUmakefile": "OTHERS",
       "Makefile": "OTHERS",
       "README": "OTHERS",

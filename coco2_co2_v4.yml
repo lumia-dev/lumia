@@ -50,9 +50,9 @@ observations :
         tracer : co2
     uncertainty :
         default_weekly_error : 1.5                          # warning
-        systematicErrEstim   : 1.0   # percent of observation value
-        model                : 1.5   # any estimate is better than zero
-        background           : 1.822 # percent; derived from drought 2018 data set with 65553 observations
+        systematicErrEstim   : 0.5   # percent of observation value
+        model                : 1.5   # ppm any estimate is better than zero
+        background           : 1.822 # ppm derived from drought 2018 data set with 65553 observations
         frequency            : dyn
         setup                : False
         obs_field            : err   # err_obs
@@ -103,5 +103,3 @@ model :
 # not needed / deprecated?
 correlation.inputdir        : ./data/corr
 emissions.*.error_structure : linear
-obs.uncertainty.setup       : False
-obs.co2.units               : ppm

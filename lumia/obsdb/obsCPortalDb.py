@@ -6,6 +6,7 @@ from datetime import timedelta
 from numpy import zeros, sqrt
 import rctools
 import tarfile
+import xarray as xr
 from lumia.obsdb import obsdb
 from lumia.formatters.cdoWrapper import ensureReportedTimeIsStartOfMeasurmentInterval
 from multiprocessing import Pool
@@ -133,6 +134,8 @@ class obsdb(obsdb):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")
             sys.exit(-1)
         nBadies=0
+        # bWriteCsv=True
+        bAllImportantColsArePresent=False
         for pid in selectedDobjLst:
             # sFileNameOnCarbonPortal = cpDir+pid+'.cpb'
             # meta.get('https://meta.icos-cp.eu/objects/Igzec8qneVWBDV1qFrlvaxJI')
@@ -143,20 +146,78 @@ class obsdb(obsdb):
             pidUrl="https://meta.icos-cp.eu/objects/"+pid
             logger.info(f"pidUrl={pidUrl}")
             dob = Dobj(pidUrl)
-            logger.info(f"dobj: {dob}")
-            logger.info(f"Reading observed co2 data from: station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
+            # logger.info(f"dobj: {dob}")
+            logger.info(f"Reading observed co2 data from: PID={pid} station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
             obsData1site = dob.get()
-            logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
+            if('PXBNgmAH-PG5_AYXDl4fu2se'in pid):
+                print('.')
+            # logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
             availColNames = list(obsData1site.columns.values)
             if ('Site' not in availColNames):
                 obsData1site.loc[:,'Site'] = dob.station['id'].lower()
-            if ( ('TIMESTAMP' not in availColNames)  or ('co2' not in availColNames) or ('Stdev' not in availColNames) or ('Flag' not in availColNames)):
-                logger.warning(f"Suspicious data object {pidUrl}  :")
-                logger.warning("This data set is missing at least one of the expected columns >> obs, TIMESTAMP, Site, co2, stdde or Flag <<. This data object will be ignored.")
-                nBadies+=1  # Have: icos_LTR, icos_SMR, icos_STTB, icos_datalevel, qc_flag, time, value, value_std_dev, Site
-            else:
+            if ( (any('value' in entry for entry in availColNames))  and (any('value_std_dev' in entry for entry in availColNames)) and (any('time' in entry for entry in availColNames)) ):
+                # There is an issue with the icoscp package when reading ObsPack data. Although the netcdf files stores seconds since 1970-01-01T00:00:00, 
+                # what ends upin the pandas dataframe is only the hour of the day without date....
+                # Let's read the netcdf file ourselves then... for each PID there are 2 files, one without extension (the netcdf file) and one with .cpb extension
+                # example for an ObsPack Lv 2 data set: fn='/data/dataAppStorage/netcdfTimeSeries/bALaWpparMpY6_N-zW2Cia9a'
+                datafileFound=False
+                fn='/data/dataAppStorage/netcdfTimeSeries/'+pid
+                if(os.path.exists(fn)):
+                    datafileFound=True
+                else:
+                    fn='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
+                    if(os.path.exists(fn)):
+                        datafileFound=True
+                    else:
+                        fn='/data/dataAppStorage/asciiAtcTimeSer/'+pid
+                        if(os.path.exists(fn)):
+                            datafileFound=True
+                if(datafileFound==False):
+                    logger.warning(f"Suspicious data object {pidUrl}  :")
+                    logger.warning("This data set might be an ObsPack, but I cannot locate the file on the server.")
+                    # Remove this pid from the list of used data sets: pid in selectedDobjLst                
+                    selectedDobjLst[:] = [x for x in selectedDobjLst if pid not in x]
+                    nBadies+=1 
+                else:
+                    ds = xr.open_dataset(fn)
+                    df = ds.to_dataframe()
+                    df = df.reset_index()
+                    #if(bWriteCsv==True):
+                    #    obsData1site.to_csv('obsData1site.csv',index=True, header=True)
+                    #    bWriteCsv=False
+                    obsData1site=df
+                    obsData1site.rename(columns={'value':'obs','value_std_dev':'stddev', 'nvalue':'NbPoints'}, inplace=True)
+                    if(is_float_dtype(obsData1site['obs'])==False):
+                        obsData1site['obs']=obsData1site['obs'].astype(float)
+                    if(is_float_dtype(obsData1site['stddev'])==False):
+                        obsData1site['stddev']=obsData1site['stddev'].astype(float)
+                    # this pid is probably an ObsPack in netcdf format. co2 values are then in mol/mol and must be multiplied by 1e6 to get ppm
+                    obsData1site['obs']= 1.0e6*obsData1site['obs']  # from mol/mol to micromol/mol
+                    obsData1site['stddev']= 1.0e6*obsData1site['stddev']
+                    if ( 'qc_flag'  in entry for entry in availColNames):
+                        obsData1site.rename(columns={'qc_flag':'icos_flag'}, inplace=True)
+                    else:
+                        obsData1site['icos_flag']= 'O'
+                    bAllImportantColsArePresent=True
+            #elif ( ('TIMESTAMP' not in entry for entry in availColNames)  or ('co2' not in entry for entry in availColNames) or ('Stdev' not in entry for entry in availColNames) or ('Flag' not in entry for entry in availColNames)):
+            elif ( (any('TIMESTAMP' in entry for entry in availColNames))  and (any('co2' in entry for entry in availColNames)) and (any('Stdev' in entry for entry in availColNames))   and (any('Flag' in entry for entry in availColNames))):
                 # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
                 obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'stddev','Flag':'icos_flag'}, inplace=True)
+                bAllImportantColsArePresent=True
+            else:
+                logger.warning(f"Suspicious data object {pidUrl}  :")
+                logger.warning("This data set is missing at least one of the expected columns >> time/TIMESTAMP, obs/co2/value, stdev/value_std_dev or Flag <<. This data object will be ignored.")
+                # Remove this pid from the list of used data sets: pid in selectedDobjLst                
+                selectedDobjLst[:] = [x for x in selectedDobjLst if pid not in x]
+                # TODO should also remove entry from dataframe dfObsDataInfo and write an updated copy to csv file.
+                nBadies+=1  # Have: icos_LTR, icos_SMR, icos_STTB, icos_datalevel, qc_flag, time, value, value_std_dev, Site
+            if(bAllImportantColsArePresent==True):
+                # grab only the time interval needed. This reduces the amount of data drastically if it is an obspack.
+                obsData1siteTimed = obsData1site.loc[(
+                    (obsData1site.time >= pdSliceStartTime) &
+                    (obsData1site.time <= pdSliceEndTime) &
+                    (obsData1site['NbPoints'] > 0)
+                )]  
                 # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
                 # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
                 # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
@@ -165,23 +226,23 @@ class obsdb(obsdb):
                 # of uncertainties. Therefore perhaps it is best to have that column twice with both names - at least until I fully understand what is actually going on.
                 absErrEst=self.rcf['observations']['uncertainty']['systematicErrEstim']
                 logger.info(f"User provided estimate of the absolute uncertainty of the observations including systematic errors is {absErrEst} percent.")
-                obsData1site.loc[:,'err_obs']=(obsData1site.loc[:,'stddev']+self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1site.loc[:,'obs']*0.01 
-                obsData1site.loc[:,'err']=obsData1site.loc[:,'err_obs'] 
+                # To avoid really bad things from happening where we have an observed CO2 concentration but no value for stddev: estimate a conservative value
+                obsData1siteTimed['stddev'] = obsData1siteTimed['stddev'].fillna(1.0) # 1ppm should get me in the ballpark. Stddev is understood to be an absolute error in ppm not percent
+                obsData1siteTimed.loc[:,'err_obs']=obsData1siteTimed.loc[:,'stddev']+(self.rcf['observations']['uncertainty']['systematicErrEstim'])*obsData1siteTimed.loc[:,'obs']*0.01 
+                obsData1siteTimed.loc[:,'err']=obsData1siteTimed.loc[:,'err_obs'] 
                 # Parameters like site-code, latitude, longitude, elevation, and sampling height are not present as data columns, but can be 
                 # extracted from the header, which really is written as a comment. Thus the following columns need to be created: 
+                fn=dob.info['fileName']
                 # 'SamplingHeight':'height' (taken from metadata)
-                obsData1site.loc[:,'site'] = dob.station['id'].lower()
-                obsData1site.loc[:,'lat']=dob.lat
-                obsData1site.loc[:,'lon']=dob.lon
-                obsData1site.loc[:,'alt']=dob.alt
-                obsData1site.loc[:,'height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
+                obsData1siteTimed.loc[:,'site'] = dob.station['id'].lower()
+                obsData1siteTimed.loc[:,'lat']=dob.lat
+                obsData1siteTimed.loc[:,'lon']=dob.lon
+                obsData1siteTimed.loc[:,'alt']=dob.alt
+                obsData1siteTimed.loc[:,'height']=dob.meta['specificInfo']['acquisition']['samplingHeight']
                 # site name/code is in capitals, but needs conversion to lower case:
-                obsData1site.loc[:,'code'] = dob.station['id'].lower()
-                obsData1siteTimed = obsData1site.loc[(
-                    (obsData1site.time >= pdSliceStartTime) &
-                    (obsData1site.time <= pdSliceEndTime) &
-                    (obsData1site['NbPoints'] > 0)
-                )]  
+                obsData1siteTimed.loc[:,'code'] = dob.station['id'].lower()
+                if ('Site' not in availColNames):
+                    obsData1siteTimed.loc[:,'Site'] = dob.station['id'].lower()
                 # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
                 # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
                 # I tried to pull my hair out converting the series into a timestamp object or similar and format the output,
