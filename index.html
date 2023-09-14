@@ -126,13 +126,15 @@
 <p>While the aim of the inversion is typically to estimate the emissions of a tracer, the control vector <span class="arithmatex">\(x\)</span> rarely consists (directly) of the emissions: it can for instance contain scaling factor or offsets, at a lower resolution than the emission themselves, it may contain only a subset of the emissions, it can also include additional terms such as an estimate of the boundary condition, bias correction terms, etc. </p>
 <div class="arithmatex">\[ E = M(x) \]</div>
 <h3 id="implementation">Implementation</h3>
-<p>LUMIA implement the various components of the aforedescribed inversion approach as semi independent python modules:
-- The <code>lumia.observations</code> module implements the observation vector (<span class="arithmatex">\(y\)</span>), the corresponding uncertainties (<span class="arithmatex">\(R\)</span>);
-- The <code>lumia.models</code> module implements the CTM <span class="arithmatex">\(H\)</span>. It also contains two sub-modules:
-- The <code>lumia.prior</code> module implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;
-- The <code>lumia.optimizer</code> module implements the optimization algorithm;
-- The <code>lumia.data</code> module implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;
-- The <code>lumia.mapping</code> module implement the mapping operator (<span class="arithmatex">\(M\)</span>), that is used to convert between model data and control vector.</p>
+<p>LUMIA implement the various components of the aforedescribed inversion approach as semi independent python modules:</p>
+<ul>
+<li>The <code>lumia.observations</code> module implements the observation vector (<span class="arithmatex">\(y\)</span>), the corresponding uncertainties (<span class="arithmatex">\(R\)</span>);</li>
+<li>The <code>lumia.models</code> module implements the CTM <span class="arithmatex">\(H\)</span>. It also contains two sub-modules:</li>
+<li>The <code>lumia.prior</code> module implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;</li>
+<li>The <code>lumia.optimizer</code> module implements the optimization algorithm;</li>
+<li>The <code>lumia.data</code> module implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;</li>
+<li>The <code>lumia.mapping</code> module implement the mapping operator (<span class="arithmatex">\(M\)</span>), that is used to convert between model data and control vector.</li>
+</ul>
 <p>Most of these modules can be used independently. For instance, the <code>lumia.observations</code> defines an <code>Observation</code> class that can be used to read, write and analyze observation files used in LUMIA (including LUMIA results).</p></div>
             </div>
         </div>
@@ -219,5 +221,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-14 15:52:29.598307+00:00
+Build Date UTC : 2023-09-14 15:52:48.589854+00:00
 -->
