@@ -148,7 +148,8 @@
 </ul>
 <p>Most of these modules can be used independently. For instance, the <code>lumia.observations</code> defines an <code>Observation</code> class that can be used to read, write and analyze observation files used in LUMIA (including LUMIA results).</p>
 <p>Example scripts showing a full inversion are provided under the <em>run</em> directory, and presented in more details in the <a href="tutorial/">Tutorial</a>.</p>
-<h2 id="coding-philosophy">Coding philosophy</h2></div>
+<h2 id="coding-philosophy">Coding philosophy</h2>
+<p>One of the objectives of LUMIA is to remain flexible regarding the choice of a given CTM. This is why the <code>transport</code> module is not just a sub-module of <code>lumia</code>, but is kept as a separate tool, launched as a subprocess (the communication between <code>lumia</code> and <code>transport</code> being handled by the <code>lumia.models.footprints</code> module.</p></div>
             </div>
         </div>
 
@@ -234,5 +235,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-14 17:22:46.647841+00:00
+Build Date UTC : 2023-09-14 17:25:12.677857+00:00
 -->
