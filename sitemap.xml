@@ -16,6 +16,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://lumia.nateko.lu.se/overview/</loc>
+         <lastmod>2023-09-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://lumia.nateko.lu.se/settings/</loc>
          <lastmod>2023-09-14</lastmod>
          <changefreq>daily</changefreq>
