@@ -106,7 +106,7 @@
 
 <p>The Lund University Modular Inversion Algorithm (LUMIA) is a python package for performing atmospheric transport inversions.</p>
 <p>The release 2020.8 is described in <a href="https://www.geosci-model-dev-discuss.net/gmd-2019-227/">https://www.geosci-model-dev-discuss.net/gmd-2019-227/</a> can be downloaded <a href="lumia.202008.tar.gz">here</a>, however, we recommend instead getting the latest commit from <a href="https://github.com/lumia-dev/lumia.git">github</a></p>
-<p>This documentation focuses on an updated release (...).</p>
+<p>This documentation focuses on an updated release (== NOTE: this documentation is being revised at the very moment. The text in this page refers to the "master" branch, not to the "default" one.==).</p>
 <h2 id="installation">Installation</h2>
 <p>The installation instructions are described in further details in the <a href="https://github.com/lumia-dev/README.md">README</a> file. In short:
 1. Create a python virtual environment, using your favourite environment manager (e.g., conda)
@@ -114,20 +114,26 @@
 3. Install LUMIA as a python package in your python virtual environment, using pip
 4. Start working!</p>
 <h2 id="documentation">Documentation</h2>
+<h3 id="theoretical-summary">Theoretical summary</h3>
 <p>LUMIA is (primarily) a library for performing atmospheric inversions: Observations of the atmospheric composition are used to improve a prior estimate of the emissions (or fluxes) of one (or several) atmospheric tracer (e.g CO<span class="arithmatex">\(_2\)</span>). </p>
 <p>The inversion relies on an atmospheric chemistry-transport model (CTM) to link fluxes of a tracer in and out of the atmosphere with observed atmospheric concentration. This can be formalized as</p>
 <div class="arithmatex">\[y + \varepsilon_{y} = H(x) + \varepsilon_{H}\]</div>
 <p>where <span class="arithmatex">\(y\)</span> is an ensemble of observations, <span class="arithmatex">\(H\)</span> is a CTM, and <span class="arithmatex">\(x\)</span> is a vector containing parameters controlling the CTM (i.e. x is the <em>control vector</em>). The uncertainty terms <span class="arithmatex">\(\varepsilon_{y}\)</span> and <span class="arithmatex">\(\varepsilon_{H}\)</span> represent respectively the measurement error and the model error. </p>
 <p>The aim of the inversion is to determine the control vector <span class="arithmatex">\(x\)</span> that leads to the optimal fit of the model <span class="arithmatex">\(H\)</span> to the observations <span class="arithmatex">\(y\)</span>. This is formalized as finding the vector <span class="arithmatex">\(x\)</span> that minimises the cost function</p>
-<p><span class="arithmatex">\(J(x) = \frac{1}{2}\left(x-x_b\right)^TB^{-1}\left(x-x_b\right) + \frac{1}{2}\left(H(x) - y\right)^TR^{-1}\left(H(x) - y\right)\)</span></p>
-<p>where <span class="arithmatex">\(x_b\)</span> a prior estimate of the control vector <span class="arithmatex">\(x\)</span> (that we are trying to determine). The error covariance matrices <span class="arithmatex">\(B\)</span> and <span class="arithmatex">\(R\)</span> contain respectively the estimated uncertainties on <span class="arithmatex">\(x_b\)</span> and <span class="arithmatex">\(y - H\)</span>(x)$.</p>
-<p>For this, the following components are required:
-- a dataset of observations
-- an initial estimate of the emissions
-- an atmospheric transport model (that computes the link between emissions and observations)
-- a function mapping the model parameters (gridded emissions, but possibly other variables such as a boundary condition, bias correction terms, etc.) to a <em>control vector</em>, i.e. the vector containing the values that the inversion will optimize.
-- an estimation of the uncertainty on the control vector components.
-- an optimizer: an iterative algorithm that will be used to find the optimal control vector, given the prior value of the control vector, and given the observations and their uncertainties.</p></div>
+<div class="arithmatex">\[J(x) = \frac{1}{2}\left(x-x_b\right)^TB^{-1}\left(x-x_b\right) + \frac{1}{2}\left(H(x) - y\right)^TR^{-1}\left(H(x) - y\right)\]</div>
+<p>where <span class="arithmatex">\(x_b\)</span> a prior estimate of the control vector <span class="arithmatex">\(x\)</span> (that we are trying to determine). The error covariance matrices <span class="arithmatex">\(B\)</span> and <span class="arithmatex">\(R\)</span> contain respectively the estimated uncertainties on <span class="arithmatex">\(x_b\)</span> and <span class="arithmatex">\(y - H(x)\)</span>.</p>
+<p>The optimal control vector <span class="arithmatex">\(\hat{x}\)</span> is determined using an iterative conjugate gradient approach.</p>
+<p>While the aim of the inversion is typically to estimate the emissions of a tracer, the control vector <span class="arithmatex">\(x\)</span> rarely consists (directly) of the emissions: it can for instance contain scaling factor or offsets, at a lower resolution than the emission themselves, it may contain only a subset of the emissions, it can also include additional terms such as an estimate of the boundary condition, bias correction terms, etc. </p>
+<div class="arithmatex">\[ E = M(x) \]</div>
+<h3 id="implementation">Implementation</h3>
+<p>LUMIA implement the various components of the aforedescribed inversion approach as semi independent python modules:
+- The <code>lumia.observations</code> module implements the observation vector (<span class="arithmatex">\(y\)</span>), the corresponding uncertainties (<span class="arithmatex">\(R\)</span>);
+- The <code>lumia.models</code> module implements the CTM <span class="arithmatex">\(H\)</span>. It also contains two sub-modules:
+- The <code>lumia.prior</code> module implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;
+- The <code>lumia.optimizer</code> module implements the optimization algorithm;
+- The <code>lumia.data</code> module implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;
+- The <code>lumia.mapping</code> module implement the mapping operator (<span class="arithmatex">\(M\)</span>), that is used to convert between model data and control vector.</p>
+<p>Most of these modules can be used independently. For instance, the <code>lumia.observations</code> defines an <code>Observation</code> class that can be used to read, write and analyze observation files used in LUMIA (including LUMIA results).</p></div>
             </div>
         </div>
 
@@ -213,5 +219,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-14 15:09:44.803518+00:00
+Build Date UTC : 2023-09-14 15:49:41.545447+00:00
 -->
