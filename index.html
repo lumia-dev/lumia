@@ -13,7 +13,6 @@
         <link href="css/font-awesome.min.css" rel="stylesheet">
         <link href="css/base.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css" rel="stylesheet">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script> 
     </head>
@@ -115,13 +114,13 @@
 3. Install LUMIA as a python package in your python virtual environment, using pip
 4. Start working!</p>
 <h2 id="documentation">Documentation</h2>
-<p>LUMIA is (primarily) a library for performing atmospheric inversions: Observations of the atmospheric composition are used to improve a prior estimate of the emissions (or fluxes) of one (or several) atmospheric tracer (e.g CO$_2$). </p>
+<p>LUMIA is (primarily) a library for performing atmospheric inversions: Observations of the atmospheric composition are used to improve a prior estimate of the emissions (or fluxes) of one (or several) atmospheric tracer (e.g CO<span class="arithmatex">\(_2\)</span>). </p>
 <p>The inversion relies on an atmospheric chemistry-transport model (CTM) to link fluxes of a tracer in and out of the atmosphere with observed atmospheric concentration. This can be formalized as</p>
-<p>$$y + \varepsilon_{y} = H(x) + \varepsilon_{H}$$</p>
-<p>where $y$ is an ensemble of observations, $H$ is a CTM, and $x$ is a vector containing parameters controlling the CTM (i.e. x is the <em>control vector</em>). The uncertainty terms $\varepsilon_{y}$ and $\varepsilon_{H}$ represent respectively the measurement error and the model error. </p>
-<p>The aim of the inversion is to determine the control vector $x$ that leads to the optimal fit of the model $H$ to the observations $y$. This is formalized as finding the vector $x$ that minimises the cost function</p>
-<p>$J(x) = \frac{1}{2}\left(x-x_b\right)^TB^{-1}\left(x-x_b\right) + \frac{1}{2}\left(H(x) - y\right)^TR^{-1}\left(H(x) - y\right)$</p>
-<p>where $x_b$ a prior estimate of the control vector $x$ (that we are trying to determine). The error covariance matrices $B$ and $R$ contain respectively the estimated uncertainties on $x_b$ and $y - H$(x)$.</p>
+<div class="arithmatex">\[y + \varepsilon_{y} = H(x) + \varepsilon_{H}\]</div>
+<p>where <span class="arithmatex">\(y\)</span> is an ensemble of observations, <span class="arithmatex">\(H\)</span> is a CTM, and <span class="arithmatex">\(x\)</span> is a vector containing parameters controlling the CTM (i.e. x is the <em>control vector</em>). The uncertainty terms <span class="arithmatex">\(\varepsilon_{y}\)</span> and <span class="arithmatex">\(\varepsilon_{H}\)</span> represent respectively the measurement error and the model error. </p>
+<p>The aim of the inversion is to determine the control vector <span class="arithmatex">\(x\)</span> that leads to the optimal fit of the model <span class="arithmatex">\(H\)</span> to the observations <span class="arithmatex">\(y\)</span>. This is formalized as finding the vector <span class="arithmatex">\(x\)</span> that minimises the cost function</p>
+<p><span class="arithmatex">\(J(x) = \frac{1}{2}\left(x-x_b\right)^TB^{-1}\left(x-x_b\right) + \frac{1}{2}\left(H(x) - y\right)^TR^{-1}\left(H(x) - y\right)\)</span></p>
+<p>where <span class="arithmatex">\(x_b\)</span> a prior estimate of the control vector <span class="arithmatex">\(x\)</span> (that we are trying to determine). The error covariance matrices <span class="arithmatex">\(B\)</span> and <span class="arithmatex">\(R\)</span> contain respectively the estimated uncertainties on <span class="arithmatex">\(x_b\)</span> and <span class="arithmatex">\(y - H\)</span>(x)$.</p>
 <p>For this, the following components are required:
 - a dataset of observations
 - an initial estimate of the emissions
@@ -143,9 +142,9 @@
                 shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
         </script>
         <script src="js/base.js"></script>
-        <script src="javascripts/katex.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js"></script>
+        <script src="javascripts/mathjax.js"></script>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script src="search/main.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
@@ -214,5 +213,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-14 15:07:33.386671+00:00
+Build Date UTC : 2023-09-14 15:09:44.803518+00:00
 -->
