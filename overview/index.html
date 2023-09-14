@@ -110,8 +110,11 @@
 <h2 id="lumia-development-strategy">LUMIA development strategy</h2>
 <p>LUMIA was designed as a modular system: it should remain as easy as possible to replace the default CTM (i.e. the code in the <em>transport</em> folder) by another one (e.g. a Eulerian model). The individual components (prior, observations, optimizer, etc.) should remain as independent from each other as reasonable, to facilitate developing alternative implementations.</p>
 <p>In practice this means that the following technical choices were made:
-- Although it was developed along LUMIA, the code that acts as a CTM (<a href="transport.md"><code>transport</code></a>) remains a separate python package and is run as a subprocess.
-- </p>
+- The LUMIA modules contain python classes to handle the different components of the inversions (e.g. an <code>Observations</code> class to handle the observations, a <code>PriorConstraints</code> class to construct and store the prior uncertainty matrix, etc.).
+- All modules implement or support alternative versions of these classes. For instance, the "Observations" class is defined in the <code>lumia.observations.observations</code> class (i.e. <em>lumia/observations/observations.py</em> file):
+    - This approach makes space for alternative implementations (e.g. one could implement an <code>Observations</code> class part of a <code>lumia.observations.satellite_obs</code> module).
+    - It can however make imports paths length (<code>from lumia.observations.observations import Observations</code>, <code>from lumia.models.footprints.data import Data</code>, etc.). To circumvent this, many "shortcuts" have been defined in the <em><strong>init</strong>.py</em> files of the module (enabling e.g. <code>from lumia.observations import Observations</code>), and, even in the top-level <em><strong>init</strong>.py</em> file (<em>lumia/<strong>init</strong>.py</em>). These are documented in the relevant sections (e.g. in <a href="../observations/">Observations</a>) and, for the top-level objects, in the section below.
+- Although it was developed along LUMIA, the code that acts as a CTM (<a href="transport.md"><code>transport</code></a>) remains a separate python package and is run as a subprocess. This forces us to limit the degree of inter-dependency between the two codes, and thus should make it easier implementing an alternative CTM.</p>
 <h2 id="top-level-objects">Top-level objects</h2></div>
             </div>
         </div>
