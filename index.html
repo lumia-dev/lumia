@@ -95,7 +95,17 @@
               </ul>
             </li>
             
-            <li class="nav-item" data-level="2"><a href="#documentation" class="nav-link">Documentation</a>
+            <li class="nav-item" data-level="2"><a href="#theoretical-summary" class="nav-link">Theoretical summary</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="2"><a href="#documentation-overview" class="nav-link">Documentation overview</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="2"><a href="#coding-philosophy" class="nav-link">Coding philosophy</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -113,8 +123,7 @@
 2. Git clone the lumia source code in a clean folder
 3. Install LUMIA as a python package in your python virtual environment, using pip
 4. Start working!</p>
-<h2 id="documentation">Documentation</h2>
-<h3 id="theoretical-summary">Theoretical summary</h3>
+<h2 id="theoretical-summary">Theoretical summary</h2>
 <p>LUMIA is (primarily) a library for performing atmospheric inversions: Observations of the atmospheric composition are used to improve a prior estimate of the emissions (or fluxes) of one (or several) atmospheric tracer (e.g CO<span class="arithmatex">\(_2\)</span>). </p>
 <p>The inversion relies on an atmospheric chemistry-transport model (CTM) to link fluxes of a tracer in and out of the atmosphere with observed atmospheric concentration. This can be formalized as</p>
 <div class="arithmatex">\[y + \varepsilon_{y} = H(x) + \varepsilon_{H}\]</div>
@@ -125,19 +134,21 @@
 <p>The optimal control vector <span class="arithmatex">\(\hat{x}\)</span> is determined using an iterative conjugate gradient approach.</p>
 <p>While the aim of the inversion is typically to estimate the emissions of a tracer, the control vector <span class="arithmatex">\(x\)</span> rarely consists (directly) of the emissions: it can for instance contain scaling factor or offsets, at a lower resolution than the emission themselves, it may contain only a subset of the emissions, it can also include additional terms such as an estimate of the boundary condition, bias correction terms, etc. </p>
 <div class="arithmatex">\[ E = M(x) \]</div>
-<h3 id="implementation">Implementation</h3>
+<h2 id="documentation-overview">Documentation overview</h2>
 <p>LUMIA implement the various components of the aforedescribed inversion approach as semi independent python modules:</p>
 <ul>
-<li>The <code>lumia.observations</code> module implements the observation vector (<span class="arithmatex">\(y\)</span>), the corresponding uncertainties (<span class="arithmatex">\(R\)</span>);</li>
-<li>The <code>lumia.models</code> module implements the CTM <span class="arithmatex">\(H\)</span>. It also contains two sub-modules:</li>
-<li>The <code>lumia.prior</code> module implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;</li>
-<li>The <code>lumia.optimizer</code> module implements the optimization algorithm;</li>
-<li>The <code>lumia.data</code> module implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;</li>
-<li>The <code>lumia.mapping</code> module implement the mapping operator (<span class="arithmatex">\(M\)</span>), that is used to convert between model data and control vector.</li>
+<li>The <a href="observations/"><code>lumia.observations</code></a> module implements the observation vector (<span class="arithmatex">\(y\)</span>), the corresponding uncertainties (<span class="arithmatex">\(R\)</span>);</li>
+<li>The <a href="models.md"><code>lumia.models</code></a> module handles the interface between LUMIA and the actual CTM (<span class="arithmatex">\(H\)</span>);</li>
+<li>The <a href="prior.md"><code>lumia.prior</code></a> module implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;</li>
+<li>The <a href="optimizers.md"><code>lumia.optimizer</code></a> module implements the optimization algorithm;</li>
+<li>The <a href="data.md"><code>lumia.data</code></a> module implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;</li>
+<li>The <a href="mapping.md"><code>lumia.mapping</code></a> module implement the mapping operator (<span class="arithmatex">\(M\)</span>), that is used to convert between model data and control vector.</li>
+<li>The <a href="utils.md"><code>lumia.utils</code></a> module contains various utilities, used by several of the other <code>lumia</code> modules. The <a href="utils.md">Utilities</a> page also describes the <code>gridtools</code> module, that is distributed along <code>lumia</code>.</li>
+<li>The <a href="transport.md"><code>transport</code></a> module acts as a CTM (<span class="arithmatex">\(H\)</span>) in our LUMIA inversions.</li>
 </ul>
 <p>Most of these modules can be used independently. For instance, the <code>lumia.observations</code> defines an <code>Observation</code> class that can be used to read, write and analyze observation files used in LUMIA (including LUMIA results).</p>
-<p>In addition, various utilities are present in a <code>lumia.utils</code> module, further described in the <a href="utils.md">Utilities</a> section.</p>
-<p>Example scripts showing a full inversion are provided under the <em>run</em> directory, and presented in more details in the <a href="tutorial/">Tutorial</a>.</p></div>
+<p>Example scripts showing a full inversion are provided under the <em>run</em> directory, and presented in more details in the <a href="tutorial/">Tutorial</a>.</p>
+<h2 id="coding-philosophy">Coding philosophy</h2></div>
             </div>
         </div>
 
@@ -223,5 +234,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-14 15:55:28.474267+00:00
+Build Date UTC : 2023-09-14 17:22:46.647841+00:00
 -->
