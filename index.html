@@ -116,7 +116,7 @@
 <h2 id="documentation">Documentation</h2>
 <p>LUMIA is (primarily) a library for performing atmospheric inversions: Observations of the atmospheric composition are used to improve a prior estimate of the emissions (or fluxes) of one (or several) atmospheric tracer (e.g CO$_2$). </p>
 <p>The inversion relies on an atmospheric chemistry-transport model (CTM) to link fluxes of a tracer in and out of the atmosphere with observed atmospheric concentration. This can be formalized as</p>
-<p>$y + \varepsilon_{y} = H(x) + \varepsilon_{H}$</p>
+<p>$$y + \varepsilon_{y} = H(x) + \varepsilon_{H}$$</p>
 <p>where $y$ is an ensemble of observations, $H$ is a CTM, and $x$ is a vector containing parameters controlling the CTM (i.e. x is the <em>control vector</em>). The uncertainty terms $\varepsilon_{y}$ and $\varepsilon_{H}$ represent respectively the measurement error and the model error. </p>
 <p>The aim of the inversion is to determine the control vector $x$ that leads to the optimal fit of the model $H$ to the observations $y$. This is formalized as finding the vector $x$ that minimises the cost function</p>
 <p>$J(x) = \frac{1}{2}\left(x-x_b\right)^TB^{-1}\left(x-x_b\right) + \frac{1}{2}\left(H(x) - y\right)^TR^{-1}\left(H(x) - y\right)$</p>
@@ -210,5 +210,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-14 10:07:07.870504+00:00
+Build Date UTC : 2023-09-14 10:08:03.727385+00:00
 -->
