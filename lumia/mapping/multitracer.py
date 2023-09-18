@@ -7,15 +7,15 @@ from loguru import logger
 from pandas import Timedelta, Timestamp, DataFrame, concat
 from numpy import float32, zeros, average, meshgrid, array, eye
 from tqdm import tqdm
-from lumia.models.footprints import Data
+from collections.abc import Iterable
+from numpy.typing import NDArray
+from typing import Dict
+from lumia.data.xr import Data
 from lumia.utils.units import units_registry as ureg
 from lumia.utils.tracers import species
 from lumia.utils.clusters import clusterize
 from lumia.utils.time_utils import overlap_percent, interval_range
 from lumia.optimizer.categories import Category
-from numpy.typing import NDArray
-from typing import Dict
-from collections.abc import Iterable
 from lumia.utils import debug
 
 

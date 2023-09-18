@@ -7,25 +7,25 @@ import xarray as xr
 from dataclasses import dataclass, field
 from numpy import ndarray, unique, array, zeros
 from numpy.typing import NDArray
-from gridtools import Grid
 from datetime import datetime
 from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, IntervalIndex
 from loguru import logger
-from lumia.utils.units import units_registry as ureg
 from pandas import date_range, DateOffset, Timedelta
 from pandas.tseries.frequencies import to_offset
-from lumia.utils.tracers import species, Unit
 from netCDF4 import Dataset
 import numbers
-from lumia.utils.archive import Rclone
 from typing import Iterator
 from omegaconf import DictConfig
-from lumia.optimizer.categories import Category, attrs_to_nc, Constructor
-from lumia.utils import debug
 import dask
 import pprint
 import glob
 import fnmatch
+from gridtools import Grid
+from lumia.utils.units import units_registry as ureg
+from lumia.utils.tracers import species, Unit
+from lumia.utils.archive import Rclone
+from lumia.utils import debug
+from lumia.optimizer.categories import Category, attrs_to_nc, Constructor
 
 
 def offset_to_pint(offset: DateOffset):

@@ -2,18 +2,19 @@
 import sys
 from dataclasses import dataclass, field
 from numpy.typing import NDArray
-from .protocols import Emissions
 from pathlib import Path
 from typing import Tuple, List
 from omegaconf import DictConfig, OmegaConf
-from ...observations.protocols import Observations
 from pandas import DataFrame, read_hdf
-from . import Data
-from ...utils.system import runcmd
 import shutil
 from loguru import logger
-from lumia.utils import debug
 from numpy import ones, array
+
+from lumia.models.footprints.protocols import Emissions
+from lumia.observations.protocols import Observations
+from lumia.utils.system import runcmd
+from lumia.data.xr import Data
+from lumia.utils import debug
 
 
 @dataclass
