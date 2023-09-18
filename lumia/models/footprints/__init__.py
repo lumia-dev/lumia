@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
 from .transport import Transport, adjoint_test
-from .io.xr import Data
-from .mapping.multitracer import Mapping
+from lumia.data.footprints import Data
+from lumia.mapping.footprints import Mapping

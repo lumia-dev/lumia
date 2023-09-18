@@ -2,6 +2,7 @@
 #SBATCH -t 2:00:00 -n 48 --exclusive
 
 import lumia
+from lumia.models import footprints as model
 from omegaconf import OmegaConf
 from argparse import ArgumentParser
 from pathlib import Path
@@ -46,7 +47,7 @@ dconf.run.end = str(Timestamp(dconf.run.end) + spindown)
 
 
 # Setup the observations
-obs = lumia.Observations.from_tar(dconf.observations.file)
+obs = model.Observations.from_tar(dconf.observations.file)
 obs.select_times(tmin=dconf.run.start, tmax=dconf.run.end)
 obs_hour = obs.observations.time.dt.hour
 select = zeros_like(obs_hour, dtype=bool)
@@ -66,17 +67,17 @@ obs.settings.update(**dconf.observations.uncertainties)
 
 
 # Setup the emissions
-emis = lumia.models.footprints.Data.from_dconf(dconf, dconf.run.start, dconf.run.end)
+emis = model.Data.from_dconf(dconf, dconf.run.start, dconf.run.end)
 
 
 # Setup the transport model
-transport = lumia.models.footprints.Transport(**dconf.model)
+transport = model.Transport(**dconf.model)
 
 
 # Setup the prior/mapping
 # sensi_map = transport.calc_sensi_map(emis)
-mapping = lumia.models.footprints.Mapping.init(dconf, emis) #, sensi_map=sensi_map)
-prior = lumia.prior.PriorConstraints.setup(dconf.run.paths, mapping)
+mapping = model.Mapping.init(dconf, emis) #, sensi_map=sensi_map)
+prior = lumia.PriorConstraints.setup(dconf.run.paths, mapping)
 
 
 opt = lumia.optimizer.optim_cg_scipy(
@@ -95,8 +96,8 @@ opt.vectors.to_xarray().to_netcdf(Path(dconf.run.paths.output) / 'states.nc')
 
 
 # Validation:
-apri = lumia.models.footprints.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apri.nc')
-apos = lumia.models.footprints.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apos.nc')
+apri = model.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apri.nc')
+apos = model.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apos.nc')
 valid = lumia.Observations.from_tar(dconf.observations.validation_file)
 valid.select_times(tmin=dconf.run.start, tmax=dconf.run.end)
 for k, v in dconf.observations.get('rename', {}).items():

@@ -1,63 +1,63 @@
+
+# Installation and setup
+
 The Lund University Modular Inversion Algorithm (LUMIA) is a python package for performing atmospheric transport inversions.
 
-The release 2020.8 is described in [https://www.geosci-model-dev-discuss.net/gmd-2019-227/](https://www.geosci-model-dev-discuss.net/gmd-2019-227/) can be downloaded [here](lumia.202008.tar.gz), however, we recommend instead getting the latest commit from [github](https://github.com/lumia-dev/lumia.git)
+The release 2020.8 is described in [https://www.geosci-model-dev-discuss.net/gmd-2019-227/](https://www.geosci-model-dev-discuss.net/gmd-2019-227/) can be downloaded [here](lumia.202008.tar.gz), however, we recommend instead getting the latest commit from [github](https://github.com/lumia-dev/lumia.git):
 
-## Installation
-
-LUMIA is distributed as a python package, the simplest way to install it is using the standard `pip` command:
-
-```
-git clone https://github.com/lumia-dev/lumia.git lumia
-pip install -e lumia
+```bash
+git clone --branch master https://github.com/lumia-dev/lumia.git
 ```
 
-To check that the installation is successful, try `import lumia` from a python interpreter in a different directory. You can also verify that the command `which lumia` (from a bash interpreter) points to the `lumia` script in the `bin` directory of the `git` repository you just cloned.
+This documentation focuses on an updated release
+???+ Danger "Pending update"
+    this documentation is being revised at the very moment. The text in this page refers to the "master" branch, not to the "default" one).
 
-Notes:
+The installation instructions are described in further details in the [README](https://github.com/lumia-dev/lumia/blob/master/README.md) file. In short:
 
-- The `pip` installer automatically installs dependencies. If you prefer using another python package manager (e.g. `apt` or `conda`), you need to install these dependencies manually before (see dependencies list in the [setup.py](../setup.py) file).
-- It can be a good idea to at least pre-install the `cartopy` dependency with either `conda` or your system's package manager (`apt`, `dnf`, etc.): `pip` will install cartopy, but not the `geos` library which it depends upon.
-- In general, in case of troubles with dependencies, `conda` (anaconda, miniconda) is the simplest solution.
+1. Create a python virtual environment, using your favourite environment manager (e.g., conda)
+2. Git clone the lumia source code in a clean folder
+3. Install LUMIA as a python package in your python virtual environment, using pip
+4. Start working!
 
-The inversions also rely on a Fortran executable for calculating successive minimization steps, which needs to be compiled on your system:
-```
-cd src/congrad
-make congrad.exe
-```
-(you will need the netCDF-Fortran library and a fotran compiler, e.g. gfortran).
+# Documentation summary
 
-## Usage
+LUMIA implements the inversion as a combination of (semi) independent modules, implementing the various components of an inversion setup. The links below point to the documentation of these modules:
 
-### As a program
 
-The `lumia` script (under the `bin` directory of the `git` repository) can be used to run forward simulations and inversions:
+??? Note "Theoretical summary"
 
-```
-lumia forward --rc forward.yaml   # run a forward simulation based on the forward.yaml configuration file
-```
-or
-```
-lumia optim --rc optim.yaml     # run an inversion using the optim.yaml configuration file
-```
+    LUMIA is (primarily) a library for performing atmospheric inversions: Observations of the atmospheric composition are used to improve a prior estimate of the emissions (or fluxes) of one (or several) atmospheric tracer (e.g CO$_2$). 
 
-For information on how to build the yaml configuration files, see the [tutorial](tutorial.ipynb)
+    The inversion relies on an atmospheric chemistry-transport model (CTM) to link fluxes of a tracer in and out of the atmosphere with observed atmospheric concentration. This can be formalized as
 
-### As a python library
+    $$y + \varepsilon_{y} = H(x) + \varepsilon_{H}$$
 
-The `lumia` python package contains several python modules, which can be imported independently (e.g. `import rctools`, `from lumia import obsdb`, etc.):
+    where $y$ is an ensemble of observations, $H$ is a CTM, and $x$ is a vector containing parameters controlling the CTM (i.e. x is the _control vector_). The uncertainty terms $\varepsilon_{y}$ and $\varepsilon_{H}$ represent respectively the measurement error and the model error. 
 
-- The `lumia` module is the main one, and implements the inversion themselves. It also contains submodules needed to read/write lumia-formatted observation and emission files
-- The `transport` module contains the pseudo-transport model (i.e. based on pre-computed Lagrangian footprints). It can be used independently of `lumia`.
-- The `gridtools`, `rctools`, `archive` and `icosPortalAccess` modules are small utilities used by `lumia` and/or `transport`.
+    The aim of the inversion is to determine the control vector $x$ that leads to the optimal fit of the model $H$ to the observations $y$. This is formalized as finding the vector $x$ that minimises the cost function
 
-See the [tutorial](tutorial.ipynb) for an example of a script using `lumia` to perform an inversion.
+    $$J(x) = \frac{1}{2}\left(x-x_b\right)^TB^{-1}\left(x-x_b\right) + \frac{1}{2}\left(H(x) - y\right)^TR^{-1}\left(H(x) - y\right)$$
 
-## Developer access
+    where $x_b$ a prior estimate of the control vector $x$ (that we are trying to determine). The error covariance matrices $B$ and $R$ contain respectively the estimated uncertainties on $x_b$ and $y - H(x)$.
 
-LUMIA is a scientific tool. The code is made available under the [EUPL v1.2](LICENSE) open source license, and it is not provided with any warranty. In particular:
+    The optimal control vector $\hat{x}$ is determined using an iterative conjugate gradient approach.
 
-- it is in constant evolution;
-- it has bugs that we haven't found yet;
-- some parts of the code are insufficiently documented.
+    While the aim of the inversion is typically to estimate the emissions of a tracer, the control vector $x$ rarely consists (directly) of the emissions: it can for instance contain scaling factor or offsets, at a lower resolution than the emission themselves, it may contain only a subset of the emissions, it can also include additional terms such as an estimate of the boundary condition, bias correction terms, etc. 
 
-You are free to download it and use it, but you are strongly encouraged to [contact us](mailto:lumia@mail.nateko.lu.se) before, to discuss the level of support that we can provide, and give you a developer access to our git repository. 
+    $$ E = M(x) $$
+
+- [`lumia.observations`](observations.md) implements the observation vector ($y$), the corresponding uncertainties ($R$);
+- [`lumia.models`](models.md) handles the interface between LUMIA and the actual CTM ($H$);
+- [`lumia.prior`](prior.md) implements the prior control vector $x_b$ and its uncertainty matrix $B$;
+- [`lumia.optimizer`](optimizers.md) implements the optimization algorithm;
+- [`lumia.data`](data.md) implements the emissions ($E$) themselves;
+- [`lumia.mapping`](mapping.md) implements the mapping operator ($M$), that is used to convert between model data and control vector.
+- [`lumia.utils`](utils.md) contains various utilities, used by several of the other `lumia` modules. The [Utilities](utils.md) page also describes the `gridtools` module, that is distributed along `lumia`.
+- [`transport`](transport.md) acts as a CTM ($H$) in our LUMIA inversions.
+
+Most of these modules can be used independently. For instance, the `lumia.observations` defines an `Observation` class that can be used to read, write and analyze observation files used in LUMIA (including LUMIA results).
+
+Example scripts showing a full inversion are provided under the _run_ directory, and presented in more details in the [Tutorial](tutorial.md).
+
+Finally, some top-level objects (classes and functions) are described under the [LUMIA overview](overview.md) page. The page also contains a more elaborate information on the coding strategy of LUMIA.

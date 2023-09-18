@@ -7,11 +7,11 @@ from loguru import logger
 from pandas import Timedelta, Timestamp, DataFrame, concat
 from numpy import float32, zeros, average, meshgrid, array, eye
 from tqdm import tqdm
-from ....models.footprints.io.xr import Data
-from ....utils.units import units_registry as ureg
-from ....utils.tracers import species
-from ....utils.clusters import clusterize
-from ....utils.time_utils import overlap_percent, interval_range
+from lumia.models.footprints import Data
+from lumia.utils.units import units_registry as ureg
+from lumia.utils.tracers import species
+from lumia.utils.clusters import clusterize
+from lumia.utils.time_utils import overlap_percent, interval_range
 from lumia.optimizer.categories import Category
 from numpy.typing import NDArray
 from typing import Dict

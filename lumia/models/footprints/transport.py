@@ -8,7 +8,7 @@ from typing import Tuple, List
 from omegaconf import DictConfig, OmegaConf
 from ...observations.protocols import Observations
 from pandas import DataFrame, read_hdf
-from .io.xr import Data
+from . import Data
 from ...utils.system import runcmd
 import shutil
 from loguru import logger
