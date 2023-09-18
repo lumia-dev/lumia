@@ -34,7 +34,7 @@
                                 <a href=".." class="nav-link">Home</a>
                             </li>
                             <li class="navitem">
-                                <a href="../overview/" class="nav-link">LUMIA Overview</a>
+                                <a href="../overview/" class="nav-link">Overview</a>
                             </li>
                             <li class="navitem active">
                                 <a href="./" class="nav-link">Installation</a>
@@ -50,7 +50,7 @@
                                 <ul class="dropdown-menu">
                                     
 <li>
-    <a href="../observations/" class="dropdown-item">Observation</a>
+    <a href="../observations/" class="dropdown-item">Observation modules</a>
 </li>
                                 </ul>
                             </li>
@@ -120,11 +120,10 @@
 <h4 id="creation-of-a-conda-environment">Creation of a conda environment:</h4>
 <ol>
 <li>Dowload and install anaconda/miniconda if needed:
-    <code>bash
-    mkdir -p ~/miniconda3
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
-    bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-    rm -rf ~/miniconda3/miniconda.sh</code></li>
+    <pre class="highlight"><code class="language-bash">mkdir -p ~/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+rm -rf ~/miniconda3/miniconda.sh</code></pre></li>
 <li>Activate your conda installation: <code>conda init bash</code></li>
 <li>Create a virtual environment: <code>conda create -n my_env python=3.11</code> (we recommend using the latest python version available).</li>
 <li>Activate the environment: <code>conda activate my_env</code></li>
@@ -132,8 +131,8 @@
 <h4 id="installing-lumia">Installing lumia</h4>
 <ol>
 <li>If not already done, clone the lumia git repository:
-    <code>git clone ... my_project
-    cd my_project</code></li>
+    <pre class="highlight"><code>git clone ... my_project
+cd my_project</code></pre></li>
 <li>Install the dependencies:<ul>
 <li>with conda: <code>conda install --file requirements.txt</code></li>
 <li>with pip: <code>pip install -r requirements.txt</code></li>

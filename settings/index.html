@@ -34,7 +34,7 @@
                                 <a href=".." class="nav-link">Home</a>
                             </li>
                             <li class="navitem">
-                                <a href="../overview/" class="nav-link">LUMIA Overview</a>
+                                <a href="../overview/" class="nav-link">Overview</a>
                             </li>
                             <li class="navitem">
                                 <a href="../installation/" class="nav-link">Installation</a>
@@ -50,7 +50,7 @@
                                 <ul class="dropdown-menu">
                                     
 <li>
-    <a href="../observations/" class="dropdown-item">Observation</a>
+    <a href="../observations/" class="dropdown-item">Observation modules</a>
 </li>
                                 </ul>
                             </li>
@@ -140,7 +140,7 @@
 <p>Additional sections may be defined for convenience. The values in this page are those used for the <a href="../tutorial">tutorial</a></p>
 <h2 id="run-section"><code>run</code> section</h2>
 <p>General settings (simulation extent and resolution, paths, etc.)</p>
-<pre><code>run:
+<pre class="highlight"><code>run:
     start    : 2018-01-01
     end      : 2019-01-01
     timestep : 1h
@@ -151,8 +151,7 @@
         data        : data
         output      : output
         footprints  : footprints
-        temp        : temp
-</code></pre>
+        temp        : temp</code></pre>
 <ul>
 <li><code>start</code> and <code>end</code> (time boundaries of the simulation) can be in any format supported by <code>pandas.Timestamp</code>. </li>
 <li><code>timestep</code> can be anything supported by <code>pandas.tseries.frequencies.to_offset</code>.</li>
@@ -165,7 +164,7 @@
 <li>the files are in <a href="data/fluxes/nc/eurocom025x025/1h/">data/fluxes/nc/eurocom025x025/1h</a></li>
 <li>the files for category <code>biosphere</code> are named following the pattern <code>flux_co2.EDGARv4.3_BP2019.%Y.nc</code></li>
 </ul>
-<pre><code>emissions :
+<pre class="highlight"><code>emissions :
     tracers : ${run.tracers}
     co2 :
         region   : ${run.grid}
@@ -174,8 +173,7 @@
             fossil    : EDGARv4.3_BP2019
             biosphere : LPJ-GUESS_verify
         prefix : flux_co2.
-        path   : ${run.paths.data}/fluxes/nc/${run.domain}/{run.timestep}/
-</code></pre>
+        path   : ${run.paths.data}/fluxes/nc/${run.domain}/{run.timestep}/</code></pre>
 <h2 id="observations-section"><code>observations</code> section:</h2>
 <p>The section contains keys needed to read and process the observation database. In this tutorial, it just points to the right observation file, but further settings are possible, to restrict the time period, setup the uncertainties, etc. These settings are read in two places:</p>
 <ul>
@@ -183,17 +181,16 @@
 <li>in a pre-processing step, e.g. in the <a href="lumia/ui/main_functions.py">lumia.ui.setup_observations</a> method.</li>
 </ul>
 <p>See the in-line documentation of these two modules for further info</p>
-<pre><code>observations :
+<pre class="highlight"><code>observations :
     file :
-        path  : doc/observations/obs_example.tar.gz
-</code></pre>
+        path  : doc/observations/obs_example.tar.gz</code></pre>
 <h2 id="optimize-section"><code>optimize</code> section</h2>
 <p>This section contains the keys that define the inversion problem. It contains two large subsection:</p>
 <ul>
 <li>one "emissions" subsection, which contains settings related to the state vector and its uncertainty matrix (structure of the uncertainty, number of optimized categories, resolution of the optimization, etc.)</li>
 <li>one "observations" subsection, which defines the way observation uncertainties are treated:</li>
 </ul>
-<pre><code>optimize :
+<pre class="highlight"><code>optimize :
     emissions :
         co2 :
             biosphere :
@@ -207,29 +204,26 @@
         co2 :
             uncertainty :
                 type : dyn
-                freq : 7d
-</code></pre>
+                freq : 7d</code></pre>
 <p>Here, the emissions will be optimized for the <code>biosphere</code> category of the <code>co2</code> tracer. The total uncertainty is set to 0.45 PgC (<code>annual_uncertainty</code>), with correlations decaying spatially (<code>spatial_correlation</code>) following a 500 km Gaussian function, and temporally (<code>temporal_correlation</code>) following a 30 days exponential function (see sect 3.5.1 in <a href="https://gmd.copernicus.org/articles/14/3383/2021/">https://gmd.copernicus.org/articles/14/3383/2021/</a>).
 The inversion solves for 2500 cluster of pixels (<code>npoints</code>) each seven days (<code>optimization_interval</code>).</p>
 <p>With <code>observations.co2.uncertainty.type</code> set to <code>dyn</code>, the observation uncertainties are determined based on the quality of the fit of the short term (&lt; 7 days) variability of the modelled concentration to the observed concentrations (see <a href="lumia/ui/main_functions.py">setup_uncertainties</a> method).</p>
 <h2 id="congrad-section"><code>congrad</code> section:</h2>
 <p>This short section contains settings for the conjugate gradient minimizer. The main relevant user-setting is <code>max_number_of_iterations</code> (set to a lower value to speed things up, set to &gt; 50 for scientific results):</p>
-<pre><code>congrad :
+<pre class="highlight"><code>congrad :
     max_number_of_iterations : 80
     communication_file       : ${run.paths.temp}/congrad.nc
-    executable               : ${lumia:src/congrad/congrad.exe}
-</code></pre>
+    executable               : ${lumia:src/congrad/congrad.exe}</code></pre>
 <h2 id="model-section"><code>model</code> section</h2>
 <p>This section contains settings for the interface between lumia and the transport model (i.e. <a href="lumia/obsoperator/__init__.py">lumia/obsoperator</a>)</p>
-<pre><code>model :
+<p><pre class="highlight"><code>model :
     transport :
         exec   : ${lumia:transport/multitracer.py}
         serial : False
     output :
         steps : ['apri', 'apos']
-    path : ${run.paths}
-</code></pre>
-<p>Note the syntax of the <code>model.transport.exec</code> key: <code>${lumia:path}</code> points to a path relative to the installation path of the <code>lumia</code> python module.</p></div>
+    path : ${run.paths}</code></pre>
+Note the syntax of the <code>model.transport.exec</code> key: <code>${lumia:path}</code> points to a path relative to the installation path of the <code>lumia</code> python module.</p></div>
             </div>
         </div>
 

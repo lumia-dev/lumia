@@ -8,7 +8,7 @@
         
         <link rel="canonical" href="https://lumia.nateko.lu.se/observations/">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Observation - LUMIA</title>
+        <title>Observation modules - LUMIA</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -34,7 +34,7 @@
                                 <a href=".." class="nav-link">Home</a>
                             </li>
                             <li class="navitem">
-                                <a href="../overview/" class="nav-link">LUMIA Overview</a>
+                                <a href="../overview/" class="nav-link">Overview</a>
                             </li>
                             <li class="navitem">
                                 <a href="../installation/" class="nav-link">Installation</a>
@@ -50,7 +50,7 @@
                                 <ul class="dropdown-menu">
                                     
 <li>
-    <a href="./" class="dropdown-item active">Observation</a>
+    <a href="./" class="dropdown-item active">Observation modules</a>
 </li>
                                 </ul>
                             </li>
@@ -93,9 +93,9 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#observation" class="nav-link">Observation</a>
+            <li class="nav-item" data-level="1"><a href="#observation-modules" class="nav-link">Observation modules</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#observation-modules" class="nav-link">Observation module(s)</a>
+            <li class="nav-item" data-level="2"><a href="#lumiaobservationsobservations" class="nav-link">lumia.observations.observations</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -106,16 +106,53 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="observation">Observation</h1>
-<p><mark>This module needs revision, the doc below is for now a placeholder</mark></p>
-<h2 id="observation-modules">Observation module(s)</h2>
-<p>The observations are stored in a <code>lumia.obsdb.obsdb</code> object (<strong>lumia/obsdb/<strong>init</strong>.py</strong>). Several derived classes exist, or can be constructed by the user to extend its basic features.</p>
-<h3 id="object-structure">Object structure:</h3>
-<p>The <code>obsdb</code> class has two main data attributes:</p>
+<h1 id="observation-modules">Observation modules</h1>
+<p>The observations in LUMIA should be stored in an <strong>observation class</strong>, which handles storage of data in the observation space: observed and modelled concentrations, uncertainties, metadata, etc.</p>
+<p>The <strong>observations class</strong> also handles writing and reading observations in a format that is readable by the CTM (<a href="transport.md"><code>transport</code></a> package).</p>
+<p>The observation classes themselves are stored in sub-modules:</p>
 <ul>
-<li><em>observations</em> is a <strong>DataFrame</strong> object (from the <strong>pandas</strong> library), and contains a list of observations and their characteristics (time, mixing ratio, uncertainties, background concentration, etc.)</li>
-<li><em>sites</em> is another <strong>DataFrame</strong>, and contains information common to groups of observations (e.g. coordinates)</li>
-</ul></div>
+<li><code>lumia.observations.protocols</code> defines templates for the <strong>observations class</strong></li>
+<li><code>lumia.observations.observations</code> defines the default <strong>observations class</strong> in LUMIA. It is adapted to handling in-situ observations, and can write observation files for the pseudo-transport model (<a href="transport.md"><code>transport</code></a> package) distributed with LUMIA.</li>
+</ul>
+<p>The <code>lumia.observations.observations.Observations</code> class is made available as a top-level class, for convenience (<code>lumia.observations.InSituObservations</code>).</p>
+<h2 id="lumiaobservationsobservations"><code>lumia.observations.observations</code></h2>
+<p>The module defines an <code>Observation</code> class, which is meant to be used in conjunction with the default <code>lumia.models.footprints.Transport</code> transport model class.</p>
+<h3 id="structure">Structure</h3>
+<p>The <code>Observations</code> objects should contain two main data attributes:</p>
+<ul>
+<li><code>sites</code> is a pandas <code>DataFrame</code>, and contains information on observation series: site name and code, coordinates (if relevant), observation type, data provider, DOI, etc. There is no mandatory column in this table, but it should exist.</li>
+<li><code>observations</code> is also a pandas <code>DataFrame</code> and should contain:<ul>
+<li>the list of observations and their uncertainties</li>
+<li>their corresponding index in the <code>sites</code> table</li>
+<li>any meta-data that is relevant to the <code>Transport</code> object (e.g., observation time, corresponding footprint file, background concentration, observation classification, assimilation status, etc.).</li>
+</ul>
+</li>
+</ul>
+<p>Optionally, the <code>Observations</code> object also accepts a <code>settings</code> attribute, which should contain settings controlling how the observation uncertainties should be determined.</p>
+<p>The <code>Observations</code> class defines the following methods:</p>
+<ul>
+<li>I/O and type conversion methods:<ul>
+<li><code>Observations.to_hdf</code>: saves the data to HDF format</li>
+<li><code>Observations.save_tar</code>: saves the data to a tar.gz format</li>
+<li><code>Observations.to_dataframe</code>: converts the data to a single pandas DataFrame (combines the values of the <code>sites</code> and <code>observations</code> tables).</li>
+<li><code>Observations.from_hdf</code>: <a href="python_concepts.md">dataclass</a> used to generate an <code>Observations</code> object based on a HDF file.</li>
+<li><code>Observations.from_tar</code>: <a href="python_concepts.md">dataclass</a> used to generate an <code>Observations</code> object based on a tar.gz file.</li>
+<li><code>Observations.from_dataframe</code>: <a href="python_concepts.md">dataclass</a> used to generate an <code>Observations</code> object based on a single pandas DataFrame.</li>
+</ul>
+</li>
+<li>selection methods:<ul>
+<li><code>Observations.select_sites</code>: returns an <code>Observations</code> object containing only the observations corresponding to a list of "sites" (as defined in the <code>sites</code> table).</li>
+<li><code>Observations.select_times</code>: returns an <code>Observations</code> object limited to the requested time range.</li>
+</ul>
+</li>
+<li>properties <a href="python_concepts.md">(@property)</a>:<ul>
+<li>mismatch: this should return a numpy <code>NDArray</code> containing only the model-data mismtaches (model - obs), for all observations that have both a valid (i.e. not NaN) model-data mismatch and a valid observation uncertainty.</li>
+<li>sigma: this should return a numpy <code>NDArray</code> containing the observation uncertainties, for all observations that have both a valid (i.e. not NaN) model-data mismatch and a valid observation uncertainty.</li>
+</ul>
+</li>
+<li><code>Observations.calc_uncertainties</code>: a method to estimate the observation uncertainties (i.e. combine the measurement uncertainty with an estimate of the model uncertainty).</li>
+</ul>
+<h3 id="usage">Usage</h3></div>
             </div>
         </div>
 

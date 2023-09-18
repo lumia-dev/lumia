@@ -34,7 +34,7 @@
                                 <a href=".." class="nav-link">Home</a>
                             </li>
                             <li class="navitem">
-                                <a href="../overview/" class="nav-link">LUMIA Overview</a>
+                                <a href="../overview/" class="nav-link">Overview</a>
                             </li>
                             <li class="navitem">
                                 <a href="../installation/" class="nav-link">Installation</a>
@@ -50,7 +50,7 @@
                                 <ul class="dropdown-menu">
                                     
 <li>
-    <a href="../observations/" class="dropdown-item">Observation</a>
+    <a href="../observations/" class="dropdown-item">Observation modules</a>
 </li>
                                 </ul>
                             </li>
@@ -145,7 +145,7 @@
 <p>If the data is in a different place, edit the config file (inversion.yaml). </p>
 <p>The step-by-step procedure described below is the equivalent of just running <code>lumia optim --rc inversion.yaml</code>.</p>
 <h2 id="import-modules">Import modules</h2>
-<pre><code class="language-python"># Modules required by the inversion
+<pre class="highlight"><code class="language-python"># Modules required by the inversion
 from lumia import ui                                # user-interface (higher-level methods)
 from lumia.config import RcFile                     # Config files
 from lumia.formatters import xr                     # emission files
@@ -157,12 +157,10 @@ from IPython.display import display
 from matplotlib.pyplot import subplots
 import cartopy
 from numpy import log
-from numpy.random import randint
-</code></pre>
+from numpy.random import randint</code></pre>
 <h2 id="load-the-configuration-file">Load the configuration file</h2>
 <p>Detailed description of the config file can be found in the <a href="../settings">Settings</a> section.</p>
-<pre><code class="language-python">rcf = RcFile('inversion.yaml')
-</code></pre>
+<pre class="highlight"><code class="language-python">rcf = RcFile('inversion.yaml')</code></pre>
 <h2 id="load-the-observations-file">Load the observations file.</h2>
 <p>The observation file contains two pandas dataframes:</p>
 <ul>
@@ -172,13 +170,11 @@ from numpy.random import randint
 <p>In the <strong>observations</strong> table, the <strong>site</strong> column contains indices of the <strong>sites</strong> table (leftermost column in the output below), while the <strong>code</strong> column contains the site codes (they are similar in this instance, but <strong>site</strong> could be anything). </p>
 <p><strong>height</strong> is the sampling height (above ground), while <strong>alt</strong> is the ground altitude (above sea level) at the sites.</p>
 <p><strong>err_obs</strong> is the measurement uncertainty. Use a value below 0 if unavailable.</p>
-<pre><code class="language-python">obs = ui.load_observations(rcf)
+<pre class="highlight"><code class="language-python">obs = ui.load_observations(rcf)
 
 display(obs.observations)
-display(obs.sites)
-</code></pre>
-<pre><code>2023-01-04 16:55:51.852 | INFO     | lumia.obsdb:load_tar:169 - 71907 observation read from obs_example.tgz
-</code></pre>
+display(obs.sites)</code></pre>
+<pre class="highlight"><code>2023-01-04 16:55:51.852 | INFO     | lumia.obsdb:load_tar:169 - 71907 observation read from obs_example.tgz</code></pre>
 <div>
 <style scoped>
     .dataframe tbody tr th:only-of-type {
@@ -747,9 +743,8 @@ display(obs.sites)
 </ul>
 <p>Therefore, lumia will take <strong>biosphere</strong> fluxes from the <strong>flux_co2.VPRM.%Y.nc</strong> files, and <strong>fossil</strong> emissions from the <strong>flux_co2.EDGARv4.3_BP2019.%Y.nc</strong> files. The fluxes will be located in the folder <code>${emissions.co2.path}/${emissions.co2.interval}</code> (i.e. <strong>data/fluxes/nc/eurocom025x025/1h</strong>).</p>
 <p>The emissions can be constructed using the <code>ui.prepare_emis</code> method. Check that the values it prints are realistic!</p>
-<pre><code class="language-python">emis = ui.prepare_emis(rcf)
-</code></pre>
-<pre><code>2023-01-03 21:52:19.670 | INFO     | lumia.formatters.xr:print_summary:287 - ===============================
+<pre class="highlight"><code class="language-python">emis = ui.prepare_emis(rcf)</code></pre>
+<pre class="highlight"><code>2023-01-03 21:52:19.670 | INFO     | lumia.formatters.xr:print_summary:287 - ===============================
 2023-01-03 21:52:19.681 | INFO     | lumia.formatters.xr:print_summary:288 - fossil:
 2023-01-03 21:52:19.686 | INFO     | lumia.formatters.xr:print_summary:290 - 2018:
 2023-01-03 21:52:19.692 | INFO     | lumia.formatters.xr:print_summary:293 -   January:    0.15 petagC
@@ -782,23 +777,20 @@ display(obs.sites)
 2023-01-03 21:52:20.556 | INFO     | lumia.formatters.xr:print_summary:293 -   November:    0.12 petagC
 2023-01-03 21:52:20.557 | INFO     | lumia.formatters.xr:print_summary:293 -   December:    0.11 petagC
 2023-01-03 21:52:20.558 | INFO     | lumia.formatters.xr:print_summary:294 -     --------------------------
-2023-01-03 21:52:20.559 | INFO     | lumia.formatters.xr:print_summary:295 -    Total :   -1.49 petagC
-</code></pre>
+2023-01-03 21:52:20.559 | INFO     | lumia.formatters.xr:print_summary:295 -    Total :   -1.49 petagC</code></pre>
 <h2 id="setup-the-transport-model">Setup the transport model</h2>
 <p>The <code>lumia.transport</code> class handles the communication between <code>lumia</code> and the (pseudo-) transport model.</p>
 <p>The "formatter" is a module containing a <code>WriteStruct</code> and a <code>ReadStruct</code> functions, whose task is to write/read data drivers data for the transport model (and output data of its adjoint).</p>
-<pre><code class="language-python">model = lumia.transport(rcf, obs=obs, formatter=xr)
-</code></pre>
+<pre class="highlight"><code class="language-python">model = lumia.transport(rcf, obs=obs, formatter=xr)</code></pre>
 <h2 id="setup-the-observation-uncertainties">Setup the observation uncertainties.</h2>
 <p>In this example, we use the <code>dyn</code> approach. The obs uncertainty (which accounts for model error) is estimated based on the quality of the fit to the short-term observed variability. This works the following way:
 1. A forward model run is performed, with prior emissions
 2. long-term variability (&gt; 7 days) is removed from both the modelled and the observed concentrations (this is done by subtracting their 7-days moving average)
 3. the obs uncertainty is the standard deviation of the fit of the modelled detrended concentrations to the observed ones. The rationale is that, since the inversion only optimize emissions at a weekly interval (in this example), shorter variability cannot be improved and is therefore necessarily a feature of the model uncertainty.</p>
 <p>Note that this technique requires performing a forward model run. Other approaches are implemented but haven't necessarily been updated to the yaml config file, so adjustments in the code might be needed (in the obsdb/InversionDb.py file)</p>
-<pre><code class="language-python">model = ui.setup_uncertainties(model, emis)
-</code></pre>
+<pre class="highlight"><code class="language-python">model = ui.setup_uncertainties(model, emis)</code></pre>
 <p>The plots below illustrate the calculation and comparison of short-term variability at one example site:</p>
-<pre><code class="language-python">dbs = model.db['bik']
+<pre class="highlight"><code class="language-python">dbs = model.db['bik']
 
 f, ax = subplots(2, 1, figsize=(16, 8))
 
@@ -815,40 +807,33 @@ ax[1].plot(dbs.time, dbs.resid_mod, 'r-', label='short term variability model')
 ax[1].grid()
 ax[1].legend()
 sig = (dbs.resid_mod - dbs.resid_obs).std()
-ax[1].set_title(f'Short-term variability of the concentration at Byalistok (sigma = {sig:.2f} ppm)')
-</code></pre>
-<pre><code>Text(0.5, 1.0, 'Short-term variability of the concentration at Byalistok (sigma = 3.99 ppm)')
-</code></pre>
+ax[1].set_title(f'Short-term variability of the concentration at Byalistok (sigma = {sig:.2f} ppm)')</code></pre>
+<pre class="highlight"><code>Text(0.5, 1.0, 'Short-term variability of the concentration at Byalistok (sigma = 3.99 ppm)')</code></pre>
 <p><img alt="png" src="../tutorial_files/tutorial_13_1.png" /></p>
 <h2 id="definition-of-the-state-vector">Definition of the state vector</h2>
 <p>The inversion adjusts 2500 pixels or cluster of pixels every week (or whatever values set by the <code>optimize.emissions.co2.*.npoints</code> and <code>optimize.emissions.co2.*.optimization_interval</code> keys).</p>
 <p>The grouping of pixels in clusters is based on the sensitivity of the observation network to the emissions: pixels not well monitored by the observation network will tend to be grouped together, while pixels directly upwind of the measurement stations will be optimized independently. This clustering is calculated dynamically, based on an initial adjoint run:</p>
-<pre><code class="language-python">sensi = model.calcSensitivityMap(emis)
-</code></pre>
+<pre class="highlight"><code class="language-python">sensi = model.calcSensitivityMap(emis)</code></pre>
 <p>Below the <code>Interface</code> is the module that handles the transitions between optimization space (state vector, 2500 x n_weeks points x n_tracers x n_cat) and the model space (gridded fluxes).</p>
-<pre><code class="language-python">control = Interface(model.rcf, model_data=emis, sensi_map=sensi)
-</code></pre>
+<pre class="highlight"><code class="language-python">control = Interface(model.rcf, model_data=emis, sensi_map=sensi)</code></pre>
 <p>The plots below illustrate the calculated sensitivity of the observation network to the surface fluxes (left panel), and the resulting clustering of emissions (right panel, the colors are random). Note that there are only footprints for two sites in the example data used to generate this notebook. In a more realistic case, the maps would look somewhat different ...</p>
-<pre><code class="language-python">f, ax = subplots(1, 2, figsize=(16, 8), subplot_kw=dict(projection=cartopy.crs.PlateCarree(), extent=rcf['run']['grid'].extent))
+<pre class="highlight"><code class="language-python">f, ax = subplots(1, 2, figsize=(16, 8), subplot_kw=dict(projection=cartopy.crs.PlateCarree(), extent=rcf['run']['grid'].extent))
 ax[0].coastlines()
 ax[0].imshow(log(sensi['co2']), extent=rcf['run']['grid'].extent, origin='lower')
-ax[0].set_title(&quot;sensitivity of the network to the fluxes (log scale)&quot;)
+ax[0].set_title("sensitivity of the network to the fluxes (log scale)")
 
 smap = control.model_data.co2.spatial_mapping['biosphere'].values.copy()
 for ii in range(smap.shape[1]):
     smap[smap[:, ii] != 0, ii] = randint(0, 1000) 
 ax[1].imshow(smap.sum(1).reshape((160, 200)), origin='lower', extent=rcf['run']['grid'].extent)
 ax[1].coastlines()
-ax[1].set_title('Optimized clusters')
-</code></pre>
-<pre><code>Text(0.5, 1.0, 'Optimized clusters')
-</code></pre>
+ax[1].set_title('Optimized clusters')</code></pre>
+<pre class="highlight"><code>Text(0.5, 1.0, 'Optimized clusters')</code></pre>
 <p><img alt="png" src="../tutorial_files/tutorial_19_1.png" /></p>
 <h2 id="run-the-inversion">Run the inversion</h2>
 <p>The prior error-covariance matrix will be calculated when initializing the optimizer (first line below). </p>
-<pre><code class="language-python">opt = lumia.optimizer.Optimizer(model.rcf, model, control)
-opt.Var4D()
-</code></pre></div>
+<pre class="highlight"><code class="language-python">opt = lumia.optimizer.Optimizer(model.rcf, model, control)
+opt.Var4D()</code></pre></div>
             </div>
         </div>
 
