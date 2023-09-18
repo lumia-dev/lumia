@@ -31,6 +31,5 @@ setuptools.setup(
         'interactive': ['ipython', 'ipywidgets', 'geoviews', 'hvplot', 'jupyter_bokeh'],
         'icos': ['icoscp'],
     },
-    scripts=['bin/lumia'],
     data_files=data_files
 )
