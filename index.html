@@ -33,24 +33,12 @@
                             <li class="navitem active">
                                 <a href="." class="nav-link">Home</a>
                             </li>
-                            <li class="navitem">
-                                <a href="overview/" class="nav-link">Overview</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="installation/" class="nav-link">Installation</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="tutorial/" class="nav-link">Tutorial</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="settings/" class="nav-link">Settings</a>
-                            </li>
                             <li class="dropdown">
                                 <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Modules <b class="caret"></b></a>
                                 <ul class="dropdown-menu">
                                     
 <li>
-    <a href="observations/" class="dropdown-item">Observation modules</a>
+    <a href="observations/" class="dropdown-item">Observations</a>
 </li>
                                 </ul>
                             </li>
@@ -68,7 +56,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="overview/" class="nav-link">
+                                <a rel="next" href="observations/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -93,7 +81,22 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#installation-and-setup" class="nav-link">Installation and setup</a>
+            <li class="nav-item" data-level="1"><a href="#folder-structure" class="nav-link">Folder structure</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#installation" class="nav-link">Installation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#testing-the-installation" class="nav-link">Testing the installation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#recommended-workflow" class="nav-link">Recommended workflow</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -107,7 +110,6 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="installation-and-setup">Installation and setup</h1>
 <p>The Lund University Modular Inversion Algorithm (LUMIA) is a python package for performing atmospheric transport inversions.</p>
 <p>The release 2020.8 is described in <a href="https://www.geosci-model-dev-discuss.net/gmd-2019-227/">https://www.geosci-model-dev-discuss.net/gmd-2019-227/</a> can be downloaded <a href="lumia.202008.tar.gz">here</a>, however, we recommend instead getting the latest commit from <a href="https://github.com/lumia-dev/lumia.git">github</a>:</p>
 <pre class="highlight"><code class="language-bash">git clone --branch master https://github.com/lumia-dev/lumia.git</code></pre>
@@ -116,13 +118,71 @@
 <summary>Pending update</summary>
 <p>this documentation is being revised at the very moment. The text in this page refers to the "master" branch, not to the "default" one).</p>
 </details>
-<p>The installation instructions are described in further details in the <a href="https://github.com/lumia-dev/lumia/blob/master/README.md">README</a> file. In short:</p>
-<ol>
-<li>Create a python virtual environment, using your favourite environment manager (e.g., conda)</li>
-<li>Git clone the lumia source code in a clean folder</li>
-<li>Install LUMIA as a python package in your python virtual environment, using pip</li>
-<li>Start working!</li>
-</ol>
+<h1 id="folder-structure">Folder structure</h1>
+<p>The folder structure of LUMIA is the following:</p>
+<ul>
+<li>the <em>lumia</em> folder contains the <code>lumia</code> python module (i.e. what you get when doing <code>import lumia</code> in python)</li>
+<li>the <em>transport</em> folder contains the <code>transport</code> python module (that you can import using <code>import transport</code> in python), which contains the pseudo-transport model used in our LUMIA simulations (see documentation)</li>
+<li>the <em>docs</em> folder contains a more extensive documentation</li>
+<li>the <em>run</em> folder contains example scripts and configuration files.</li>
+<li>the <em>gridtools.py</em> file is a standalone module (accessed via <code>import gridtools</code>)</li>
+</ul>
+<p>The other files and folders are either related to optional functionalities (<em>icosPortalAccess</em>; <em>src</em>), required for the functionality of the <a href="https://lumia.nateko.lu.se">LUMIA web page</a> (<em>CNAME</em>, <em>mkdocs.yml</em>), or for the structure of the python package (<em>setup.py</em>, <em>LICENSE</em>). The <em>Makefile</em> is more for information purpose than for being used ...</p>
+<details class="note" open="open">
+<summary>lumia, LUMIA, transport and transport</summary>
+<p>The LUMIA git repository contains two python packages (<code>lumia</code> and <code>transport</code>). Furthermore, the <code>lumia</code> package contains several modules called <code>transport</code>. This can be very confusing. Therefore, throughout the documentation:</p>
+<ul>
+<li>the <a href="transport_pkg.md">transport package</a> refers to the top-level <code>tranport</code> package (i.e. what is imported via <code>import transport</code>)</li>
+<li>the <a href="transport_mod.md">transport module</a> refers to the <code>lumia.models.footprints.transport</code> module.</li>
+<li>"the lumia package" refers to <code>lumia</code> (what is accessed via <code>import lumia</code>)</li>
+<li>LUMIA refers to the entire project.</li>
+</ul>
+</details>
+<h1 id="installation">Installation</h1>
+<p>LUMIA is written in python, and depends on many other scientific packages. We recommend using in a <a href="https://docs.conda.io/projects/miniconda/en/latest/">miniconda</a> virtual environment, with at least the <code>cartopy</code> package installed:
+<pre class="highlight"><code class="language-bash"># Create a conda environment for your LUMIA project (change `my_proj` by the name you want to give it)
+conda create -n my_proj cartopy
+
+# Activate the environment:
+conda activate my_proj
+
+# Clone lumia from its git repository (change `my_folder` by the name of the folder you want LUMIA to be installed in. The folder should not exist before)
+git clone --branch master https://github.com/lumia-dev/lumia.git my_folder
+
+# Install the LUMIA python library inside your virtual environment (replace `my_folder` by the name of the folder where you have cloned LUMIA in).
+pip install -e my_folder</code></pre></p>
+<details class="warning" open="open">
+<summary>Dos and Don'ts</summary>
+<ul>
+<li>Do get familiar with how python packages should be installed <a href="https://docs.python.org/dev/installing/index.html">https://docs.python.org/dev/installing/index.html</a></li>
+<li>Do get familiar with how conda environments work:<ul>
+<li><a href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">conda documentation</a></li>
+<li><a href="https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf">conda cheat sheet</a></li>
+</ul>
+</li>
+<li>Don't try to run the setup.py file directly! (i.e. don't try anything like <code>python setup.py install</code>).</li>
+<li>Don't try to use the <em>Makefile</em> directly (but you can look at it, it contains a shortened version of this documentation).</li>
+</ul>
+</details>
+<h1 id="testing-the-installation">Testing the installation</h1>
+<p>Once you have installed <code>lumia</code> in your python environment (i.e. once you have gone through the <a href="#1.-recommended-installation">installation instructions above</a>), the <code>lumia</code> module will be accessible on your system. Try for example:
+<pre class="highlight"><code class="language-bash">conda activate my_proj  # Make sure you are in the right python environment!
+cd /tmp                 # Move to another folder, basically anywhere where your lumia files are not
+python -m lumia         # Run python with the `lumia` module</code></pre></p>
+<p>This should produce an error such as:
+<pre class="highlight"><code class="language-bash">/home/myself/miniconda3/envs/my_proj/bin/python: No module named lumia.__main__; 'lumia' is a package and cannot be directly executed</code></pre></p>
+<p>This is good! it means that python has found lumia (but doesn't know what to do with it, that's another issue).</p>
+<p>If you get instead an error such as:
+<pre class="highlight"><code class="language-bash">/usr/bin/python3: No module named lumia</code></pre>
+This means that python cannot find the <code>lumia</code> module: either you are not within the right python environment (read the <a href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">conda documentation</a> if you are not familiar with it), or that another error happened during the installation of <code>lumia</code> (did you use the <code>pip install -e /path/to/lumia</code> as instructed above? did that return an error (maybe some dependency could not be installed?)).</p>
+<h1 id="recommended-workflow">Recommended workflow</h1>
+<p>The <em>run</em> folder contains example scripts and configuration files. You can use them as an example on how to start (in addition of reading the documentation that exists). You can also put your own scripts and data in that folder.</p>
+<p>We can recommend a few alternative workflows, depending on what you plan to do with LUMIA:</p>
+<ul>
+<li>You can put your scripts and data directly under the <em>run</em> directory (e.g. <em>/home/myself/lumia/run</em>). This is a good way if you are just starting with LUMIA, of if you plan to develop it further.</li>
+<li>You can install lumia in one folder (e.g. <em>/home/myself/libraries/lumia</em>), and put your scripts in a completely different folder (e.g. <em>/home/myself/projects/my_fancy_project</em>): if you have installed it correctly, the <code>lumia</code> python package is available from anywhere on your system (provided that you have activated the python environment in which it is installed). This is a good way if you plan to work on LUMIA from several different projects.</li>
+<li>If you plan to actively develop LUMIA, you could also have separate installation (e.g. <em>/home/myself/lumia_stable</em> and <em>/home/myself/lumia_dev</em>), each installed in a different python environement (e.g. <em>my_old_env</em> and <em>my_new_env</em>). </li>
+</ul>
 <h1 id="documentation-summary">Documentation summary</h1>
 <p>LUMIA implements the inversion as a combination of (semi) independent modules, implementing the various components of an inversion setup. The links below point to the documentation of these modules:</p>
 <details class="note">
@@ -150,7 +210,22 @@
 </ul>
 <p>Most of these modules can be used independently. For instance, the <code>lumia.observations</code> defines an <code>Observation</code> class that can be used to read, write and analyze observation files used in LUMIA (including LUMIA results).</p>
 <p>Example scripts showing a full inversion are provided under the <em>run</em> directory, and presented in more details in the <a href="tutorial/">Tutorial</a>.</p>
-<p>Finally, some top-level objects (classes and functions) are described under the <a href="overview/">LUMIA overview</a> page. The page also contains a more elaborate information on the coding strategy of LUMIA.</p></div>
+<p>Finally, some top-level objects (classes and functions) are described under the <a href="overview.md">LUMIA overview</a> page. The page also contains a more elaborate information on the coding strategy of LUMIA.</p>
+<details class="note">
+<summary>LUMIA Development strategy</summary>
+<p>LUMIA was designed as a modular system: it should remain as easy as possible to replace the default CTM and the individual components (prior, observations, optimizer, etc.) should remain as independent from each other as reasonable.</p>
+<p>In practice this means that the following technical choices were made:</p>
+<ul>
+<li>The LUMIA modules contain python classes to handle the different components of the inversions (e.g. an <code>Observations</code> class to handle the observations, a <code>PriorConstraints</code> class to construct and store the prior uncertainty matrix, etc.).</li>
+<li>All modules implement or support alternative versions of these classes. For instance, the "Observations" class is defined in the <code>lumia.observations.observations</code> class (i.e. <em>lumia/observations/observations.py</em> file):<ul>
+<li>This approach makes space for alternative implementations (e.g. one could implement an <code>Observations</code> class part of a <code>lumia.observations.satellite_obs</code> module).</li>
+<li>It can however make imports paths length (<code>from lumia.observations.observations import Observations</code>, <code>from lumia.models.footprints.data import Data</code>, etc.). To circumvent this, many "shortcuts" have been defined in the <em>__init__.py</em> files of the module (enabling e.g. <code>from lumia.observations import Observations</code>), and, even in the top-level <em>__init__.py</em> file (<em>lumia/__init__.py</em>). These are documented in the relevant sections (e.g. in <a href="observations/">Observations</a>) and, for the top-level objects, in the section below.</li>
+<li>In several of the modules, there is a <em>protocol.py</em> file, which essentially contain templates for the various classes. In theory, as long as alternative classes follow the template defined in the <em>protocol.py</em> files, they should not lead to major compatibility issues.</li>
+</ul>
+</li>
+<li>Although it was developed along LUMIA, the code that acts as a CTM (<a href="transport.md"><code>transport</code></a>) remains a separate python package and is run as a subprocess: This forces us to limit the degree of inter-dependency between the two codes, and thus should make it easier implementing an alternative CTM.</li>
+</ul>
+</details></div>
             </div>
         </div>
 
@@ -236,5 +311,5 @@
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-18 15:17:33.711664+00:00
+Build Date UTC : 2023-09-19 14:09:47.746998+00:00
 -->

@@ -8,7 +8,7 @@
         
         <link rel="canonical" href="https://lumia.nateko.lu.se/observations/">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Observation modules - LUMIA</title>
+        <title>Observations - LUMIA</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -33,24 +33,12 @@
                             <li class="navitem">
                                 <a href=".." class="nav-link">Home</a>
                             </li>
-                            <li class="navitem">
-                                <a href="../overview/" class="nav-link">Overview</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="../installation/" class="nav-link">Installation</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="../tutorial/" class="nav-link">Tutorial</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="../settings/" class="nav-link">Settings</a>
-                            </li>
                             <li class="dropdown active">
                                 <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Modules <b class="caret"></b></a>
                                 <ul class="dropdown-menu">
                                     
 <li>
-    <a href="./" class="dropdown-item active">Observation modules</a>
+    <a href="./" class="dropdown-item active">Observations</a>
 </li>
                                 </ul>
                             </li>
@@ -63,7 +51,7 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../settings/" class="nav-link">
+                                <a rel="prev" href=".." class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
@@ -93,9 +81,21 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#observation-modules" class="nav-link">Observation modules</a>
+            <li class="nav-item" data-level="1"><a href="#observations" class="nav-link">Observations</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#lumiaobservationsobservations" class="nav-link">lumia.observations.observations</a>
+            <li class="nav-item" data-level="2"><a href="#structure" class="nav-link">Structure</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#construction" class="nav-link">Construction</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#io-and-file-formats" class="nav-link">I/O and file formats</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#other-methods" class="nav-link">Other methods:</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -106,53 +106,96 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="observation-modules">Observation modules</h1>
-<p>The observations in LUMIA should be stored in an <strong>observation class</strong>, which handles storage of data in the observation space: observed and modelled concentrations, uncertainties, metadata, etc.</p>
-<p>The <strong>observations class</strong> also handles writing and reading observations in a format that is readable by the CTM (<a href="transport.md"><code>transport</code></a> package).</p>
-<p>The observation classes themselves are stored in sub-modules:</p>
+<h1 id="observations">Observations</h1>
+<p>The <code>lumia.observations</code> module provides classes to store data in the observations space (observation vector, observation uncertainties, observation coordinates, model estimates for concentrations, etc.).</p>
+<details class="note" open="open">
+<summary>Modularity</summary>
+<p>The design of the observations class depends, to some extent, of the type of observations (e.g. in-situ observations vs. satellite observations) and of the type of transport model (what metadata needs to be stored?).</p>
+<p>This document describes the default class (<code>lumia.Observations</code>, a.k.a. <code>lumia.observations.observations.Observations</code>). It is designed for handling in-situ data, and for use with the default <a href="transport-module.md"><code>lumia.Transport</code></a> class.</p>
+</details>
+<h2 id="structure">Structure</h2>
+<p>The <code>Observations</code> object contains two main data attributes:</p>
 <ul>
-<li><code>lumia.observations.protocols</code> defines templates for the <strong>observations class</strong></li>
-<li><code>lumia.observations.observations</code> defines the default <strong>observations class</strong> in LUMIA. It is adapted to handling in-situ observations, and can write observation files for the pseudo-transport model (<a href="transport.md"><code>transport</code></a> package) distributed with LUMIA.</li>
+<li><code>sites</code> (<em>pandas.DataFrame</em>) contains information on observation series: site name and code, coordinates (if relevant), observation type, data provider, DOI, etc.</li>
+<li><code>observations</code> (<em>pandas.DataFrame</em>) contains information on the observation themselves: observed concentrations, estimated uncertainties, coordinates, etc.)</li>
 </ul>
-<p>The <code>lumia.observations.observations.Observations</code> class is made available as a top-level class, for convenience (<code>lumia.observations.InSituObservations</code>).</p>
-<h2 id="lumiaobservationsobservations"><code>lumia.observations.observations</code></h2>
-<p>The module defines an <code>Observation</code> class, which is meant to be used in conjunction with the default <code>lumia.models.footprints.Transport</code> transport model class.</p>
-<h3 id="structure">Structure</h3>
-<p>The <code>Observations</code> objects should contain two main data attributes:</p>
+<p>The <code>Observations</code> class also implements a few methods:</p>
 <ul>
-<li><code>sites</code> is a pandas <code>DataFrame</code>, and contains information on observation series: site name and code, coordinates (if relevant), observation type, data provider, DOI, etc. There is no mandatory column in this table, but it should exist.</li>
-<li><code>observations</code> is also a pandas <code>DataFrame</code> and should contain:<ul>
-<li>the list of observations and their uncertainties</li>
-<li>their corresponding index in the <code>sites</code> table</li>
-<li>any meta-data that is relevant to the <code>Transport</code> object (e.g., observation time, corresponding footprint file, background concentration, observation classification, assimilation status, etc.).</li>
+<li>I/O methods, to read and write the observations to various file formats (HDF, tar.gz)</li>
+<li>selection methods, to refine the data selection and extract a subset of the observations.</li>
+<li><code>calc_uncertainty</code>: a method to estimate the observation uncertainties (i.e. combine the measurement uncertainty with an estimate of the model uncertainty).</li>
 </ul>
-</li>
-</ul>
-<p>Optionally, the <code>Observations</code> object also accepts a <code>settings</code> attribute, which should contain settings controlling how the observation uncertainties should be determined.</p>
-<p>The <code>Observations</code> class defines the following methods:</p>
+<p>Finally, the <code>Observation</code> objects have two "properties" (attributes): <code>mismatch</code> and <code>sigma</code>, which contain respectively the model-data mismatches (model - obs) and the uncertainty (1<span class="arithmatex">\(\sigma\)</span>) on them. These attributes are accessed by the optimizer.</p>
+<h2 id="construction">Construction</h2>
+<p>The simplest way to create a new <code>Observations</code> object is to construct first its <code>sites</code> and <code>observations</code> tables:</p>
 <ul>
-<li>I/O and type conversion methods:<ul>
-<li><code>Observations.to_hdf</code>: saves the data to HDF format</li>
-<li><code>Observations.save_tar</code>: saves the data to a tar.gz format</li>
-<li><code>Observations.to_dataframe</code>: converts the data to a single pandas DataFrame (combines the values of the <code>sites</code> and <code>observations</code> tables).</li>
-<li><code>Observations.from_hdf</code>: <a href="python_concepts.md">dataclass</a> used to generate an <code>Observations</code> object based on a HDF file.</li>
-<li><code>Observations.from_tar</code>: <a href="python_concepts.md">dataclass</a> used to generate an <code>Observations</code> object based on a tar.gz file.</li>
-<li><code>Observations.from_dataframe</code>: <a href="python_concepts.md">dataclass</a> used to generate an <code>Observations</code> object based on a single pandas DataFrame.</li>
+<li>The <code>Observations.sites</code> table contain information common to a whole observation series. For instance, the site name and coordinates, sitecode, tracer, units, data provider, DOI, source file, etc. There is no specific or mandatory list of columns, the table is here for the user convenience.</li>
+<li>The <code>Observations.observations</code> table contains the observations themselves, their uncertainties, relevant metadata (time, sampling height, etc.) and more generally any data in the observation space that may be required by the model (e.g. path to pre-computed observation footprints) or that it may be worth storing. It is also where modelled values will be stored. The <code>observations</code> table has a few mandatory or recommended columns:<ul>
+<li><strong>obs</strong>: the observed concentrations</li>
+<li><strong>err</strong>: the total observation uncertainty (i.e. uncertainty on the model-data mismatch, including both the observation uncertainty and the model uncertainty)</li>
+<li><strong>time</strong>: the observation time</li>
+<li><strong>height</strong>: the sampling height (above ground) of the observations</li>
+<li><strong>code</strong>: the site code</li>
+<li><strong>site</strong>: the index of the relevant row in the <code>Observations.sites</code> table</li>
+<li><strong>mix_background</strong>: the background concentrations (i.e. boundary condition).</li>
 </ul>
 </li>
-<li>selection methods:<ul>
-<li><code>Observations.select_sites</code>: returns an <code>Observations</code> object containing only the observations corresponding to a list of "sites" (as defined in the <code>sites</code> table).</li>
-<li><code>Observations.select_times</code>: returns an <code>Observations</code> object limited to the requested time range.</li>
 </ul>
-</li>
-<li>properties <a href="python_concepts.md">(@property)</a>:<ul>
-<li>mismatch: this should return a numpy <code>NDArray</code> containing only the model-data mismtaches (model - obs), for all observations that have both a valid (i.e. not NaN) model-data mismatch and a valid observation uncertainty.</li>
-<li>sigma: this should return a numpy <code>NDArray</code> containing the observation uncertainties, for all observations that have both a valid (i.e. not NaN) model-data mismatch and a valid observation uncertainty.</li>
+<p>One way to see it is that the "observations" table stores what is usually the data part of an observation files (i.e. the columns in a CSV file, or the variables in a netCDF file), whereas the "sites" table stores the metadata (header in a CSV file, attributes in a netCDF file).</p>
+<p>The code below shows a partial example for importing a bunch of files (in this example, ICOS CSV files) to a <code>lumia.Observations</code> object, and finally storing that object as a <strong>tar.gz</strong> file:</p>
+<pre class="highlight"><code class="language-python">from pathlib import Path
+from pandas import DataFrame, read_csv, concat
+from lumia import Observations
+
+def import_csv_icos(filename : Path) -&gt; (dict, DataFrame):
+    """
+    A function that reads one ICOS observation file (in CSV format), and returns:
+    - metadata: a dictionary containing the elements that should go in the `Observations.sites` table
+    - data: a DataFrame containing the section of the `Observations.observations` table corresponding to this file
+    """
+    ...
+    return metadata, data
+
+# Create temporary lists to store the imported data
+sites, observations = [], []
+
+# Loop over the files (look for every file matching the "/path/to/observations/co2*.csv" pattern
+for filepath in Path('/path/to/observations').glob('ICOS_ATC_*.CO2'):
+    site, obs = import_csv_icos(filepath)
+    sites.append(site)
+    observations.append(obs)
+
+# Concatenate the sites and observations lists in two DataFrames:
+sites = concat(sites)
+observations = concat(observations)
+
+# Create the actual lumia.Observations object
+obs = Observations(sites=sites, observations=observations)
+
+# Store it to disk:
+obs.save_tar('observations.tar.gz') 
+</code></pre>
+<h2 id="io-and-file-formats">I/O and file formats</h2>
+<p>The <code>Observations</code> class can read and write to two different file formats:</p>
+<ul>
+<li><strong>tar.gz</strong> files are the default file format. The <em>sites</em> and <em>observations</em> tables are simply written out as CSV files, and clobbed together in a gzip-compressed tar files. The main advantage of that format is that it remains human-readable (one only needs to uncompress the tar.gz file). On the other hand, it is not very fast.</li>
+<li><strong>hdf</strong> files are also used internally, for communication with the <a href="transport_pkg.md"><code>transport</code> package</a>.</li>
 </ul>
-</li>
-<li><code>Observations.calc_uncertainties</code>: a method to estimate the observation uncertainties (i.e. combine the measurement uncertainty with an estimate of the model uncertainty).</li>
-</ul>
-<h3 id="usage">Usage</h3></div>
+<p>The <strong>tar.gz</strong> format is the recommended one for day-to-day interactions:</p>
+<pre class="highlight"><code class="language-python">import lumia
+
+# Read an observation file in tar.gz format:
+obs = lumia.Observations.from_tar('observations.tar.gz')
+
+# Write an Observations object to a file:
+obs.save_tar('observations.tar.gz')</code></pre>
+<h2 id="other-methods">Other methods:</h2>
+<p>The list may not be complete: refer to the actual code for further information.</p>
+<ul>
+<li><code>Observations.calc_uncertainties</code>: Compute an estimate of the uncertainties in the observation space, combining the measurement uncertainty and model uncertainty. The method is called at the end of the first forward iteration, as it (may) need the prior model estimates for the observations. See documentation in the code for further details. The method may need an additional <code>settings</code> attribute to be defined.</li>
+<li><code>Observations.select_times</code>: when provided with a list of sites (indices of the <code>Observations.sites</code> table), returns a new <code>Observations</code> object, containing only data for these sites.</li>
+<li><code>Observations.select_sites</code>: returns a new <code>Observations</code> object, limited to the provided range of dates.</li>
+</ul></div>
             </div>
         </div>
 
