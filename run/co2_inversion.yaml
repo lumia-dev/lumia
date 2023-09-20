@@ -1,34 +1,34 @@
 donkey :
-  temp : /tmp
-  footprints : /scratch/users/guillaume/footprints/footprints_coco2_v2/
-  emissions : /data/users/guillaume/Projects/CoCO2_WP4/fluxes/eurocom025x025
+  temp : ??? 
+  footprints : ??? 
+  emissions : ??? 
   congrad : ${lumia:bin/congrad.exe}
-  output : /data/users/guillaume/Projects/CoCO2_WP4/lumia/output
-  backgrounds : ../../backgrounds/z_cams_l_lsce_*_v18r3_ra_ml_3h_co2.nc
+  output : ??? 
+  backgrounds : ??? 
   correlations : correlations
-  ncores : 24
+  ncores : ??? 
 
 
 cosmos :
-  temp : /dev/shm/lumia
-  footprints : /home/gmonteil/data/LUMIA/footprints/footprints_coco2_v2/
+  temp : ??? 
+  footprints : ??? 
   footprints_scratch :  ${oc.env:SNIC_TMP}
-  emissions : /home/gmonteil/data/LUMIA/fluxes/eurocom025x025
+  emissions : ??? 
   congrad : ${lumia:src/congrad/congrad.exe}
-  output : /home/gmonteil/data/CoCO2_WP4/inv
-  backgrounds : backgrounds/z_cams_l_lsce_*_v18r3_ra_ml_3h_co2.nc
+  output : ??? 
+  backgrounds : ??? 
   correlations : correlations
   ncores : ${oc.env:SLURM_TASKS_PER_NODE}
 
 
 laptop :
-  temp : /dev/shm/lumia
-  footprints : /scratch/LUMIA/footprints/footprints_coco2_v2/
+  temp : ??? 
+  footprints : ??? 
   footprints_scratch : ${.footprints}
-  emissions : /scratch/LUMIA/fluxes/nc
+  emissions : ??? 
   output : output
-  correlations : /scratch/LUMIA/correlations
-  ncores : 8
+  correlations : ??? 
+  ncores : ???
 
 
 observations :
@@ -39,9 +39,6 @@ observations :
 run :
   start : 1 jan 2018
   end : 1 jan 2019
-  tag : fossil+biosphere_v3
-  ncores : ${machine.ncores}
-  domain : eurocom025x025
   paths :
     output : ${machine.output}/${..tag}
     cache_dir : ${machine.correlations}
@@ -49,6 +46,14 @@ run :
     temp : ${machine.temp}
     footprints : ${machine.footprints}
     footprints_scratch : ${machine.footprints_scratch}
+  domain : eurocom025x025
+  optimizer : ${cg_scipy}
+  tag : fossil+biosphere_v3
+  interval : H
+  footprints_archive : ???
+  spinup : 1MS
+  spindown : 1MS
+  ncores : ${machine.ncores}
 
 
 emissions :
@@ -57,7 +62,7 @@ emissions :
     path : ${run.paths.emissions}/${run.domain}
     prefix : flux_co2.
     region : "${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}"
-    interval : H
+    interval : ${run.interval} 
     categories :
       GPP : VPRM_GPP_coco2
       respiration : VPRM_RESP_coco2
@@ -94,12 +99,6 @@ model :
   setup_uncertainties : ['apri']
 
 
-congrad:
-  output_path : ${run.paths.output}
-  number_of_iterations : 10
-  gradient_norm_reduction : 1.e6
-
-
 optimize:
   emissions :
     co2:
@@ -113,3 +112,19 @@ optimize:
 #        spatial_correlation : 500-e
 #        temporal_correlation: 7D
 #        optimization_interval : 1d
+
+
+congrad:
+  output_path : ${run.paths.output}
+  number_of_iterations : 10
+  gradient_norm_reduction : 1.e6
+  communication_file: ${machine.temp}/congrad.nc
+  executable: ${machine.congrad}
+
+
+cg_scipy:
+  gradient_norm_reduction: ${lanczos.gradient_norm_reduction}
+  number_of_iterations: ${lanczos.number_of_iterations}
+  output_path: ${lanczos.output_path}
+  # gtol : 0.005
+  

@@ -1,4 +1,4 @@
-from scipy.optimize import fmin_cg, minimize
+from scipy.optimize import fmin_cg, minimize, OptimizeResult
 from dataclasses import dataclass
 from lumia.optimizer import protocols
 from numpy.typing import NDArray
@@ -10,6 +10,7 @@ from omegaconf import DictConfig
 from pathlib import Path
 from lumia.utils import debug
 from pandas import DataFrame
+import pickle
 
 
 @dataclass
@@ -33,6 +34,7 @@ class Optimizer:
     settings : DictConfig | Settings | dict # Settings required by the optimizer (i.e. this class)
     _vectors : DataFrame | None = None  # see vectors property below
     step : str = 'apri'
+    n_gradient_evaluations : int = 0
     
     def __post_init__(self):
         if isinstance(self.settings, (dict, DictConfig)):
@@ -59,7 +61,6 @@ class Optimizer:
         # Other variables :
         self.iteration : int = 0                    # just for diagnostics
         self.cached_results : dict = {}             # store transport model results, to avoid calling it twice with the same settings
-        self._prior_gradient_norm : float = None    # see prior_gradient_norm @property method
         
     @property
     def nobs(self) -> int:
@@ -77,7 +78,7 @@ class Optimizer:
             self._vectors = self.prior.vectors.copy()
         return self._vectors
             
-    @debug.trace_call
+    @debug.timer
     def compute_cost(self, state_preco: NDArray) -> float:
         obs_departures = self.forward_step(state_preco)
         dy = obs_departures.mismatch / obs_departures.sigma
@@ -88,53 +89,56 @@ class Optimizer:
         logger.info(f'  J_bg = {0.5 * dx @ dx:.3f}; J_obs = {0.5 * dy @ dy:.3f}')
         return cost
 
-    @debug.trace_call
-    def diagnostics(self, state_preco: NDArray, gradient_preco: NDArray):
+    # @debug.trace_call
+    # def diagnostics(self, state_preco: NDArray, gradient_preco: NDArray):
+        # """
+        # Stuff done at the end of each iteration
+        # """
+        # logger.info(f"Iteration {self.iteration} completed")
+        # logger.info(f'Cost function value: {self.cached_results["J"]}')
+        # logger.info(f'Gradient norm reduction: {self.prior_gradient_norm / (gradient_preco @ gradient_preco)**.5}')
+        
+        # if self.step == 'var4d':
+        #     self.iteration += 1
+        
+        # Perform a chi2 goodness of fit test for the inversion result.
+        # ndof = self.nobs - self.iteration
+        # J = self.cached_results['J']
+        # with open(self.settings.output_path / f'chi2.{self.step}.txt', 'w') as fid:
+        #     fid.write(f'Inversion performed with {self.nobs = } observations and niter = {self.iteration} iterations\n')
+        #     fid.write(f'{self.step} cost function (chi2) value: {J}\n')
+        #     fid.write(f'      Reduced chi2 (chi2 / ndof): {J / ndof :.2f}\n')
+
+    def callback(self, intermediate_result: OptimizeResult):
         """
         Stuff done at the end of each iteration
         """
         logger.info(f"Iteration {self.iteration} completed")
         logger.info(f'Cost function value: {self.cached_results["J"]}')
-        logger.info(f'Gradient norm reduction: {self.prior_gradient_norm / (gradient_preco @ gradient_preco)**.5}')
-        if self.step == 'var4d':
-            self.iteration += 1
-        
-        # Perform a chi2 goodness of fit test for the inversion result.
-        ndof = self.nobs - self.iteration
-        J = self.cached_results['J']
-        with open(self.settings.output_path / f'chi2.{self.step}.txt', 'w') as fid:
-            fid.write(f'Inversion performed with {self.nobs = } observations and niter = {self.iteration} iterations\n')
-            fid.write(f'{self.step} cost function (chi2) value: {J}\n')
-            fid.write(f'      Reduced chi2 (chi2 / ndof): {J / ndof :.2f}\n')
+        logger.info(f'Number of gradient evaluations: {self.n_gradient_evaluations}')
+        if self.n_gradient_evaluations >= self.settings.max_number_of_iterations:
+            raise StopIteration
+        self.iteration += 1
             
-    @debug.trace_call
+    @debug.timer
     def compute_gradient(self, state_preco: NDArray) -> NDArray:
-        #if array_equal(self.cached_results.get('state_preco', None), state_preco) and 'gradient_preco' in self.cached_results:
-        #    return self.cached_results['gradient_preco']
-            
         obs_departures = self.forward_step(state_preco)
         prior_departures = state_preco - self.prior.state_preco
         gradient_preco = self.adjoint_step(obs_departures) + prior_departures
-
-        self.diagnostics(state_preco, gradient_preco)
         
-        ## Cache the results:
-        #if array_equal(self.cached_results['state_preco'], state_preco):
-        #    # Store results in cache only if the state_preco is the same as the one in cache (because otherwise we would
-        #    # break things for the forward step)
-        #    self.cached_results['gradient_preco'] = gradient_preco
+        self.n_gradient_evaluations += 1
         return gradient_preco
     
     def solve(self) -> NDArray:
         
-        state_preco = self.prior.state_preco
-        
-        # Calculate the initial gradient:
+        # Prior run 
         self.step = 'apri'
-        gradient_preco_apri = self.compute_gradient(state_preco)
-        prior_gradient_norm = (gradient_preco_apri @ gradient_preco_apri) ** .5
-
+        prior_obs_departures = self.forward_step(self.prior.state_preco)
+        
         if self.settings.gradient_norm_reduction is not None :
+            gradient_preco = self.adjoint_step(prior_obs_departures)
+            prior_gradient_norm = (gradient_preco @ gradient_preco) ** .5
+            
             # the scipy minimizer only accepts an absolute value for the target gradient norm. So we deduce that value from the initial gradient and the requested gradient norm reduction
             gtol = prior_gradient_norm / self.settings.gradient_norm_reduction
             self.settings.gtol = gtol
@@ -142,10 +146,14 @@ class Optimizer:
         
         # Perform the actual minimization
         self.step = 'var4d'
+        
+        self.n_gradient_evaluations = 0
+
         result = minimize(
             self.compute_cost,
             self.prior.state_preco,
             jac=self.compute_gradient,
+            callback=self.callback,
             method='CG',
             options={
                 'maxiter': self.settings.number_of_iterations, 
@@ -154,7 +162,7 @@ class Optimizer:
                 'gtol': self.settings.gtol
             }
         )
-        
+
         # Do a final (posterior run):
         self.step = 'apos'
         gradient_preco_apos = self.compute_gradient(result.x)
@@ -163,10 +171,14 @@ class Optimizer:
         logger.info(f'Inversion finished. Achieved gradient norm reduction of {prior_gradient_norm / posterior_gradient_norm}')
         logger.info(f'    Prior gradient norm: {prior_gradient_norm : .2f}')
         logger.info(f'Posterior gradient norm: {posterior_gradient_norm : .2f}')
-        
+
+        # Store "result":
+        with open(self.settings.output_path / 'optim_debug.pickle', 'wb') as fid:
+            pickle.dump(result, fid)
+
         return result.x
     
-    @debug.trace_call 
+    @debug.timer
     def forward_step(self, state_preco: NDArray) -> protocols.Departures:
         if array_equal(self.cached_results.get('state_preco', None), state_preco):
             return self.cached_results['departures']
@@ -179,7 +191,7 @@ class Optimizer:
         self.cached_results['departures'] = self.model.calc_departures(model_data, step=self.step)
         return self.cached_results['departures']
 
-    @debug.trace_call
+    @debug.timer
     def adjoint_step(self, obs_departures : protocols.Departures) -> NDArray:
         model_data_adj = self.model.calc_departures_adj(obs_departures.mismatch / obs_departures.sigma ** 2)
         state_adj = self.mapping.vec_to_struct_adj(model_data_adj)

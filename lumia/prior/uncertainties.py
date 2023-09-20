@@ -106,7 +106,7 @@ class SpatialCorrelation:
         """
         return hashlib.md5(self.mat).hexdigest()
 
-    @debug.trace_args()
+    @debug.timer
     def calc_eigen_decomposition(self) -> Tuple[NDArray, NDArray]:
         """
         Calculate the eigen decomposition of the spatial correlation matrix.
@@ -165,7 +165,6 @@ class SpatialCorrelation:
         return p, lam**.5
 
     @property
-    @debug.trace_args()
     def L(self) -> NDArray:
         return self.eigen_vectors * self.eigen_values 
 
@@ -191,6 +190,7 @@ class TemporalCorrelation:
 
         self.eigen_vectors, self.eigen_values = self.calc_eigen_decomposition()
 
+    @debug.timer
     def calc_eigen_decomposition(self) -> Tuple[NDArray, NDArray]:
         lam, evec = linalg.eigh(self.B)
         sort_order = flipud(argsort(lam))
@@ -208,6 +208,7 @@ class TemporalCorrelation:
         return self.eigen_vectors @ self.eigen_values
 
 
+@debug.timer
 def aggregate_uncertainty(it1: int) -> float:
     itimes = _common['itimes']
     sig1 = _common['sigmas'][itimes == it1]
@@ -221,7 +222,7 @@ def aggregate_uncertainty(it1: int) -> float:
     return err
 
 
-@debug.trace_args()
+@debug.timer
 def calc_total_uncertainty(
         errvec: DataFrame,
         temporal_correlation: NDArray,
@@ -257,8 +258,7 @@ def calc_total_uncertainty(
     return (sigmas @ (ch @ sigmas.reshape(nt, -1).T @ ct).T.reshape(-1))**.5
     
 
-
-@debug.trace_args("corlen")
+@debug.timer
 def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFrame) -> TemporalCorrelation:
     assert dt.base == corlen.base
 
@@ -269,7 +269,7 @@ def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFr
     return TemporalCorrelation(corlen=corlen.n / dt.n, dt=1., n=nt)
 
 
-@debug.trace_args('catname', 'corstring', 'cache_dir')
+@debug.timer
 def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame, cache_dir : Path = None) -> SpatialCorrelation:
     corlen, cortype = corstring.split('-')
     corlen = int(corlen)

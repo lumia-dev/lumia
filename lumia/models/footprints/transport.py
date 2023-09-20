@@ -69,7 +69,7 @@ class Transport:
         return self._observations.sites
 
     # Main methods:
-    @debug.trace_args("step")
+    @debug.timer
     def calc_departures(self, emissions: Emissions, step: str = None) -> Departures:
         _, obsfile = self.run_forward(emissions, step)
 
@@ -100,7 +100,7 @@ class Transport:
 
         return dept.loc[:, ['mismatch', 'sigma']]
 
-    @debug.trace_args()
+    @debug.timer
     def calc_departures_adj(self, forcings : DataFrame, step='adjoint') -> Data:
 
         # Write departures file
@@ -125,7 +125,7 @@ class Transport:
         # Read result and return:
         return Data.from_file(adjemis_file)
 
-    @debug.trace_args()
+    @debug.timer
     def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
@@ -150,7 +150,7 @@ class Transport:
 
         return emf, dbf
 
-    @debug.trace_args()
+    @debug.timer
     def save(self, tag : str | None = None, path: Path | None = None):
         """
         Copies the last model I/O to "path", with an optional tag to identify it
@@ -168,7 +168,7 @@ class Transport:
         self._observations.save_tar(path / f'observations.{tag}tar.gz')
         shutil.copy(self.emissions_file, path / f'emissions.{tag}nc')
 
-    @debug.trace_args()
+    @debug.timer
     def calc_sensi_map(self, emissions: Emissions):
         departures = ones(self.observations.shape[0])
         emissions.to_netcdf(self.path_temp / 'emissions.nc', zlib=False, only_transported=True)
