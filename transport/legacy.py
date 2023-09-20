@@ -204,7 +204,11 @@ class LegacyFootprintTransport(FootprintTransport):
             self.obs.observations.loc[self.obs.observations.tracer == tr, 'footprint'] = fnames
             self.obs.observations.loc[self.obs.observations.tracer==tr].loc[~exists, 'footprint'] = nan
 
+        # Drop the rows with nan footprints
+        self.obs.observations.dropna(subset=['footprint'], inplace=True)
+
     def genObsIDs(self):
+        
         exists = array([os.path.exists(fname) for fname in self.obs.observations.footprint])
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
@@ -245,7 +249,8 @@ if __name__ == '__main__':
 
     if args.checkFootprints: 
         ftp_path = {}
-        for tr in model.rcf.get('obs.tracers'):
+        trlist = model.rcf.get('obs.tracers') if isinstance(model.rcf.get('obs.tracers'), list) else [model.rcf.get('obs.tracers')]
+        for tr in trlist:
             ftp_path[tr] = model.rcf.get(f'path.{tr}.footprints')
         model.checkFootprints(ftp_path)
     model.genObsIDs()

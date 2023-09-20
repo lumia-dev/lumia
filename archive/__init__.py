@@ -146,6 +146,6 @@ class Archive:
     def put(self, file, dest='', destfname=None):
         if destfname is None :
             fname = os.path.basename(file)
-        #dest = os.path.join(self.key, dest)
+        dest = os.path.join(self.key, dest)
         success = self.archive.put(file, dest, fname)
         return success

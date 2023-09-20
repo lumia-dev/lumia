@@ -8,10 +8,11 @@ from lumia.Tools import checkDir
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
 from loguru import logger
+import pdb
 
 
 class transport(object):
-    name = 'lagrange'
+    # name = 'lagrange'
 
     def __init__(self, rcf, obs=None, formatter=None):
         self.rcf = rcf
@@ -85,10 +86,15 @@ class transport(object):
     def calcDepartures(self, struct, atmdel=None, step=None, serial=False):
         emf, dbf = self.runForward(struct, atmos_del=atmdel, step=step, serial=serial)
         db = obsdb(filename=dbf)
+
         if self.rcf.get('model.split.categories', default=True):
             for tr in self.rcf.get('obs.tracers'):
-                for cat in self.rcf.get(f'emissions.{tr}.categories'):
-                    self.db.observations.loc[:, f'mix_{tr}_{cat}'] = db.observations.loc[:, f'mix_{tr}_{cat}'].values
+                tr_columns = [col for col in db.observations.columns if f'mix_{tr}' in col]
+                self.db.observations.loc[:, db.observations[tr_columns].columns] = db.observations[tr_columns]
+
+                # for cat in self.rcf.get(f'emissions.{tr}.categories'):
+                #     self.db.observations.loc[:, f'mix_{tr}_{cat}'] = db.observations.loc[:, f'mix_{tr}_{cat}'].values
+
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
         self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
@@ -126,7 +132,7 @@ class transport(object):
         # Run the adjoint transport:
         if atmdel is not None:
             # Name of the atmospheric delta file
-            atmdel = os.path.join(self.tempdir, 'atmosDelta.nc') # Usefull for the opt.4dvar
+            atmdel = os.path.join(self.tempdir, 'atmosDelta.nc') # Usefull for the opt.4dvar, do not delete
 
             # Run the adjoint transport:
             cmd = [sys.executable, '-u', self.executable, '--adjoint', '--db', dpf, '--rc', rcadj, '--emis', adjf, '--atmdel', atmdel]#, '--serial']#, '--checkfile', checkf, '--serial']

@@ -3,7 +3,7 @@ import pdb
 import os
 import logging
 from loguru import logger
-from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random
+from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random, ones
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
@@ -75,6 +75,8 @@ class Optimizer(object):
 
         state_preco = zeros(self.control.size)
 
+        # self.control.vectors.loc[:, 'state_prior'] = 0 #TODO: 
+
         step = 'apri'
         status = 0
         while status == 0 :
@@ -88,7 +90,7 @@ class Optimizer(object):
         self.minimizer.update(gradient_preco, self.J.tot)
         self._calcPosteriorUncertainties()
         self.save(label)
-
+        
     def Var4D_resume(self, label='apos', trim=0):
         state_preco = self.minimizer.resume(trim=trim)
         self.iteration = self.minimizer.iter
@@ -112,6 +114,23 @@ class Optimizer(object):
         state_preco = self.minimizer.readState()
         self.iteration += 1
         return state_preco, status
+
+    def Apri(self, label='apos'):
+        self.minimizer.reset()     # Just to make sure ...
+
+        state_preco = zeros(self.control.size)
+
+        step = 'apri'
+        dy, err = self._computeDepartures(state_preco, step)
+
+        dy = ones(dy.shape)
+
+        adjoint_struct = self.model.runAdjoint(dy, self.atmdel)
+
+        try:
+            adjoint_struct.WriteStruct(os.path.join(self.rcf.get('path.output'), 'adjoint_struct.nc'))
+        except:
+            return adjoint_struct
 
     def _computeDepartures(self, state_preco, step, add_prior=True):
         state = self.control.xc_to_x(state_preco, add_prior=add_prior)

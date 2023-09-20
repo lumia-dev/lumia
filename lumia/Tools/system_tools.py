@@ -28,5 +28,7 @@ def runcmd(cmd):
         logger.error("external command failed, exiting ...")
         raise subprocess.CalledProcessError
     for line in p.stdout:
-        sys.stdout.buffer.write(line)
-        sys.stdout.buffer.flush()
+        # sys.stdout.buffer.write(line)
+        # sys.stdout.buffer.flush()
+        sys.stdout.write(line.decode('utf-8'))
+        sys.stdout.flush()

@@ -4,7 +4,8 @@ from loguru import logger
 from copy import deepcopy
 from multiprocessing import Pool
 from tqdm import tqdm
-from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log
+from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log, linspace
+from scipy.stats import norm
 
 
 common = {}
@@ -20,6 +21,7 @@ def _aggregate_uncertainty(it1):
     for it2 in range(nt):
         sig2 = common['sigmas'][itimes == it2]
         err += (Ct[it1, it2] * Ch * sig1[None, :] * sig2[:, None]).sum()
+
     return err
 
 
@@ -249,7 +251,7 @@ class Uncertainties:
                         self.dict['Tcor'][tr][cat.name][cat.temporal_correlation] = corr()
                         self.Ct[tr][cat.name][cat.temporal_correlation] = corr
 
-    def calcTotalUncertainty(self):
+    def calcTotalUncertainty(self): 
         errtot = {}
         for tr in self.interface.tracers.list:
             errtot[tr] = {}
@@ -266,6 +268,7 @@ class Uncertainties:
 
                     with Pool() as pp :
                         errm = pp.imap(_aggregate_uncertainty, range(nt))
+                        # err = [e for e in tqdm(errm, total=nt)]
                         err = sum(tqdm(errm, total=nt))
 
                     # here "err" is the variance, in units of [flux_unit]^2. We want something in [flux_unit] so take the square root.
@@ -273,7 +276,8 @@ class Uncertainties:
 
                     for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
                         del common[key]
-                    logger.debug(f"Original uncertainty for category {cat}: {errtot[tr][cat.name]:.3f} {cat.unit}")
+                    # logger.debug(f"Total original uncertainty for category {cat}: {sum(errtot[tr][cat.name]):.3f} {cat.unit}")
+                    logger.debug(f"Total original uncertainty for category {cat}: {errtot[tr][cat.name]:.3f} {cat.unit}")
         return errtot
 
     def CalcUncertaintyStructure(self):
@@ -301,6 +305,15 @@ class Uncertainties:
                         daily_tot = em.sum((1,2,3))
                         em = (em.swapaxes(0, -1) * log(daily_tot) / daily_tot).swapaxes(0, -1)
                         data[tr][cat.name]['emis'] = em.reshape(-1, em.shape[2], em.shape[3])
+                    elif cat.error_structure == 'norm':
+                        em = data[tr][cat.name]['emis']**2
+                        hourly_tot = em.sum((1,2))
+                        hourly_frac = em / hourly_tot[:, None, None]
+                        mean = hourly_tot.mean()
+                        std = hourly_tot.std()
+                        x = linspace(hourly_tot.min(), hourly_tot.max(), len(hourly_tot))
+                        y = norm.pdf(x, mean, std*2)
+                        data[tr][cat.name]['emis'] = hourly_frac * y[:, None, None]
                     elif cat.error_structure == 'abs':
                         data[tr][cat.name]['emis'] = abs(data[tr][cat.name]['emis'])
                     elif cat.error_structure == 'sqrt':
@@ -325,9 +338,19 @@ class Uncertainties:
         for tr in self.interface.tracers.list:
             for cat in self.interface.tracers[tr].categories:
                 if cat.optimize :
-                    scalef = cat.uncertainty / errtot[tr][cat.name] * nsec / nsec_year
+                    # for i, err in enumerate(errtot[tr][cat.name]):
+                    #     scalef = cat.uncertainty / err * nsec / nsec_year # Unit conversion
+                    #     self.data.loc[(self.data.category == cat) & (self.data.itime == i), 'prior_uncertainty'] *= scalef
+                    #     logger.info(f"Uncertainty for category {cat.name} at itime {i} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
+
+                    scalef = cat.uncertainty / errtot[tr][cat.name] * nsec / nsec_year 
                     self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
                     logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
 
         _ = self.calcTotalUncertainty()
+        for tr in self.interface.tracers.list:
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize :
+                    logger.info(f"{_[tr][cat.name] = }")
+        
         self.dict['prior_uncertainty'] = self.data.prior_uncertainty

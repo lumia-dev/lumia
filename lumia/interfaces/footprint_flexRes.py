@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import logging
-import pdb
 from datetime import datetime
 from copy import deepcopy
 from numpy import zeros, meshgrid, average, float64, array, nan, unique, float32, dot, array_equal
@@ -76,6 +75,14 @@ class Interface :
             self.temporal_mapping = self.calc_temporal_coarsening(struct)
             self.spatial_mapping = self.calc_spatial_coarsening(minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
             # self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
+
+    def calcCoarsening_postproc(self, struct, minxsize=1, minysize=1, lsm_from_file=False):
+        # Calculate spatio/temporal coarsening
+        if not hasattr(self, 'spatial_mapping'):
+            self.temporal_mapping = self.calc_temporal_coarsening(struct)
+            self.spatial_mapping = self.calc_spatial_coarsening(minxsize=minxsize, minysize=minysize, lsm_from_file=lsm_from_file)
+            # self.calc_transition_matrices(self.spatial_mapping['cluster_specs'])
+        return self.temporal_mapping, self.spatial_mapping
 
     def StructToVec(self, struct, lsm_from_file=False, minxsize=1, minysize=1, store_ancilliary=True):
 
@@ -174,7 +181,12 @@ class Interface :
                 if cat.optimize :
                     dem = self.distribflux_time(vec, tr, cat.name)
                     dem = self.distribflux_space(dem, tr, cat.name)
-                    struct[tr][cat.name]['emis'] = struct[tr][cat.name]['emis'] + dem
+
+                    if self.rcf.get('emissions.flat.zero', default=False):
+                        struct[tr][cat.name]['emis'] = dem #TODO: = dem for flat 0
+
+                    else:
+                        struct[tr][cat.name]['emis'] = struct[tr][cat.name]['emis'] + dem
 
         if self.rcf.get('optim.unit.convert', default=True):
             struct.to_intensive()
@@ -303,7 +315,7 @@ class Interface :
 
                 clusters = clusterize(
                     self.ancilliary_data['sensi_map'],
-                    self.rcf.get('optimize.ngridpoints'),
+                    self.rcf.get(f'optimize.{tr.name}.{cat.name}.ngridpoints'), # TODO: by category
                     mask=lsm,
                     minxsize=minxsize,
                     minysize=minysize,
@@ -343,7 +355,7 @@ class Interface :
                     mapping[tr.name][cat.name]['cluster_specs'].append(cl)
 
                 vts, stv = self.calc_transition_matrices(mapping[tr.name][cat.name]['cluster_specs'])
-                mapping[tr.name][cat.name]['vts'] = vts
+                mapping[tr.name][cat.name]['vts'] = vts # get for uncertainty
                 mapping[tr.name][cat.name]['stv'] = stv
 
         return mapping

@@ -29,6 +29,7 @@ class Emissions:
         except:
             self.atmos_del = None
 
+        # trlist = rcf.get('obs.tracers') if isinstance(rcf.get('obs.tracers'), list) else [rcf.get('obs.tracers')]
         for tr in list(rcf.get('obs.tracers')):
             self.tracers[tr] = {}
             self.tracers[tr] = dict.fromkeys(rcf.get(f'emissions.{tr}.categories'))
@@ -429,7 +430,14 @@ def ReadArchive(start, end, **kwargs):
                             with Dataset(os.path.join(dirname, fname), 'r') as ds:
                                 emis.extend(ds[f'{tr}flux'][:])
                                 units = ds['time'].units.split()
-                                start_file = datetime.strptime(units[2]+' '+units[3], '%Y-%m-%d %H:%M:%S')
+                                try:
+                                    start_file = datetime.strptime(units[2]+' '+units[3], '%Y-%m-%d %H:%M:%S')
+                                except:
+                                    try:
+                                        start_file = datetime.strptime(units[2]+' '+'00:00:00', '%Y-%m-%d %H:%M:%S')
+                                    except:
+                                        units = units[2].split('T')
+                                        start_file = datetime.strptime(units[0]+' '+units[1], '%Y-%m-%d %H:%M:%S')
                                 times.extend(date_range(start=start_file, periods=len(ds['time'][:]), freq=freq).to_pydatetime().tolist())
                                 lat = ds['lat'][:]
                                 lon = ds['lon'][:]
@@ -450,7 +458,7 @@ def ReadArchive(start, end, **kwargs):
                         }
 
                         try :
-                            data[tr][cat]['unit'] = ds.unit
+                            data[tr][cat]['unit'] = ds[f'{tr}flux'].units
                         except AttributeError :
                             data[tr][cat]['unit'] = 'umol/m2/s'
                             logger.warning(f'"unit" attribute missing in files {prefix}{field}.{year}.nc. Assuming {data[tr][cat]["unit"]}')
@@ -472,10 +480,10 @@ def ReadArchive(start, end, **kwargs):
             fname = f"{prefix}{year}.nc"
             tqdm.write(f"Atmospheric delta for year {year}, will be read from file {fname}")
             with Dataset(fname, 'r') as ds:
-                obs.extend(ds['Del_14C']['obs'][:])
+                obs.extend(ds['obs'][:])
                 # units = ds['time'].units.split()
-                start_file = datetime(*ds['Del_14C']['times_start'][:][0])
-                times.extend(date_range(start=start_file, periods=len(ds['Del_14C']['times_start'][:]), freq=freq).to_pydatetime().tolist())
+                start_file = datetime(*ds['times_start'][:][0])
+                times.extend(date_range(start=start_file, periods=len(ds['times_start'][:]), freq=freq).to_pydatetime().tolist())
 
                 # start_tr = datetime(start.year, start.month, 1)
                 # end_tr = datetime(end.year, end.month, 1)
