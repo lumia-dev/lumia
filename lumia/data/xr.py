@@ -418,6 +418,7 @@ class Data:
         else:
             raise TypeError(f"can only set an instance of {TracerEmis} as class item")
 
+    @debug.timer
     def to_extensive(self):
         """
         Convert the data to extensive units (e.g. umol, PgC)
@@ -425,6 +426,7 @@ class Data:
         for tr in self._tracers:
             self[tr].to_extensive()
 
+    @debug.timer
     def to_intensive(self):
         """
         Convert the data to intensive units (e.g. umol/m2/s, PgC/m2/s)
@@ -432,6 +434,7 @@ class Data:
         for tr in self._tracers:
             self[tr].to_intensive()
 
+    @debug.timer
     def to_intensive_adj(self):
         """
         Adjoint of to_intensive (e.g. convert data from umol/m2/s to umol/m4/s2)
@@ -569,6 +572,7 @@ class Data:
         for cat in self.categories:
             self[cat.tracer][cat.name].data[:] = fillvalue
 
+    @debug.timer
     def resolve_metacats(self) -> None:
         for tr in self.tracers:
             self[tr].resolve_metacats()
@@ -691,10 +695,9 @@ class Data:
         return em
 
 
-@logger.catch
 @debug.trace_args('prefix', 'start', 'end', 'freq', 'grid', 'archive', 'field')
 def load_preprocessed(
-    prefix: str,
+    prefix: Path,
     start: Timestamp | str,
     end: Timestamp | str,
     freq: str = None,
@@ -730,7 +733,7 @@ def load_preprocessed(
         if len(files) == 0 :
             files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y.nc'))
         if len(files) == 0 :
-            files = fnmatch.filter(files_on_archive, prefix + '.nc')
+            files = fnmatch.filter(files_on_archive, prefix.name + '.nc')
         files_to_get.update(files)
 
     for file in files_to_get :

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from gridtools import Grid
 from importlib import resources
 from pathlib import Path
+from loguru import logger
 import sys
 
 
@@ -98,8 +99,12 @@ def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictCon
     - conf = read_config(filename, extra_keys={'run':{'project': 'my_project'}}) will set the `run.project` key to `my_project`, regardless of the value that may exist in the yaml file.
     - conf = read_config(filename, extra_keys={'run':{'project': None}}) will not impact how the YAML file is read, as `None` values are ignored.
     """
+    
+    logger.info(f'Read config file {file}')
+    
     dconf = OmegaConf.load(file)
     if machine :
+        logger.info(f'Setting config section "machine" to "{machine}"')
         dconf['machine'] = dconf[machine]
         
     # Add keys for other sections as well
@@ -110,4 +115,21 @@ def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictCon
             
             # Merge with the relevant section
             dconf[section_name] = OmegaConf.merge(dconf[section_name], curated_kwargs) 
+            
+            for k, v in curated_kwargs:
+                logger.info(f'Setting config key {k} to value {v}')
     return dconf
+
+    
+def write_config(dconf: DictConfig, path : Path) -> None:
+    """
+    Write the LUMIA config file to a yanl file in the requested directory.
+    Create the directory if needed.
+    
+    Arguments:
+    dconf : LUMIA configuration object
+    path : path to the output file. Must be the full file name, not just the path.
+    """
+    path.parent.mkdir(exist_ok=True, parents=True)
+    OmegaConf.save(config=dconf, f=path)
+    logger.debug(f"Run settings written to {path}")

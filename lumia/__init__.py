@@ -9,7 +9,11 @@ from .optimizer.scipy_optimizer import Optimizer
 from .models.footprints.transport import Transport
 
 # Utilities
-from .utils.dconf import read_config
+from .utils.dconf import read_config, write_config
+
+from types import SimpleNamespace
+settings = SimpleNamespace(read = read_config, write = write_config)
+
 from .utils.logging import setup_logging
 setup_logging()
 
