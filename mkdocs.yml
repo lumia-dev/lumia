@@ -4,10 +4,8 @@ repo_url: https://github.com/lumia-dev/lumia
 edit_uri: edit/omegaconf/docs
 nav:
   - Home: index.md
-  - Overview: overview.md
-  - Installation: installation.md
-  - Tutorial: tutorial.md
-  - Settings: settings.md
+  #- Tutorial: tutorial.md
+  #- Settings: settings.md
   - Modules:
     - observations.md
 
@@ -19,6 +17,7 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.details
+  - admonition
 
 extra_javascript:
   - javascripts/mathjax.js
