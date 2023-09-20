@@ -36,6 +36,7 @@ class Mapping:
         mapping.setup_prior()
         return mapping
 
+    @debug.timer
     def vec_to_struct(self, vector: NDArray) -> Data:
         """
         Converts a state vector to flux array(s). The conversion follows the steps:
@@ -61,6 +62,7 @@ class Mapping:
         struct.to_intensive()
         return struct
 
+    @debug.timer
     def vec_to_struct_adj(self, adjemis : Data) -> NDArray:
         adjemis.to_intensive_adj()
 
@@ -71,6 +73,7 @@ class Mapping:
             adjvec.extend(emcoarse_adj)
         return array(adjvec)
 
+    @debug.timer
     def distribflux_time(self, emcoarse: NDArray, cat: Category) -> NDArray:
         """
         Distribute the fluxes from the optimization time steps to the model time steps
@@ -93,6 +96,7 @@ class Mapping:
         # Remap by matrix product (emfine = Tmap^t * emcoarse)
         return disaggregation_matrix.transpose() @ emcoarse
 
+    @debug.timer
     def distribflux_time_adj(self, emcoarse_adj: NDArray, cat: Category):
         """
         Adjoint of distribuflux_time.
@@ -112,6 +116,7 @@ class Mapping:
         # 3) Reshape as a vector and return
         return emcoarse_adj.reshape(-1)
 
+    @debug.timer
     def distribflux_space(self, emcoarse : NDArray, cat: Category) -> NDArray:
         """
         Distribute the fluxes from the spatial clusters used in the optimization to the model grid.
@@ -123,14 +128,19 @@ class Mapping:
 
         # 1) Select the transition matrix (np, nlat*nlon) and transpose it:
         disaggregation_matrix = self.spatial_mapping[cat].overlap_fraction.data
-
+        
         # 2) distribute the fluxes to a (nt, nlat*nlon) matrix
-        emfine = emcoarse @ disaggregation_matrix.transpose()
+        if disaggregation_matrix.dtype == bool:
+            # if there is no spatial aggregation (just filtering of some pixels), we can take a shortcut:
+            emfine = zeros((emcoarse.shape[0], disaggregation_matrix.shape[0]))
+            emfine[:, disaggregation_matrix.sum(1).astype(bool)] = emcoarse
+        else :
+            emfine = emcoarse @ disaggregation_matrix.transpose()
 
         # 3) reshape as a (nt, nlat, nlon) array and return:
         return emfine.reshape(self.model_data[cat.tracer].shape)
-        # return emfine.reshape((-1, self.model_data[cat.tracer].grid.nlat, self.model_data[cat.tracer].grid.nlon))
 
+    @debug.timer
     def distribflux_space_adj(self, emcoarse_adj: NDArray, cat: Category) -> NDArray:
         """
         Adjoint of distribflux_space.
@@ -147,7 +157,12 @@ class Mapping:
         disaggregation_matrix = self.spatial_mapping[cat].overlap_fraction.data
 
         # 3) Regrid by matrix product: emfine = emcoarse * T^t -> (nt, np)
-        emfine_adj = emcoarse_adj @ disaggregation_matrix
+        if disaggregation_matrix.dtype == bool:
+            # If there is no spatial aggregation, it is a simple mapping of emission components on state vector, so we can take a shortcut:
+            emfine_adj = emcoarse_adj[:, disaggregation_matrix.sum(1).astype(bool)]
+        else :
+            emfine_adj = emcoarse_adj @ disaggregation_matrix
+
         return emfine_adj
 
     @property
@@ -160,6 +175,7 @@ class Mapping:
         for cat in self.model_data.optimized_categories :
             yield cat
 
+    @debug.timer
     def setup_optimization(self) -> None:
         """
         Read the optimization parameters (tracers, categories, uncertaintes, etc.)
@@ -190,6 +206,7 @@ class Mapping:
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will NOT be optimized')
             self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
 
+    @debug.timer
     def setup_coarsening(self, sensi_map : Dict | None = None):
         """
         Calculate spatial and temporal coarsening matrices
@@ -199,7 +216,7 @@ class Mapping:
             smap = sensi_map[cat.tracer] if sensi_map else None
             self.spatial_mapping[cat] = self.calc_spatial_coarsening(cat, sensi_map=smap)
 
-    @debug.trace_args()
+    @debug.timer
     def calc_temporal_coarsening(self, cat: Category) -> Dataset :
         mapping = Dataset()
 
@@ -237,7 +254,7 @@ class Mapping:
 
         return mapping
 
-    @debug.trace_args()
+    @debug.timer
     def calc_spatial_coarsening(
         self, 
         cat: Category, 
@@ -280,11 +297,11 @@ class Mapping:
         else :
             return self.optimize_at_native_spatial_resolution(cat, lsm)
 
-    @debug.trace_args()
+    @debug.timer
     def reduce_resolution(self, cat: Category, aggregate_lat : int, aggregate_lon : int, lsm : None | NDArray) -> Dataset:
         raise NotImplementedError
     
-    @debug.trace_args()
+    @debug.timer
     def aggregate_in_spatial_clusters(self, cat: Category, sensi_map: NDArray, lsm : None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
@@ -329,7 +346,7 @@ class Mapping:
 
         return mapping
 
-    @debug.trace_args()
+    @debug.timer
     def optimize_at_native_spatial_resolution(self, cat, lsm: None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
@@ -361,11 +378,10 @@ class Mapping:
         
         return mapping
 
-    @debug.trace_args()
+    @debug.timer
     def setup_prior(self) -> None :
         self.optim_data = self.control_vector.loc[:, ['category', 'tracer', 'state_prior']]
 
-    @debug.trace_args()
     @debug.timer
     def coarsen_cat(self, cat : Category, data : NDArray = None, value_field : str = 'state_prior') -> DataFrame:
         if data is None :
