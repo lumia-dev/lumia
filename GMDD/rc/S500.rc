@@ -1,7 +1,0 @@
-#include gmdd.rc
-
-tag                        : S500
-observations.filename      : observations/truth.tar.gz
-emissions.biosphere.origin : ORCHIDEE
-emissions.biosphere.error  : 25
-emissions.biosphere.corr   : 500-g
