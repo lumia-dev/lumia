@@ -39,7 +39,8 @@ class LumiaFootprintFile(FootprintFile):
 
     def setup(self, coords, origin, dt):
         assert self.coordinates == coords
-        assert self.Footprint.dt == dt, print(self.Footprint.dt, dt)
+        assert self.Footprint.dt == dt
+        
         #    logger.warning("Skipping assertion error for testing ... fixme urgently!!!")
         # Calculate the number of time steps between the Footprint class (i.e 
         # the data in the file) and the requested new origin
@@ -93,7 +94,7 @@ class LumiaFootprintTransport(FootprintTransport):
         super().__init__(rcf, obs, emfile, LumiaFootprintFile, mp, ncpus=ncpus)
 
     def genFileNames(self):
-        return [f'{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()]
+        return [f'{o.tracer}/{o.site.lower()}.{o.height:.0f}m.{o.time.year}-{o.time.month:02.0f}.hdf' for o in self.obs.observations.itertuples()] 
 
     def checkFootprints(self, path, archive=None):
         """
@@ -109,15 +110,15 @@ class LumiaFootprintTransport(FootprintTransport):
         #fnames = [os.path.join(path, f) for f in self.genFileNames()]
         #fnames = [f if os.path.exists(f) else nan for f in fnames]
         fnames = array(self.genFileNames())
-        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(self.genFileNames(), desc="Check footprints")])
+        exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(fnames, desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])
         self.obs.observations.loc[:, 'footprint'] = fnames 
         self.obs.observations.loc[~exists, 'footprint'] = nan
 
         # Construct the obs ids:
-        obsids = [f'{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
+        obsids = [f'{o.tracer}/{o.site.lower()}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.loc[exists].itertuples()]
         self.obs.observations.loc[exists, 'obsid'] = obsids
-
+        
 
 if __name__ == '__main__':
     import sys
@@ -132,8 +133,8 @@ if __name__ == '__main__':
     p.add_argument('--ncpus', '-n', default=None)
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--rc')
-    p.add_argument('--db', required=True)
-    p.add_argument('--emis', required=True)
+    p.add_argument('--db', required=False)
+    p.add_argument('--emis', required=False)
     p.add_argument('--check-footprints', action='store_true', default=True, help="Locate the footprint files and check them. Should be set to False if a `footprints` column is already present in the observation file", dest='checkFootprints')
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
@@ -143,8 +144,8 @@ if __name__ == '__main__':
     logger.debug('test logger')
     logger.warning('test logger')
 
-    # Create the transport model
-    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
+    # Create the transport model-
+    model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus) #mp=False
 
     if args.checkFootprints:
         model.checkFootprints(model.rcf.get('path.footprints'))
