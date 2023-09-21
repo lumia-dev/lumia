@@ -1,14 +1,28 @@
 #!/usr/bin/env python
 
-import logging
+from loguru import logger
 from copy import deepcopy
 from multiprocessing import Pool
 from tqdm import tqdm
-from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique
+from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log, linspace
+from scipy.stats import norm
 
-logger = logging.getLogger(__name__)
 
 common = {}
+
+
+def _aggregate_uncertainty(it1):
+    itimes = common['itimes']
+    sig1 = common['sigmas'][itimes == it1]
+    Ct = common['Ct']
+    Ch = common['Ch']
+    nt = len(unique(itimes))
+    err = 0
+    for it2 in range(nt):
+        sig2 = common['sigmas'][itimes == it2]
+        err += (Ct[it1, it2] * Ch * sig1[None, :] * sig2[:, None]).sum()
+
+    return err
 
 
 def calc_dist(lon1, lat1, lon2, lat2, ae=6.371e6, stretch_ratio=1.):
@@ -66,6 +80,8 @@ class HorCor:
             self.genCovarMat = self.genGaussianCovarMat
         elif cortype == 'h' :
             self.genCovarMat = self.genHyperbolicCovariances
+        elif cortype == 'e' :
+            self.genCovarMat = self.genExponentialCovariances
 
     def __call__(self):
         self.mat = self.genCovarMat()
@@ -78,6 +94,13 @@ class HorCor:
 
         # Calculate the correlations based on it
         corrmat = exp(-(distmat/self.corlen)**2)   # Gaussian covariances only for now
+        corrmat[corrmat < minv] = 0.
+        return corrmat
+
+    def genExponentialCovariances(self, minv=1.e-7):
+        distmat = calc_dist_matrix(self.lats, self.lons)
+
+        corrmat = exp(-(distmat/self.corlen))
         corrmat[corrmat < minv] = 0.
         return corrmat
 
@@ -143,17 +166,6 @@ class TempCor:
         return P, D
 
 
-def aggregate_uncertainty(itime):
-    err = 0.
-    for ivar in range(len(common['std'])):
-        std1 = common['std'][ivar]
-        corr_t = common['Bt'][common['itime'][ivar], itime]
-        std2 = common['std'][common['itime'] == itime]
-        corr_h = common['Bh'][common['iloc'][ivar], :]
-        err += sum(std1*corr_t*(corr_h*std2))
-    return err
-
-
 class Uncertainties:
     def __init__(self, interface, horcor=HorCor, tempcor=TempCor):
         self.interface = interface
@@ -166,84 +178,179 @@ class Uncertainties:
             'Hcor':{},
             'Tcor':{}
         }
+        self.Ct = {}
+        self.Ch = {}
 
         for tr in self.interface.tracers.list:
             self.dict['Hcor'][tr] = {}
             self.dict['Tcor'][tr] = {}
+            self.Ct[tr] = {}
+            self.Ch[tr] = {}
             for cat in self.interface.tracers[tr].categories:
                 if cat.optimize:
                     self.dict['Hcor'][tr][cat.name] = {}
                     self.dict['Tcor'][tr][cat.name] = {}
+                    self.Ct[tr][cat.name] = {}
+                    self.Ch[tr][cat.name] = {}
 
-        self.calcPriorUncertainties()
+        self.CalcUncertaintyStructure()
         self.setup_Hcor()
         self.setup_Tcor()
+        self.ScaleUncertainty()
 
     def errStructToVec(self, errstruct):
         data = self.interface.StructToVec(errstruct)
         data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
         return data.drop(columns=['value'])
-
-    def calcPriorUncertainties(self):
-        """
-        Uncertainties set to a percentage of the prior control vector
-        """
-        data = deepcopy(self.interface.ancilliary_data)
-        data = self.errStructToVec(data)
-
-        for tr in self.interface.tracers.list:
-            for cat in self.interface.tracers[tr].categories:
-                if cat.optimize :
-                    errfact = cat.uncertainty*0.01
-                    errcat = abs(data.loc[(data.tracer == tr) & (data.category == cat), 'prior_uncertainty'].values)*errfact
-                    errcat[(errcat < 0.01*errcat.max())*(data.loc[(data.tracer == tr) & (data.category == cat), 'land_fraction']>0)] = errcat.max()/100
-                    data.loc[(data.tracer == tr) & (data.category == cat), 'prior_uncertainty'] = errcat
-        self.data = data
-        self.dict['prior_uncertainty'] = data.prior_uncertainty
+    #
+    # def calcPriorUncertainties(self):
+    #     """
+    #     Uncertainties set to a percentage of the prior control vector
+    #     """
+    #     data = deepcopy(self.interface.ancilliary_data)
+    #     data = self.errStructToVec(data)
+    #     for cat in self.interface.categories :
+    #         if cat.optimize :
+    #             errfact = cat.uncertainty*0.01
+    #             errcat = abs(data.loc[data.category == cat, 'prior_uncertainty'].values)*errfact
+    #             errcat[(errcat < 0.01*errcat.max())*(data.loc[:, 'land_fraction']>0)] = errcat.max()/100
+    #             data.loc[data.category == cat, 'prior_uncertainty'] = errcat
+    #     self.data = data
+    #     self.dict['prior_uncertainty'] = data.prior_uncertainty
 
     def setup_Hcor(self):
         for tr in self.interface.tracers.list:
             for cat in self.interface.tracers[tr].categories:
                 if cat.optimize :
-                    if cat.horizontal_correlation not in self.dict['Hcor'][tr][cat.name]:
+                    if cat.horizontal_correlation not in self.dict['Hcor'][tr][cat.name] :
                         corlen, cortype = cat.horizontal_correlation.split('-')
                         corlen = int(corlen)
-                        vec = self.data.loc[(self.data.tracer == tr) & (self.data.category == cat)]
+                        vec = self.data.loc[(self.data.category == cat)]
                         vec = vec.loc[vec.time == vec.iloc[0].time]
 
                         corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
                         self.dict['Hcor'][tr][cat.name][cat.horizontal_correlation] = corr()
-                        self.hcov = corr.mat
+                        self.Ch[tr][cat.name][cat.horizontal_correlation] = corr
 
     def setup_Tcor(self):
         for tr in self.interface.tracers.list:
             for cat in self.interface.tracers[tr].categories:
                 if cat.optimize :
-                    if cat.temporal_correlation not in self.dict['Tcor'][tr][cat.name]:
+                    if cat.temporal_correlation not in self.dict['Tcor'][tr][cat.name] :
+                        
                         temp_corlen = float(cat.temporal_correlation[:3].strip())
 
                         # Time interval of the optimization
                         dt = cat.optimization_interval.months + 12*cat.optimization_interval.years + cat.optimization_interval.days/30. + cat.optimization_interval.hours/30/24
 
                         # Number of time steps :
-                        times = self.data.loc[(self.data.tracer == tr) & (self.data.category == cat), 'time'].drop_duplicates()
+                        times = self.data.loc[self.data.category == cat, 'time'].drop_duplicates()
                         nt = times.shape[0]
-                        
+
                         corr = self.TempCor(temp_corlen, dt, nt)
                         self.dict['Tcor'][tr][cat.name][cat.temporal_correlation] = corr()
-                        self.tcov = corr.mat
+                        self.Ct[tr][cat.name][cat.temporal_correlation] = corr
 
-    def calcTotalError(self):
-        common['std'] = self.dict['prior_uncertainty'].values
-        common['Bh'] = self.hcov
-        common['Bt'] = self.tcov
-        common['itime'] = self.data.loc[:, 'itime'].values
-        common['iloc'] = self.data.loc[:, 'iloc'].values
+    def calcTotalUncertainty(self): 
+        errtot = {}
+        for tr in self.interface.tracers.list:
+            errtot[tr] = {}
+            for cat in self.interface.tracers[tr].categories:
+                unitconv = dict(PgC=12.e-21, TgCH4=16.e-21)[cat.unit]
+                if cat.optimize :
+                    #sig = (self.vectors.prior_uncertainty.values)
+                    common['Ch'] = self.Ch[tr][cat.name][cat.horizontal_correlation].mat
+                    common['Ct'] = self.Ct[tr][cat.name][cat.temporal_correlation].mat
+                    common['sigmas'] = self.data.loc[self.data.category == cat].prior_uncertainty * unitconv
+                    common['itimes'] = self.data.loc[self.data.category == cat].itime.values
 
-        with Pool() as pp :
-            err = [e for e in tqdm(pp.imap(aggregate_uncertainty, unique(common['itime'])), total=self.tcov.shape[0])]
+                    nt = len(unique(common['itimes']))
 
-        for key in ['std','Bh','Bt','itime','iloc'] :
-            del common[key]
+                    with Pool() as pp :
+                        errm = pp.imap(_aggregate_uncertainty, range(nt))
+                        # err = [e for e in tqdm(errm, total=nt)]
+                        err = sum(tqdm(errm, total=nt))
 
-        return sum(err)
+                    # here "err" is the variance, in units of [flux_unit]^2. We want something in [flux_unit] so take the square root.
+                    errtot[tr][cat.name] = sqrt(err)
+
+                    for key in ['Ch', 'Ct', 'sigmas', 'itimes'] :
+                        del common[key]
+                    # logger.debug(f"Total original uncertainty for category {cat}: {sum(errtot[tr][cat.name]):.3f} {cat.unit}")
+                    logger.debug(f"Total original uncertainty for category {cat}: {errtot[tr][cat.name]:.3f} {cat.unit}")
+        return errtot
+
+    def CalcUncertaintyStructure(self):
+        """
+        Uncertainties set to a specified value (in PgC)
+        """
+
+        # The code belows first sets the standard deviations (sig_i) of the flux in each model grid cell i.
+        # The standard deviation sig_x of the control vector element x that aggregates n grid cells is then given by:
+        # sig_x = sqrt(\sum_i^n \sum_j^n sig_i*sig_j*corr_i_j)
+        # with corr_i_j the correlation coefficient between i and j.
+        # Here, since we optimize the aggregated pixels together, the correlation coefficients are by definition 1, and therefore sig_x = \sum_i^n sig_i
+
+        # Calculate the spatio-temporal structure of the uncertainty
+        data = deepcopy(self.interface.ancilliary_data)
+        for tr in self.interface.tracers.list :
+            for cat in self.interface.tracers[tr].categories :
+                if cat.optimize :
+                    # In the following code, we set the variances of the fluxes at the transport scale
+                    if cat.error_structure == 'linear':
+                        data[tr][cat.name]['emis'] = data[tr][cat.name]['emis']**2
+                    elif cat.error_structure == 'log':
+                        em = data[tr][cat.name]['emis'] ** 2
+                        em = em.reshape(-1, 24, em.shape[1], em.shape[2])
+                        daily_tot = em.sum((1,2,3))
+                        em = (em.swapaxes(0, -1) * log(daily_tot) / daily_tot).swapaxes(0, -1)
+                        data[tr][cat.name]['emis'] = em.reshape(-1, em.shape[2], em.shape[3])
+                    elif cat.error_structure == 'norm':
+                        em = data[tr][cat.name]['emis']**2
+                        hourly_tot = em.sum((1,2))
+                        hourly_frac = em / hourly_tot[:, None, None]
+                        mean = hourly_tot.mean()
+                        std = hourly_tot.std()
+                        x = linspace(hourly_tot.min(), hourly_tot.max(), len(hourly_tot))
+                        y = norm.pdf(x, mean, std*2)
+                        data[tr][cat.name]['emis'] = hourly_frac * y[:, None, None]
+                    elif cat.error_structure == 'abs':
+                        data[tr][cat.name]['emis'] = abs(data[tr][cat.name]['emis'])
+                    elif cat.error_structure == 'sqrt':
+                        data[tr][cat.name]['emis'] = abs(data[tr][cat.name]['emis'])**.5
+                    elif cat.error_structure == 'flat':
+                        data[tr][cat.name]['emis'][:] = self.interface.region.area
+        # Aggregate the variances into a control vector
+        self.data = self.interface.StructToVec(data, store_ancilliary=False)
+
+        # Store the square root of this (standard deviations). They are re-converted to variances later
+        self.data.loc[:, 'prior_uncertainty'] = self.data.loc[:, 'value']
+        self.data.drop(columns=['value'], inplace=True)
+
+    def ScaleUncertainty(self):
+        # Scale the whole array to reach the desired total uncertainty value:
+        errtot = self.calcTotalUncertainty()
+
+        # Divide by the simulation length:
+        nsec = (self.interface.time.end - self.interface.time.start).total_seconds()
+        nsec_year = 365*86400.
+
+        for tr in self.interface.tracers.list:
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize :
+                    # for i, err in enumerate(errtot[tr][cat.name]):
+                    #     scalef = cat.uncertainty / err * nsec / nsec_year # Unit conversion
+                    #     self.data.loc[(self.data.category == cat) & (self.data.itime == i), 'prior_uncertainty'] *= scalef
+                    #     logger.info(f"Uncertainty for category {cat.name} at itime {i} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
+
+                    scalef = cat.uncertainty / errtot[tr][cat.name] * nsec / nsec_year 
+                    self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
+                    logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
+
+        _ = self.calcTotalUncertainty()
+        for tr in self.interface.tracers.list:
+            for cat in self.interface.tracers[tr].categories:
+                if cat.optimize :
+                    logger.info(f"{_[tr][cat.name] = }")
+        
+        self.dict['prior_uncertainty'] = self.data.prior_uncertainty
