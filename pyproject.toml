@@ -21,11 +21,12 @@ classifiers = [
 ]
 
 
-[tool.setuptools]
-packages = ['lumia', 'transport']
-py-modules = ['gridtools']
+[tool.setuptools.packages.find]
+where = ['src']
+exclude = ['congrad*']
+include = ['lumia*', 'transport*', 'gridtools*']
 
 
 [project.optional-dependencies]
-interactive = ['ipython', 'ipywidgets', 'geoviews', 'hvplot', 'jupyter_bokeh']
+interactive = ['ipython', 'ipywidgets', 'geoviews', 'hvplot', 'jupyter_bokeh', 'ipykernel']
 icos = ['icoscp']
