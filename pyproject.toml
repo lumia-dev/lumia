@@ -1,0 +1,31 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+
+[project]
+name = "lumia"
+version = '1.0'
+authors = [
+    {'name' = "Guillaume Monteil", email ="guillaume.monteil@nateko.lu.se"},
+    {'name' = "Carlos Gomez", email="carlos.gomez@nateko.lu.se"},
+    {'name' = "Arndt Meier", email="arndt.meier@nateko.lu.se"}
+]
+readme = "README.md"
+dependencies = ['loguru', 'pandas>=2.0.1', 'dask', 'tables', 'numpy', 'h5py', 'matplotlib', 'python-dateutil', 'netCDF4', 'xarray', 'pint', 'omegaconf', 'scipy', 'setuptools', 'bottleneck', 'mkdocs', 'h5netcdf', 'tqdm']
+requires-python = '>=3.9'
+classifiers = [
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
+        "Operating System :: OS Independent",
+]
+
+
+[tool.setuptools]
+packages = ['lumia', 'transport']
+py-modules = ['gridtools']
+
+
+[project.optional-dependencies]
+interactive = ['ipython', 'ipywidgets', 'geoviews', 'hvplot', 'jupyter_bokeh']
+icos = ['icoscp']
