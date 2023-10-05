@@ -19,7 +19,7 @@ def colorize(msg, color=None):
     # Yellow
     msg = msg.replace('<y>', '\x1b[0;33m')
     msg = msg.replace('</y>', '\x1b[0m')
-    msg = msg.replace('<ybg>', '\x1b[0;43m')
+    #msg = msg.replace('<ybg>', '\x1b[0;43m')
     # Blue
     msg = msg.replace('<b>', '\x1b[0;34m')
     msg = msg.replace('</b>', '\x1b[0m')
@@ -47,7 +47,7 @@ def colorize(msg, color=None):
 
 def runcmd(cmd, shell : bool = False):
     cmdstr = ' '.join([str(x) for x in cmd])
-    logger.info(colorize(cmdstr), 'g')
+    logger.info(colorize(cmdstr, 'm'))
     if shell :
         cmd = cmdstr
     try :

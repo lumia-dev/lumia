@@ -312,10 +312,10 @@ class TracerEmis(xr.Dataset):
         self.attrs['units'] = dest
 
     @debug.trace_args()
-    def to_netcdf(self, filename, group=None, only_transported=False, **kwargs) -> Path:
+    def to_netcdf(self, filename, group=None, only_transported=False, mode='w', **kwargs) -> Path:
 
         # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
-        with Dataset(filename, 'w') as nc:
+        with Dataset(filename, mode) as nc:
             if group is not None:
                 nc = nc.createGroup(group)
 
@@ -487,9 +487,11 @@ class Data:
         if not zlib:
             complevel = 0.
         encoding = dict(zlib=zlib, complevel=complevel)
+        mode = 'w'
         for tracer in self._tracers:
             self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars},
-                                   engine='h5netcdf', **kwargs)
+                                   engine='h5netcdf', mode=mode, **kwargs)
+            mode = 'a'
         return Path(filename)
 
     @property
