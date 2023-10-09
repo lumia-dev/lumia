@@ -28,7 +28,6 @@ class Departures:
 class Transport:
     path_temp : Path
     path_output : Path
-    path_footprints : Path
     executable : List[str]
     split_categories : bool
     output_steps : List[str]
@@ -37,12 +36,12 @@ class Transport:
     serial : bool
     setup_uncertainties : List[str] = field(default_factory=list)
     emissions_file : Path | None = None
+    settings : DictConfig = None
 
     def __post_init__(self):
         self._observations = None
         self.path_temp = Path(self.path_temp)
         self.path_output = Path(self.path_output)
-        self.path_footprints = Path(self.path_footprints)
         if self.emissions_file is None :
             self.emissions_file = self.path_temp / 'emissions.nc'
         self.path_output.mkdir(parents=True, exist_ok=True)
@@ -71,9 +70,40 @@ class Transport:
     # Main methods:
     @debug.timer
     def calc_departures(self, emissions: Emissions, step: str = None) -> Departures:
-        _, obsfile = self.run_forward(emissions, step)
+        self.run_forward(emissions, step)
+        # _, obsfile = self.run_forward(emissions, step)
 
-        # db = self._observations.from_hdf(obsfile)
+        # # db = self._observations.from_hdf(obsfile)
+        # db : DataFrame = read_hdf(obsfile)
+
+        # if self.split_categories:
+        #     for cat in emissions.transported_categories:
+        #         self.observations.loc[:, f'mix_{cat.name}'] = db.loc[:, f'mix_{cat.name}'].values
+        # self.observations.loc[:, f'mix_{step}'] = db.mix.values
+        # self.observations.loc[:, 'mix_background'] = db.mix_background.values
+        # self.observations.loc[:, 'mix_foreground'] = db.mix.values - db.mix_background.values
+        # self.observations.loc[:, 'mismatch'] = db.mix.values - self.observations.loc[:, 'obs']
+
+        # # Optional: store extra columns that the transport model may have written, if requested:
+        # for key in self.extra_fields :
+        #     self.observations.loc[:, key] = db.loc[:, key].values
+
+        # if step in self.setup_uncertainties:
+        #     self._observations.calc_uncertainties(step=step)
+
+        dept = self.observations.dropna(subset=['mismatch', 'err']).loc[:, ['mismatch', 'err']]
+        dept.loc[:, 'sigma'] = dept.err
+
+        # Save output if requested:
+        if step is None or step in self.output_steps :
+            self.save(path=self.path_output, tag=step)
+
+        return dept.loc[:, ['mismatch', 'sigma']]
+
+    @debug.timer
+    def run_forward(self, emissions: Emissions, step: str = None) -> None:
+        _, obsfile = self.exec_model_forward(emissions, step)
+        
         db : DataFrame = read_hdf(obsfile)
 
         if self.split_categories:
@@ -91,15 +121,6 @@ class Transport:
         if step in self.setup_uncertainties:
             self._observations.calc_uncertainties(step=step)
 
-        dept = self.observations.dropna(subset=['mismatch', 'err']).loc[:, ['mismatch', 'err']]
-        dept.loc[:, 'sigma'] = dept.err
-
-        # Save output if requested:
-        if step is None or step in self.output_steps :
-            self.save(path=self.path_output, tag=step)
-
-        return dept.loc[:, ['mismatch', 'sigma']]
-
     @debug.timer
     def calc_departures_adj(self, forcings : DataFrame, step='adjoint') -> Data:
 
@@ -112,13 +133,16 @@ class Transport:
         adjemis_file = self.emissions_file
 
         # Create command
-        cmd = self.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.path_footprints, '--tmp', self.path_temp]
+        cmd = self.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file]
         if self.serial :
             cmd.append('--serial')
         if step in self.extra_arguments:
             cmd.append(self.extra_arguments[step])
         if "*" in self.extra_arguments:
             cmd.append(self.extra_arguments['*'])
+        if self.settings is not None :
+            cmd.append(self.path_temp / 'adjoint.yaml')
+            OmegaConf.save(self.settings, cmd[-1], resolve=True)
         # Run
         runcmd(cmd, shell=True)
 
@@ -126,7 +150,7 @@ class Transport:
         return Data.from_file(adjemis_file)
 
     @debug.timer
-    def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
+    def exec_model_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
         compression = step in self.output_steps
@@ -137,15 +161,16 @@ class Transport:
         self.observations.to_hdf(dbf, 'observations')
 
         # Run the model:
-        cmd = self.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.path_footprints, '--tmp', self.path_temp]
-
+        cmd = self.executable + ['--forward', '--obs', dbf, '--emis', emf]
         if self.serial or serial:
             cmd.append('--serial')
-
         if step in self.extra_arguments:
             cmd.append(self.extra_arguments[step])
         if '*' in self.extra_arguments:
             cmd.append(self.extra_arguments['*'])
+        if self.settings is not None:
+            cmd.append(self.path_temp / f'forward_{step}.yaml')
+            OmegaConf.save(self.settings, cmd[-1], resolve=True)
         runcmd(cmd, shell=True)
 
         return emf, dbf

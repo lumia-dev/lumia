@@ -7,13 +7,12 @@ from numpy import array, nan
 from tqdm import tqdm
 from loguru import logger
 from transport.core.model import FootprintFile
-from typing import Type
+from typing import Type, Dict
 import xarray as xr
 from transport.concentrations import interp_file
 from pathlib import Path
-
-
-common = {}
+from lumia.utils import debug
+from omegaconf import DictConfig
 
 
 def check_migrate(source, dest):
@@ -41,36 +40,59 @@ class Observations(DataFrame):
         """
         return Observations
 
+    @property
+    def tracers(self):
+        return self.tracer.drop_duplicates()
+
     def write(self, filename: str) -> None:
         self.to_hdf(filename, key='observations')
 
-    def gen_filenames(self) -> None:
+    def gen_filenames(self, multitracer : bool = False) -> None:
         fnames = self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
         self.loc[:, 'footprint'] = fnames
 
-    def find_footprint_files(self, archive: str, local: str=None) -> None:
-        # 2) Append file names, both for local and archive
-        if local is None:
-            local = archive
-        fnames_archive = archive + '/' + self.footprint
-        fnames_local = local + '/' + self.footprint
+    @debug.trace_args("archive", "local")
+    def find_footprint_files(self, archive: str | Dict, local: str | None = None) -> None:
+        """
+        Locate the footprint files, and, if needed, copy them to a temporary path (e.g. on a fast SSD).
+        Arguments:
+            - archive : Path where the footprint files are stored (permanent storage). Optionally, can be provided as a dictionary containing tracer-specific paths (e.g. {'co2':'/path/to/the/co2/footprints', 'ch4':'/path/to/the/ch4/footprints'}.
+            - local : Path where the footprint files should be copied:
+                * If left to "None" (default), the footprints are left in place.
+                * If "archive" is provided as a dictionary and "local" is not None, then footprints will be copied to a tracer-specific subdirectory of "archive".
+        """
+        
+        tracer_specific_path = isinstance(archive, dict | DictConfig)
 
-        # 3) retrieve the files from archive if needed:
-        if local is not None :
-            Path(local).mkdir(exist_ok=True, parents=True)
-        exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
-        self.loc[:, 'footprint'] = fnames_local
+        for tracer in self.tracers :
 
-        if not exists.any():
+            remote_path = archive
+            if tracer_specific_path:
+                remote_path = archive[tracer]
+
+            if local is None :
+                local_path = remote_path
+            else :
+                local_path = local
+                if tracer_specific_path :
+                    local_path += '/' + tracer
+
+            # Append file names, both for local and archive:
+            footprints = self.loc[self.tracer == tracer, 'footprint']
+            fnames_archive = remote_path + '/' + footprints
+            fnames_local = local_path + '/' + footprints
+
+            # Retrieve the files from archive if needed:
+            if local is not None :
+                Path(local_path).mkdir(exist_ok=True, parents=True)
+            exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc=f'Migrate footprint files for tracer {tracer}', total=len(fnames_local), leave=False)])
+            fnames_local[~exists] = nan
+            self.loc[self.tracer == tracer, 'footprint'] = fnames_local
+
+        if len(self.footprint.dropna()) == 0 :
             logger.error("No valid footprints found. Exiting ...")
             raise RuntimeError("No valid footprints found")
-
-        # Create the file names:
-        #fnames = path + '/' + self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
-        #self.loc[:, 'footprint'] = fnames
-        #exists = array([os.path.exists(f) for f in fnames])
-        self.loc[~exists, 'footprint'] = nan
-
+            
     def gen_obsid(self) -> None:
         # Construct the obs ids:
         obsids = self.code + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y%m%d-%H%M%S')
@@ -85,9 +107,10 @@ class Observations(DataFrame):
                 footprints.extend(fpf.footprints)
         self.loc[~self.obsid.isin(footprints), 'footprint'] = nan
 
+    @debug.trace_args()
     def check_footprints(self, archive: str, cls: Type[FootprintFile], local: str=None) -> None:
         """
-        Search for/lumia/transport/multitracer.py the footprint corresponding to the observations
+        Search for the footprint corresponding to the observations
         """
         # 1) Create the footprint file names
         self.gen_filenames()
