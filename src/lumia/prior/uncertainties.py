@@ -13,6 +13,7 @@ from typing import Tuple
 from pathlib import Path
 from h5py import File
 import hashlib
+from typing import List
 
 
 _common = {}   # common for multiprocessing
@@ -206,6 +207,38 @@ class TemporalCorrelation:
     def L(self) -> NDArray:
         # TODO: check why eigen_values is not just a vector here (instead of a diagonal matrix).
         return self.eigen_vectors @ self.eigen_values
+    
+    
+@dataclass(kw_only=True)
+class CategoryCorrelation:
+    categories : List[str]
+    B : NDArray | None = None
+    def __post_init__(self):
+        # By default, no cross-category correlations
+        self.B = eye(len(self.categories))
+        
+    def correlate(self, cat1: str, cat2: str, corr: float):
+        ix1 = self.categories.tolist().index(cat1)
+        ix2 = self.categories.tolist().index(cat2)
+        self.B[ix1, ix2] = corr
+        self.B[ix2, ix1] = corr
+        
+    @debug.timer
+    def calc_eigen_decomposition(self) -> None:
+        lam, evec = linalg.eigh(self.B)
+        sort_order = flipud(argsort(lam))
+        lam = lam[sort_order]
+        evec = evec[:, sort_order]
+        lam_sqrt = diag(sqrt(lam))
+        # Make sure that the elements in the top row of P are non-negative
+        col_sign = where(evec[0] < 0.0, -1.0, 1.0)
+        ev = evec * col_sign
+        return ev, lam_sqrt
+
+    @property
+    def L(self) -> NDArray:
+        self.calc_eigen_decomposition()
+        return self.eigen_vectors @ self.eigen_values
 
 
 @debug.timer
@@ -259,29 +292,23 @@ def calc_total_uncertainty(
     
 
 @debug.timer
-def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFrame) -> TemporalCorrelation:
+def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, nt: int) -> TemporalCorrelation:
     assert dt.base == corlen.base
-
-    # Number of time steps :
-    times = sigmas.loc[:, 'time'].drop_duplicates()
-    nt = times.shape[0]
-
     return TemporalCorrelation(corlen=corlen.n / dt.n, dt=1., n=nt)
 
 
 @debug.timer
-def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame, cache_dir : Path = None) -> SpatialCorrelation:
+def calc_horizontal_correlation(
+    corstring: str, 
+    coords: DataFrame, 
+    cache_dir : Path = None
+) -> SpatialCorrelation:
     corlen, cortype = corstring.split('-')
     corlen = int(corlen)
-    logger.warning("poor implementation. fix might be needed ...")
-    # Two categories with the same name can exist, in different tracers ...
-    # It would be better to have unique categories that have cat name and cat tracer as properties
-    vec = sigmas.loc[(sigmas.category == catname)]
-    vec = vec.loc[vec.time == vec.iloc[0].time]
     return SpatialCorrelation(
         corlen=corlen, 
         cortype=cortype, 
-        lats=vec.lat.values, 
-        lons=vec.lon.values, 
+        lats=coords.lat.values, 
+        lons=coords.lon.values, 
         cache_dir=cache_dir
     )

@@ -174,7 +174,11 @@ class Mapping:
     def optimized_categories(self) -> Iterable[Category]:
         for cat in self.model_data.optimized_categories :
             yield cat
-
+            
+    @property
+    def categories(self) -> Dict[str, Category]:
+        return {cat.name : cat for cat in self.model_data.categories}
+        
     @debug.timer
     def setup_optimization(self) -> None:
         """
@@ -206,6 +210,42 @@ class Mapping:
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will NOT be optimized')
             self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
 
+    @debug.timer
+    def setup_optimization_(self) -> None :
+        for tracer in self.model_data.tracers:
+            # Add meta-categories (if any!)
+            for k, v in self.dconf.emissions[tracer].get('metacategories', {}).items():
+                self.model_data[tracer].add_metacat(k, v)
+                
+        for optim_group, optim_pars in self.dconf.optimize.groups.items():
+            for cat in optim_group.categories:
+                catname, tracer = cat.rsplit('.', maxsplit=1)
+                attrs = {
+                    'optimized': True,
+                    'optimization_interval': optim_pars.correlations,
+                    'apply_lsm' : optim_pars.get('apply_lsm', True),
+                    'is_ocean': optim_pars.get('is_ocean', False),
+                    'n_optim_points': optim_pars.get('npoints', None),
+                    'horizontal_correlation': optim_pars.spatial_correlation,
+                    'temporal_correlation': optim_pars.temporal_correlation,
+                }
+                correlates_with = {}
+                # Cross correlations are marked as "cat1, cat2 : correlation" in the yaml file:
+                # Parse this ...
+                if 'cross_correlations' in optim_pars:
+                    for k, v in optim_pars.cross_correlations.items():
+                        c1, c2 = k.split(',')
+                        c1, c2 = c1.strip(), c2.strip()
+                        if cat in [c1, c2]:
+                            cc = c1 if c2 == k else c2
+                            correlates_with[cc] = k
+                    attrs['correlates_with'] = ', '.join([f'{k}: {v}' for k, v in correlates_with.items()])
+                    
+                err = ureg(optim_pars.annual_uncertainty[cat])
+                scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
+                attrs['total_uncertainty'] = err * scf
+                self.model_data[tracer].variables[catname].attrs.update(attrs)
+        
     @debug.timer
     def setup_coarsening(self, sensi_map : Dict | None = None):
         """
