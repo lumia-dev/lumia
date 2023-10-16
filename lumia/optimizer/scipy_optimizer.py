@@ -117,6 +117,7 @@ class Optimizer:
         logger.info(f'Cost function value: {self.cached_results["J"]}')
         logger.info(f'Number of gradient evaluations: {self.n_gradient_evaluations}')
         if self.n_gradient_evaluations >= self.settings.max_number_of_iterations:
+            return True
             raise StopIteration
         self.iteration += 1
             
