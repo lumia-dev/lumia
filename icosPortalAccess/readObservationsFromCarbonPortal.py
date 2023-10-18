@@ -335,9 +335,9 @@ def getSitecodeCsr(siteCode):
 
 
 # ***********************************************************************************************
-def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
     """
-    Function readObservationsFromCarbonPortal
+    Function discoverObservationsOnCarbonPortal
     
     @param tracer :    the name of the tracer like co2, ch4, etc.
     @type string 
@@ -350,7 +350,7 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     @return ???:  the actual data object? file list? mind you, columns are different....
     @rtype 
  
-    readObservationsFromCarbonPortal attempts to find matching ICOS CO2 observations in form of their individual unique-identifier (PID)
+    discoverObservationsOnCarbonPortal attempts to find matching ICOS CO2 observations in form of their individual unique-identifier (PID)
     for the requested data records. The latter should refer to a list of level2 netcdf file (by name) on the ICOS data portal. 
     The function relies on a sparql query and tries to read the requested cpb files from the carbon portal using the icoscp package. 
     Returns (...-dataset) if successful; (None) if unsuccessful.
@@ -451,26 +451,57 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     '''
     i=0
     df=DataFrame()
+    bSelected=True
     for pid in finalDobjLst:
         pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
         if pidMetadata is not None:
-            data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+            isICOS=False
+            if(pidMetadata['specification'].get('keywords', None) is not None):
+                isICOS = any('ICOS' in sKwrd for sKwrd in pidMetadata['specification'].get('keywords', None))
+            if(not isICOS):
+                if(pidMetadata['references'].get('keywords', None) is not None):
+                    isICOS = any('ICOS' in sKwrd for sKwrd in pidMetadata['references'].get('keywords', None))
+            if(isICOS==False):
+                logger.info(f"This pidMetadata does not say that it is ICOS: {pidMetadata}")
+            data=[pid, bSelected,  pidMetadata['specificInfo']['acquisition']['station']['id'], 
+                        pidMetadata['specificInfo']['acquisition']['station']['countryCode'],
+                        isICOS, 
+                        pidMetadata['coverageGeo']['geometry']['coordinates'][0], 
+                        pidMetadata['coverageGeo']['geometry']['coordinates'][1], 
+                        pidMetadata['coverageGeo']['geometry']['coordinates'][2],
+                        pidMetadata['specificInfo']['acquisition']['samplingHeight'], 
+                        pidMetadata['size'], 
+                        pidMetadata['specificInfo']['nRows'], 
+                        pidMetadata['specification']['dataLevel'], 
+                        pidMetadata['specificInfo']['acquisition']['interval']['start'],
+                        pidMetadata['specificInfo']['acquisition']['interval']['stop'],
+                        pidMetadata['specificInfo']['productionInfo']['dateTime'], 
+                        pidMetadata['accessUrl'],
+                        pidMetadata['fileName'], int(0), 
+                        pidMetadata['specification']['self']['label']]
             if(i==0):
                 '''
                 stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
+                country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
+                isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
+                # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
                 lat=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
                 lon=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
                 alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
                 samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
-                size=pidMetadata['size']
+                size=pidMetadata['size']   
+                nRows=pidMetadata['specificInfo']['nRows']
                 dataLevel=pidMetadata['specification']['dataLevel']
-                tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
+                obsStart=pidMetadata['specificInfo']['acquisition']['interval']['start']
+                obsStop=pidMetadata['specificInfo']['acquisition']['interval']['stop']
+                  #tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
                 productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
                 sUrl=pidMetadata['accessUrl']
                 fileName=pidMetadata['fileName']
-                dataSetLabel=pidMetadata['specification']['self']['label']
+                dataSetLabel=pidMetadata['specification']['self']['label']  
                 '''
-                columnNames=['pid','stationID','latitude','longitude','altitude','samplingHeight','size','dataLevel','tmporalCoverage','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
                 #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
                 df=DataFrame(data=[data], columns=columnNames)
             else:
@@ -482,6 +513,7 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
                 
             i+=1
     
+    df['dClass'] = int(0) # initialise unknown data quality
     df['dClass'] = np.where(df.dataSetLabel.str.contains("Obspack", flags=re.IGNORECASE), int(4), int(0))
     df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
     df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
@@ -489,14 +521,50 @@ def readObservationsFromCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: date
     df.to_csv('dfValidObsUnsorted.csv', mode='w', sep=',')
     dfq = df[df['dataLevel'] ==2]
 
-    dfq.sort_values(by = ['stationID', 'samplingHeight', 'dClass', 'productionTime'], inplace = True, ascending = [True, False, False, False])
+    dfq.sort_values(by = ['country','stationID', 'samplingHeight', 'dClass', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
     # applyUserFilters(finalDobjLst)
     dfq.to_csv('dfValidObs.csv', mode='w', sep=',')
     dfqdd=dfq.drop_duplicates(['stationID', 'samplingHeight'], keep='first')
-    dfqdd.to_csv('dfValidObsSelected.csv', mode='w', sep=',')
+    fDiscoveredObservations="DiscoveredObservations.csv"
+    dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')
     selectedDobjCol=dfqdd['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
-    return(finalDobjLst, selectedDobjLst, dfqdd,  cpDir)
+    return(finalDobjLst, selectedDobjLst, dfqdd, fDiscoveredObservations, cpDir)
+
+
+
+# *****************************************************************************************************************************
+def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None, ymlFile=None, fDiscoveredObservations=None,  iVerbosityLv=1):
+# *****************************************************************************************************************************
+
+    # Shall we call the GUI to tweak some parameters before we start the ball rolling?
+    if bWithGui:
+        #(updatedYmlContents) = callLumiaGUI(ymlContents, sLogCfgPath)
+        # callLumiaGUI(rcf, args.start,  args.end )
+        script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
+        sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py --step 2'
+        for entry in sys.argv[1:]:
+            if (len(entry)>0):
+                sCmd+=' '+entry
+        try:
+            returnValue=os.system(sCmd)
+        except:
+            logger.error(f"Calling LumiaGUI failed. {returnValue} Execution stopped.")
+            sys.exit(42)
+        logger.info("LumiaGUI window closed")
+        if(os.path.isfile("LumiaGui.stop")):
+            logger.error("The user canceled the call of Lumia or soemthing went wrong in the GUI. Execution aborted. Lumia was not called.")
+            sys.exit(42)
+
+    # Read the ymlFile
+    # Apply all filters found in the ymlFile
+
+    chosenObs=ValidObs.where(ValidObs['selected']==True)
+    selectedDobjCol=chosenObs['pid']
+    selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
+    return(selectedDobjLst, chosenObs)
+
+
 
 def applyUserFilters(finalDobjLst):
     '''

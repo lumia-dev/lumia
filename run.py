@@ -138,12 +138,12 @@ myFile.write('\n')
 myFile.write('softwareUsed:\n')
 myFile.write('    lumia:\n')
 myFile.write('        branch : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
-myFile.write('        commit : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
+myFile.write('        commit : https://gitkraken.dev/link/Z2l0a3Jha2VuOi8vcmVwb2xpbmsvNzc4YmYwNzYzZmFlOWZhZDU1YmU4NWRkZTRiNDI2MTM4MzVhMzUyOC9jb21taXQvZDM2ZGRmMmU5N2NkYWM5Yzk4MDBkYjc4YWM5YTkxZGI4MDRkYmQ1Mj91cmw9Z2l0JTQwZ2l0aHViLmNvbSUzQWx1bWlhLWRldiUyRmx1bWlhLmdpdA%3D%3D\n')
+#myFile.write('        commit : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
 myFile.write('    runflex:\n')
 myFile.write('        branch : gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git\n')
 myFile.write('        commit : gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git\n')
 myFile.close()
-
 
 
 # Create subfolder based on the inversion time:
@@ -167,7 +167,7 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
     sLocation=rcf['observations']['file']['location']
     if ('CARBONPORTAL' in sLocation):
         from lumia.obsdb.obsCPortalDb import obsdb
-        db = obsdb.from_CPortal(rcf)
+        db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile)
         db.observations.to_csv('obsDataAll3.csv', encoding='utf-8', mode='w', sep=',')
     else:
         from lumia.obsdb.InversionDb import obsdb

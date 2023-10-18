@@ -12,7 +12,7 @@ from numpy import datetime64
 
 
 class obsdb:
-    def __init__(self, filename=None, start=None, end=None, db=None,  bFromCPortal=False,  rcFile=None):
+    def __init__(self, filename=None, start=None, end=None, db=None,  bFromCPortal=False,  rcFile=None, useGui: bool = False, ymlFile: str=None):
         if db is not None:
             self._parent = db
         else:
@@ -49,8 +49,12 @@ class obsdb:
             }
             self.extraFields = {}
         if filename is not None:
+            bFromCPortal=False
+            if('CARBONPORTAL' in rcFile['observations']['file'].get('location', None)):
+                bFromCPortal=True
+
             if (bFromCPortal):
-                self=self.load_fromCPortal(rcFile)
+                self=self.load_fromCPortal(rcFile, useGui, ymlFile)
             else:
                 self.load_tar(filename)
             # self.observations.to_csv('obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')

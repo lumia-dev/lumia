@@ -939,6 +939,7 @@ def setKeyVal_NestedLv3_CreateIfNotPresent(yDict, key1,  key2, key3,   value):
     
 p = argparse.ArgumentParser()
 p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
+p.add_argument('--step2', dest='step2', default=False, action='store_true',  help="Step 2 to refine the selection among observations discovered on the carbon portal.")
 p.add_argument('--start', dest='start', default=None, help="Start of the simulation in date+time ISO notation as in \'2018-08-31 00:18:00\'. Overwrites the value in the rc-file")
 p.add_argument('--end', dest='end', default=None, help="End of the simulation as in \'2018-12-31 23:59:59\'. Overwrites the value in the rc-file")
 p.add_argument('--rcf', dest='rcf', default=None)   # what used to be the resource file (now yaml file) - only yaml format is supported

@@ -12,14 +12,13 @@ from lumia.formatters.cdoWrapper import ensureReportedTimeIsStartOfMeasurmentInt
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
-import xarray as xr
 from pandas import DataFrame, to_datetime, concat , read_csv, Timestamp, offsets  #, read_hdf, Series  #, read_hdf, Series
 from pandas.api.types import is_float_dtype
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
 from icoscp.cpb.dobj import Dobj
-from icosPortalAccess.readObservationsFromCarbonPortal import readObservationsFromCarbonPortal,  getSitecodeCsr
-
+from icosPortalAccess.readObservationsFromCarbonPortal import discoverObservationsOnCarbonPortal, getSitecodeCsr
+from icosPortalAccess.readObservationsFromCarbonPortal import chooseAmongDiscoveredObservations
 
 def _calc_weekly_uncertainty(site, times, err):
     err = zeros(len(times)) + err
@@ -33,7 +32,7 @@ def _calc_weekly_uncertainty(site, times, err):
 class obsdb(obsdb):
 
     @classmethod
-    def from_CPortal(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file') -> "obsdb":
+    def from_CPortal(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file', useGui: bool = False, ymlFile: str=None) -> "obsdb":
         """
         Construct an observation database based on a rc-file and the carbon portal. The class does the following:
         - loads all tracer observation files from the carbon portal
@@ -51,7 +50,7 @@ class obsdb(obsdb):
             rcf['observations'][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
             end=rcf['observations'].get('end', None), 
-            bFromCPortal=True,  rcFile=rcf)
+            rcFile=rcf,  useGui=useGui,  ymlFile=ymlFile)
         # db.rcf = rcf
 
         # if (1>2):  # TODO: check. should not be needed
@@ -70,7 +69,7 @@ class obsdb(obsdb):
         return db
  
  
-    def load_fromCPortal(self, rcf=None) -> "obsdb":
+    def load_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None) -> "obsdb":
         """
         Public method  load_fromCPortal
 
@@ -80,7 +79,7 @@ class obsdb(obsdb):
         Description: 1st step: Read all dry mole fraction files from all available records on the carbon portal
          - these obviously have no background co2 concentration values (which need to be provided by other means)
         """
-        (self, obsDf,  obsFile)=self.gatherObs_fromCPortal(rcf)
+        (self, obsDf,  obsFile)=self.gatherObs_fromCPortal(rcf, useGui, ymlFile)
         # all matching data was written to the obsFile
         
         # Read the file that has the background co2 concentrations
@@ -95,7 +94,7 @@ class obsdb(obsdb):
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
         return(self)
         
-    def gatherObs_fromCPortal(self, rcf=None,  errorEstimate=None) -> "obsdb":
+    def gatherObs_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None,  errorEstimate=None) -> "obsdb":
         # TODO: ·errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
        # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 
        # The value actually matters, in some cases: it can be used as a value for the weekly uncertainty, or for the default 
@@ -112,7 +111,7 @@ class obsdb(obsdb):
         bFirstDf=True
         nDataSets=0
         # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
-        # readObservationsFromCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
+        # discoverObservationsOnCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
         cpDir=rcf['observations']['file']['cpDir']
         #remapObsDict=rcf['observations']['file']['renameCpObs']
         #if self.start is None:
@@ -128,7 +127,8 @@ class obsdb(obsdb):
         # create a datetime64 version of these so we can extract the time interval needed from the pandas data frame
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
-        (dobjLst, selectedDobjLst, dfObsDataInfo,  cpDir)=readObservationsFromCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, cpDir)=discoverObservationsOnCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
+        (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations,  iVerbosityLv=1)
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
         if((selectedDobjLst is None) or (len(selectedDobjLst)<1)):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")
@@ -157,7 +157,7 @@ class obsdb(obsdb):
                 obsData1site.loc[:,'Site'] = dob.station['id'].lower()
             if ( (any('value' in entry for entry in availColNames))  and (any('value_std_dev' in entry for entry in availColNames)) and (any('time' in entry for entry in availColNames)) ):
                 # There is an issue with the icoscp package when reading ObsPack data. Although the netcdf files stores seconds since 1970-01-01T00:00:00, 
-                # what ends upin the pandas dataframe is only the hour of the day without date....
+                # what ends up in the pandas dataframe is only the hour of the day without date....
                 # Let's read the netcdf file ourselves then... for each PID there are 2 files, one without extension (the netcdf file) and one with .cpb extension
                 # example for an ObsPack Lv 2 data set: fn='/data/dataAppStorage/netcdfTimeSeries/bALaWpparMpY6_N-zW2Cia9a'
                 datafileFound=False
