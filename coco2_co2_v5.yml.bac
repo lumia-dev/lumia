@@ -1,0 +1,151 @@
+background:
+  concentrations:
+    co2:
+      backgroundCo2File: ./backgroundCo2Concentrations/background_2018.nc
+      rename: mix_background
+      stationWithoutBackgroundConcentration: DAILYMEAN
+      userProvidedBackgroundConcentration: 410
+congrad:
+  communication_file: ${run.paths.temp}/congrad.nc
+  executable: ${lumiacode.homedir}/src/congrad/congrad.exe
+  gradient_norm_reduction: 1.e12
+  max_number_of_iterations: 60
+correlation:
+  inputdir:
+    inputdir: /data/corr
+correlation.inputdir: ./data/corr
+emissions:
+  '*':
+    '*': None
+    archive:
+      archive: rclone:lumia:fluxes/nc/
+    path:
+      path: /data/fluxes/nc
+  co2:
+    categories:
+      biosphere: VPRM
+      fossil: EDGARv4_LATEST
+      ocean: mikaloff01
+    interval: ${run.timestep}
+    location:
+      biosphere: CARBONPORTAL
+      fossil: CARBONPORTAL
+      ocean: LOCAL
+    path: ${run.paths.data}/fluxes/nc/
+    prefix: flux_co2.
+    region: ${run.grid}
+    regionName: ${run.gridname}
+emissions.*.error_structure: linear
+lumiacode:
+  homedir: /home/arndt/nateko/dev/lumia/lumiaDA/lumia
+model:
+  exec: ${lumiacode.homedir}/transport/multitracer.py
+  options:
+    serial: false
+  output:
+    steps: ['apri', 'apos']
+  path:
+    footprints: ${run.paths.footprints}
+    output: ${run.paths.output}
+    temp: ${run.paths.temp}
+  transport:
+    exec:
+      exec: /lumia/transport/multitracer.py
+    serial: false
+observations:
+  co2:
+    units: ppm
+  end: '2018-03-01 23:59:59'
+  file:
+    cpDir: /data/dataAppStorage/asciiAtcProductTimeSer/
+    location: CARBONPORTAL
+    path: observations.tar.gz
+    ranking: ['ObsPack', 'Level2', 'Level1', 'NRT', 'AnyOther']
+    rename: background:mix_background
+    tracer: co2
+  filters:
+    bInletHeight: true
+    bStationAltitude: true
+    inletMaxHeight: 700
+    inletMinHeight: 0
+    stationMaxAlt: 6500
+    stationMinAlt: 0
+  start: '2018-01-01 00:00:00'
+  uncertainty:
+    background: 1.822
+    default_weekly_error: 1.5
+    dyn:
+      freq: 7D
+    frequency: dyn
+    model: 1.5
+    obs_field: err
+    setup: false
+    systematicErrEstim: 0.5
+  validation_file: false
+optimize:
+  emissions:
+    co2:
+      biosphere:
+        adjust: true
+        annual_uncertainty: 0.47 PgC
+        npoints: 2500
+        optimization_interval: 7d
+        spatial_correlation: 500-g
+        temporal_correlation: 30D
+      fossil:
+        adjust: false
+      ocean:
+        adjust: false
+      resample: false
+  observations:
+    co2:
+      uncertainty:
+        type: weekly
+path:
+  data:
+    data: /data
+run:
+  grid: ${Grid:{lon0:-15.000,lat0:35.000,lon1:34.000,lat1:73.000,dlon:0.25, dlat:0.25}}
+  gridname: eurocom025x025
+  paths:
+    data: .
+    footprints: /home/arndt/nateko/data/icos/DICE/footprints
+    output: ./output
+    temp: /home/arndt/nateko/data/icos/DICE/tmp
+  region:
+    lat0: 34.0
+    lat1: 73.0
+    lon0: -15.0
+    lon1: 35.0
+  timestep: 1h
+  tracers: ['co2']
+softwareUsed:
+  lumia:
+    branch:
+      branch: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git
+    commit:
+      commit: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git
+    lumia: None
+  runflex:
+    branch:
+      branch: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
+    commit:
+      commit: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
+    runflex: None
+tag:
+  tag: ''
+time:
+  end:
+    end: 2018,02,01
+  start:
+    start: 2018,01,01
+transport:
+  output:
+    output: T
+    steps:
+      steps: forward
+var4d:
+  communication:
+    communication: None
+    file:
+      file: /home/arndt/nateko/data/icos/DICE/tmp/congrad.nc

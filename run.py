@@ -21,7 +21,8 @@ p.add_argument('--optimize', default=False, action='store_true')
 p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
 p.add_argument('--start', default=None, help="Start of the simulation. Overwrites the value in the rc-file")
 p.add_argument('--end', default=None, help="End of the simulation. Overwrites the value in the rc-file")
-p.add_argument('--setkey', action='append', help="use to override some rc-keys")
+p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
+p.add_argument('--setkey', action='append', help="use to override some rc-keys (ignored by the GUI)")
 p.add_argument('--tag', default='')
 p.add_argument('--rcf')   # what used to be the resource file (now yaml file) - only yaml format is supported
 p.add_argument('--ymf')   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
@@ -33,15 +34,46 @@ logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
 
-
+ymlFile=None
 if(args.rcf is None):
     if(args.ymf is None):
         print("Lumia: Fatal error: no user configuration (yaml) file provided.")
         sys.exit(1)
     else:
-        rcf = rc(args.ymf)
+        ymlFile = args.ymf
 else:            
-    rcf = rc(args.rcf)
+    ymlFile = args.rcf
+if (not os.path.isfile(ymlFile)):
+    logger.error(f"Fatal error in lumia.run.py: User specified configuration file {ymlFile} does not exist. Abort.")
+    sys.exit(-3)
+       
+
+# Shall we call the GUI to tweak some parameters before we start the ball rolling?
+if args.gui:
+        #(updatedYmlContents) = callLumiaGUI(ymlContents, sLogCfgPath)
+    # callLumiaGUI(rcf, args.start,  args.end )
+    script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
+    sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py '
+    for entry in sys.argv[1:]:
+        if (len(entry)>0):
+            sCmd+=' '+entry
+    try:
+        returnValue=os.system(sCmd)
+    except:
+        logger.error(f"Calling LumiaGUI failed. {returnValue} Execution stopped.")
+        sys.exit(42)
+    logger.info("LumiaGUI window closed")
+    if(os.path.isfile("LumiaGui.stop")):
+        logger.error("The user canceled the call of Lumia or soemthing went wrong in the GUI. Execution aborted. Lumia was not called.")
+        sys.exit(42)
+
+# Now read the yaml configuration file - whether altered by the GUI or not
+try:
+    rcf=rc(ymlFile)
+except:
+    logger.error(f"Unable to read user provided configuration file {ymlFile}. Abort")
+    sys.exit(-2)
+
 
 if args.setkey :
     for kv in args.setkey :

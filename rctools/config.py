@@ -64,7 +64,7 @@ class Config:
         lines = [_ for _ in lines if _.strip()]
 
         # Is the file yaml or rc file?
-        values = [_.split(':')[1].strip() for _ in lines]
+        values = [_.split(':')[1].strip() for _ in lines]  # TODO: cannot handle yml list, i.e. -api \n -apos - instead of ['apri', 'apos']
         if '' in values:
             # yaml files will have sections (lines with nothing right of the ":" sign)
             # a:
