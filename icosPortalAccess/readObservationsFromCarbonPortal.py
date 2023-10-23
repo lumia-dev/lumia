@@ -505,7 +505,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     ndiff=nObsDataRecords - nObsDataRecords2
     logger.info(f"{nTotalStations} observation sites found. Thereof {nRemovedStations} fall outside the geographical region selected.")
     logger.info(f"{nObsDataRecords} observational data records found. Thereof {ndiff} fall outside the geographical region selected.")
-    logger.info(f"{nTotalStations} observation sites remaining. {nObsDataRecords2} valid observational data records remaining.")
+    logger.info(f"{nTotalStations2} observation sites remaining. {nObsDataRecords2} valid observational data records remaining.")
 
     dfq.sort_values(by = ['country','stationID', 'dClass', 'samplingHeight', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
     # applyUserFilters(finalDobjLst)

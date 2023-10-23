@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-10-21, 16:29:48"
+    "saved": "2023-10-23, 22:11:56"
   },
   "MultiProject": "",
   "Project": "",
@@ -62,7 +62,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        129,
+        131,
         0
       ],
       "Folds": [],
@@ -74,7 +74,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
       "Cursor": [
-        489,
+        529,
         0
       ],
       "Folds": [],
@@ -132,7 +132,13 @@
       "Editorindex": 9
     }
   ],
-  "ActiveWindow": {},
+  "ActiveWindow": {
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+    "Cursor": [
+      529,
+      0
+    ]
+  },
   "Breakpoints": [
     [
       "/opt/conda/envs/flex/lib/python3.10/site-packages/icoscp/cpb/dobj.py",
@@ -1536,7 +1542,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      501,
+      521,
       "",
       false,
       true,
@@ -1672,7 +1678,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      533,
+      553,
       "",
       false,
       true,
@@ -1680,7 +1686,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      510,
+      530,
       "",
       false,
       true,
@@ -1696,7 +1702,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      498,
+      518,
       "",
       false,
       true,
@@ -1720,7 +1726,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      488,
+      499,
       "",
       false,
       true,

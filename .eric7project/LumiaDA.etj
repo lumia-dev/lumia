@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-10-23, 22:04:22"
+    "saved": "2023-10-23, 22:11:56"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -636,9 +636,9 @@
       "priority": 1,
       "lineno": 26,
       "completed": false,
-      "created": 1698091459.7228198,
+      "created": 1698091916.260433,
       "type": 1,
-      "uid": "{aa77ab7c-5598-481a-bd1e-264bf6b855fe}",
+      "uid": "{d0745d12-ff69-4c20-ae78-f4622c7c5fe5}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py"
@@ -649,9 +649,9 @@
       "priority": 1,
       "lineno": 333,
       "completed": false,
-      "created": 1698091459.7259665,
+      "created": 1698091916.2657278,
       "type": 1,
-      "uid": "{2e974e85-7da9-4699-98f8-f6cdc69d0986}",
+      "uid": "{86349c2c-bf1c-4fd9-a20a-f0f3cf50a101}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py"
@@ -662,9 +662,9 @@
       "priority": 1,
       "lineno": 381,
       "completed": false,
-      "created": 1698091459.7288456,
+      "created": 1698091916.2709305,
       "type": 1,
-      "uid": "{b6f1f6d5-5ac5-4fdf-8d59-11b1c31c1661}",
+      "uid": "{81006f61-268e-4f63-b2a0-65d7dc2cf2a8}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py"
