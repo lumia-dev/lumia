@@ -815,9 +815,389 @@ class LumiaGui(ctk.CTk):
 
 
 
+# LumiaGui Class =============================================================
+class RefineObsSelectionGUI(ctk.CTk):
+    # =====================================================================
+    # The layout of the window will be written
+    # in the init function itself
+    def __init__(self, sLogCfgPath, ymlContents, fDiscoveredObservations):  # *args, **kwargs):
+        #super().__init__(*args, **kwargs)
+        # self.protocol("WM_DELETE_WINDOW", self.closed) 
+
+        # Get the screen resolution to scale the GUI in the smartest way possible...
+        root=ctk.CTk()
+        #root = tk.Tk()
+        if(os.path.isfile("LumiaGui.stop")):
+            sCmd="rm LumiaGui.stop"
+            self.runSysCmd(sCmd,  ignoreError=True)
+        if(os.path.isfile("LumiaGui.go")):
+            sCmd="rm LumiaGui.go"
+            self.runSysCmd(sCmd,  ignoreError=True)
+        # self.bPleaseCloseTheGui = tk.BooleanVar(value=False)
+
+        screenWidth = root.winfo_screenwidth()
+        screenHeight = root.winfo_screenheight()
+        #if (screenWidth > 1900):
+        #    screenWidth = 1900
+        if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
+            screenWidth=int(screenHeight*(1920/1080.0))
+        #maxW=1600
+        #maxH=1260
+        #if (maxW > (0.92*screenWidth)):
+        maxW = int(0.92*screenWidth)
+        #if (maxH > (0.92*screenHeight)):
+        maxH = int(0.92*screenHeight)
+        nCols=8 # sum of labels and entry fields per row
+        nRows=12 # number of rows in the GUI
+        xPadding=int(0.008*maxW)
+        wSpacer=int(2*0.008*maxW)
+        yPadding=int(0.008*maxH)
+        vSpacer=int(2*0.008*maxH)
+        myFontFamily="Georgia"
+        sLongestTxt="Latitude (≥33°N):"
+        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  bWeMustStackColumns)= \
+            calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
+                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
+        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
+        vDeadSpace=2*yPadding #vSpacer+(nRows*yPadding*2)+vSpacer
+        colWidth=int((maxW - hDeadSpace)/(nCols*1.0))
+        rowHeight=int((maxH - vDeadSpace)/(nRows*1.0))
+        # Dimensions of the window
+        appWidth, appHeight = maxW, maxH
+        
+        # Sets the title of the window to "LumiaGui"
+        root.title("LUMIA: Refine the selection of observations to be used")  
+        # Sets the dimensions of the window to 800x900
+        root.geometry(f"{appWidth}x{appHeight}")   
+
+        # Row 0:  Title Label
+        # ################################################################
+
+        self.LatitudesLabel = ctk.CTkLabel(root,
+                                text="LUMIA  --  Refine the selection of observations to be used",  font=("Georgia",  fsHUGE))
+        self.LatitudesLabel.grid(row=0, column=0,
+                            columnspan=8,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+
+        # Row 1:  Headings left/right column
+        # ################################################################
+
+        self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(root,
+                                   text="Obsdata Ranking", font=("Georgia",  fsNORMAL), 
+                                   variable=self.iObservationsFileLocation,  value=2)
+        self.ObsFileLocationCPortalRadioButton.grid(row=5, column=0,
+                                  columnspan=2, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+
+        # Filter stations?
+        self.ActivateStationFiltersRbVar = tk.IntVar(value=1)
+        if ((ymlContents['observations']['filters']['bStationAltitude'])or(ymlContents['observations']['filters']['bInletHeight'])):
+            self.ActivateStationFiltersRbVar.set(2)
+        self.ActivateStationFiltersRadioButton = ctk.CTkRadioButton(root,
+                                   text="Filter stations", font=("Georgia",  18), 
+                                   variable=self.ActivateStationFiltersRbVar,  value=2)
+        self.ActivateStationFiltersRadioButton.grid(row=5, column=2,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+        self.useAllStationsRadioButton = ctk.CTkRadioButton(root,
+                                   text="Use all stations", font=("Georgia",  18), 
+                                   variable=self.ActivateStationFiltersRbVar,  value=1)
+        self.useAllStationsRadioButton.grid(row=5, column=3,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+                                
+        # Row 6
+        # ################################################################
+        # 
+        # ObservationsFileLocation
+        rankingList=ymlContents['observations']['file']['ranking']
+        self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
+        self.ObsFileRankingBox = ctk.CTkTextbox(root,
+                                         width=colWidth,
+                                         height=(2*rowHeight+vSpacer))
+        self.ObsFileRankingBox.grid(row=6, column=0,
+                             columnspan=1, rowspan=3, padx=xPadding,
+                             pady=yPadding, sticky="nsew")
+        txt=""
+        for sEntry in  rankingList:
+            txt+=sEntry+'\n'
+        self.ObsFileRankingBox.insert('0.0', txt)  # insert at line 0 character 0
+
+        # Station altitude filter
+        # bTest=ymlContents['observations']['filters']['bStationAltitude']
+        self.bFilterStationAltitudeCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
+        self.filterStationAltitudeCkb = ctk.CTkCheckBox(root,
+                                text="Station altitudes:",  font=("Georgia",  18), 
+                                variable=self.bFilterStationAltitudeCkbVar,
+                                onvalue=True, offvalue=False)  
+        self.filterStationAltitudeCkb.grid(row=6, column=1,
+                            columnspan=1,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+        stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
+        stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
+        self.stationMinAlt=tk.StringVar(value=f'{stationMinAlt}')
+        self.stationMaxAlt=tk.StringVar(value=f'{stationMaxAlt}')
+        # min Altitude Entry
+        self.stationMinAltEntry = ctk.CTkEntry(root,textvariable=self.stationMinAlt,
+                          placeholder_text=self.stationMinAlt, width=colWidth)
+        self.stationMinAltEntry.grid(row=6, column=2,
+                            columnspan=1, padx=xPadding,
+                            pady=yPadding, sticky="ew")
+        # max Altitude Entry
+        self.stationMaxAltEntry = ctk.CTkEntry(root,textvariable=self.stationMaxAlt,
+                          placeholder_text=self.stationMaxAlt, width=colWidth)
+        self.stationMaxAltEntry.grid(row=6, column=3,
+                            columnspan=1, padx=xPadding,
+                            pady=yPadding, sticky="ew")
+                             
+
+        # Row 7
+        # ################################################################
+        # 
+
+        # inlet height filter
+        self.bFilterInletHeightCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bInletHeight'])
+        self.filterInletHeightCkb = ctk.CTkCheckBox(root,
+                                text="Inlet height:",  font=("Georgia",  18), 
+                                variable=self.bFilterInletHeightCkbVar, 
+                                onvalue=True, offvalue=False)  
+        self.filterInletHeightCkb.grid(row=7, column=1,
+                            columnspan=1,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+        inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
+        inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
+        self.inletMinHght=tk.StringVar(value=f'{inletMinHght}')
+        self.inletMaxHght=tk.StringVar(value=f'{inletMaxHght}')
+        # min inlet height
+        self.inletMinHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMinHght,
+                          placeholder_text=self.inletMinHght, width=colWidth)
+        self.inletMinHghtEntry.grid(row=7, column=2,
+                            columnspan=1, padx=xPadding,
+                            pady=yPadding, sticky="ew")
+        # max inlet height
+        self.inletMaxHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMaxHght,
+                          placeholder_text=self.inletMaxHght, width=colWidth)
+        self.inletMaxHghtEntry.grid(row=7, column=3,
+                            columnspan=1, padx=xPadding,
+                            pady=yPadding, sticky="ew")
+
+        # Row 8
+        # ################################################################
+        # 
+
+        # Row 9
+        # ################################################################
+        # 
+        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
+        self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
+                            text="Ignore Warnings", font=("Georgia",  fsNORMAL),
+                            variable=self.bIgnoreWarningsCkbVar,
+                             onvalue=True, offvalue=False)                            
+        self.ignoreWarningsCkb.grid(row=9, column=7,
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+
+       # Row 10
+        # ################################################################
+        # 
+        # Text Box
+        self.displayBox = ctk.CTkTextbox(root, width=200,
+                                        text_color="red", font=("Georgia",  fsSMALL),  height=100)
+        self.displayBox.grid(row=10, column=0, columnspan=6,
+                             padx=20, pady=20, sticky="nsew")
+                             
+        #self.displayBox.delete("0.0", "end")  # delete all text
+        self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+
+        def GuiClosed():
+            if tk.messagebox.askokcancel("Quit", "Do you want to abort your Lumia run?"):
+                root.destroy
+        root.protocol("WM_DELETE_WINDOW", GuiClosed)
+        def CancelAndQuit(): 
+            logger.info("LumiaGUI was canceled.")
+            sCmd="touch LumiaGui.stop"
+            self.runSysCmd(sCmd)
+            #self.bPleaseCloseTheGui.set(True)
+            global LOOP_ACTIVE
+            LOOP_ACTIVE = False
+
+        # Cancel Button
+        self.CancelButton = ctk.CTkButton(master=root, font=("Georgia", 18), text="Cancel",
+            command=CancelAndQuit)
+        self.CancelButton.grid(row=10, column=7,
+                                        columnspan=1, padx=xPadding,
+                                        pady=yPadding, sticky="ew")
+
+        # Row 11  :  RUN Button
+        def GoButtonHit():
+            # def generateResults(self):
+            bGo=False
+            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents)
+            self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
+            self.displayBox.delete("0.0", "end")  # delete all text
+            if((bErrors) and (bWarnings)):
+                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
+            elif(bErrors):
+                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg)
+            elif(bWarnings):
+                self.displayBox.insert("0.0", "You chose to ignore the following warnings:\n"+sWarningsMsg)
+                if(self.bIgnoreWarningsCkbVar.get()):
+                    bGo=True
+                self.ignoreWarningsCkb.configure(state=tk.NORMAL)
+            else:
+                bGo=True
+            self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+    
+            if(bGo):
+                # Save  all details of the configuration and the version of the software used:
+                current_date = datetime.now()
+                sNow=current_date.isoformat("T","minutes")
+                sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
+                    
+                try:
+                    with open(ymlFile, 'w') as outFile:
+                        yaml.dump(ymlContents, outFile)
+                
+                except:
+                    sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+                    CancelAndQuit(sTxt)
+                    
+                sCmd="cp "+ymlFile+" "+sLogCfgFile
+                self.runSysCmd(sCmd)
+                sCmd="touch LumiaGui.go"
+                self.runSysCmd(sCmd)
+                logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
+                # self.bPleaseCloseTheGui.set(True)
+                global LOOP_ACTIVE
+                LOOP_ACTIVE = False
+                
+        self.RunButton = ctk.CTkButton(root, font=("Georgia", fsNORMAL), 
+                                         text="RUN",
+                                         command=GoButtonHit)
+        self.RunButton.grid(row=11, column=7,
+                                        columnspan=1, padx=xPadding,
+                                        pady=yPadding, sticky="ew")
+                                        
+        def loop_function():
+            global LOOP_ACTIVE
+            LOOP_ACTIVE = True
+            while LOOP_ACTIVE:
+                #print(chk.state())
+                time.sleep(3)
+            logger.info("Closing the GUI...")
+            #root.destroy()
+            root.event_generate("<Destroy>")
+        _thread.start_new_thread(loop_function, ())
+        root.mainloop()     
+        return
+        
+
+    def AskUserAboutWarnings(self):
+        GoBackAndFixIt=True
+        return(GoBackAndFixIt)
+    
+ 
+    # This function is used to get the selected
+    # options and text from the available entry
+    # fields and boxes and then generates
+    # a prompt using them
+    def checkGuiValues(self, ymlContents):
+        bErrors=False
+        sErrorMsg=""
+        bWarnings=False
+        sWarningsMsg=""
+
+        # ObservationsFileLocation
+        #if (self.iObservationsFileLocation.get()==2):
+        #    ymlContents['observations']['file']['location'] = 'CARBONPORTAL'
+        #else:
+        #    ymlContents['observations']['file']['location'] = 'LOCAL'
+            # TODO: get the file name
+            
+
+        # Station Filters if any
+        bStationFilterError=False
+        stationMinAltCommonSense= -100 #m Dead Sea
+        stationMaxAltCommonSense= 9000 #m Himalaya
+        inletMinHeightCommonSense = 0    # in meters
+        inletMaxHeightCommonSense = 850 # in meters World's heighest buildings
+        intAllStations=self.ActivateStationFiltersRbVar.get()
+        if(intAllStations==2):
+            #if ((ymlContents['observations']['filters']['bStationAltitude'])or():
+            if(self.bFilterInletHeightCkbVar.get()):
+                ymlContents['observations']['filters']['bInletHeight']=True
+                mnh=int(self.inletMinHghtEntry.get())
+                mxh=int(self.inletMaxHghtEntry.get())
+                if(inletMinHeightCommonSense > mnh):
+                    bStationFilterError=True # ≥≤
+                    sErrorMsg+="I can't think of any ICOS station with an inlet height below ground....please fix the minimum inlet height to ≥0m. Thanks.\n"
+                if(inletMaxHeightCommonSense+1 < mxh):
+                    bStationFilterError=True
+                    sErrorMsg+=f"I can't think of any ICOS station with an inlet height higher than {inletMaxHeightCommonSense}m above ground. Please review your entry. Thanks.\n"
+                if(mnh > mxh):
+                    bStationFilterError=True
+                    sErrorMsg+="Error: You have entered a maximum inlet height that is below the lowest inlet height. This can only be attributed to human error.\n"
+            else:
+                ymlContents['observations']['filters']['bInletHeight']=False
+            if(ymlContents['observations']['filters']['bInletHeight']):
+                ymlContents['observations']['filters']['inletMaxHeight']=mxh
+                ymlContents['observations']['filters']['inletMinHeight']=mnh
+                
+            if(self.bFilterStationAltitudeCkbVar.get()):
+                ymlContents['observations']['filters']['bStationAltitude']=True
+                mnh=int(self.stationMinAltEntry.get())
+                mxh=int(self.stationMaxAltEntry.get())
+                if( stationMinAltCommonSense > mnh):
+                    bStationFilterError=True # ≥≤
+                    sErrorMsg+=f"I can't think of any ICOS station located at an altitude below the sea level of the Dead Sea....please fix the minimum station altitude to ≥ {stationMinAltCommonSense}m. Thanks.\n"
+                if(stationMaxAltCommonSense+1 < mxh):
+                    bStationFilterError=True
+                    sErrorMsg+=f"I can't think of any ICOS station located at an altitude higher than {stationMaxAltCommonSense}m above ground. Please review your entry. Thanks.\n"
+                if(mnh > mxh):
+                    bStationFilterError=True
+                    sErrorMsg+="Error: You have entered a maximum station altitude that is below the lowest station altitude. This can only be attributed to human error.\n"
+            else:
+                ymlContents['observations']['filters']['bStationAltitude']=False
+            if(ymlContents['observations']['filters']['bStationAltitude']):
+                ymlContents['observations']['filters']['stationMaxAlt']=mxh
+                ymlContents['observations']['filters']['stationMinAlt']=mnh
+                
+                
+        if(bStationFilterError):
+            bErrors=True
+        # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
+        if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):
+            bErrors=True
+            sErrorMsg+="Error: At least one of Land, Fossil or Ocean needs to be adjustable, preferably Land.\n"
+        elif(not self.LandVegCkb.get()):
+            bWarnings=True
+            sWarningsMsg+="Warning: It is usually a bad idea NOT to adjust the land/vegetation net exchange. Are you sure?!\n"
+        if(self.FossilCkb.get()):
+            bWarnings=True
+            sWarningsMsg+="Warning: It is unusual wanting to adjust the fossil emissions in LUMIA. Are you sure?!\n"
+        if(self.OceanCkb.get()):
+            bWarnings=True
+            sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
+        if(bErrors==False):
+            ymlContents['optimize']['emissions']['co2']['biosphere']['adjust'] = self.LandVegCkb.get()
+            ymlContents['optimize']['emissions']['co2']['fossil']['adjust'] = self.FossilCkb.get()
+            ymlContents['optimize']['emissions']['co2']['ocean']['adjust'] = self.OceanCkb.get()                
+            
+        # Deal with any errors or warnings
+        return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
+        
+    def runSysCmd(self, sCmd,  ignoreError=False):
+        try:
+            os.system(sCmd)
+        except:
+            if(ignoreError==False):
+                sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
+                logger.warning(sTxt)
+                # self.CancelAndQuit(sTxt)
+
     
 
-def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory):    # ymlContents, sLogCfgPath):
+def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False):    # ymlContents, sLogCfgPath):
     '''
     Function 
     callLumiaGUI exposes some paramters of the LUMIA config file (in yaml dta format) to a user
@@ -846,50 +1226,51 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory):    # ymlContents, sL
         logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
         sys.exit(1)
         
+
+    if(not step2):
+        # Read simulation time
+        if tStart is None :
+            start=Timestamp(ymlContents['observations']['start'])
+        else:
+            start= Timestamp(tStart)
+        # start: '2018-01-01 00:00:00'    
+        ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
+        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'start',  start.strftime('%Y,%m,%d'))
+            
+        if tEnd is None :
+            end=Timestamp(ymlContents['observations']['end'])
+        else:
+            end= Timestamp(tEnd)
+        ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
+        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'end',  end.strftime('%Y,%m,%d'))
         
-    # Read simulation time
-    if tStart is None :
-        start=Timestamp(ymlContents['observations']['start'])
-    else:
-        start= Timestamp(tStart)
-    # start: '2018-01-01 00:00:00'    
-    ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
-    setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'start',  start.strftime('%Y,%m,%d'))
+        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'path',  'data',  '/data')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'temp',  '/temp')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'footprints',  '/footprints')
+        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'correlation',  'inputdir', '/data/corr' )
+        if not ('tag' in ymlContents):
+            add_keys_nested_dict(ymlContents, ['tag'], args.tag)
+        #if (ymlContents['tag'] is None):
+        #    ymlContents['tag'] = args.tag 
         
-    if tEnd is None :
-        end=Timestamp(ymlContents['observations']['end'])
-    else:
-        end= Timestamp(tEnd)
-    ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
-    setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'end',  end.strftime('%Y,%m,%d'))
-    
-    setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'path',  'data',  '/data')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'temp',  '/temp')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'footprints',  '/footprints')
-    setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'correlation',  'inputdir', '/data/corr' )
-    if not ('tag' in ymlContents):
-        add_keys_nested_dict(ymlContents, ['tag'], args.tag)
-    #if (ymlContents['tag'] is None):
-    #    ymlContents['tag'] = args.tag 
-    
-    # Run-dependent paths
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'output',  os.path.join('/output', args.tag))
-    s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'var4d',  'communication',  'file',  s)
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'emissions',  '*',  'archive',  'rclone:lumia:fluxes/nc/')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'emissions',  '*',  'path',  '/data/fluxes/nc')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'model',  'transport',  'exec',  '/lumia/transport/multitracer.py')
-    setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'transport',  'output', 'T' )
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'transport',  'output', 'steps',  'forward' )
-    
-    #ymlContents['softwareUsed']['lumia']['branch']= 'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git'
-    #ymlContents['softwareUsed']['lumia']['commit']= 'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git'
-    #ymlContents['softwareUsed']['runflex']['branch']= 'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git'
-    #ymlContents['softwareUsed']['runflex']['commit']= 'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git'
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'lumia',  'branch',  'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'lumia',  'commit',  'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'runflex',  'branch',  'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git')
-    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'runflex',  'commit',  'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git')
+        # Run-dependent paths
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'output',  os.path.join('/output', args.tag))
+        s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'var4d',  'communication',  'file',  s)
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'emissions',  '*',  'archive',  'rclone:lumia:fluxes/nc/')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'emissions',  '*',  'path',  '/data/fluxes/nc')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'model',  'transport',  'exec',  '/lumia/transport/multitracer.py')
+        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'transport',  'output', 'T' )
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'transport',  'output', 'steps',  'forward' )
+        
+        #ymlContents['softwareUsed']['lumia']['branch']= 'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git'
+        #ymlContents['softwareUsed']['lumia']['commit']= 'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git'
+        #ymlContents['softwareUsed']['runflex']['branch']= 'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git'
+        #ymlContents['softwareUsed']['runflex']['commit']= 'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git'
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'lumia',  'branch',  'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'lumia',  'commit',  'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'runflex',  'branch',  'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git')
+        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'runflex',  'commit',  'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git')
     
     sLogCfgPath=""
     if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
@@ -914,7 +1295,10 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory):    # ymlContents, sL
     # ctk.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
     ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
     # root = ctk.CTk()
-    LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents) 
+    if(step2):
+        RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, fDiscoveredObservations=fDiscoveredObservations) 
+    else:
+        LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents) 
     return 
 
 
@@ -939,11 +1323,12 @@ def setKeyVal_NestedLv3_CreateIfNotPresent(yDict, key1,  key2, key3,   value):
     
 p = argparse.ArgumentParser()
 p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
-p.add_argument('--step2', dest='step2', default=False, action='store_true',  help="Step 2 to refine the selection among observations discovered on the carbon portal.")
 p.add_argument('--start', dest='start', default=None, help="Start of the simulation in date+time ISO notation as in \'2018-08-31 00:18:00\'. Overwrites the value in the rc-file")
 p.add_argument('--end', dest='end', default=None, help="End of the simulation as in \'2018-12-31 23:59:59\'. Overwrites the value in the rc-file")
 p.add_argument('--rcf', dest='rcf', default=None)   # what used to be the resource file (now yaml file) - only yaml format is supported
 p.add_argument('--ymf', dest='ymf', default=None)   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
+p.add_argument('--step2', dest='step2', default=False, action='store_true',  help="Step 2 to refine the selection among observations discovered on the carbon portal.")
+p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
 p.add_argument('--tag', dest='tag', default='')
 p.add_argument('--verbosity', '-v', dest='verbosity', default='INFO')
 #args = p.parse_args(sys.argv[1:])
@@ -963,10 +1348,16 @@ else:
 if (not os.path.isfile(ymlFile)):
     logger.error(f"Fatal error in LumiaGUI: User specified configuration file {ymlFile} does not exist. Abort.")
     sys.exit(-3)
-
+step2=False
+fDiscoveredObservations=None
+if(argc.step2 is not None):
+    step2=True
+if(argc.fDiscoveredObservations is not None):
+    fDiscoveredObservations=argc.fDiscoveredObservations
+    
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
 if args.gui:
     scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory)
+    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory, fDiscoveredObservations)
     logger.info("LumiaGUI window closed")
 

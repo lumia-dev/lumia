@@ -127,8 +127,10 @@ class obsdb(obsdb):
         # create a datetime64 version of these so we can extract the time interval needed from the pandas data frame
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
-        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, cpDir)=discoverObservationsOnCarbonPortal(tracer='CO2',  cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=None,  iVerbosityLv=1)
-        (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations,  iVerbosityLv=1)
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, cpDir)=discoverObservationsOnCarbonPortal(tracer='CO2',  
+                    cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None,  iVerbosityLv=1)
+        (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
+                                                                ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations,  iVerbosityLv=1)
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
         if((selectedDobjLst is None) or (len(selectedDobjLst)<1)):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")

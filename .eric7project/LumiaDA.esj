@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-10-18, 13:08:11"
+    "saved": "2023-10-21, 16:29:48"
   },
   "MultiProject": "",
   "Project": "",
@@ -26,7 +26,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
-        8,
+        15,
         0
       ],
       "Folds": [],
@@ -50,7 +50,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        0,
+        1200,
         0
       ],
       "Folds": [],
@@ -62,11 +62,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        145,
+        129,
         0
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": -1,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
@@ -74,7 +74,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
       "Cursor": [
-        498,
+        489,
         0
       ],
       "Folds": [],
@@ -122,47 +122,17 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
       "Cursor": [
-        44,
-        20
+        29,
+        50
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 9
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      "Cursor": [
-        775,
-        51
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 10
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
-      "Cursor": [
-        66,
-        0
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 11
     }
   ],
-  "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-    "Cursor": [
-      0,
-      0
-    ]
-  },
+  "ActiveWindow": {},
   "Breakpoints": [
     [
       "/opt/conda/envs/flex/lib/python3.10/site-packages/icoscp/cpb/dobj.py",
@@ -1510,7 +1480,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      813,
+      815,
       "",
       false,
       true,
@@ -1518,7 +1488,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      812,
+      814,
       "",
       false,
       true,
@@ -1526,7 +1496,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      379,
+      380,
       "",
       false,
       true,
@@ -1534,7 +1504,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      599,
+      601,
       "",
       false,
       true,
@@ -1542,7 +1512,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      205,
+      207,
       "",
       false,
       true,
@@ -1550,7 +1520,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      341,
+      343,
       "",
       false,
       true,
@@ -1558,7 +1528,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      315,
+      317,
       "",
       false,
       true,
@@ -1566,7 +1536,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
-      499,
+      501,
       "",
       false,
       true,
@@ -1574,7 +1544,31 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      136,
+      155,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      213,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      229,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      246,
       "",
       false,
       true,
@@ -1590,39 +1584,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      211,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      227,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      244,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      151,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      148,
+      150,
       "",
       false,
       true,
@@ -1646,7 +1608,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      175,
+      177,
       "",
       false,
       true,
@@ -1654,7 +1616,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      182,
+      184,
       "",
       false,
       true,
@@ -1662,7 +1624,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      165,
+      167,
       "",
       false,
       true,
@@ -1670,14 +1632,62 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      189,
+      191,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1338,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1220,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1276,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1349,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+      533,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+      510,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       61,
       "",
       false,
@@ -1685,56 +1695,32 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      58,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+      498,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      952,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      132,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      840,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      135,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      38,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      895,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      963,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
-      64,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+      488,
       "",
       false,
       true,
@@ -1785,7 +1771,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/footprintdb.py@@36",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@33",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@32",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obspackdb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obspackdb.py@@15",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",

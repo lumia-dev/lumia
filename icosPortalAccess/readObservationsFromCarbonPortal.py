@@ -144,7 +144,7 @@ def getCo2DryMolFractionObjectsFromSparql(pdTimeStart: datetime=None, pdTimeEnd:
     order by desc(?submTime)
     '''
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    logger.info(f'SPARQL query= {query}')    
+    logger.debug(f'SPARQL query= {query}')    
     dobj = RunSparql(query,output_format='nc').run()
     # logger.debug(f'dobj= {dobj}')
     return(dobj)
@@ -210,9 +210,9 @@ def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datet
     offset 0 limit 20
     '''
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    logger.info(f'SPARQL query= {query}')    
+    logger.debug(f'SPARQL query= {query}')    
     dobj = RunSparql(query,output_format='nc').run()
-    # logger.info(f'dobj= {dobj}')
+    # logger.debug(f'dobj= {dobj}')
     return(dobj)
 
 
@@ -335,7 +335,8 @@ def getSitecodeCsr(siteCode):
 
 
 # ***********************************************************************************************
-def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, timeStep=None,  sDataType=None,  iVerbosityLv=1):
+def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, 
+                                                                            timeStep=None,  ymlContents=None,  sDataType=None,  iVerbosityLv=1):
     """
     Function discoverObservationsOnCarbonPortal
     
@@ -390,7 +391,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
             finalDobjLst.remove(pid)
             logger.info(f"Rejecting pidUrl: {pidUrl}    European_Obspack_compilation_of_atmospheric_carbon_dioxide_data in favour of its more up-to-date individual data records.")
         dob = Dobj(pidUrl)  # TODO crashes with pidUrl=https://meta.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9     -- Why??
-        logger.info(f"dobj: {dob}")
+        logger.debug(f"dobj: {dob}")
         dobnext=dob.next
         if(dobnext):
             pidUrl=dob.next
@@ -410,45 +411,6 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     with open( r'ListOfAllValidPIDs.txt', 'w') as fp:
         for item in finalDobjLst:
             fp.write("%s\n" % item)
-    '''
-    i=0  # testing with one site....
-    dfz=DataFrame()
-    for pid in {'SQxOn3waZ55FjDKxcXI41xVD', '1PzZfMB-J_k3II_sKwOwTuPl', 'RSX4UHMdPMJxno4zdFrkif4T', 'BAidrJp35bOkKVxhbJ91Yi8W', 'EMcPe1rorVhs2RaY1tdQoETL', 'khkZoH3p5yHPxTxU9hjmiAT_'}:
-        pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
-        print(pid,  flush=True)
-        with open( pid+'.json', 'w') as fp:
-            json.dump(pidMetadata, fp)
-        data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
-        if(i==0):
-            stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
-            lat=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
-            lon=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
-            alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
-            samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
-            size=pidMetadata['size']
-            dataLevel=pidMetadata['specification']['dataLevel']
-            tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
-            productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
-            sUrl=pidMetadata['accessUrl']
-            fileName=pidMetadata['fileName']
-            dataSetLabel=pidMetadata['specification']['self']['label']
-            columnNames=['pid','stationID','latitude','longitude','altitude','samplingHeight','size','dataLevel','tmporalCoverage','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
-            dfz=DataFrame(data=[data], columns=columnNames)
-        else:
-            #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
-            if(len(dfz.columns)==len(data)):
-                dfz.loc[len(dfz)] = data
-            else:
-                logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
-        i+=1
-    dfz.to_csv('dfz.csv', mode='w', sep=',')
-    #df['col'].str.contains('partial_string').any()
-    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("Obspack", flags=re.IGNORECASE), int(4), int(0))
-    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), dfz['dClass'] )
-    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), dfz['dClass'] )
-    dfz['dClass'] = np.where(dfz.dataSetLabel.str.contains("NRT "), int(1), dfz['dClass'] )
-    dfz.to_csv('dfz2.csv', mode='w', sep=',')
-    '''
     i=0
     df=DataFrame()
     bSelected=True
@@ -462,12 +424,12 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
                 if(pidMetadata['references'].get('keywords', None) is not None):
                     isICOS = any('ICOS' in sKwrd for sKwrd in pidMetadata['references'].get('keywords', None))
             if(isICOS==False):
-                logger.info(f"This pidMetadata does not say that it is ICOS: {pidMetadata}")
+                logger.info(f"This pidMetadata does not say that it is ICOS: {pid}")
             data=[pid, bSelected,  pidMetadata['specificInfo']['acquisition']['station']['id'], 
                         pidMetadata['specificInfo']['acquisition']['station']['countryCode'],
                         isICOS, 
-                        pidMetadata['coverageGeo']['geometry']['coordinates'][0], 
                         pidMetadata['coverageGeo']['geometry']['coordinates'][1], 
+                        pidMetadata['coverageGeo']['geometry']['coordinates'][0], 
                         pidMetadata['coverageGeo']['geometry']['coordinates'][2],
                         pidMetadata['specificInfo']['acquisition']['samplingHeight'], 
                         pidMetadata['size'], 
@@ -485,8 +447,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
                 country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
                 isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
                 # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
-                lat=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
-                lon=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
+                lon=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
+                lat=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
                 alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
                 samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
                 size=pidMetadata['size']   
@@ -519,13 +481,40 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
     df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
     df.to_csv('dfValidObsUnsorted.csv', mode='w', sep=',')
-    dfq = df[df['dataLevel'] ==2]
 
-    dfq.sort_values(by = ['country','stationID', 'samplingHeight', 'dClass', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
+    dfCountStations=df.drop_duplicates(['stationID'], keep='first') 
+    nObsDataRecords = len(df)
+    nTotalStations=len(dfCountStations)
+    
+    # Only include observations made within the selected geographical region
+    Lat0=ymlContents['run']['region']['lat0']
+    Lat1=ymlContents['run']['region']['lat1'] 
+    Lon0=ymlContents['run']['region']['lon0']
+    Lon1=ymlContents['run']['region']['lon1']
+    filtered = ((df['latitude'] >= Lat0) &
+           (df['latitude'] <= Lat1) & 
+           (df['longitude'] >= Lon0) & 
+           (df['longitude'] <= Lon1))
+
+    dfq= df[filtered]
+
+    dfCountStations2=dfq.drop_duplicates(['stationID'], keep='first') 
+    nObsDataRecords2 = len(dfq)
+    nTotalStations2=len(dfCountStations2)
+    nRemovedStations=nTotalStations - nTotalStations2
+    ndiff=nObsDataRecords - nObsDataRecords2
+    logger.info(f"{nTotalStations} observation sites found. Thereof {nRemovedStations} fall outside the geographical region selected.")
+    logger.info(f"{nObsDataRecords} observational data records found. Thereof {ndiff} fall outside the geographical region selected.")
+    logger.info(f"{nTotalStations} observation sites remaining. {nObsDataRecords2} valid observational data records remaining.")
+
+    dfq.sort_values(by = ['country','stationID', 'dClass', 'samplingHeight', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
     # applyUserFilters(finalDobjLst)
     dfq.to_csv('dfValidObs.csv', mode='w', sep=',')
-    dfqdd=dfq.drop_duplicates(['stationID', 'samplingHeight'], keep='first')
+    dfqdd=dfq.drop_duplicates(['stationID', 'dClass', 'samplingHeight'], keep='first')  # discards older  'productionTime' datasets
+    logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     fDiscoveredObservations="DiscoveredObservations.csv"
+    nObsDataRecords2 = len(dfqdd)
+    logger.info(f"{nObsDataRecords2} valid observational data records remaining.")
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')
     selectedDobjCol=dfqdd['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
@@ -542,7 +531,7 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
         #(updatedYmlContents) = callLumiaGUI(ymlContents, sLogCfgPath)
         # callLumiaGUI(rcf, args.start,  args.end )
         script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
-        sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py --step 2'
+        sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py --step2 --DiscoveredObs='+fDiscoveredObservations
         for entry in sys.argv[1:]:
             if (len(entry)>0):
                 sCmd+=' '+entry
@@ -559,6 +548,7 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
     # Read the ymlFile
     # Apply all filters found in the ymlFile
 
+    # Write the resulting list of chosen obsDataSetgs to "ObservationsSelected4Lumia.csv"
     chosenObs=ValidObs.where(ValidObs['selected']==True)
     selectedDobjCol=chosenObs['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
