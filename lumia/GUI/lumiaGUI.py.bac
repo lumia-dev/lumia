@@ -65,16 +65,20 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
             bCanvasTooSmall=False
             bWeMustStack=True
     # Now make the font as big as we can
-    bestFontSize=FontSize
-    while((FontSize<maxFontSize)): # and (not bMaxReached) ):
+    bMaxReached=False
+    while((FontSize<maxFontSize) and (not bMaxReached) ):
         FontSize=FontSize+1
         font = tkFont.Font(family=sFontFamily, size=FontSize)
         (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
-        if(w<=colW):
-            bestFontSize=FontSize
-    FontSize=bestFontSize
-    (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
-    logger.info(f"{sFontFamily} {FontSize}: (w={w},h={h})pxl")
+        if (FontSize==maxFontSize):
+            bMaxReached=True
+        if(w>colW):
+            FontSize=FontSize-1
+            font = tkFont.Font(family=sFontFamily, size=FontSize)
+            (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+            bMaxReached=True
+        (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        logger.info(f"{sFontFamily} {FontSize}: (w={w},h={h})pxl")
     if(h>colH):
         logger.info("We may need a vertical scrollbar...")
     fsNORMAL=FontSize # 12
@@ -95,9 +99,6 @@ class LumiaGui(ctk.CTk):
         # self.protocol("WM_DELETE_WINDOW", self.closed) 
 
         # Get the screen resolution to scale the GUI in the smartest way possible...
-        if os.environ.get('DISPLAY','') == '':
-            print('no display found. Using :0.0')
-            os.environ.__setitem__('DISPLAY', ':0.0')
         root=ctk.CTk()
         #root = tk.Tk()
         if(os.path.isfile("LumiaGui.stop")):
@@ -106,12 +107,19 @@ class LumiaGui(ctk.CTk):
         if(os.path.isfile("LumiaGui.go")):
             sCmd="rm LumiaGui.go"
             self.runSysCmd(sCmd,  ignoreError=True)
+        # self.bPleaseCloseTheGui = tk.BooleanVar(value=False)
 
         screenWidth = root.winfo_screenwidth()
         screenHeight = root.winfo_screenheight()
+        #if (screenWidth > 1900):
+        #    screenWidth = 1900
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
             screenWidth=int(screenHeight*(1920/1080.0))
+        #maxW=1600
+        #maxH=1260
+        #if (maxW > (0.92*screenWidth)):
         maxW = int(0.92*screenWidth)
+        #if (maxH > (0.92*screenHeight)):
         maxH = int(0.92*screenHeight)
         nCols=8 # sum of labels and entry fields per row
         nRows=12 # number of rows in the GUI
@@ -120,7 +128,7 @@ class LumiaGui(ctk.CTk):
         yPadding=int(0.008*maxH)
         vSpacer=int(2*0.008*maxH)
         myFontFamily="Georgia"
-        sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
+        sLongestTxt="Latitude (≥33°N):"
         (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  bWeMustStackColumns)= \
             calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
                                                         yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
@@ -810,26 +818,34 @@ class LumiaGui(ctk.CTk):
 # LumiaGui Class =============================================================
 class RefineObsSelectionGUI(ctk.CTk):
     # =====================================================================
-    # The layout of the window is now written
+    # The layout of the window will be written
     # in the init function itself
     def __init__(self, sLogCfgPath, ymlContents, fDiscoveredObservations):  # *args, **kwargs):
+        #super().__init__(*args, **kwargs)
+        # self.protocol("WM_DELETE_WINDOW", self.closed) 
         # Get the screen resolution to scale the GUI in the smartest way possible...
-        if os.environ.get('DISPLAY','') == '':
-            print('no display found. Using :0.0')
-            os.environ.__setitem__('DISPLAY', ':0.0')
+        
         root=ctk.CTk()
+        #root = tk.Tk()
         if(os.path.isfile("LumiaGui.stop")):
             sCmd="rm LumiaGui.stop"
             self.runSysCmd(sCmd,  ignoreError=True)
         if(os.path.isfile("LumiaGui.go")):
             sCmd="rm LumiaGui.go"
             self.runSysCmd(sCmd,  ignoreError=True)
+        # self.bPleaseCloseTheGui = tk.BooleanVar(value=False)
 
         screenWidth = root.winfo_screenwidth()
         screenHeight = root.winfo_screenheight()
+        #if (screenWidth > 1900):
+        #    screenWidth = 1900
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
             screenWidth=int(screenHeight*(1920/1080.0))
+        #maxW=1600
+        #maxH=1260
+        #if (maxW > (0.92*screenWidth)):
         maxW = int(0.92*screenWidth)
+        #if (maxH > (0.92*screenHeight)):
         maxH = int(0.92*screenHeight)
         nCols=8 # sum of labels and entry fields per row
         nRows=12 # number of rows in the GUI
@@ -866,11 +882,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Row 1:  Headings left/right column
         # ################################################################
 
-        # ObservationsFileLocation
-        self.iObservationsFileLocation= tk.IntVar(value=1)
-        #iObservationsFileLocation.set(1) # Read observations from local file
-        if ('CARBONPORTAL' in ymlContents['observations']['file']['location']):
-            self.iObservationsFileLocation.set(2)
         self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(root,
                                    text="Obsdata Ranking", font=("Georgia",  fsNORMAL), 
                                    variable=self.iObservationsFileLocation,  value=2)
@@ -1337,13 +1348,16 @@ else:
 if (not os.path.isfile(ymlFile)):
     logger.error(f"Fatal error in LumiaGUI: User specified configuration file {ymlFile} does not exist. Abort.")
     sys.exit(-3)
+step2=False
 fDiscoveredObservations=None
+if(args.step2 is not None):
+    step2=True
 
 fDiscoveredObservations=None
 if(args.fDiscoveredObservations is not None):
     fDiscoveredObservations=args.fDiscoveredObservations
 bError=False
-if((args.step2==True) and (fDiscoveredObservations is None)):
+if((step2==True) and (fDiscoveredObservations is None)):
     logger.error("LumiaGUI called for refinement of the observations allegedly found (step2) without providing the list of observations to be refined (check option --DiscoveredObs= please).")
     bError=True
 elif(os.path.exists(fDiscoveredObservations)==False):
@@ -1354,14 +1368,15 @@ if(bError):
     try:
         os.system(sCmd)
     except:
-        sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
-        logger.warning(sTxt)
+        if(ignoreError==False):
+            sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
+            logger.warning(sTxt)
     sys.exit(-4)
     
     
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
 if args.gui:
     scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory, args.step2,  fDiscoveredObservations)
+    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory, step2,  fDiscoveredObservations)
     logger.info("LumiaGUI window closed")
 

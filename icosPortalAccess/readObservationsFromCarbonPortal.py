@@ -512,9 +512,10 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     dfq.to_csv('dfValidObs.csv', mode='w', sep=',')
     dfqdd=dfq.drop_duplicates(['stationID', 'dClass', 'samplingHeight'], keep='first')  # discards older  'productionTime' datasets
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
+    # But we are still keeping all sampling heights.
     fDiscoveredObservations="DiscoveredObservations.csv"
     nObsDataRecords2 = len(dfqdd)
-    logger.info(f"{nObsDataRecords2} valid observational data records remaining.")
+    logger.info(f"{nObsDataRecords2} valid observational data records remaining from {nTotalStations2} stations across Europe.")
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')
     selectedDobjCol=dfqdd['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
@@ -549,7 +550,10 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
     # Apply all filters found in the ymlFile
 
     # Write the resulting list of chosen obsDataSetgs to "ObservationsSelected4Lumia.csv"
-    chosenObs=ValidObs.where(ValidObs['selected']==True)
+    # chosenObs=ValidObs.where(ValidObs['selected']==True)
+    chosen = (ValidObs['selected']==True)
+    chosenObs= ValidObs[chosen]
+    
     selectedDobjCol=chosenObs['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
     return(selectedDobjLst, chosenObs)
