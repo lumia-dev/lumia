@@ -2,7 +2,7 @@
 
 import os
 import sys
-from pandas import Timestamp
+import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
 import yaml
@@ -64,6 +64,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
         if(w<colW+1):
             bCanvasTooSmall=False
             bWeMustStack=True
+            
     # Now make the font as big as we can
     bestFontSize=FontSize
     while((FontSize<maxFontSize)): # and (not bMaxReached) ):
@@ -643,20 +644,20 @@ class LumiaGui(ctk.CTk):
             strEndTime=strEndTime[0:10]+' 23:59:59'
             try:
                 # date_obj = datetime.strptime(strStartTime[0:10], '%Y-%m-%d')
-                tStart=Timestamp(strStartTime)
+                tStart=pd.Timestamp(strStartTime)
             except:
                 bTimeError=True
                 sErrorMsg+='Invalid or corrupted Start Date entered. Please use the ISO format YYY-MM-DD when entering dates.\n'
             try:
-                tEnd=Timestamp(strEndTime)
+                tEnd=pd.Timestamp(strEndTime)
             except:
                 bTimeError=True
                 sErrorMsg+='Invalid or corrupted End Date entered. Please use the ISO format YYY-MM-DD when entering dates.\n'
         if (not bTimeError): 
             current_date = datetime.now()
             sNow=current_date.isoformat("T","minutes")
-            tMin=Timestamp('1970-01-01 00:00:00')
-            tMax=Timestamp(sNow[0:10]+' 23:59:59')
+            tMin=pd.Timestamp('1970-01-01 00:00:00')
+            tMax=pd.Timestamp(sNow[0:10]+' 23:59:59')
             if(tStart < tMin):
                 bWarnings=True
                 sWarningsMsg+='It is highly unusual that your chosen Start Date is before 1970-01-01. Are you sure?!\n'
@@ -824,6 +825,56 @@ class RefineObsSelectionGUI(ctk.CTk):
         if(os.path.isfile("LumiaGui.go")):
             sCmd="rm LumiaGui.go"
             self.runSysCmd(sCmd,  ignoreError=True)
+
+        # re-organise the fDiscoveredObservations dataframe,
+        # It is presently sorted by country, station, dataRanking (dClass), productionTime and samplingHeight -- in that order
+        #   columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+        #                 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+        # 
+        # 1) Set the first dataset for each station, highest dClass and heighest samplingHeight to selected and all other ones to not-selected 
+        # 2) if there are multiple samplingHeights for otherwise the same characterestics, then stick the lower heights into a list 
+        #    of samplingHeight + PID pairs for an otherwise single entry.
+        #
+        #        #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
+        dfAllObs = pd.read_csv (fDiscoveredObservations)
+        nRows=int(0)
+        bCreateDf=True
+        bTrue=True
+        isDifferent=True
+        #AllObsColumnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+        #            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+        newColumnNames=['selected','country', 'stationID', 'dClass', 'altitude', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'samplingHeight', 'pid']
+        for index, row in dfAllObs.iterrows():
+            hLst=[row['samplingHeight'] ]
+            pidLst=[ row['pid']]
+            #print(row['samplingHeight'])
+            #print(row['country'])
+            #print(row['stationID'])
+            newRow=[bTrue,row['country'], row['stationID'], row['dClass'], row['altitude'],  
+                            row['isICOS'], row['latitude'], row['longitude'], row['dataSetLabel'], hLst,  pidLst]
+            
+            if(bCreateDf):
+                newDf=pd.DataFrame(data=[newRow], columns=newColumnNames)     
+                bCreateDf=False
+                nRows+=1
+            else:
+                #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+                isDifferent = ((row['stationID'] not in newDf['stationID'][nRows-1]) |
+                                        (int(row['dClass']) != int(newDf['dClass'][nRows-1]) )
+                )
+                if(isDifferent):  # keep the new row as an entry that differs from the previous row in more than samplingHeight
+                    newDf.loc[nRows] = newRow
+                    nRows+=1
+                else:
+                    #newDf['samplingHeight'][nRows-1]+=[row['samplingHeight'] ]  # ! works on a copy of the column, not the original object
+                    # Don't do as in the previous line. See here: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+                    newDf.at[(nRows-1) ,  ('samplingHeight')]+=[row['samplingHeight'] ]
+                    #newDf['pid'][nRows-1]+=[ row['pid']]
+                    newDf.at[(nRows-1) ,  ('pid')]+=[row['pid'] ]
+                
+        if(not isDifferent):
+            newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row
+        newDf.to_csv('newDfObs.csv', mode='w', sep=',')        
 
         screenWidth = root.winfo_screenwidth()
         screenHeight = root.winfo_screenheight()
@@ -1219,17 +1270,17 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     if(not step2):
         # Read simulation time
         if tStart is None :
-            start=Timestamp(ymlContents['observations']['start'])
+            start=pd.Timestamp(ymlContents['observations']['start'])
         else:
-            start= Timestamp(tStart)
+            start= pd.Timestamp(tStart)
         # start: '2018-01-01 00:00:00'    
         ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
         setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'start',  start.strftime('%Y,%m,%d'))
             
         if tEnd is None :
-            end=Timestamp(ymlContents['observations']['end'])
+            end=pd.Timestamp(ymlContents['observations']['end'])
         else:
-            end= Timestamp(tEnd)
+            end= pd.Timestamp(tEnd)
         ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
         setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'end',  end.strftime('%Y,%m,%d'))
         
