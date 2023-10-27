@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-10-27, 11:40:44"
+    "saved": "2023-10-27, 16:17:25"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -636,9 +636,9 @@
       "priority": 1,
       "lineno": 716,
       "completed": false,
-      "created": 1698399613.176455,
+      "created": 1698416242.342175,
       "type": 1,
-      "uid": "{9d4d634f-aff3-4c07-ae79-5c21ae88d609}",
+      "uid": "{3613b795-3aa1-4384-a0ab-15bd3e8a7b64}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -647,11 +647,11 @@
       "summary": "TODO: get the file name",
       "description": "",
       "priority": 1,
-      "lineno": 1155,
+      "lineno": 1186,
       "completed": false,
-      "created": 1698399613.1796255,
+      "created": 1698416242.3453345,
       "type": 1,
-      "uid": "{239fe5d0-b430-47c6-bc6d-a824b4320ea2}",
+      "uid": "{5f1f2530-6c2a-4b36-a5d5-cf21b29957da}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -660,11 +660,11 @@
       "summary": "TODO: 4GUI: implemented different options for dealing with situations where the externally provided file on CO2 background",
       "description": "",
       "priority": 1,
-      "lineno": 1247,
+      "lineno": 1278,
       "completed": false,
-      "created": 1698399613.1823514,
+      "created": 1698416242.3480275,
       "type": 1,
-      "uid": "{8e61db86-a319-471a-b8f1-7e0accc58637}",
+      "uid": "{0f0905f5-c71a-4e1c-bc0f-e750aa7c7436}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"

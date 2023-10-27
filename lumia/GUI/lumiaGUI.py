@@ -843,15 +843,25 @@ class RefineObsSelectionGUI(ctk.CTk):
         isDifferent=True
         #AllObsColumnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
         #            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
-        newColumnNames=['selected','country', 'stationID', 'dClass', 'altitude', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'samplingHeight', 'pid']
+        stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
+        stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
+        inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
+        inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
+        inletMinHght = 20  # TODO remove this line. for testing only
+        newColumnNames=['selected','country', 'stationID', 'dClass', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'pid']
         for index, row in dfAllObs.iterrows():
             hLst=[row['samplingHeight'] ]
             pidLst=[ row['pid']]
             #print(row['samplingHeight'])
             #print(row['country'])
             #print(row['stationID'])
-            newRow=[bTrue,row['country'], row['stationID'], row['dClass'], row['altitude'],  
-                            row['isICOS'], row['latitude'], row['longitude'], row['dataSetLabel'], hLst,  pidLst]
+            print(row['altitude'])
+            bStationAltOk = ((row['altitude'] >= stationMinAlt) &
+                                (row['altitude'] <= stationMaxAlt) )
+            bSamplHghtOk = ((row['samplingHeight'] >= inletMinHght) &
+                                (row['samplingHeight'] <= inletMaxHght) )
+            newRow=[bTrue,row['country'], row['stationID'], row['dClass'], bStationAltOk, row['altitude'],  
+                            bSamplHghtOk, hLst, row['isICOS'], row['latitude'], row['longitude'], row['dataSetLabel'],  pidLst]
             
             if(bCreateDf):
                 newDf=pd.DataFrame(data=[newRow], columns=newColumnNames)     
@@ -874,7 +884,28 @@ class RefineObsSelectionGUI(ctk.CTk):
                 
         if(not isDifferent):
             newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row
-        newDf.to_csv('newDfObs.csv', mode='w', sep=',')        
+        newDf.to_csv('newDfObs.csv', mode='w', sep=',')  
+        nObs=len(newDf)
+        filtered = ((newDf['selected'] == True))
+        dfq= newDf[filtered]
+        nSelected=len(dfq)
+        logger.info(f"There are {nObs} valid data sets in the selected geographical region ingoring multiple sampling heights.")
+        logger.info(f"Thereof {nSelected} are presently selected.")
+        isDifferent=True
+        nRows=0
+        isSameStation = False
+        for index, row in newDf.iterrows():
+            if((row['altOk']==False) or (row['HghtOk']==False)):
+                newDf.at[(nRows) ,  ('selected')] = False
+            if(nRows>0):
+                isSameStation = ((row['stationID'] in newDf['stationID'][nRows-1]))
+            if(isSameStation):
+                newDf.at[(nRows) ,  ('selected')] = False
+            nRows+=1
+        newDf.to_csv('selectedObs.csv', mode='w', sep=',')  
+            
+        #dfq= newDf[filtered]
+
 
         screenWidth = root.winfo_screenwidth()
         screenHeight = root.winfo_screenheight()
