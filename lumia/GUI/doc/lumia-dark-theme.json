@@ -84,8 +84,8 @@
   },
   "CTkOptionMenu": {
     "corner_radius": 6,
-    "fg_color": ["dark slate gray", "#1f538d"],
-    "button_color": ["DeepSkyBlue4", "#14375e"],
+    "fg_color": ["dark sea green", "#1f538d"],
+    "button_color": ["DarkSeaGreen3", "#14375e"],
     "button_hover_color": ["DeepSkyBlue", "#1e2c40"],
     "text_color": ["snow", "#DCE4EE"],
     "text_color_disabled": ["gray80", "gray60"]
@@ -93,9 +93,9 @@
   "CTkComboBox": {
     "corner_radius": 6,
     "border_width": 2,
-    "fg_color": ["dark slate gray", "#343638"],
+    "fg_color": ["dark sea green", "#343638"],
     "border_color": ["gray12", "#565B5E"],
-    "button_color": ["DeepSkyBlue4", "#565B5E"],
+    "button_color": ["DarkSeaGreen3", "#565B5E"],
     "button_hover_color": ["DeepSkyBlue3", "#7A848D"],
     "text_color": ["snow", "gray84"],
     "text_color_disabled": ["gray80", "gray45"]
