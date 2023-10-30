@@ -913,14 +913,14 @@ class RefineObsSelectionGUI(ctk.CTk):
             screenWidth=int(screenHeight*(1920/1080.0))
         maxW = int(0.92*screenWidth)
         maxH = int(0.92*screenHeight)
-        nCols=8 # sum of labels and entry fields per row
-        nRows=12 # number of rows in the GUI
+        nCols=12 # sum of labels and entry fields per row
+        nRows=32 #5+len(newDf) # number of rows in the GUI
         xPadding=int(0.008*maxW)
         wSpacer=int(2*0.008*maxW)
         yPadding=int(0.008*maxH)
         vSpacer=int(2*0.008*maxH)
         myFontFamily="Georgia"
-        sLongestTxt="Latitude (≥33°N):"
+        sLongestTxt="Latitude ( N):"
         (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  bWeMustStackColumns)= \
             calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
                                                         yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
@@ -945,48 +945,28 @@ class RefineObsSelectionGUI(ctk.CTk):
                             columnspan=8,padx=xPadding, pady=yPadding,
                             sticky="ew")
 
-        # Row 1:  Headings left/right column
+        # Row 1-4:  Header part with pre-selctions
         # ################################################################
-
+        
+        # Col0
         # ObservationsFileLocation
         self.iObservationsFileLocation= tk.IntVar(value=1)
         #iObservationsFileLocation.set(1) # Read observations from local file
         if ('CARBONPORTAL' in ymlContents['observations']['file']['location']):
             self.iObservationsFileLocation.set(2)
-        self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(root,
-                                   text="Obsdata Ranking", font=("Georgia",  fsNORMAL), 
-                                   variable=self.iObservationsFileLocation,  value=2)
-        self.ObsFileLocationCPortalRadioButton.grid(row=5, column=0,
-                                  columnspan=2, padx=xPadding, pady=yPadding,
+        self.RankingLabel = ctk.CTkLabel(root,
+                                   text="Obsdata Ranking", font=("Georgia",  fsNORMAL))
+        self.RankingLabel.grid(row=1, column=0,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
 
-        # Filter stations?
-        self.ActivateStationFiltersRbVar = tk.IntVar(value=1)
-        if ((ymlContents['observations']['filters']['bStationAltitude'])or(ymlContents['observations']['filters']['bInletHeight'])):
-            self.ActivateStationFiltersRbVar.set(2)
-        self.ActivateStationFiltersRadioButton = ctk.CTkRadioButton(root,
-                                   text="Filter stations", font=("Georgia",  18), 
-                                   variable=self.ActivateStationFiltersRbVar,  value=2)
-        self.ActivateStationFiltersRadioButton.grid(row=5, column=2,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky="ew")
-        self.useAllStationsRadioButton = ctk.CTkRadioButton(root,
-                                   text="Use all stations", font=("Georgia",  18), 
-                                   variable=self.ActivateStationFiltersRbVar,  value=1)
-        self.useAllStationsRadioButton.grid(row=5, column=3,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky="ew")
-                                
-        # Row 6
-        # ################################################################
-        # 
-        # ObservationsFileLocation
+        # Ranking for Observation Files
         rankingList=ymlContents['observations']['file']['ranking']
         self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
         self.ObsFileRankingBox = ctk.CTkTextbox(root,
                                          width=colWidth,
-                                         height=(2*rowHeight+vSpacer))
-        self.ObsFileRankingBox.grid(row=6, column=0,
+                                         height=(3*rowHeight+vSpacer))
+        self.ObsFileRankingBox.grid(row=2, column=0,
                              columnspan=1, rowspan=3, padx=xPadding,
                              pady=yPadding, sticky="nsew")
         txt=""
@@ -994,16 +974,59 @@ class RefineObsSelectionGUI(ctk.CTk):
             txt+=sEntry+'\n'
         self.ObsFileRankingBox.insert('0.0', txt)  # insert at line 0 character 0
 
-        # Station altitude filter
-        # bTest=ymlContents['observations']['filters']['bStationAltitude']
-        self.bFilterStationAltitudeCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
-        self.filterStationAltitudeCkb = ctk.CTkCheckBox(root,
-                                text="Station altitudes:",  font=("Georgia",  18), 
-                                variable=self.bFilterStationAltitudeCkbVar,
-                                onvalue=True, offvalue=False)  
-        self.filterStationAltitudeCkb.grid(row=6, column=1,
-                            columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
+        # Col2
+        #  ##################################################
+        self.ObsLv1CkbVar = tk.BooleanVar(value=True)
+        self.ObsLv1Ckb = ctk.CTkCheckBox(root,
+                            text="Level1", font=("Georgia",  fsNORMAL),
+                            variable=self.ObsLv1CkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.ObsLv1Ckb.grid(row=1, column=2,
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+
+        self.ObsNRTCkbVar = tk.BooleanVar(value=True)
+        self.ObsNRTCkb = ctk.CTkCheckBox(root,
+                            text="NRT", font=("Georgia",  fsNORMAL),
+                            variable=self.ObsNRTCkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.ObsNRTCkb.grid(row=2, column=2,
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+
+        self.ObsOtherCkbVar = tk.BooleanVar(value=True)
+        self.ObsOtherCkb = ctk.CTkCheckBox(root,
+                            text="Other", font=("Georgia",  fsNORMAL),
+                            variable=self.ObsOtherCkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.ObsOtherCkb.grid(row=3, column=2,
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+        
+        
+        # Col 3    Filtering of station altitudes
+        #  ##################################################
+
+        self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
+        self.FilterStationAltitudesCkb = ctk.CTkCheckBox(root,
+                            text="Filter station altitudes", font=("Georgia",  fsNORMAL),
+                            variable=self.FilterStationAltitudesCkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.FilterStationAltitudesCkb.grid(row=1, column=3,columnspan=2, 
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+
+        self.minAltLabel = ctk.CTkLabel(root,
+                                   text="min alt:", font=("Georgia",  fsNORMAL))
+        self.minAltLabel.grid(row=2, column=3,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+        self.maxAltLabel = ctk.CTkLabel(root,
+                                   text="max alt:", font=("Georgia",  fsNORMAL))
+        self.maxAltLabel.grid(row=3, column=3,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+
         stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
         stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
         self.stationMinAlt=tk.StringVar(value=f'{stationMinAlt}')
@@ -1011,30 +1034,41 @@ class RefineObsSelectionGUI(ctk.CTk):
         # min Altitude Entry
         self.stationMinAltEntry = ctk.CTkEntry(root,textvariable=self.stationMinAlt,
                           placeholder_text=self.stationMinAlt, width=colWidth)
-        self.stationMinAltEntry.grid(row=6, column=2,
+        self.stationMinAltEntry.grid(row=2, column=4,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max Altitude Entry
         self.stationMaxAltEntry = ctk.CTkEntry(root,textvariable=self.stationMaxAlt,
                           placeholder_text=self.stationMaxAlt, width=colWidth)
-        self.stationMaxAltEntry.grid(row=6, column=3,
+        self.stationMaxAltEntry.grid(row=3, column=4,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
                              
 
-        # Row 7
+        # Col 5    -  inlet height filter
         # ################################################################
         # 
 
-        # inlet height filter
-        self.bFilterInletHeightCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bInletHeight'])
-        self.filterInletHeightCkb = ctk.CTkCheckBox(root,
-                                text="Inlet height:",  font=("Georgia",  18), 
-                                variable=self.bFilterInletHeightCkbVar, 
-                                onvalue=True, offvalue=False)  
-        self.filterInletHeightCkb.grid(row=7, column=1,
-                            columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
+        self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bInletHeight'])
+        self.FilterStationAltitudesCkb = ctk.CTkCheckBox(root,
+                            text="Filter inlet heights", font=("Georgia",  fsNORMAL),
+                            variable=self.FilterStationAltitudesCkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.FilterStationAltitudesCkb.grid(row=1, column=5,columnspan=2, 
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+
+        self.minHghtLabel = ctk.CTkLabel(root,
+                                   text="min alt:", font=("Georgia",  fsNORMAL))
+        self.minHghtLabel.grid(row=2, column=5,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+        self.maxHghtLabel = ctk.CTkLabel(root,
+                                   text="max alt:", font=("Georgia",  fsNORMAL))
+        self.maxHghtLabel.grid(row=3, column=5,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+
         inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
         inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
         self.inletMinHght=tk.StringVar(value=f'{inletMinHght}')
@@ -1042,21 +1076,45 @@ class RefineObsSelectionGUI(ctk.CTk):
         # min inlet height
         self.inletMinHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMinHght,
                           placeholder_text=self.inletMinHght, width=colWidth)
-        self.inletMinHghtEntry.grid(row=7, column=2,
+        self.inletMinHghtEntry.grid(row=2, column=6,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max inlet height
         self.inletMaxHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMaxHght,
                           placeholder_text=self.inletMaxHght, width=colWidth)
-        self.inletMaxHghtEntry.grid(row=7, column=3,
+        self.inletMaxHghtEntry.grid(row=3, column=6,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
 
-        # Row 8
+        # Col7
         # ################################################################
         # 
+        self.ICOSstationsLabel = ctk.CTkLabel(root,
+                                   text="ICOS stations", font=("Georgia",  fsNORMAL))
+        self.ICOSstationsLabel.grid(row=1, column=7,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
 
-        # Row 9
+        self.ICOSplusCkbVar = tk.BooleanVar(value=True)
+        self.ICOSplusCkb = ctk.CTkCheckBox(root,
+                            text="Any station", font=("Georgia",  fsNORMAL),
+                            variable=self.ICOSplusCkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.ICOSplusCkb.grid(row=2, column=7,
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+
+        self.ICOSonlyCkbVar = tk.BooleanVar(value=True)
+        self.ICOSonlyCkb = ctk.CTkCheckBox(root,
+                            text="ICOS only", font=("Georgia",  fsNORMAL),
+                            variable=self.ICOSonlyCkbVar,
+                             onvalue=True, offvalue=False)                             
+        self.ICOSonlyCkb.grid(row=3, column=7,
+                          padx=xPadding, pady=yPadding,
+                          sticky="ew")
+        
+
+        # Col11
         # ################################################################
         # 
         self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
@@ -1064,21 +1122,10 @@ class RefineObsSelectionGUI(ctk.CTk):
                             text="Ignore Warnings", font=("Georgia",  fsNORMAL),
                             variable=self.bIgnoreWarningsCkbVar,
                              onvalue=True, offvalue=False)                            
-        self.ignoreWarningsCkb.grid(row=9, column=7,
+        self.ignoreWarningsCkb.grid(row=1, column=11,
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-       # Row 10
-        # ################################################################
-        # 
-        # Text Box
-        self.displayBox = ctk.CTkTextbox(root, width=200,
-                                        text_color="red", font=("Georgia",  fsSMALL),  height=100)
-        self.displayBox.grid(row=10, column=0, columnspan=6,
-                             padx=20, pady=20, sticky="nsew")
-                             
-        #self.displayBox.delete("0.0", "end")  # delete all text
-        self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
 
         def GuiClosed():
             if tk.messagebox.askokcancel("Quit", "Do you want to abort your Lumia run?"):
@@ -1095,7 +1142,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Cancel Button
         self.CancelButton = ctk.CTkButton(master=root, font=("Georgia", 18), text="Cancel",
             command=CancelAndQuit)
-        self.CancelButton.grid(row=10, column=7,
+        self.CancelButton.grid(row=2, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="ew")
 
@@ -1145,7 +1192,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.RunButton = ctk.CTkButton(root, font=("Georgia", fsNORMAL), 
                                          text="RUN",
                                          command=GoButtonHit)
-        self.RunButton.grid(row=11, column=7,
+        self.RunButton.grid(row=3, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="ew")
                                         
