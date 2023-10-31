@@ -10,7 +10,8 @@ if os.environ.get('DISPLAY','') == '':
 root = tk.Tk()
 
 root.geometry("510x310")
-# Create A Main frame
+# Create A Main frame and then add scrollbars
+# Scrollbar ideas taken from 4th reply (jeromba6) to: https://stackoverflow.com/questions/19860047/python-tkinter-scrollbar-for-entire-window
 main_frame = tk.Frame(root)
 main_frame.pack(fill=tk.BOTH,expand=1)
 
