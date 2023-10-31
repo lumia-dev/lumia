@@ -531,8 +531,13 @@ class LumiaGui(ctk.CTk):
         self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
 
         def GuiClosed():
-            if tk.messagebox.askokcancel("Quit", "Do you want to abort your Lumia run?"):
-                root.destroy
+            if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
+                logger.info("LumiaGUI was canceled.")
+                sCmd="touch LumiaGui.stop"
+                self.runSysCmd(sCmd)
+                #root.destroy
+                global LOOP_ACTIVE
+                LOOP_ACTIVE = False
         root.protocol("WM_DELETE_WINDOW", GuiClosed)
         def CancelAndQuit(): 
             logger.info("LumiaGUI was canceled.")
@@ -948,7 +953,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         sec.pack(fill=tk.X,side=tk.BOTTOM)
         
         # Create a Canvas
-        myCanvas = tk.Canvas(main_frame) #, width=500, height=300, yscrollcommand = scrollbar.set)
+        myCanvas = tk.Canvas(main_frame,  bg="cadet blue")
         myCanvas.pack(side=tk.LEFT,fill=tk.BOTH,expand=1)
         
         # Add A Scrollbars to Canvas
@@ -956,7 +961,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         x_scrollbar.pack(side=tk.BOTTOM,fill=tk.X)
         y_scrollbar = ttk.Scrollbar(main_frame,orient=tk.VERTICAL,command=myCanvas.yview)
         y_scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
-        
         
         # Configure the canvas
         myCanvas.configure(xscrollcommand=x_scrollbar.set)
@@ -966,8 +970,9 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Create Another Frame INSIDE the Canvas
         activeFrame = tk.Frame(myCanvas)
         
-        # Add that New Frame a Window In The Canvas
+        # Add to that New Frame a Window In The Canvas
         myCanvas.create_window((0,0),window= activeFrame, anchor="nw")
+        # Done this step - the GUI canvas with scrollbars has been created
 
         # Row 0:  Title Label
         # ################################################################
@@ -1161,8 +1166,13 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
         def GuiClosed():
-            if tk.messagebox.askokcancel("Quit", "Do you want to abort your Lumia run?"):
-                root.destroy
+            if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
+                logger.info("LumiaGUI was canceled.")
+                sCmd="touch LumiaGui.stop"
+                self.runSysCmd(sCmd)
+                #root.destroy
+                global LOOP_ACTIVE
+                LOOP_ACTIVE = False
         root.protocol("WM_DELETE_WINDOW", GuiClosed)
         def CancelAndQuit(): 
             logger.info("LumiaGUI was canceled.")
@@ -1348,8 +1358,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             self.samplHghtNNOptionMenu = ctk.CTkOptionMenu(myCanvas,
                                             values=sSamplingHeights, 
                                             variable=self.samplHghtNNDdlVar,
-                                            font=("Georgia",  fsNORMAL), fg_color="dark sea green", 
-                                            button_color="DarkSeaGreen3",  dropdown_font=("Georgia",  fsSMALL),  
+                                            font=("Georgia",  fsNORMAL), dropdown_font=("Georgia",  fsSMALL),  
                                             text_color=sTextColor, text_color_disabled=sTextColor)
             self.samplHghtNNOptionMenu.grid(row=guiRow, column=5,
                                       columnspan=1, padx=xPadding, pady=yPadding,
