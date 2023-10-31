@@ -14,6 +14,7 @@ from loguru import logger
 import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
+from tkinter import ttk
 
 
 
@@ -937,11 +938,41 @@ class RefineObsSelectionGUI(ctk.CTk):
         root.title("LUMIA: Refine the selection of observations to be used")  
         # Sets the dimensions of the window to 800x900
         root.geometry(f"{appWidth}x{appHeight}")   
+        
+        # Now we venture to make the root scrollable....
+        main_frame = tk.Frame(root)
+        main_frame.pack(fill=tk.BOTH,expand=1)
+        
+        # Create Frame for X Scrollbar
+        sec = tk.Frame(main_frame)
+        sec.pack(fill=tk.X,side=tk.BOTTOM)
+        
+        # Create a Canvas
+        myCanvas = tk.Canvas(main_frame) #, width=500, height=300, yscrollcommand = scrollbar.set)
+        myCanvas.pack(side=tk.LEFT,fill=tk.BOTH,expand=1)
+        
+        # Add A Scrollbars to Canvas
+        x_scrollbar = ttk.Scrollbar(sec,orient=tk.HORIZONTAL,command=myCanvas.xview)
+        x_scrollbar.pack(side=tk.BOTTOM,fill=tk.X)
+        y_scrollbar = ttk.Scrollbar(main_frame,orient=tk.VERTICAL,command=myCanvas.yview)
+        y_scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
+        
+        
+        # Configure the canvas
+        myCanvas.configure(xscrollcommand=x_scrollbar.set)
+        myCanvas.configure(yscrollcommand=y_scrollbar.set)
+        myCanvas.bind("<Configure>",lambda e: myCanvas.config(scrollregion= myCanvas.bbox(tk.ALL))) 
+        
+        # Create Another Frame INSIDE the Canvas
+        activeFrame = tk.Frame(myCanvas)
+        
+        # Add that New Frame a Window In The Canvas
+        myCanvas.create_window((0,0),window= activeFrame, anchor="nw")
 
         # Row 0:  Title Label
         # ################################################################
 
-        self.LatitudesLabel = ctk.CTkLabel(root,
+        self.LatitudesLabel = ctk.CTkLabel(myCanvas,
                                 text="LUMIA  --  Refine the selection of observations to be used",  font=("Georgia",  fsHUGE))
         self.LatitudesLabel.grid(row=0, column=0,
                             columnspan=8,padx=xPadding, pady=yPadding,
@@ -956,7 +987,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         #iObservationsFileLocation.set(1) # Read observations from local file
         if ('CARBONPORTAL' in ymlContents['observations']['file']['location']):
             self.iObservationsFileLocation.set(2)
-        self.RankingLabel = ctk.CTkLabel(root,
+        self.RankingLabel = ctk.CTkLabel(myCanvas,
                                    text="Obsdata Ranking", font=("Georgia",  fsNORMAL))
         self.RankingLabel.grid(row=1, column=0,
                                   columnspan=1, padx=xPadding, pady=yPadding,
@@ -965,7 +996,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Ranking for Observation Files
         rankingList=ymlContents['observations']['file']['ranking']
         self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
-        self.ObsFileRankingBox = ctk.CTkTextbox(root,
+        self.ObsFileRankingBox = ctk.CTkTextbox(myCanvas,
                                          width=colWidth,
                                          height=(3*rowHeight+vSpacer))
         self.ObsFileRankingBox.grid(row=2, column=0,
@@ -979,7 +1010,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Col2
         #  ##################################################
         self.ObsLv1CkbVar = tk.BooleanVar(value=True)
-        self.ObsLv1Ckb = ctk.CTkCheckBox(root,
+        self.ObsLv1Ckb = ctk.CTkCheckBox(myCanvas,
                             text="Level1", font=("Georgia",  fsNORMAL),
                             variable=self.ObsLv1CkbVar,
                              onvalue=True, offvalue=False)                             
@@ -988,7 +1019,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                           sticky="ew")
 
         self.ObsNRTCkbVar = tk.BooleanVar(value=True)
-        self.ObsNRTCkb = ctk.CTkCheckBox(root,
+        self.ObsNRTCkb = ctk.CTkCheckBox(myCanvas,
                             text="NRT", font=("Georgia",  fsNORMAL),
                             variable=self.ObsNRTCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -997,7 +1028,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                           sticky="ew")
 
         self.ObsOtherCkbVar = tk.BooleanVar(value=True)
-        self.ObsOtherCkb = ctk.CTkCheckBox(root,
+        self.ObsOtherCkb = ctk.CTkCheckBox(myCanvas,
                             text="Other", font=("Georgia",  fsNORMAL),
                             variable=self.ObsOtherCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -1010,7 +1041,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         #  ##################################################
 
         self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
-        self.FilterStationAltitudesCkb = ctk.CTkCheckBox(root,
+        self.FilterStationAltitudesCkb = ctk.CTkCheckBox(myCanvas,
                             text="Filter station altitudes", font=("Georgia",  fsNORMAL),
                             variable=self.FilterStationAltitudesCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -1018,12 +1049,12 @@ class RefineObsSelectionGUI(ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-        self.minAltLabel = ctk.CTkLabel(root,
+        self.minAltLabel = ctk.CTkLabel(myCanvas,
                                    text="min alt:", font=("Georgia",  fsNORMAL))
         self.minAltLabel.grid(row=2, column=3,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.maxAltLabel = ctk.CTkLabel(root,
+        self.maxAltLabel = ctk.CTkLabel(myCanvas,
                                    text="max alt:", font=("Georgia",  fsNORMAL))
         self.maxAltLabel.grid(row=3, column=3,
                                   columnspan=1, padx=xPadding, pady=yPadding,
@@ -1034,13 +1065,13 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.stationMinAlt=tk.StringVar(value=f'{stationMinAlt}')
         self.stationMaxAlt=tk.StringVar(value=f'{stationMaxAlt}')
         # min Altitude Entry
-        self.stationMinAltEntry = ctk.CTkEntry(root,textvariable=self.stationMinAlt,
+        self.stationMinAltEntry = ctk.CTkEntry(myCanvas,textvariable=self.stationMinAlt,
                           placeholder_text=self.stationMinAlt, width=colWidth)
         self.stationMinAltEntry.grid(row=2, column=4,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max Altitude Entry
-        self.stationMaxAltEntry = ctk.CTkEntry(root,textvariable=self.stationMaxAlt,
+        self.stationMaxAltEntry = ctk.CTkEntry(myCanvas,textvariable=self.stationMaxAlt,
                           placeholder_text=self.stationMaxAlt, width=colWidth)
         self.stationMaxAltEntry.grid(row=3, column=4,
                             columnspan=1, padx=xPadding,
@@ -1052,7 +1083,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # 
 
         self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bInletHeight'])
-        self.FilterStationAltitudesCkb = ctk.CTkCheckBox(root,
+        self.FilterStationAltitudesCkb = ctk.CTkCheckBox(myCanvas,
                             text="Filter inlet heights", font=("Georgia",  fsNORMAL),
                             variable=self.FilterStationAltitudesCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -1060,12 +1091,12 @@ class RefineObsSelectionGUI(ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-        self.minHghtLabel = ctk.CTkLabel(root,
+        self.minHghtLabel = ctk.CTkLabel(myCanvas,
                                    text="min alt:", font=("Georgia",  fsNORMAL))
         self.minHghtLabel.grid(row=2, column=5,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.maxHghtLabel = ctk.CTkLabel(root,
+        self.maxHghtLabel = ctk.CTkLabel(myCanvas,
                                    text="max alt:", font=("Georgia",  fsNORMAL))
         self.maxHghtLabel.grid(row=3, column=5,
                                   columnspan=1, padx=xPadding, pady=yPadding,
@@ -1076,13 +1107,13 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.inletMinHght=tk.StringVar(value=f'{inletMinHght}')
         self.inletMaxHght=tk.StringVar(value=f'{inletMaxHght}')
         # min inlet height
-        self.inletMinHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMinHght,
+        self.inletMinHghtEntry = ctk.CTkEntry(myCanvas,textvariable=self.inletMinHght,
                           placeholder_text=self.inletMinHght, width=colWidth)
         self.inletMinHghtEntry.grid(row=2, column=6,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max inlet height
-        self.inletMaxHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMaxHght,
+        self.inletMaxHghtEntry = ctk.CTkEntry(myCanvas,textvariable=self.inletMaxHght,
                           placeholder_text=self.inletMaxHght, width=colWidth)
         self.inletMaxHghtEntry.grid(row=3, column=6,
                             columnspan=1, padx=xPadding,
@@ -1091,14 +1122,14 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Col7
         # ################################################################
         # 
-        self.ICOSstationsLabel = ctk.CTkLabel(root,
+        self.ICOSstationsLabel = ctk.CTkLabel(myCanvas,
                                    text="ICOS stations", font=("Georgia",  fsNORMAL))
         self.ICOSstationsLabel.grid(row=1, column=7,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
 
         self.ICOSplusCkbVar = tk.BooleanVar(value=True)
-        self.ICOSplusCkb = ctk.CTkCheckBox(root,
+        self.ICOSplusCkb = ctk.CTkCheckBox(myCanvas,
                             text="Any station", font=("Georgia",  fsNORMAL),
                             variable=self.ICOSplusCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -1107,7 +1138,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                           sticky="ew")
 
         self.ICOSonlyCkbVar = tk.BooleanVar(value=True)
-        self.ICOSonlyCkb = ctk.CTkCheckBox(root,
+        self.ICOSonlyCkb = ctk.CTkCheckBox(myCanvas,
                             text="ICOS only", font=("Georgia",  fsNORMAL),
                             variable=self.ICOSonlyCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -1120,7 +1151,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ################################################################
         # 
         self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
+        self.ignoreWarningsCkb = ctk.CTkCheckBox(myCanvas,state=tk.DISABLED, 
                             text="Ignore Warnings", font=("Georgia",  fsNORMAL),
                             variable=self.bIgnoreWarningsCkbVar,
                              onvalue=True, offvalue=False)                            
@@ -1142,7 +1173,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             LOOP_ACTIVE = False
 
         # Cancel Button
-        self.CancelButton = ctk.CTkButton(master=root, font=("Georgia", 18), text="Cancel",
+        self.CancelButton = ctk.CTkButton(master=myCanvas, font=("Georgia", 18), text="Cancel",
             command=CancelAndQuit)
         self.CancelButton.grid(row=2, column=11,
                                         columnspan=1, padx=xPadding,
@@ -1191,7 +1222,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                 global LOOP_ACTIVE
                 LOOP_ACTIVE = False
                 
-        self.RunButton = ctk.CTkButton(root, font=("Georgia", fsNORMAL), 
+        self.RunButton = ctk.CTkButton(myCanvas, font=("Georgia", fsNORMAL), 
                                          text="RUN",
                                          command=GoButtonHit)
         self.RunButton.grid(row=3, column=11,
@@ -1202,52 +1233,52 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Row 4 title for individual entries
         # ################################################################
         # newColumnNames=['selected','country', 'stationID', 'dClass', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'pid']
-        self.Col0Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col0Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="Selected", font=("Georgia",  fsNORMAL))
         self.Col0Label.grid(row=4, column=0,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col1Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col1Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="Country", font=("Georgia",  fsNORMAL))
         self.Col1Label.grid(row=4, column=1,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col2Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col2Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="StationID", font=("Georgia",  fsNORMAL))
         self.Col2Label.grid(row=4, column=2,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col3Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col3Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="dataRanking", font=("Georgia",  fsNORMAL))
         self.Col3Label.grid(row=4, column=3,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col4Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col4Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="Stat.altitude", font=("Georgia",  fsNORMAL))
         self.Col4Label.grid(row=4, column=4,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col5Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col5Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="samplingHeight", font=("Georgia",  fsNORMAL))
         self.Col5Label.grid(row=4, column=5,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col6Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col6Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="is ICOS", font=("Georgia",  fsNORMAL))
         self.Col6Label.grid(row=4, column=6,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col7Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col7Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="Latitude/°N", font=("Georgia",  fsNORMAL))
         self.Col7Label.grid(row=4, column=7,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col8Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col8Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="Longitude/°E", font=("Georgia",  fsNORMAL))
         self.Col8Label.grid(row=4, column=8,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.Col9Label = ctk.CTkLabel(root, justify="left", anchor="w",
+        self.Col9Label = ctk.CTkLabel(myCanvas, justify="left", anchor="w",
                                    text="Data description", font=("Georgia",  fsNORMAL))
         self.Col9Label.grid(row=4, column=9,
                                   columnspan=3, padx=xPadding, pady=yPadding,
@@ -1268,7 +1299,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             else:
                 sTextColor=inactiveTextColor
             self.SelectedNNCkbVar = tk.BooleanVar(value=bSelected)
-            self.SelectedNNCkb = ctk.CTkCheckBox(root,
+            self.SelectedNNCkb = ctk.CTkCheckBox(myCanvas,
                                 text="", font=("Georgia",  fsNORMAL),
                                 variable=self.SelectedNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor, 
                                  onvalue=True, offvalue=False)                             
@@ -1277,7 +1308,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                               sticky="ew")
 
             self.CountryNNCkbVar = tk.StringVar(value=bSelected)
-            self.CountryNNCkb = ctk.CTkCheckBox(root,
+            self.CountryNNCkb = ctk.CTkCheckBox(myCanvas,
                                 text=row['country'], font=("Georgia",  fsNORMAL),
                                 variable=self.CountryNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor,
                                  onvalue=True, offvalue=False)                             
@@ -1286,7 +1317,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                               sticky="ew")
             
             self.StationidNNCkbVar = tk.StringVar(value=bSelected)
-            self.StationidNNCkb = ctk.CTkCheckBox(root,
+            self.StationidNNCkb = ctk.CTkCheckBox(myCanvas,
                                 text=row['stationID'], font=("Georgia",  fsNORMAL),
                                 variable=self.StationidNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor,
                                  onvalue=True, offvalue=False)                             
@@ -1294,13 +1325,13 @@ class RefineObsSelectionGUI(ctk.CTk):
                               padx=xPadding, pady=yPadding,
                               sticky="ew")
 
-            self.dClassNNLabel = ctk.CTkLabel(root,text_color=sTextColor,
+            self.dClassNNLabel = ctk.CTkLabel(myCanvas,text_color=sTextColor,
                                        text=row['dClass'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
             self.dClassNNLabel.grid(row=guiRow, column=3,
                                       columnspan=1, padx=xPadding, pady=yPadding,
                                       sticky="ew")
             
-            self.altitudeNNLabel = ctk.CTkLabel(root,text_color=sTextColor,
+            self.altitudeNNLabel = ctk.CTkLabel(myCanvas,text_color=sTextColor,
                                        text=row['altitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
             self.altitudeNNLabel.grid(row=guiRow, column=4,
                                       columnspan=1, padx=xPadding, pady=yPadding,
@@ -1314,7 +1345,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                     sSamplingHeights.append(sElement)
                     
             self.samplHghtNNDdlVar = tk.StringVar(value=str(row['samplingHeight'][0])) # "212.0") # str(row['samplingHeight'][0])) # drop-down-list
-            self.samplHghtNNOptionMenu = ctk.CTkOptionMenu(root,
+            self.samplHghtNNOptionMenu = ctk.CTkOptionMenu(myCanvas,
                                             values=sSamplingHeights, 
                                             variable=self.samplHghtNNDdlVar,
                                             font=("Georgia",  fsNORMAL), fg_color="dark sea green", 
@@ -1327,25 +1358,25 @@ class RefineObsSelectionGUI(ctk.CTk):
             affiliationICOS="ICOS"
             if(not row['isICOS']):
                 affiliationICOS="non-ICOS"
-            self.isICOSNNLabel = ctk.CTkLabel(root,text_color=sTextColor,
+            self.isICOSNNLabel = ctk.CTkLabel(myCanvas,text_color=sTextColor,
                                        text=affiliationICOS, font=("Georgia",  fsNORMAL), justify="left", anchor="w")
             self.isICOSNNLabel.grid(row=guiRow, column=6,
                                       columnspan=1, padx=xPadding, pady=yPadding,
                                       sticky="ew")
 
-            self.latitudeNNLabel = ctk.CTkLabel(root,text_color=sTextColor,
+            self.latitudeNNLabel = ctk.CTkLabel(myCanvas,text_color=sTextColor,
                                        text=row['latitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
             self.latitudeNNLabel.grid(row=guiRow, column=7,
                                       columnspan=1, padx=xPadding, pady=yPadding,
                                       sticky="ew")
 
-            self.longitudeNNLabel = ctk.CTkLabel(root,text_color=sTextColor,
+            self.longitudeNNLabel = ctk.CTkLabel(myCanvas,text_color=sTextColor,
                                        text=row['longitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
             self.longitudeNNLabel.grid(row=guiRow, column=8,
                                       columnspan=1, padx=xPadding, pady=yPadding,
                                       sticky="ew")
             
-            self.dataSetDescrNNLabel = ctk.CTkLabel(root,text_color=sTextColor,
+            self.dataSetDescrNNLabel = ctk.CTkLabel(myCanvas,text_color=sTextColor,
                                        text=row['dataSetLabel'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
             self.dataSetDescrNNLabel.grid(row=guiRow, column=9,
                                       columnspan=3, padx=xPadding, pady=yPadding,
