@@ -953,7 +953,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         sec.pack(fill=tk.X,side=tk.BOTTOM)
         
         # Create a Canvas
-        self.myCanvas = tk.Canvas(main_frame) #,  bg="cadet blue")
+        self.myCanvas = tk.Canvas(main_frame,  bg="cadet blue")
         self.myCanvas.pack(side=tk.LEFT,fill=tk.BOTH,expand=1)
         
         # Add A Scrollbars to Canvas
@@ -968,25 +968,25 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.myCanvas.bind("<Configure>",lambda e: self.myCanvas.config(scrollregion= self.myCanvas.bbox(tk.ALL))) 
         
         # Create Another Frame INSIDE the Canvas
-        activeFrame = tk.Frame(self.myCanvas)
+        activeFrame = tk.Frame(self.myCanvas,  bg="cadet blue")
         
         # Add to that New Frame a Window In The Canvas
         self.myCanvas.create_window((0,0),window= activeFrame, anchor="nw")
         # Done this step - the GUI canvas with scrollbars has been created
 
-        (x,y) = (5,5)
-        for i in range(5):
-            fonts = []
-            print ("specifying font sizes in pts via the system:")
-            for (family,size) in [("times",12),("times",14),("times",15),("times",16),("times",24),("Georgia",10),("Georgia",11),("Georgia",12),("Georgia",13),("Georgia",14),("Georgia",15),("Georgia",16),("Georgia",17),("Georgia",20),("Georgia",24)]:
-                text = f"yellow world / {family} {size} "
-                font = tkFont.Font(family=family, size=size)
-                (w,h) = (font.measure(text),font.metrics("linespace"))
-                print ("%s %s: (%s,%s),   Actual font used: %s" % (family,size,w,h,font.actual()))
-                self.myCanvas.create_rectangle(x,y,x+w,y+h)
-                self.myCanvas.create_text(x,y,text=text,font=font,anchor=tk.NW)
-                fonts.append(font) # save object from garbage collecting
-                y += h+5
+        (idxX,idxY) = (5,5)
+        myFont = tkFont.Font(family="Georgia", size=fsNORMAL)
+        (w,h) = (myFont.measure("1234: "),myFont.metrics("linespace"))
+        print ("Printing index onto the canvas.")
+        for i in range(125):
+            idxText = f"{i}:"
+            self.myCanvas.create_rectangle(idxX,idxY,idxX+w,idxY+h)
+            self.myCanvas.create_text(idxX,idxY,text=idxText,font=myFont,anchor=tk.NW)
+            idxY += h+yPadding+yPadding
+        idxText = "."
+        self.myCanvas.create_rectangle(idxX,idxY,idxX+w,idxY+h)
+        self.myCanvas.create_text(idxX,idxY,text=idxText,font=myFont,anchor=tk.NW)
+        idxY += h+yPadding+yPadding
             
         # Row 0:  Title Label
         # ################################################################
