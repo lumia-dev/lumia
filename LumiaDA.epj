@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2023 , ",
-    "saved": "2023-10-31, 23:24:26"
+    "saved": "2023-11-02, 14:31:17"
   },
   "project": {
     "AUTHOR": "",
@@ -79,6 +79,7 @@
       "icosPortalAccess/getHandleFromDoi.py",
       "icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "icosPortalAccess/readObservationsFromCarbonPortal.py",
+      "lumia/GUI/doc/scrollbar-test.py",
       "lumia/GUI/doc/tkinter-font-test-Scrolltest2.py",
       "lumia/GUI/lumiaGUI.py",
       "lumia/Tools/__init__.py",
