@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-11-03, 09:57:57"
+    "saved": "2023-11-03, 17:40:29"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -636,9 +636,9 @@
       "priority": 1,
       "lineno": 117,
       "completed": false,
-      "created": 1699001874.155015,
+      "created": 1699029591.6957982,
       "type": 1,
-      "uid": "{4925690a-2bae-4dba-a87b-c6ba0a388beb}",
+      "uid": "{89823ec6-fecb-4b2c-9ef7-723589e6cfdc}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -649,9 +649,9 @@
       "priority": 1,
       "lineno": 737,
       "completed": false,
-      "created": 1699001874.1587586,
+      "created": 1699029591.6995585,
       "type": 1,
-      "uid": "{366a2af4-b79b-4800-8084-7be1bf18aab7}",
+      "uid": "{b546ad85-adcd-4cb6-b22e-e0ef8eb72d86}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -660,11 +660,11 @@
       "summary": "TODO: get the file name",
       "description": "",
       "priority": 1,
-      "lineno": 1534,
+      "lineno": 1543,
       "completed": false,
-      "created": 1699001874.1623828,
+      "created": 1699029591.7032235,
       "type": 1,
-      "uid": "{fca0f2ca-c961-454f-a787-214ad03ac61b}",
+      "uid": "{a4515287-6df7-48dd-8c84-fb6fc2de8a4e}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -673,11 +673,11 @@
       "summary": "TODO: 4GUI: implemented different options for dealing with situations where the externally provided file on CO2 background",
       "description": "",
       "priority": 1,
-      "lineno": 1627,
+      "lineno": 1644,
       "completed": false,
-      "created": 1699001874.1655521,
+      "created": 1699029591.7063062,
       "type": 1,
-      "uid": "{69d672e8-a002-4d62-aca1-4e5207e78f5f}",
+      "uid": "{9e2e2918-11b0-4027-bf59-e6374a30250f}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"

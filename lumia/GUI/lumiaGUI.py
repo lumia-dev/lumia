@@ -317,7 +317,7 @@ class LumiaGui(ctk.CTk):
 
         # Filter stations?
         self.ActivateStationFiltersRbVar = tk.IntVar(value=1)
-        if ((ymlContents['observations']['filters']['bStationAltitude'])or(ymlContents['observations']['filters']['bInletHeight'])):
+        if ((ymlContents['observations']['filters']['bStationAltitude'])or(ymlContents['observations']['filters']['bSamplingHeight'])):
             self.ActivateStationFiltersRbVar.set(2)
         self.ActivateStationFiltersRadioButton = ctk.CTkRadioButton(root,
                                    text="Filter stations", font=("Georgia",  18), 
@@ -408,12 +408,12 @@ class LumiaGui(ctk.CTk):
         # 
 
         # inlet height filter
-        self.bFilterInletHeightCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bInletHeight'])
-        self.filterInletHeightCkb = ctk.CTkCheckBox(root,
+        self.bFilterSamplingHeightCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bSamplingHeight'])
+        self.filterSamplingHeightCkb = ctk.CTkCheckBox(root,
                                 text="Inlet height:",  font=("Georgia",  18), 
-                                variable=self.bFilterInletHeightCkbVar, 
+                                variable=self.bFilterSamplingHeightCkbVar, 
                                 onvalue=True, offvalue=False)  
-        self.filterInletHeightCkb.grid(row=7, column=1,
+        self.filterSamplingHeightCkb.grid(row=7, column=1,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
@@ -564,7 +564,7 @@ class LumiaGui(ctk.CTk):
         self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
         self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
                             text="Ignore Warnings", font=("Georgia",  fsNORMAL),
-                            variable=self.bIgnoreWarningsCkbVar,
+                            variable=self.bIgnoreWarningsCkbVar, text_color='gray5',  text_color_disabled='gray70', 
                              onvalue=True, offvalue=False)                            
         self.ignoreWarningsCkb.grid(row=9,  column=7, 
                           padx=xPadding, pady=yPadding,
@@ -756,8 +756,8 @@ class LumiaGui(ctk.CTk):
         intAllStations=self.ActivateStationFiltersRbVar.get()
         if(intAllStations==2):
             #if ((ymlContents['observations']['filters']['bStationAltitude'])or():
-            if(self.bFilterInletHeightCkbVar.get()):
-                ymlContents['observations']['filters']['bInletHeight']=True
+            if(self.bFilterSamplingHeightCkbVar.get()):
+                ymlContents['observations']['filters']['bSamplingHeight']=True
                 mnh=int(self.inletMinHghtEntry.get())
                 mxh=int(self.inletMaxHghtEntry.get())
                 if(inletMinHeightCommonSense > mnh):
@@ -770,8 +770,8 @@ class LumiaGui(ctk.CTk):
                     bStationFilterError=True
                     sErrorMsg+="Error: You have entered a maximum inlet height that is below the lowest inlet height. This can only be attributed to human error.\n"
             else:
-                ymlContents['observations']['filters']['bInletHeight']=False
-            if(ymlContents['observations']['filters']['bInletHeight']):
+                ymlContents['observations']['filters']['bSamplingHeight']=False
+            if(ymlContents['observations']['filters']['bSamplingHeight']):
                 ymlContents['observations']['filters']['inletMaxHeight']=mxh
                 ymlContents['observations']['filters']['inletMinHeight']=mnh
                 
@@ -867,7 +867,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         #AllObsColumnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
         #            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
         bUseStationAltitudeFilter=ymlContents['observations']['filters']['bStationAltitude']
-        bUseSamplingHeightFilter=ymlContents['observations']['filters']['bInletHeight']
+        bUseSamplingHeightFilter=ymlContents['observations']['filters']['bSamplingHeight']
         stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
         stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
         inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
@@ -877,7 +877,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         for index, row in dfAllObs.iterrows():
             hLst=[row['samplingHeight'] ]
             pidLst=[ row['pid']]
-            print(row['altitude'])
+            #print(row['altitude'])
             bStationAltOk = (((row['altitude'] >= stationMinAlt) &
                                 (row['altitude'] <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
             bSamplHghtOk = (((row['samplingHeight'] >= inletMinHght) &
@@ -1095,7 +1095,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ################################################################
         # 
 
-        self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bInletHeight'])
+        self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bSamplingHeight'])
         self.FilterStationAltitudesCkb = ctk.CTkCheckBox(rootFrame,
                             text="Filter inlet heights", font=("Georgia",  fsNORMAL),
                             variable=self.FilterStationAltitudesCkbVar,
@@ -1181,7 +1181,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ################################################################
         # 
 
-
         def GuiClosed():
             if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
                 logger.info("LumiaGUI was canceled.")
@@ -1200,11 +1199,21 @@ class RefineObsSelectionGUI(ctk.CTk):
             LOOP_ACTIVE = False
 
         # Cancel Button
-        self.CancelButton = ctk.CTkButton(master=rootFrame, font=("Georgia", 18), text="Cancel",
-            command=CancelAndQuit)
-        self.CancelButton.grid(row=2, column=11,
+        self.CancelButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), text="Cancel",
+            fg_color='orange red', command=CancelAndQuit)
+        self.CancelButton.grid(row=1, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="nw")
+
+        # Check choices
+        self.CheckButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), 
+                                        text="Check choices", text_color='gray5',  text_color_disabled='gray70', 
+                                        fg_color='OliveDrab1', command=CancelAndQuit)
+        self.CheckButton.grid(row=2, column=11,
+                          padx=xPadding, pady=yPadding,
+                          sticky="nw")
+
+
 
         # Row 11  :  RUN Button
         def GoButtonHit():
@@ -1250,8 +1259,8 @@ class RefineObsSelectionGUI(ctk.CTk):
                 LOOP_ACTIVE = False
                 
         self.RunButton = ctk.CTkButton(rootFrame, font=("Georgia", fsNORMAL), 
-                                         text="RUN",
-                                         command=GoButtonHit)
+                                         text_color='gray5',  text_color_disabled='gray70',  text="RUN", 
+                                         fg_color='green2', command=GoButtonHit)
         self.RunButton.grid(row=3, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="nw")
@@ -1541,49 +1550,57 @@ class RefineObsSelectionGUI(ctk.CTk):
         inletMinHeightCommonSense = 0    # in meters
         inletMaxHeightCommonSense = 850 # in meters World's heighest buildings
         intAllStations=self.ActivateStationFiltersRbVar.get()
-        if(intAllStations==2):
+        bStationFilterActive=self.FilterStationAltitudesCkb.get() 
+        bSamplHghtFilterActive=self.FilterStationAltitudesCkb.get()
+        if(bSamplHghtFilterActive):
             #if ((ymlContents['observations']['filters']['bStationAltitude'])or():
-            if(self.bFilterInletHeightCkbVar.get()):
-                ymlContents['observations']['filters']['bInletHeight']=True
-                mnh=int(self.inletMinHghtEntry.get())
-                mxh=int(self.inletMaxHghtEntry.get())
-                if(inletMinHeightCommonSense > mnh):
-                    bStationFilterError=True # ≥≤
-                    sErrorMsg+="I can't think of any ICOS station with an inlet height below ground....please fix the minimum inlet height to ≥0m. Thanks.\n"
-                if(inletMaxHeightCommonSense+1 < mxh):
-                    bStationFilterError=True
-                    sErrorMsg+=f"I can't think of any ICOS station with an inlet height higher than {inletMaxHeightCommonSense}m above ground. Please review your entry. Thanks.\n"
-                if(mnh > mxh):
-                    bStationFilterError=True
-                    sErrorMsg+="Error: You have entered a maximum inlet height that is below the lowest inlet height. This can only be attributed to human error.\n"
-            else:
-                ymlContents['observations']['filters']['bInletHeight']=False
-            if(ymlContents['observations']['filters']['bInletHeight']):
-                ymlContents['observations']['filters']['inletMaxHeight']=mxh
-                ymlContents['observations']['filters']['inletMinHeight']=mnh
-                
-            if(self.bFilterStationAltitudeCkbVar.get()):
-                ymlContents['observations']['filters']['bStationAltitude']=True
-                mnh=int(self.stationMinAltEntry.get())
-                mxh=int(self.stationMaxAltEntry.get())
-                if( stationMinAltCommonSense > mnh):
-                    bStationFilterError=True # ≥≤
-                    sErrorMsg+=f"I can't think of any ICOS station located at an altitude below the sea level of the Dead Sea....please fix the minimum station altitude to ≥ {stationMinAltCommonSense}m. Thanks.\n"
-                if(stationMaxAltCommonSense+1 < mxh):
-                    bStationFilterError=True
-                    sErrorMsg+=f"I can't think of any ICOS station located at an altitude higher than {stationMaxAltCommonSense}m above ground. Please review your entry. Thanks.\n"
-                if(mnh > mxh):
-                    bStationFilterError=True
-                    sErrorMsg+="Error: You have entered a maximum station altitude that is below the lowest station altitude. This can only be attributed to human error.\n"
-            else:
-                ymlContents['observations']['filters']['bStationAltitude']=False
-            if(ymlContents['observations']['filters']['bStationAltitude']):
-                ymlContents['observations']['filters']['stationMaxAlt']=mxh
-                ymlContents['observations']['filters']['stationMinAlt']=mnh
-                
-                
+            ymlContents['observations']['filters']['bSamplingHeight']=True
+            mnh=int(self.inletMinHghtEntry.get())
+            mxh=int(self.inletMaxHghtEntry.get())
+            if(inletMinHeightCommonSense > mnh):
+                bStationFilterError=True # ≥≤
+                sErrorMsg+="I can't think of any ICOS station with an inlet height below ground....please fix the minimum inlet height to ≥0m. Thanks.\n"
+            if(inletMaxHeightCommonSense+1 < mxh):
+                bStationFilterError=True
+                sErrorMsg+=f"I can't think of any ICOS station with an inlet height higher than {inletMaxHeightCommonSense}m above ground. Please review your entry. Thanks.\n"
+            if(mnh > mxh):
+                bStationFilterError=True
+                sErrorMsg+="Error: You have entered a maximum inlet height that is below the lowest inlet height. This can only be attributed to human error.\n"
+        else:
+            ymlContents['observations']['filters']['bSamplingHeight']=False
+        if(bStationFilterError):
+            self.FilterStationAltitudesCkb.set(False)
+            ymlContents['observations']['filters']['bStationAltitude']=False
+        if(ymlContents['observations']['filters']['bSamplingHeight']):
+            ymlContents['observations']['filters']['inletMaxHeight']=mxh
+            ymlContents['observations']['filters']['inletMinHeight']=mnh
+        
+        bStationFilterError=False        
+        if(bStationFilterActive):
+            ymlContents['observations']['filters']['bStationAltitude']=True
+            mnh=int(self.stationMinAltEntry.get())
+            mxh=int(self.stationMaxAltEntry.get())
+            if( stationMinAltCommonSense > mnh):
+                bStationFilterError=True # ≥≤
+                sErrorMsg+=f"I can't think of any ICOS station located at an altitude below the sea level of the Dead Sea....please fix the minimum station altitude to ≥ {stationMinAltCommonSense}m. Thanks.\n"
+            if(stationMaxAltCommonSense+1 < mxh):
+                bStationFilterError=True
+                sErrorMsg+=f"I can't think of any ICOS station located at an altitude higher than {stationMaxAltCommonSense}m above ground. Please review your entry. Thanks.\n"
+            if(mnh > mxh):
+                bStationFilterError=True
+                sErrorMsg+="Error: You have entered a maximum station altitude that is below the lowest station altitude. This can only be attributed to human error.\n"
+        else:
+            ymlContents['observations']['filters']['bStationAltitude']=False
+        if(bStationFilterError):
+            self.FilterStationAltitudesCkb.set(False)
+            ymlContents['observations']['filters']['bStationAltitude']=False
+        if(ymlContents['observations']['filters']['bStationAltitude']):
+            ymlContents['observations']['filters']['stationMaxAlt']=mxh
+            ymlContents['observations']['filters']['stationMinAlt']=mnh
+                               
         if(bStationFilterError):
             bErrors=True
+            
         if (0>1):
             # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
             if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):

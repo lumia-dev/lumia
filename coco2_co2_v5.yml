@@ -72,7 +72,7 @@ observations:
     tracer: co2
   filters:
     ICOSonly: false
-    bInletHeight: true
+    bSamplingHeight: true
     bStationAltitude: true
     inletMaxHeight: 700
     inletMinHeight: 0
