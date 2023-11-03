@@ -561,6 +561,15 @@ class LumiaGui(ctk.CTk):
                                         pady=yPadding, sticky="ew")
 
         # Row 11  :  RUN Button
+        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
+        self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
+                            text="Ignore Warnings", font=("Georgia",  fsNORMAL),
+                            variable=self.bIgnoreWarningsCkbVar,
+                             onvalue=True, offvalue=False)                            
+        self.ignoreWarningsCkb.grid(row=9,  column=7, 
+                          padx=xPadding, pady=yPadding,
+                          sticky="nw")
+
         def GoButtonHit():
             # def generateResults(self):
             bGo=False
@@ -857,6 +866,8 @@ class RefineObsSelectionGUI(ctk.CTk):
         isDifferent=True
         #AllObsColumnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
         #            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+        bUseStationAltitudeFilter=ymlContents['observations']['filters']['bStationAltitude']
+        bUseSamplingHeightFilter=ymlContents['observations']['filters']['bInletHeight']
         stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
         stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
         inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
@@ -866,14 +877,11 @@ class RefineObsSelectionGUI(ctk.CTk):
         for index, row in dfAllObs.iterrows():
             hLst=[row['samplingHeight'] ]
             pidLst=[ row['pid']]
-            #print(row['samplingHeight'])
-            #print(row['country'])
-            #print(row['stationID'])
             print(row['altitude'])
-            bStationAltOk = ((row['altitude'] >= stationMinAlt) &
-                                (row['altitude'] <= stationMaxAlt) )
-            bSamplHghtOk = ((row['samplingHeight'] >= inletMinHght) &
-                                (row['samplingHeight'] <= inletMaxHght) )
+            bStationAltOk = (((row['altitude'] >= stationMinAlt) &
+                                (row['altitude'] <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
+            bSamplHghtOk = (((row['samplingHeight'] >= inletMinHght) &
+                                (row['samplingHeight'] <= inletMaxHght) ) | (bUseSamplingHeightFilter==False))
             newRow=[bTrue,row['country'], row['stationID'], row['dClass'], bStationAltOk, row['altitude'],  
                             bSamplHghtOk, hLst, row['isICOS'], row['latitude'], row['longitude'], row['dataSetLabel'],  pidLst]
             
@@ -918,8 +926,6 @@ class RefineObsSelectionGUI(ctk.CTk):
             nRows+=1
         newDf.to_csv('selectedObs.csv', mode='w', sep=',')  
             
-        #dfq= newDf[filtered]
-
 
         screenWidth = root.winfo_screenwidth()
         screenHeight = root.winfo_screenheight()
@@ -939,7 +945,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
                                                         yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
         hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
-        vDeadSpace=2*yPadding #vSpacer+(nRows*yPadding*2)+vSpacer
+        vDeadSpace=2*yPadding 
         colWidth=int((maxW - hDeadSpace)/(nCols*1.0))
         rowHeight=int((maxH - vDeadSpace)/(nRows*1.0))
         # Dimensions of the window
@@ -957,32 +963,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         rootFrame = tk.Frame(root, bg="cadet blue")
         rootFrame.grid(sticky='news')
         
-        # Create Frame for X Scrollbar
-        #sec = tk.Frame(main_frame)
-        # sec.pack(fill=tk.X,side=tk.BOTTOM)
-        
-        # Create a Canvas
-        #self.myCanvas = tk.Canvas(main_frame,  bg="cadet blue")
-        #self.myCanvas.pack(side=tk.LEFT,fill=tk.BOTH,expand=1)
-        
-        # Add A Scrollbars to Canvas
-        #x_scrollbar = ttk.Scrollbar(sec,orient=tk.HORIZONTAL,command=self.myCanvas.xview)
-        #x_scrollbar.pack(side=tk.BOTTOM,fill=tk.X)
-        
-        #y_scrollbar = ttk.Scrollbar(main_frame,orient=tk.VERTICAL,command=self.myCanvas.yview)
-        #y_scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
-        #y_scrollbar.grid(column=1, row=0, sticky='NS')
-        
-        # Configure the canvas
-        #self.myCanvas.configure(xscrollcommand=x_scrollbar.set)
-        #self.myCanvas.configure(yscrollcommand=y_scrollbar.set)
-        #self.myCanvas.bind("<Configure>",lambda e: self.myCanvas.config(scrollregion= self.myCanvas.bbox(tk.ALL))) 
-        
-        # Create Another Frame INSIDE the Canvas
-        #activeFrame = tk.Frame(self.myCanvas,  bg="cadet blue")
-        
-        # Add to that New Frame a Window In The Canvas
-        #self.myCanvas.create_window((0,0),window= activeFrame, anchor="nw")
         # Done this step - the GUI canvas with scrollbars has been created
 
         if (0>1):
@@ -1197,35 +1177,9 @@ class RefineObsSelectionGUI(ctk.CTk):
                             sticky="nw")
 
 
-        #self.ICOSplusCkb = ctk.CTkCheckBox(rootFrame,
-        #                    text="Any station", font=("Georgia",  fsNORMAL),
-        #                    variable=self.ICOSplusCkbVar,
-        #                     onvalue=True, offvalue=False)                             
-        #self.ICOSplusCkb.grid(row=2, column=7,
-        #                  padx=xPadding, pady=yPadding,
-        #                  sticky="nw")
-
-        #self.ICOSonlyCkbVar = tk.BooleanVar(value=True)
-        #self.ICOSonlyCkb = ctk.CTkCheckBox(rootFrame,
-        #                    text="ICOS only", font=("Georgia",  fsNORMAL),
-        #                    variable=self.ICOSonlyCkbVar,
-        #                     onvalue=True, offvalue=False)                             
-        #self.ICOSonlyCkb.grid(row=3, column=7,
-        #                  padx=xPadding, pady=yPadding,
-        #                  sticky="nw")
-        
-
         # Col11
         # ################################################################
         # 
-        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        self.ignoreWarningsCkb = ctk.CTkCheckBox(rootFrame,state=tk.DISABLED, 
-                            text="Ignore Warnings", font=("Georgia",  fsNORMAL),
-                            variable=self.bIgnoreWarningsCkbVar,
-                             onvalue=True, offvalue=False)                            
-        self.ignoreWarningsCkb.grid(row=1, column=11,
-                          padx=xPadding, pady=yPadding,
-                          sticky="nw")
 
 
         def GuiClosed():
@@ -1379,176 +1333,162 @@ class RefineObsSelectionGUI(ctk.CTk):
         scrollableCanvas.configure(yscrollcommand=vsb.set)
         
         # Create a frame to contain the widgets for all obs data sets found following initial user criteria
-        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") # "dark sea green"
+        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") #  slightly lighter than "cadet blue"
         scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
         # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
         
-        # make the 
-        #rootFrameCanvas.config(width=first5columns_width + vsb.winfo_width(),
-        #                    height=first5rows_height)
-
         # 
         startRow=5
         yPadding=int(0.5*yPadding)
         # newColumnNames=['selected','country', 'stationID', 'dClass', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'pid']
         sLastCountry=''
         sLastStation=''
-        if(1<0):
-            # Add 9-by-5 buttons to the frame
-            nrows = 19
-            ncolumns = 7
-            mbuttons = [[tk.Button() for j in range(ncolumns)] for i in range(nrows)]
-            for i in range(0, nrows):
-                for j in range(0, ncolumns):
-                    mbuttons[i][j] = tk.Button(scrollableFrame4Widgets, text=("%d,%d" % (i+1, j+1)))
-                    mbuttons[i][j].grid(row=i, column=j,  padx=8,  pady=8, sticky='news')
-        else:
-                
-            # newColumnNames=['selected','country', 'stationID', 'dClass', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'pid']
-            invisibleInk='cyan4' # repeat the labels with invisible ink to get the same column width
-            self.Col0Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Selected  .", font=("Georgia",  fsNORMAL))
-            self.Col0Label.grid(row=startRow, column=0,
-                                      columnspan=1, padx=xPadding+30, pady=yPadding,
-                                      sticky="nw")
-            self.Col1Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Country   .", font=("Georgia",  fsNORMAL))
-            self.Col1Label.grid(row=startRow, column=1,
-                                      columnspan=1, padx=xPadding+15, pady=yPadding,
-                                      sticky="nw")
-            self.Col2Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="StationID  .", font=("Georgia",  fsNORMAL))
-            self.Col2Label.grid(row=startRow, column=2,
-                                      columnspan=1, padx=xPadding+10, pady=yPadding,
-                                      sticky="nw")
-            self.Col3Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="dataRanking .", font=("Georgia",  fsNORMAL))
-            self.Col3Label.grid(row=startRow, column=8,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            self.Col4Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Stat.altitude", font=("Georgia",  fsNORMAL))
-            self.Col4Label.grid(row=startRow, column=4,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            self.Col5Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="samplingHeight", font=("Georgia",  fsNORMAL))
-            self.Col5Label.grid(row=startRow, column=0,
-                                      columnspan=1, padx=xPadding+30, pady=yPadding,
-                                      sticky="nw")
-            self.Col6Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="is ICOS      .", font=("Georgia",  fsNORMAL))
-            self.Col6Label.grid(row=startRow, column=6,
-                                      columnspan=1, padx=xPadding+20, pady=yPadding,
-                                      sticky="nw")
-            self.Col7Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Latitude/°N   .", font=("Georgia",  fsNORMAL))
-            self.Col7Label.grid(row=startRow, column=7,
-                                      columnspan=1, padx=xPadding+15, pady=yPadding,
-                                      sticky="nw")
-            self.Col8Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Longitude/°E ", font=("Georgia",  fsNORMAL))
-            self.Col8Label.grid(row=startRow, column=8,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            self.Col9Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Data description", font=("Georgia",  fsNORMAL))
-            self.Col9Label.grid(row=startRow, column=9,
-                                      columnspan=3, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            for index, row in newDf.iterrows():
-                guiRow=startRow+index
-                if(index==index):
-                    bSelected=row['selected']
-                    if(bSelected):
-                        sTextColor=activeTextColor
-                    else:
-                        sTextColor=inactiveTextColor
-                    self.SelectedNNCkbVar = tk.BooleanVar(value=bSelected)
-                    self.SelectedNNCkb = ctk.CTkCheckBox(scrollableFrame4Widgets,
-                                        text="", font=("Georgia",  fsNORMAL),
-                                        variable=self.SelectedNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor, 
+            
+        # newColumnNames=['selected','country', 'stationID', 'dClass', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dataSetLabel', 'pid']
+        invisibleInk='cyan4' # repeat the labels with invisible ink to get the same column width
+        self.Col0Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="Selected  .", font=("Georgia",  fsNORMAL))
+        self.Col0Label.grid(row=startRow, column=0,
+                                  columnspan=1, padx=xPadding+30, pady=yPadding,
+                                  sticky="nw")
+        self.Col1Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="Country   .", font=("Georgia",  fsNORMAL))
+        self.Col1Label.grid(row=startRow, column=1,
+                                  columnspan=1, padx=xPadding+15, pady=yPadding,
+                                  sticky="nw")
+        self.Col2Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="StationID  .", font=("Georgia",  fsNORMAL))
+        self.Col2Label.grid(row=startRow, column=2,
+                                  columnspan=1, padx=xPadding+10, pady=yPadding,
+                                  sticky="nw")
+        self.Col3Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="dataRanking .", font=("Georgia",  fsNORMAL))
+        self.Col3Label.grid(row=startRow, column=8,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="nw")
+        self.Col4Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="Stat.altitude", font=("Georgia",  fsNORMAL))
+        self.Col4Label.grid(row=startRow, column=4,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="nw")
+        self.Col5Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="samplingHeight", font=("Georgia",  fsNORMAL))
+        self.Col5Label.grid(row=startRow, column=0,
+                                  columnspan=1, padx=xPadding+30, pady=yPadding,
+                                  sticky="nw")
+        self.Col6Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="is ICOS      .", font=("Georgia",  fsNORMAL))
+        self.Col6Label.grid(row=startRow, column=6,
+                                  columnspan=1, padx=xPadding+20, pady=yPadding,
+                                  sticky="nw")
+        self.Col7Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="Latitude/°N   .", font=("Georgia",  fsNORMAL))
+        self.Col7Label.grid(row=startRow, column=7,
+                                  columnspan=1, padx=xPadding+15, pady=yPadding,
+                                  sticky="nw")
+        self.Col8Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="Longitude/°E ", font=("Georgia",  fsNORMAL))
+        self.Col8Label.grid(row=startRow, column=8,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="nw")
+        self.Col9Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
+                                   text="Data description", font=("Georgia",  fsNORMAL))
+        self.Col9Label.grid(row=startRow, column=9,
+                                  columnspan=3, padx=xPadding, pady=yPadding,
+                                  sticky="nw")
+        for index, row in newDf.iterrows():
+            guiRow=startRow+index
+            if(index==index):
+                bSelected=row['selected']
+                if(bSelected):
+                    sTextColor=activeTextColor
+                else:
+                    sTextColor=inactiveTextColor
+                self.SelectedNNCkbVar = tk.BooleanVar(value=bSelected)
+                self.SelectedNNCkb = ctk.CTkCheckBox(scrollableFrame4Widgets,
+                                    text="", font=("Georgia",  fsNORMAL),
+                                    variable=self.SelectedNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor, 
+                                     onvalue=True, offvalue=False)                             
+                self.SelectedNNCkb.grid(row=guiRow, column=0,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky='news')
+    
+                if((index==0) or (row['country'] not in sLastCountry)):
+                    self.CountryNNCkbVar = tk.BooleanVar(value=True)
+                    self.CountryNNCkb = ctk.CTkCheckBox(scrollableFrame4Widgets,
+                                        text=row['country'], font=("Georgia",  fsNORMAL),
+                                        variable=self.CountryNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor,
                                          onvalue=True, offvalue=False)                             
-                    self.SelectedNNCkb.grid(row=guiRow, column=0,
+                    self.CountryNNCkb.grid(row=guiRow, column=1,
                                       columnspan=1, padx=xPadding, pady=yPadding,
                                       sticky='news')
-        
-                    if((index==0) or (row['country'] not in sLastCountry)):
-                        self.CountryNNCkbVar = tk.BooleanVar(value=True)
-                        self.CountryNNCkb = ctk.CTkCheckBox(scrollableFrame4Widgets,
-                                            text=row['country'], font=("Georgia",  fsNORMAL),
-                                            variable=self.CountryNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor,
-                                             onvalue=True, offvalue=False)                             
-                        self.CountryNNCkb.grid(row=guiRow, column=1,
+                    sLastCountry=row['country'] 
+                
+                if((index==0) or (row['stationID'] not in sLastStation)):
+                    self.StationidNNCkbVar = tk.BooleanVar(value=True)
+                    self.StationidNNCkb = ctk.CTkCheckBox(scrollableFrame4Widgets,
+                                        text=row['stationID'], font=("Georgia",  fsNORMAL),
+                                        variable=self.StationidNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor,
+                                         onvalue=True, offvalue=False)                             
+                    self.StationidNNCkb.grid(row=guiRow, column=2,
+                                      columnspan=1, padx=xPadding, pady=yPadding,
+                                      sticky='news')
+                    sLastStation=row['stationID']
+    
+                self.dClassNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                           text=row['dClass'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+                self.dClassNNLabel.grid(row=guiRow, column=3,
                                           columnspan=1, padx=xPadding, pady=yPadding,
                                           sticky='news')
-                        sLastCountry=row['country'] 
-                    
-                    if((index==0) or (row['stationID'] not in sLastStation)):
-                        self.StationidNNCkbVar = tk.BooleanVar(value=True)
-                        self.StationidNNCkb = ctk.CTkCheckBox(scrollableFrame4Widgets,
-                                            text=row['stationID'], font=("Georgia",  fsNORMAL),
-                                            variable=self.StationidNNCkbVar,text_color=sTextColor, text_color_disabled=sTextColor,
-                                             onvalue=True, offvalue=False)                             
-                        self.StationidNNCkb.grid(row=guiRow, column=2,
+                
+                self.altitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                           text=row['altitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+                self.altitudeNNLabel.grid(row=guiRow, column=4,
                                           columnspan=1, padx=xPadding, pady=yPadding,
                                           sticky='news')
-                        sLastStation=row['stationID']
-        
-                    self.dClassNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                               text=row['dClass'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-                    self.dClassNNLabel.grid(row=guiRow, column=3,
-                                              columnspan=1, padx=xPadding, pady=yPadding,
-                                              sticky='news')
-                    
-                    self.altitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                               text=row['altitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-                    self.altitudeNNLabel.grid(row=guiRow, column=4,
-                                              columnspan=1, padx=xPadding, pady=yPadding,
-                                              sticky='news')
-        
-                    sSamplingHeights=[str(row['samplingHeight'][0])]
-                    for element in row['samplingHeight']:
-                        sElement=str(element)
-                        if(not sElement in sSamplingHeights):
-                            sSamplingHeights.append(sElement)
-                            
-                    self.samplHghtNNDdlVar = tk.StringVar(value=str(row['samplingHeight'][0])) # "212.0") # str(row['samplingHeight'][0])) # drop-down-list
-                    self.samplHghtNNOptionMenu = ctk.CTkOptionMenu(scrollableFrame4Widgets,
-                                                    values=sSamplingHeights, 
-                                                    variable=self.samplHghtNNDdlVar,
-                                                    font=("Georgia",  fsNORMAL), dropdown_font=("Georgia",  fsSMALL),  
-                                                    text_color=sTextColor, text_color_disabled=sTextColor)
-                    self.samplHghtNNOptionMenu.grid(row=guiRow, column=5,
-                                              columnspan=1, padx=xPadding, pady=yPadding,
-                                              sticky='news')
-                    
-                    affiliationICOS="ICOS"
-                    if(not row['isICOS']):
-                        affiliationICOS="non-ICOS"
-                    self.isICOSNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                               text=affiliationICOS, font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-                    self.isICOSNNLabel.grid(row=guiRow, column=6,
-                                              columnspan=1, padx=xPadding, pady=yPadding,
-                                              sticky='news')
-        
-                    self.latitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                               text=row['latitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-                    self.latitudeNNLabel.grid(row=guiRow, column=7,
-                                              columnspan=1, padx=xPadding, pady=yPadding,
-                                              sticky='news')
-        
-                    self.longitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                               text=row['longitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-                    self.longitudeNNLabel.grid(row=guiRow, column=8,
-                                              columnspan=1, padx=xPadding, pady=yPadding,
-                                              sticky='news')
-                    
-                    self.dataSetDescrNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                               text=row['dataSetLabel'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-                    self.dataSetDescrNNLabel.grid(row=guiRow, column=9,
-                                              columnspan=3, padx=xPadding, pady=yPadding,
-                                              sticky='news')
+    
+                sSamplingHeights=[str(row['samplingHeight'][0])]
+                for element in row['samplingHeight']:
+                    sElement=str(element)
+                    if(not sElement in sSamplingHeights):
+                        sSamplingHeights.append(sElement)
+                        
+                self.samplHghtNNDdlVar = tk.StringVar(value=str(row['samplingHeight'][0])) # "212.0") # str(row['samplingHeight'][0])) # drop-down-list
+                self.samplHghtNNOptionMenu = ctk.CTkOptionMenu(scrollableFrame4Widgets,
+                                                values=sSamplingHeights, 
+                                                variable=self.samplHghtNNDdlVar,
+                                                font=("Georgia",  fsNORMAL), dropdown_font=("Georgia",  fsSMALL),  
+                                                text_color=sTextColor, text_color_disabled=sTextColor)
+                self.samplHghtNNOptionMenu.grid(row=guiRow, column=5,
+                                          columnspan=1, padx=xPadding, pady=yPadding,
+                                          sticky='news')
+                
+                affiliationICOS="ICOS"
+                if(not row['isICOS']):
+                    affiliationICOS="non-ICOS"
+                self.isICOSNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                           text=affiliationICOS, font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+                self.isICOSNNLabel.grid(row=guiRow, column=6,
+                                          columnspan=1, padx=xPadding, pady=yPadding,
+                                          sticky='news')
+    
+                self.latitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                           text=row['latitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+                self.latitudeNNLabel.grid(row=guiRow, column=7,
+                                          columnspan=1, padx=xPadding, pady=yPadding,
+                                          sticky='news')
+    
+                self.longitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                           text=row['longitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+                self.longitudeNNLabel.grid(row=guiRow, column=8,
+                                          columnspan=1, padx=xPadding, pady=yPadding,
+                                          sticky='news')
+                
+                self.dataSetDescrNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                           text=row['dataSetLabel'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+                self.dataSetDescrNNLabel.grid(row=guiRow, column=9,
+                                          columnspan=3, padx=xPadding, pady=yPadding,
+                                          sticky='news')
 
         # Update buttons frames idle tasks to let tkinter calculate buttons sizes
         scrollableFrame4Widgets.update_idletasks()
@@ -1644,23 +1584,24 @@ class RefineObsSelectionGUI(ctk.CTk):
                 
         if(bStationFilterError):
             bErrors=True
-        # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
-        if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):
-            bErrors=True
-            sErrorMsg+="Error: At least one of Land, Fossil or Ocean needs to be adjustable, preferably Land.\n"
-        elif(not self.LandVegCkb.get()):
-            bWarnings=True
-            sWarningsMsg+="Warning: It is usually a bad idea NOT to adjust the land/vegetation net exchange. Are you sure?!\n"
-        if(self.FossilCkb.get()):
-            bWarnings=True
-            sWarningsMsg+="Warning: It is unusual wanting to adjust the fossil emissions in LUMIA. Are you sure?!\n"
-        if(self.OceanCkb.get()):
-            bWarnings=True
-            sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
-        if(bErrors==False):
-            ymlContents['optimize']['emissions']['co2']['biosphere']['adjust'] = self.LandVegCkb.get()
-            ymlContents['optimize']['emissions']['co2']['fossil']['adjust'] = self.FossilCkb.get()
-            ymlContents['optimize']['emissions']['co2']['ocean']['adjust'] = self.OceanCkb.get()                
+        if (0>1):
+            # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
+            if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):
+                bErrors=True
+                sErrorMsg+="Error: At least one of Land, Fossil or Ocean needs to be adjustable, preferably Land.\n"
+            elif(not self.LandVegCkb.get()):
+                bWarnings=True
+                sWarningsMsg+="Warning: It is usually a bad idea NOT to adjust the land/vegetation net exchange. Are you sure?!\n"
+            if(self.FossilCkb.get()):
+                bWarnings=True
+                sWarningsMsg+="Warning: It is unusual wanting to adjust the fossil emissions in LUMIA. Are you sure?!\n"
+            if(self.OceanCkb.get()):
+                bWarnings=True
+                sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
+            if(bErrors==False):
+                ymlContents['optimize']['emissions']['co2']['biosphere']['adjust'] = self.LandVegCkb.get()
+                ymlContents['optimize']['emissions']['co2']['fossil']['adjust'] = self.FossilCkb.get()
+                ymlContents['optimize']['emissions']['co2']['ocean']['adjust'] = self.OceanCkb.get()                
             
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
