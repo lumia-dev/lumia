@@ -14,7 +14,7 @@ from loguru import logger
 import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
-from tkinter import ttk
+# from tkinter import ttk
 
 
 
@@ -514,15 +514,15 @@ class LumiaGui(ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
-                            text="Ignore Warnings", font=("Georgia",  fsNORMAL),
-                            text_color=inactiveTextColor, text_color_disabled=activeTextColor, 
-                            variable=self.bIgnoreWarningsCkbVar,
-                             onvalue=True, offvalue=False)                            
-        self.ignoreWarningsCkb.grid(row=9, column=7,
-                          padx=xPadding, pady=yPadding,
-                          sticky="ew")
+        #self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
+        #self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
+        #                    text="Ignore Warnings", font=("Georgia",  fsNORMAL),
+        #                    text_color=inactiveTextColor, text_color_disabled=activeTextColor, 
+        #                    variable=self.bIgnoreWarningsCkbVar,
+        #                     onvalue=True, offvalue=False)                            
+        #self.ignoreWarningsCkb.grid(row=9, column=7,
+        #                  padx=xPadding, pady=yPadding,
+        #                  sticky="ew")
 
        # Row 10
         # ################################################################
@@ -1029,7 +1029,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
         self.ObsFileRankingBox = ctk.CTkTextbox(rootFrame,
                                          width=colWidth,
-                                         height=(3*rowHeight+vSpacer))
+                                         height=int(2.4*rowHeight+vSpacer))
         self.ObsFileRankingBox.grid(row=2, column=0,
                              columnspan=1, rowspan=2, padx=xPadding,
                              pady=yPadding, sticky="nsew")
@@ -1178,23 +1178,23 @@ class RefineObsSelectionGUI(ctk.CTk):
             self.ICOSonlyCkb.grid(row=3, column=7,
                               padx=xPadding, pady=yPadding,
                               sticky="nw")
-        if(0>1):
-            self.isICOSRadioButtonVar = tk.IntVar(value=1)
-            if (ymlContents['observations']['filters']['ICOSonly']==True):
-                self.isICOSRadioButtonVar.set(2)
-            self.isICOSplusRadioButton = ctk.CTkRadioButton(root,
-                                       text="Any station", font=("Georgia",  fsNORMAL),
-                                       variable=self.isICOSRadioButtonVar,  value=1)
-            self.isICOSplusRadioButton.grid(row=2, column=7,
-                                padx=xPadding, pady=yPadding,
-                                sticky="nw")
-             
-            self.ICOSradioButton = ctk.CTkRadioButton(root,
-                                       text="ICOS only", font=("Georgia",  fsNORMAL), 
-                                       variable=self.isICOSRadioButtonVar,  value=2)
-            self.ICOSradioButton.grid(row=3, column=7,
-                                padx=xPadding, pady=yPadding,
-                                sticky="nw")
+        #if(0>1):
+        self.isICOSRadioButtonVar = tk.IntVar(value=1)
+        if (ymlContents['observations']['filters']['ICOSonly']==True):
+            self.isICOSRadioButtonVar.set(2)
+        self.isICOSplusRadioButton = ctk.CTkRadioButton(rootFrame,
+                                   text="Any station", font=("Georgia",  fsNORMAL),
+                                   variable=self.isICOSRadioButtonVar,  value=1)
+        self.isICOSplusRadioButton.grid(row=2, column=7,
+                            padx=xPadding, pady=yPadding,
+                            sticky="nw")
+         
+        self.ICOSradioButton = ctk.CTkRadioButton(rootFrame,
+                                   text="ICOS only", font=("Georgia",  fsNORMAL), 
+                                   variable=self.isICOSRadioButtonVar,  value=2)
+        self.ICOSradioButton.grid(row=3, column=7,
+                            padx=xPadding, pady=yPadding,
+                            sticky="nw")
 
 
         #self.ICOSplusCkb = ctk.CTkCheckBox(rootFrame,
@@ -1367,10 +1367,10 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Set grid_propagate to False to allow 5-by-5 buttons resizing later
         #rootFrameCanvas.grid_propagate(False)
         cWidth = appWidth - xPadding
-        cHeight = appHeight - (7*rowHeight) - yPadding - yPadding
+        cHeight = appHeight - (7*rowHeight) - (3*yPadding)
         
         # Add a scrollableCanvas in that frame
-        scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="turquoise3", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+        scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="cadet blue", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
         scrollableCanvas.grid(row=0, column=0,  columnspan=12,  rowspan=10, sticky="news")
         
         # Link a scrollbar to the scrollableCanvas
@@ -1379,7 +1379,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         scrollableCanvas.configure(yscrollcommand=vsb.set)
         
         # Create a frame to contain the widgets for all obs data sets found following initial user criteria
-        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="cyan4")
+        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") # "dark sea green"
         scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
         # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
         
@@ -1414,7 +1414,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             self.Col1Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
                                        text="Country   .", font=("Georgia",  fsNORMAL))
             self.Col1Label.grid(row=startRow, column=1,
-                                      columnspan=1, padx=xPadding+20, pady=yPadding,
+                                      columnspan=1, padx=xPadding+15, pady=yPadding,
                                       sticky="nw")
             self.Col2Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
                                        text="StationID  .", font=("Georgia",  fsNORMAL))
@@ -1423,7 +1423,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                                       sticky="nw")
             self.Col3Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
                                        text="dataRanking .", font=("Georgia",  fsNORMAL))
-            self.Col3Label.grid(row=startRow, column=3,
+            self.Col3Label.grid(row=startRow, column=8,
                                       columnspan=1, padx=xPadding, pady=yPadding,
                                       sticky="nw")
             self.Col4Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
@@ -1433,7 +1433,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                                       sticky="nw")
             self.Col5Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
                                        text="samplingHeight", font=("Georgia",  fsNORMAL))
-            self.Col5Label.grid(row=startRow, column=5,
+            self.Col5Label.grid(row=startRow, column=0,
                                       columnspan=1, padx=xPadding+30, pady=yPadding,
                                       sticky="nw")
             self.Col6Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
@@ -1552,14 +1552,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         # Update buttons frames idle tasks to let tkinter calculate buttons sizes
         scrollableFrame4Widgets.update_idletasks()
-        print(vsb.winfo_width())
-        # Resize the canvas frame to show exactly 5-by-5 buttons and the scrollbar
-        #first5columns_width = appWidth - xPadding - 20  #sum([buttons[0][j].winfo_width() for j in range(0, 5)])
-        #first5rows_height = 200 #appHeight - (6*rowHeight) - yPadding #sum([buttons[i][0].winfo_height() for i in range(0, 5)])
-        #print(first5columns_width)
-        #rootFrameCanvas.config(width=first5columns_width + vsb.winfo_width(),
-        #                    height=first5rows_height)
-        
+              
         # Set the scrollableCanvas scrolling region
         scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
              

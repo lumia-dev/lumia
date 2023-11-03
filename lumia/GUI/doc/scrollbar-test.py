@@ -1,6 +1,6 @@
 import tkinter as tk
-import tkinter.ttk as ttk
-import sys
+#import tkinter.ttk as ttk
+#import sys
 if(1>0):
     if (1>0):
         root = tk.Tk()
