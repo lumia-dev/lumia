@@ -43,7 +43,12 @@ model:
   options:
     serial: false
   output:
-    steps: ['apri', 'apos']
+    steps:
+    - apri
+    - apos
+    stepsLiteralStr: !!python/object/new:__main__.AsLiteralString
+    - '[''apri'',''apos'']'
+    stepsStdStr: '[''apri'',''apos'']'
   path:
     footprints: ${run.paths.footprints}
     output: ${run.paths.output}
@@ -55,12 +60,17 @@ model:
 observations:
   co2:
     units: ppm
-  end: '2018-03-01 23:59:59'
+  end: '2018-02-01 23:59:59'
   file:
     cpDir: /data/dataAppStorage/asciiAtcProductTimeSer/
     location: CARBONPORTAL
     path: observations.tar.gz
-    ranking: ['ObsPack', 'Level2', 'Level1', 'NRT', 'AnyOther']
+    ranking:
+    - ObsPack
+    - Level2
+    - Level1
+    - NRT
+    - AnyOther
     rename: background:mix_background
     tracer: co2
   filters:
@@ -70,7 +80,6 @@ observations:
     inletMinHeight: 0
     stationMaxAlt: 6500
     stationMinAlt: 0
-    ICOSonly: false
   start: '2018-01-01 00:00:00'
   uncertainty:
     background: 1.822
@@ -119,7 +128,8 @@ run:
     lon0: -15.0
     lon1: 35.0
   timestep: 1h
-  tracers: ['co2']
+  tracers:
+  - co2
 softwareUsed:
   lumia:
     branch:
