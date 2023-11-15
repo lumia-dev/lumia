@@ -34,6 +34,18 @@ def swapListElements(list, pos1, pos2):
         list[pos1], list[pos2] = list[pos2], list[pos1]
     return list
 
+def formatMyString(inString, minLen, units=""):
+    ''' Make the incoming string at least as long as minLen by adding spaces to its left and add the optional units'''
+    if(inString is None) or (minLen is None):
+        return""
+    minLen=minLen - len(units)
+    if(len(inString)<1) or (minLen < 1):
+        return""
+    outStr=inString
+    while (len(outStr) < minLen):
+        outStr=' '+outStr
+    return(outStr+units)
+
 def extract_numbers_from_string(s):
     # This regular expression pattern matches integers and floating-point numbers.
     pattern = r"[-+]?[.]?[d]+(?:,ddd)[.]?d(?:[eE][-+]?d+)?"
@@ -1428,56 +1440,61 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Row 4 title for individual entries
         # ################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid']
-        self.Col0Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text=". Selected", font=("Georgia",  fsNORMAL))
-        self.Col0Label.grid(row=4, column=0,
-                                  columnspan=1, padx=2, pady=yPadding,
-                                  sticky="nw")
-        self.Col1Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="Country", font=("Georgia",  fsNORMAL))
-        self.Col1Label.grid(row=4, column=1,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col2Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="StationID", font=("Georgia",  fsNORMAL))
-        self.Col2Label.grid(row=4, column=2,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col3Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="dataRanking", font=("Georgia",  fsNORMAL))
-        self.Col3Label.grid(row=4, column=3,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col4Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="Stat.altitude", font=("Georgia",  fsNORMAL))
-        self.Col4Label.grid(row=4, column=4,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col5Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="samplingHeight", font=("Georgia",  fsNORMAL))
-        self.Col5Label.grid(row=4, column=5,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col6Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="is ICOS", font=("Georgia",  fsNORMAL))
-        self.Col6Label.grid(row=4, column=6,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col7Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="Latitude/°N", font=("Georgia",  fsNORMAL))
-        self.Col7Label.grid(row=4, column=7,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col8Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="Longitude/°E", font=("Georgia",  fsNORMAL))
-        self.Col8Label.grid(row=4, column=8,
-                                  columnspan=1, padx=0, pady=yPadding,
-                                  sticky="nw")
-        self.Col9Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text="Data description", font=("Georgia",  fsNORMAL))
-        self.Col9Label.grid(row=4, column=9,
-                                  columnspan=3, padx=0, pady=yPadding,
-                                  sticky="nw")
+        myLabels=". Selected        Country         StationID       SamplingHeight   Stat.altitude    Network   Latitude Longitude  DataRanking DataDescription"
+        self.ColLabels = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                   text=myLabels, font=("Georgia",  fsNORMAL))
+        self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
+        if(0>1):
+            self.Col0Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text=". Selected", font=("Georgia",  fsNORMAL))
+            self.Col0Label.grid(row=4, column=0,
+                                      columnspan=1, padx=2, pady=yPadding,
+                                      sticky="nw")
+            self.Col1Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="Country", font=("Georgia",  fsNORMAL))
+            self.Col1Label.grid(row=4, column=1,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col2Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="StationID", font=("Georgia",  fsNORMAL))
+            self.Col2Label.grid(row=4, column=2,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col3Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="samplingHeight", font=("Georgia",  fsNORMAL))
+            self.Col3Label.grid(row=4, column=3,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col4Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="Stat.altitude", font=("Georgia",  fsNORMAL))
+            self.Col4Label.grid(row=4, column=4,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col5Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="is ICOS", font=("Georgia",  fsNORMAL))
+            self.Col5Label.grid(row=4, column=5,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col6Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="Latitude/°N", font=("Georgia",  fsNORMAL))
+            self.Col6Label.grid(row=4, column=6,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col7Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="Longitude/°E", font=("Georgia",  fsNORMAL))
+            self.Col7Label.grid(row=4, column=7,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col8Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="dataRanking", font=("Georgia",  fsNORMAL))
+            self.Col8Label.grid(row=4, column=8,
+                                      columnspan=1, padx=0, pady=yPadding,
+                                      sticky="nw")
+            self.Col9Label = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
+                                       text="Data description", font=("Georgia",  fsNORMAL))
+            self.Col9Label.grid(row=4, column=9,
+                                      columnspan=3, padx=0, pady=yPadding,
+                                      sticky="nw")
 
         # Create a scrollable frame onto which to place the many widgets that represent all valid observations found
         #  ##################################################################
@@ -1517,60 +1534,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         sLastCountry=''
         sLastStation=''
         
-        if(0>1):
-            # newColumnNames=['selected','country', 'stationID', 'altitude', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'altOk', 'HghtOk','showCountry','showStation']
-            invisibleInk='cyan4' # repeat the labels with invisible ink to get the same column width
-            self.Col0Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Selected  .", font=("Georgia",  fsNORMAL))
-            self.Col0Label.grid(row=startRow, column=0,
-                                      columnspan=1, padx=xPadding+30, pady=yPadding,
-                                      sticky="nw")
-            self.Col1Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Country   .", font=("Georgia",  fsNORMAL))
-            self.Col1Label.grid(row=startRow, column=1,
-                                      columnspan=1, padx=xPadding+15, pady=yPadding,
-                                      sticky="nw")
-            self.Col2Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="StationID  .", font=("Georgia",  fsNORMAL))
-            self.Col2Label.grid(row=startRow, column=2,
-                                      columnspan=1, padx=xPadding+10, pady=yPadding,
-                                      sticky="nw")
-            self.Col3Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Stat.altitude", font=("Georgia",  fsNORMAL))
-            self.Col3Label.grid(row=startRow, column=8,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            self.Col4Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="samplingHeight", font=("Georgia",  fsNORMAL))
-            self.Col4Label.grid(row=startRow, column=4,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            self.Col5Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="is ICOS      .", font=("Georgia",  fsNORMAL))
-            self.Col5Label.grid(row=startRow, column=0,
-                                      columnspan=1, padx=xPadding+30, pady=yPadding,
-                                      sticky="nw")
-            self.Col6Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Latitude/°N   .", font=("Georgia",  fsNORMAL))
-            self.Col6Label.grid(row=startRow, column=6,
-                                      columnspan=1, padx=xPadding+20, pady=yPadding,
-                                      sticky="nw")
-            self.Col7Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Longitude/°E ", font=("Georgia",  fsNORMAL))
-            self.Col7Label.grid(row=startRow, column=7,
-                                      columnspan=1, padx=xPadding+15, pady=yPadding,
-                                      sticky="nw")
-            self.Col8Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="dataRanking .", font=("Georgia",  fsNORMAL))
-            self.Col8Label.grid(row=startRow, column=8,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-            self.Col9Label = ctk.CTkLabel(scrollableFrame4Widgets, justify="left", anchor="w",text_color=invisibleInk, 
-                                       text="Data description", font=("Georgia",  fsNORMAL))
-            self.Col9Label.grid(row=startRow, column=9,
-                                      columnspan=3, padx=xPadding, pady=yPadding,
-                                      sticky="nw")
-
         #def createRowOfWidgets(gridList, rowindex, row):
             
         num = 0  # index for 
@@ -1692,17 +1655,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         widgetsLst.append(myWidgetStationid)
         gridRow.append(row['stationID'])
 
-        colidx+=1 # =3  row['altitude']
-        # ###################################################
-        gridID=int((100*rowidx)+colidx)
-        myWidgetVar= str(row['altitude']) 
-        myWidgetStationAltitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['altitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                            font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
-        myWidgetStationAltitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
-        widgetsLst.append(myWidgetStationAltitude)
-        gridRow.append(row['altitude'])
-
-        colidx+=1 # =4  row['samplingHeight']
+        colidx+=1 # =3  row['samplingHeight']
         # ###################################################
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= tk.StringVar(value=str(row['samplingHeight'][0])) 
@@ -1714,63 +1667,92 @@ class RefineObsSelectionGUI(ctk.CTk):
         widgetsLst.append(myWidgetSamplingHeight)
         gridRow.append(row['samplingHeight'][0])
 
-        colidx+=1 # =5  row['isICOS']
+        colidx+=1 # =4  Remaining Labels in one string
         # ###################################################
         gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.IntVar(value=gridID)
         affiliationICOS="ICOS"
         if(not row['isICOS']):
             affiliationICOS="non-ICOS"
-        self.isICOSNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                   text=affiliationICOS, font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-        self.isICOSNNLabel.grid(row=guiRow, column=colidx,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky='news')
-        gridRow.append(affiliationICOS)
+        sLat="{:.2f}".format(row['latitude'])
+        sLon="{:.2f}".format(row['longitude'])
+        myWidgetVar= formatMyString(str(row['altitude']), 9, 'm')\
+                                +formatMyString(affiliationICOS, 12, '')\
+                                +formatMyString((sLat), 11, '°N')\
+                                +formatMyString((sLon), 10, '°E')\
+                                +formatMyString(str(row['dClass']), 8, '')\
+                                +'   '+row['dataSetLabel']
+        myWidgetOtherLabels  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=myWidgetVar,text_color=sTextColor, text_color_disabled=sTextColor, 
+                                                            font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
+        myWidgetOtherLabels.grid(row=guiRow, column=colidx, columnspan=6, padx=xPadding, pady=yPadding, sticky='nw')
+        widgetsLst.append(myWidgetOtherLabels)
+        gridRow.append(myWidgetVar)
 
-        colidx+=1 # =6  row['latitude']
-        # ###################################################
-        gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.IntVar(value=gridID)
-        self.latitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                   text=row['latitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-        self.latitudeNNLabel.grid(row=guiRow, column=colidx,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky='news')
-        gridRow.append(row['latitude'])
 
-        colidx+=1 # =7  row['longitude']
         # ###################################################
-        gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.IntVar(value=gridID)
-        self.longitudeNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                   text=row['longitude'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-        self.longitudeNNLabel.grid(row=guiRow, column=colidx,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky='news')
-        gridRow.append(row['longitude'])
-        
-        colidx+=1 # =8  row['dClass']
-        # ###################################################
-        gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.IntVar(value=gridID)
-        self.dClassNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                   text=row['dClass'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-        self.dClassNNLabel.grid(row=guiRow, column=colidx,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky='news')
-        gridRow.append(row['dClass'])
-        
-        colidx+=1 # =9  row['dataSetLabel']
-        # ###################################################
-        gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.IntVar(value=gridID)
-        self.dataSetDescrNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                   text=row['dataSetLabel'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-        self.dataSetDescrNNLabel.grid(row=guiRow, column=colidx,
-                                  columnspan=3, padx=xPadding, pady=yPadding,
-                                  sticky='news')
-        gridRow.append(row['dataSetLabel'])
+        if(0>1):
+            colidx+=1 # =4  row['altitude']
+            gridID=int((100*rowidx)+colidx)
+            myWidgetVar= str(row['altitude']) 
+            myWidgetStationAltitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['altitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
+                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
+            myWidgetStationAltitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
+            widgetsLst.append(myWidgetStationAltitude)
+            gridRow.append(row['altitude'])
+    
+            colidx+=1 # =5  row['isICOS']
+            # ###################################################
+            gridID=int((100*rowidx)+colidx)
+            affiliationICOS="ICOS"
+            if(not row['isICOS']):
+                affiliationICOS="non-ICOS"
+            myWidgetVar= affiliationICOS 
+            myWidgetIsICOS  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=myWidgetVar,text_color=sTextColor, text_color_disabled=sTextColor, 
+                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
+            myWidgetIsICOS.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
+            widgetsLst.append(myWidgetIsICOS)
+            gridRow.append(affiliationICOS)
+    
+            colidx+=1 # =6  row['latitude']
+            # ###################################################
+            gridID=int((100*rowidx)+colidx)
+            myWidgetVar= str(row['latitude']) 
+            myWidgetLatitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['latitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
+                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
+            myWidgetLatitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
+            widgetsLst.append(myWidgetLatitude)
+            gridRow.append(row['latitude'])
+    
+            colidx+=1 # =7  row['longitude']
+            # ###################################################
+            gridID=int((100*rowidx)+colidx)
+            myWidgetVar= str(row['longitude']) 
+            myWidgetLongitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['longitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
+                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
+            myWidgetLongitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
+            widgetsLst.append(myWidgetLongitude)
+            gridRow.append(row['longitude'])
+            
+            colidx+=1 # =8  row['dClass']
+            # ###################################################
+            gridID=int((100*rowidx)+colidx)
+            myWidgetVar= tk.IntVar(value=gridID)
+            self.dClassNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                       text=row['dClass'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+            self.dClassNNLabel.grid(row=guiRow, column=colidx,
+                                      columnspan=1, padx=xPadding, pady=yPadding,
+                                      sticky='news')
+            gridRow.append(row['dClass'])
+            
+            colidx+=1 # =9  row['dataSetLabel']
+            # ###################################################
+            gridID=int((100*rowidx)+colidx)
+            myWidgetVar= tk.IntVar(value=gridID)
+            self.dataSetDescrNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
+                                       text=row['dataSetLabel'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
+            self.dataSetDescrNNLabel.grid(row=guiRow, column=colidx,
+                                      columnspan=3, padx=xPadding, pady=yPadding,
+                                      sticky='news')
+            gridRow.append(row['dataSetLabel'])
         # createRowOfWidgets() completed
 
 
