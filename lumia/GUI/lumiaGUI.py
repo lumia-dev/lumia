@@ -1440,7 +1440,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Row 4 title for individual entries
         # ################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid']
-        myLabels=". Selected        Country         StationID       SamplingHeight   Stat.altitude    Network   Latitude Longitude  DataRanking DataDescription"
+        myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude    Network   Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
                                    text=myLabels, font=("Georgia",  fsNORMAL))
         self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
@@ -1612,7 +1612,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="",font=("Georgia", fsNORMAL),
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             variable=myWidgetVar, onvalue=True, offvalue=False) 
-        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
         if(bSelected):
             myWidgetSelect.select()
         else:
@@ -1631,7 +1631,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             myWidgetVar= tk.BooleanVar(value=row['showCountry'])
             myWidgetCountry  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False)  
-            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
             myWidgetCountry.select()
             myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
             widgetsLst.append(myWidgetCountry)
@@ -1639,14 +1639,14 @@ class RefineObsSelectionGUI(ctk.CTk):
             widgetsLst.append(None)
         gridRow.append(row['country'])
         
-        colidx+=1 # =2  row['showStation']
+        colidx+=1 # =2   row['showStation']
         # ###################################################
         num+=1
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= tk.BooleanVar(value=row['showStation'])
         myWidgetStationid  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False) 
-        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
         if(row['showStation']):
             myWidgetStationid.select()
         else:
@@ -1787,7 +1787,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
             
-    def handleMyCheckboxEvent(self, gridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor):
+    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         widgetID=(ri*nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
@@ -1796,39 +1796,98 @@ class RefineObsSelectionGUI(ctk.CTk):
         if(widgetsLst[widgetID] is not None):
             if(ci==0):
                 if(bChkBxIsSelected):
+                    obsDf.at[(ri) ,  ('selected')] =True
+                    row[0]=True
                     widgetsLst[widgetID].configure(text_color='blue', text='On')
                 else:
+                    obsDf.at[(ri) ,  ('selected')] =False
+                    row[0]=False
                     widgetsLst[widgetID].configure(text_color='green', text='Off')
             elif(ci==1):  # Country
                 if(bChkBxIsSelected):
+                    obsDf.at[(ri) ,  ('selected')] =True
+                    row[0]=True
+                    obsDf.at[(ri) ,  ('showCountry')] =True
+                    row[13]=True
                     widgetsLst[widgetID].configure(text_color=activeTextColor)
-                    widgetsLst[widgetID-1].configure(text_color='blue', text='On')
-                    widgetsLst[widgetID-1].select()
-                    widgetsLst[widgetID+1].configure(text_color=activeTextColor)
-                    widgetsLst[widgetID+1].select()
-                    widgetsLst[widgetID+2].configure(text_color=activeTextColor)
                 else:
+                    obsDf.at[(ri) ,  ('selected')] =False
+                    row[0]=False
+                    obsDf.at[(ri) ,  ('showCountry')] =False
+                    row[13]=False
                     widgetsLst[widgetID].configure(text_color=inactiveTextColor)
-                    widgetsLst[widgetID-1].configure(text_color='green', text='Off')
-                    widgetsLst[widgetID-1].deselect()
-                    widgetsLst[widgetID+1].configure(text_color=inactiveTextColor)
-                    widgetsLst[widgetID+1].deselect()
-                    widgetsLst[widgetID+2].configure(text_color=inactiveTextColor)
             elif(ci==2):  # stationID
                 if(bChkBxIsSelected):
+                    obsDf.at[(ri) ,  ('selected')] =True
+                    row.iloc[0]=True
+                    obsDf.at[(ri) ,  ('showStation')] =True
+                    row.iloc[14]=True
                     widgetsLst[widgetID].configure(text_color=activeTextColor)
-                    widgetsLst[widgetID-2].configure(text_color='blue', text='On')
-                    widgetsLst[widgetID-2].select()
-                    widgetsLst[widgetID+1].configure(text_color=activeTextColor)
-                    widgetsLst[widgetID+2].configure(text_color=activeTextColor)
-                    #widgetsLst[widgetID+1].select()
                 else:
+                    obsDf.at[(ri) ,  ('selected')] =False
+                    row.iloc[0]=False
+                    obsDf.at[(ri) ,  ('showStation')] =False
+                    row.iloc[14]=False
                     widgetsLst[widgetID].configure(text_color=inactiveTextColor)
-                    widgetsLst[widgetID-2].configure(text_color='green', text='Off')
-                    widgetsLst[widgetID-2].deselect()
+        # newRow=obsDf.iloc[ri] # Beware, newRow does not have the 'showCountry' and 'showStation' keys
+        print(row)
+        self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+ 
+
+ 
+    def updateRowOfWidgets(self, widgetsLst, rowidx, row, nWidgetsPerRow, activeTextColor, inactiveTextColor):
+        ''' toggle active/inactiveTextColor and verify the ChkBox states all the widgets belonging to one observational data 
+            set corresponding to a single line on the GUI.
+            We only modify the state parameters of existing widgets.
+        '''
+        nWidgetsPerRow=5
+        colidx=int(0)  # row['selected']
+        # ###################################################
+        widgetID=(rowidx*nWidgetsPerRow)+colidx  # calculate the corresponding index to access the right widget in widgetsLst
+        print(f"updateRowOfWidgets: rowidx={rowidx}, colidx={colidx}, widgetID={widgetID}")
+        if(widgetsLst[widgetID] is not None):
+            b=row['selected']
+            if(b):
+                widgetsLst[widgetID].select()
+                widgetsLst[widgetID].configure(text_color=activeTextColor)
+                if(widgetsLst[widgetID+1] is not None):
+                    widgetsLst[widgetID+1].configure(text_color=activeTextColor)
+                widgetsLst[widgetID+2].configure(text_color=activeTextColor)
+                widgetsLst[widgetID+3].configure(text_color=activeTextColor)
+                widgetsLst[widgetID+4].configure(text_color=activeTextColor)
+            else:
+                widgetsLst[widgetID].deselect()
+                widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                if(widgetsLst[widgetID+1] is not None):
                     widgetsLst[widgetID+1].configure(text_color=inactiveTextColor)
-                    widgetsLst[widgetID+2].configure(text_color=inactiveTextColor)
-                    #widgetsLst[widgetID+1].deselect()
+                widgetsLst[widgetID+2].configure(text_color=inactiveTextColor)
+                widgetsLst[widgetID+3].configure(text_color=inactiveTextColor)
+                widgetsLst[widgetID+4].configure(text_color=inactiveTextColor)
+ 
+        colidx+=1  # row['showCountry']
+        # ###################################################
+        widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
+        if(widgetsLst[widgetID] is not None):
+            b=row['showCountry']
+            bChkBxIsSelected=widgetsLst[widgetID].get()
+            if(b != bChkBxIsSelected):  # update the GUI
+                if(b):
+                    widgetsLst[widgetID].select()
+                else:
+                    widgetsLst[widgetID].deselect()
+        
+        colidx+=1  # row['showStation'] 
+        # ###################################################
+        widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
+        if(widgetsLst[widgetID] is not None):
+            b=row['showStation']
+            bChkBxIsSelected=widgetsLst[widgetID].get()
+            if(b != bChkBxIsSelected):  # update the GUI
+                if(b):
+                    widgetsLst[widgetID].select()
+                else:
+                    widgetsLst[widgetID].deselect()
+        
 
 
     def AskUserAboutWarnings(self):

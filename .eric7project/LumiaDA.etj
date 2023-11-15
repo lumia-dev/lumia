@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-11-15, 14:42:36"
+    "saved": "2023-11-15, 17:03:09"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -636,9 +636,9 @@
       "priority": 1,
       "lineno": 145,
       "completed": false,
-      "created": 1700055753.4910958,
+      "created": 1700064186.21718,
       "type": 1,
-      "uid": "{4209dd96-ef91-4aa7-a442-7697a74fe230}",
+      "uid": "{ca68d380-6c38-4694-8593-1db8b3f37444}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -649,9 +649,9 @@
       "priority": 1,
       "lineno": 800,
       "completed": false,
-      "created": 1700055753.4943385,
+      "created": 1700064186.220295,
       "type": 1,
-      "uid": "{c36b73da-1655-4909-9efd-4683e0a5902b}",
+      "uid": "{636034d4-b9f2-40d4-a8ce-baeb0fca7d20}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -662,9 +662,9 @@
       "priority": 1,
       "lineno": 986,
       "completed": false,
-      "created": 1700055753.4971278,
+      "created": 1700064186.2230372,
       "type": 1,
-      "uid": "{87c000ee-cd6f-4cd7-8b0d-d96f154f0fdb}",
+      "uid": "{5b6905ff-689f-44ba-a126-b371a7b3dc4a}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -675,9 +675,9 @@
       "priority": 1,
       "lineno": 1778,
       "completed": false,
-      "created": 1700055753.5003164,
+      "created": 1700064186.22619,
       "type": 1,
-      "uid": "{44ec4bcb-57f5-495e-88bc-a2ac2a5396c3}",
+      "uid": "{2d73fa90-dadf-442f-9b8b-89c35285973e}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -686,11 +686,11 @@
       "summary": "TODO: get the file name",
       "description": "",
       "priority": 1,
-      "lineno": 1856,
+      "lineno": 1915,
       "completed": false,
-      "created": 1700055753.5029185,
+      "created": 1700064186.2289524,
       "type": 1,
-      "uid": "{ab853e71-7652-4ab3-853b-9a54a9ef5fe6}",
+      "uid": "{cee36724-416a-4bc9-bd41-1529b3ea14c5}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -699,11 +699,11 @@
       "summary": "TODO: 4GUI: implemented different options for dealing with situations where the externally provided file on CO2 background",
       "description": "",
       "priority": 1,
-      "lineno": 1956,
+      "lineno": 2015,
       "completed": false,
-      "created": 1700055753.5055718,
+      "created": 1700064186.2315762,
       "type": 1,
-      "uid": "{e4340f9b-924c-41e3-903f-95e48043a66a}",
+      "uid": "{548adf4a-5912-4502-98d0-9e232fb0bde3}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
