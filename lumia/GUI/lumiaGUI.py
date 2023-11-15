@@ -880,20 +880,20 @@ class LumiaGui(ctk.CTk):
 
 
 class GridCTkCheckBox(ctk.CTkCheckBox):
-    def __init__(self, root, index, num, myGridID,  *args, **kwargs):
+    def __init__(self, root, myGridID,  *args, **kwargs):
         ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
-        self.widgetGridID= tk.IntVar(value=myGridID)
+        self.widgetGridID= myGridID
 
 class GridCTkLabel(ctk.CTkLabel):
-    def __init__(self, root, index, num, myGridID,  *args, **kwargs):
+    def __init__(self, root, myGridID,  *args, **kwargs):
         ctk.CTkLabel.__init__(self, root, *args, **kwargs)
         self.widgetGridID= tk.IntVar(value=myGridID)
 
 
 class GridCTkOptionMenu(ctk.CTkOptionMenu):
-    def __init__(self, root, index, num, myGridID, *args, **kwargs):
+    def __init__(self, root, myGridID, *args, **kwargs):
         ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
-        self.widgetGridID= tk.IntVar(value=myGridID)
+        self.widgetGridID= myGridID
 
 
 # LumiaGui Class =============================================================
@@ -1643,23 +1643,17 @@ class RefineObsSelectionGUI(ctk.CTk):
         if(rowidx==0):
             print(f"(rowidx={rowidx}, guiRow={guiRow})")
         colidx=int(0)  # row['selected']
-        ci0=int(0)
         # ###################################################
-        #self.SelectedNNCkbVar = tk.BooleanVar(value=row['selected'])
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
-        myGridID= tk.IntVar(value=gridID)
-        #myWidgetVar = tk.IntVar(value=gridID)
         myWidgetVar= tk.BooleanVar(value=row['selected'])
-        myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, 0, num, myGridID,  text="",font=("Georgia", fsNORMAL),
+        myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="",font=("Georgia", fsNORMAL),
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                            variable=myWidgetVar, onvalue=True, offvalue=False)  # variable=myWidgetVar,  onvalue=abs(gridID), offvalue=-1*abs(gridID)) 
-        #myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect: self.handleMyCheckboxEvent(widgetID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
-        myWidgetSelect.configure(command=lambda widgetID=myGridID : self.handleMyCheckboxEvent(myGridID, ci0, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+                                                            variable=myWidgetVar, onvalue=True, offvalue=False) 
+        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
         if(bSelected):
             myWidgetSelect.select()
         else:
             myWidgetSelect.deselect()
-        #myWidgetSelect.grid(row=rowidx, column= colidx, padx=2, pady=2, ipadx=20, ipady=30, sticky="nsew")
         myWidgetSelect.grid(row=guiRow, column=colidx,
                           columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         widgetsLst.append(myWidgetSelect) # colidx=1
@@ -1667,18 +1661,14 @@ class RefineObsSelectionGUI(ctk.CTk):
         gridRow.append(row['selected'])   
         
         colidx+=1 # =1  row['showCountry']
-        ci1=1
         # ###################################################
         num+=1
         if((rowidx==0) or (row['showCountry'] == True)):
             gridID=int((100*rowidx)+colidx)
-            myGridID= tk.IntVar(value=gridID)
-            #myWidgetVar= tk.IntVar(value=gridID)
             myWidgetVar= tk.BooleanVar(value=row['showCountry'])
-            myWidgetCountry  = GridCTkCheckBox(scrollableFrame4Widgets, 0, num, myGridID, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                                font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False)  #variable=myWidgetVar, onvalue=abs(gridID), offvalue=-1*abs(gridID)) 
-            #myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry: self.handleMyCheckboxEvent(widgetID,  widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor))  
-            myWidgetCountry.configure(command=lambda widgetID=myGridID : self.handleMyCheckboxEvent(myGridID, ci1, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+            myWidgetCountry  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
+                                                                font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False)  
+            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
             myWidgetCountry.select()
             myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
             widgetsLst.append(myWidgetCountry)
@@ -1687,17 +1677,13 @@ class RefineObsSelectionGUI(ctk.CTk):
         gridRow.append(row['country'])
         
         colidx+=1 # =2  row['showStation']
-        ci2=2
         # ###################################################
         num+=1
         gridID=int((100*rowidx)+colidx)
-        myGridID= tk.IntVar(value=gridID)
-        #myWidgetVar= tk.IntVar(value=gridID)
         myWidgetVar= tk.BooleanVar(value=row['showStation'])
-        myWidgetStationid  = GridCTkCheckBox(scrollableFrame4Widgets, 0, num, myGridID, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
+        myWidgetStationid  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False) 
-        #myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid: self.handleMyCheckboxEvent(widgetID,  widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor))  
-        myWidgetStationid.configure(command=lambda widgetID=myGridID : self.handleMyCheckboxEvent(myGridID, ci2, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
         if(row['showStation']):
             myWidgetStationid.select()
         else:
@@ -1709,32 +1695,21 @@ class RefineObsSelectionGUI(ctk.CTk):
         colidx+=1 # =3  row['altitude']
         # ###################################################
         gridID=int((100*rowidx)+colidx)
-        myGridID= tk.IntVar(value=gridID)
-        #sGridID=str(gridID)
-        myWidgetVar= str(row['altitude']) # tk.StringVar(value=sGridID)
-        # Labels have only a  'textvariable' tkinter.StringVar 
-        myWidgetStationAltitude  = GridCTkLabel(scrollableFrame4Widgets, 0, num, myGridID, text=str(row['altitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
+        myWidgetVar= str(row['altitude']) 
+        myWidgetStationAltitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['altitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
         myWidgetStationAltitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
         widgetsLst.append(myWidgetStationAltitude)
         gridRow.append(row['altitude'])
 
         colidx+=1 # =4  row['samplingHeight']
-        ci4=4
         # ###################################################
         gridID=int((100*rowidx)+colidx)
-        myGridID= tk.IntVar(value=gridID)
-        myWidgetVar= tk.StringVar(value=str(row['samplingHeight'][0])) # tk.StringVar(value=sGridID)
-        #self.samplHghtNNDdlVar = tk.StringVar(value=str(row['samplingHeight'][0]))  # drop-down-list
-        #self.samplHghtNNOptionMenu = ctk.CTkOptionMenu(scrollableFrame4Widgets,
-        #                                values=sSamplingHeights,  variable=self.samplHghtNNDdlVar,
-        #                                font=("Georgia",  fsNORMAL), dropdown_font=("Georgia",  fsSMALL),  
-        #                                text_color=sTextColor, text_color_disabled=sTextColor)
-        myWidgetSamplingHeight  = GridCTkOptionMenu(scrollableFrame4Widgets, gridID, num, myGridID, values=sSamplingHeights,
+        myWidgetVar= tk.StringVar(value=str(row['samplingHeight'][0])) 
+        myWidgetSamplingHeight  = GridCTkOptionMenu(scrollableFrame4Widgets, gridID, values=sSamplingHeights,
                                                             variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
-        # use the following command to access the myGridID tk.IntVar variable from the myWidgetSamplingHeight object
-        myWidgetSamplingHeight.configure(command=lambda widget=myGridID : self.handleMyOptionMenuEvent(myGridID, ci4,  widgetsLst, obsDf, sSamplingHeights, nWidgetsPerRow, activeTextColor, inactiveTextColor))  
+        myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.handleMyOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, widgetsLst, obsDf, sSamplingHeights, nWidgetsPerRow, activeTextColor, inactiveTextColor))  
         myWidgetSamplingHeight.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         widgetsLst.append(myWidgetSamplingHeight)
         gridRow.append(row['samplingHeight'][0])
@@ -1799,19 +1774,19 @@ class RefineObsSelectionGUI(ctk.CTk):
         # createRowOfWidgets() completed
 
 
-    def handleMyOptionMenuEvent(self, widgetID, colidx,  widgetsLst,  obsDf, sSamplingHeights, nWidgetsPerRow, activeTextColor, inactiveTextColor):
-        gridID= widgetID.get()  # gridID 
+    def handleMyOptionMenuEvent(self, gridID, widgetsLst,  obsDf, sSamplingHeights, nWidgetsPerRow, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
-        ci=colidx #int(gridID-(100*ri))  # column index for the widget on the grid
-        grididx=(ri*nWidgetsPerRow)+ci  # calculate the grididx to access the right widget in widgetsLst
-        print(f"(ri={ri}, ci={ci}, grididx={grididx}, gridID={gridID})")
-        if(widgetsLst[grididx] is not None):
+        ci=int(gridID-(100*ri))  # column index for the widget on the grid
+        widgetID=(ri*nWidgetsPerRow)+ci  # calculate the widgetID to access the right widget in widgetsLst
+        print(f"OptionMenuEventHandler: (ri={ri}, ci4={ci}, widgetID={widgetID}, gridID={gridID})")
+        if(widgetsLst[widgetID] is not None):
             if(ci==4):  # SamplingHeight
-                newSamplingHeight=widgetsLst[grididx].get() # a string var 
+                newSamplingHeight=widgetsLst[widgetID].get() # a string var 
                 nPos=0
                 try:
                     for sHght in sSamplingHeights:
-                        if (newSamplingHeight in sHght):
+                        if ((len(newSamplingHeight) == len(sHght)) and (newSamplingHeight in sHght)):
+                            # the len() check is necessary or 50m would first be found and matched in 250m
                             swapListElements(sSamplingHeights, 0, nPos)
                             f=[]
                             for s in sSamplingHeights:
@@ -1830,54 +1805,48 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
             
-    def handleMyCheckboxEvent(self, widgetID, colidx,  widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor):
-        gridID= widgetID.get()  # get the gridID  -- for some reason I haven't fully fathomed the colidx can be wrong...
+    def handleMyCheckboxEvent(self, gridID, widgetsLst, nWidgetsPerRow, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
-        ci=colidx #int(gridID-(100*ri))  # column index for the widget on the grid
-        grididx=(ri*nWidgetsPerRow)+ci  # calculate the grididx to access the right widget in widgetsLst
-        #bChkBxIsSelected=True
-        print(f"(ri={ri}, ci={ci}, grididx={grididx}, gridID={gridID})")
-        #if(gridID < 0):
-        #    bChkBxIsSelected=False
-        b=widgetsLst[grididx].get()
-        print(f"b=widgetsLst[grididx].get(),  b={b}")
-        bChkBxIsSelected=b
-        if(widgetsLst[grididx] is not None):
+        ci=int(gridID-(100*ri))  # column index for the widget on the grid
+        widgetID=(ri*nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
+        print(f"CheckboxEventHandler: (ri={ri}, ci={ci}, widgetID={widgetID}, gridID={gridID})")
+        bChkBxIsSelected=widgetsLst[widgetID].get()
+        if(widgetsLst[widgetID] is not None):
             if(ci==0):
                 if(bChkBxIsSelected):
-                    widgetsLst[grididx].configure(text_color='blue', text='On')
+                    widgetsLst[widgetID].configure(text_color='blue', text='On')
                 else:
-                    widgetsLst[grididx].configure(text_color='green', text='Off')
+                    widgetsLst[widgetID].configure(text_color='green', text='Off')
             elif(ci==1):  # Country
                 if(bChkBxIsSelected):
-                    widgetsLst[grididx].configure(text_color=activeTextColor)
-                    widgetsLst[grididx-1].configure(text_color='blue', text='On')
-                    widgetsLst[grididx-1].select()
-                    widgetsLst[grididx+1].configure(text_color=activeTextColor)
-                    widgetsLst[grididx+1].select()
-                    widgetsLst[grididx+2].configure(text_color=activeTextColor)
+                    widgetsLst[widgetID].configure(text_color=activeTextColor)
+                    widgetsLst[widgetID-1].configure(text_color='blue', text='On')
+                    widgetsLst[widgetID-1].select()
+                    widgetsLst[widgetID+1].configure(text_color=activeTextColor)
+                    widgetsLst[widgetID+1].select()
+                    widgetsLst[widgetID+2].configure(text_color=activeTextColor)
                 else:
-                    widgetsLst[grididx].configure(text_color=inactiveTextColor)
-                    widgetsLst[grididx-1].configure(text_color='green', text='Off')
-                    widgetsLst[grididx-1].deselect()
-                    widgetsLst[grididx+1].configure(text_color=inactiveTextColor)
-                    widgetsLst[grididx+1].deselect()
-                    widgetsLst[grididx+2].configure(text_color=inactiveTextColor)
+                    widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                    widgetsLst[widgetID-1].configure(text_color='green', text='Off')
+                    widgetsLst[widgetID-1].deselect()
+                    widgetsLst[widgetID+1].configure(text_color=inactiveTextColor)
+                    widgetsLst[widgetID+1].deselect()
+                    widgetsLst[widgetID+2].configure(text_color=inactiveTextColor)
             elif(ci==2):  # stationID
                 if(bChkBxIsSelected):
-                    widgetsLst[grididx].configure(text_color=activeTextColor)
-                    widgetsLst[grididx-2].configure(text_color='blue', text='On')
-                    widgetsLst[grididx-2].select()
-                    widgetsLst[grididx+1].configure(text_color=activeTextColor)
-                    widgetsLst[grididx+2].configure(text_color=activeTextColor)
-                    #widgetsLst[grididx+1].select()
+                    widgetsLst[widgetID].configure(text_color=activeTextColor)
+                    widgetsLst[widgetID-2].configure(text_color='blue', text='On')
+                    widgetsLst[widgetID-2].select()
+                    widgetsLst[widgetID+1].configure(text_color=activeTextColor)
+                    widgetsLst[widgetID+2].configure(text_color=activeTextColor)
+                    #widgetsLst[widgetID+1].select()
                 else:
-                    widgetsLst[grididx].configure(text_color=inactiveTextColor)
-                    widgetsLst[grididx-2].configure(text_color='green', text='Off')
-                    widgetsLst[grididx-2].deselect()
-                    widgetsLst[grididx+1].configure(text_color=inactiveTextColor)
-                    widgetsLst[grididx+2].configure(text_color=inactiveTextColor)
-                    #widgetsLst[grididx+1].deselect()
+                    widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                    widgetsLst[widgetID-2].configure(text_color='green', text='Off')
+                    widgetsLst[widgetID-2].deselect()
+                    widgetsLst[widgetID+1].configure(text_color=inactiveTextColor)
+                    widgetsLst[widgetID+2].configure(text_color=inactiveTextColor)
+                    #widgetsLst[widgetID+1].deselect()
 
 
     def AskUserAboutWarnings(self):

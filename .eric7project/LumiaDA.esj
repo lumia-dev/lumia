@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-11-15, 00:12:02"
+    "saved": "2023-11-15, 00:38:11"
   },
   "MultiProject": "",
   "Project": "",
@@ -62,8 +62,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        1828,
-        45
+        1718,
+        50
       ],
       "Folds": [],
       "Zoom": 1,
@@ -111,8 +111,8 @@
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
     "Cursor": [
-      1828,
-      45
+      1718,
+      50
     ]
   },
   "Breakpoints": [
@@ -91710,7 +91710,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1879,
+      1882,
       "",
       false,
       true,
@@ -91718,23 +91718,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1821,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1826,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1818,
+      1825,
       "",
       false,
       true,
@@ -91743,6 +91727,22 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       1830,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1822,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1834,
       "",
       false,
       true,
