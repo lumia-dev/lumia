@@ -1797,25 +1797,58 @@ class RefineObsSelectionGUI(ctk.CTk):
             if(ci==0):
                 if(bChkBxIsSelected):
                     obsDf.at[(ri) ,  ('selected')] =True
-                    row[0]=True
+                    row.iloc[0]=True
                     widgetsLst[widgetID].configure(text_color='blue', text='On')
                 else:
                     obsDf.at[(ri) ,  ('selected')] =False
-                    row[0]=False
+                    row.iloc[0]=False
                     widgetsLst[widgetID].configure(text_color='green', text='Off')
+                self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
             elif(ci==1):  # Country
-                if(bChkBxIsSelected):
-                    obsDf.at[(ri) ,  ('selected')] =True
-                    row[0]=True
-                    obsDf.at[(ri) ,  ('showCountry')] =True
-                    row[13]=True
-                    widgetsLst[widgetID].configure(text_color=activeTextColor)
-                else:
-                    obsDf.at[(ri) ,  ('selected')] =False
-                    row[0]=False
-                    obsDf.at[(ri) ,  ('showCountry')] =False
-                    row[13]=False
-                    widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                bSameCountry=True  # multiple rows may be affected
+                nRows=len(obsDf)
+                thisCountry=obsDf.at[(ri) ,  ('country')]
+                showStationIdx=widgetID+1
+                while((bSameCountry) and (ri<nRows)):
+                    print(len(row))
+                    if(widgetsLst[showStationIdx] is None):
+                        bShowStation=False
+                    else:
+                        bShowStation=widgetsLst[showStationIdx].get()
+                    if(len(row)<14):
+                        row['showCountry']=  bChkBxIsSelected
+                        row['showStation']= bShowStation
+                        print(len(row))
+                    if(bChkBxIsSelected):
+                        # Set 'selected' to True only if the station is presently selected, else not
+                        #if(widgetsLst[widgetID] is not None):
+                        #    bChkBxIsSelected=widgetsLst[widgetID].get()
+                        if(bShowStation):
+                            obsDf.at[(ri) ,  ('selected')] =True
+                            row.iloc[0]=True
+                        else:
+                            obsDf.at[(ri) ,  ('selected')] =False
+                            row.iloc[0]=False
+                        # obsDf.at[(ri) ,  ('showCountry')] =True
+                        row.iloc[13]=True
+                        if(widgetsLst[widgetID] is not None):
+                            widgetsLst[widgetID].configure(text_color=activeTextColor)
+                    else:
+                        obsDf.at[(ri) ,  ('selected')] =False
+                        row.iloc[0]=False
+                        # obsDf.at[(ri) ,  ('showCountry')] =False   # obsDf does not have this column, only row.
+                        row.iloc[13]=False  # 'showCountry'
+                        if(widgetsLst[widgetID] is not None):
+                            widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                    self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                    ri+=1
+                    showStationIdx+=nWidgetsPerRow
+                    widgetID+=nWidgetsPerRow
+                    if(ri>=nRows):
+                        break
+                    row=obsDf.iloc[ri]
+                    if (thisCountry not in row['country']) :
+                        bSameCountry=False
             elif(ci==2):  # stationID
                 if(bChkBxIsSelected):
                     obsDf.at[(ri) ,  ('selected')] =True
@@ -1829,9 +1862,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                     obsDf.at[(ri) ,  ('showStation')] =False
                     row.iloc[14]=False
                     widgetsLst[widgetID].configure(text_color=inactiveTextColor)
-        # newRow=obsDf.iloc[ri] # Beware, newRow does not have the 'showCountry' and 'showStation' keys
-        print(row)
-        self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
  
 
  
@@ -1880,13 +1911,16 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ###################################################
         widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
         if(widgetsLst[widgetID] is not None):
-            b=row['showStation']
-            bChkBxIsSelected=widgetsLst[widgetID].get()
-            if(b != bChkBxIsSelected):  # update the GUI
-                if(b):
-                    widgetsLst[widgetID].select()
-                else:
-                    widgetsLst[widgetID].deselect()
+            try:
+                b=row['showStation']
+                bChkBxIsSelected=widgetsLst[widgetID].get()
+                if(b != bChkBxIsSelected):  # update the GUI
+                    if(b):
+                        widgetsLst[widgetID].select()
+                    else:
+                        widgetsLst[widgetID].deselect()
+            except:
+                pass
         
 
 
