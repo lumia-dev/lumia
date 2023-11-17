@@ -98,6 +98,3 @@ opt.vectors.loc[:, 'state_preco_apos'] = x_opt
 opt.vectors.loc[:, 'state_apos'] = opt.xc_to_x(x_opt)
 apos = mapping.vec_to_struct(opt.vectors.state_apos.values)
 opt.vectors.to_xarray().to_netcdf(Path(dconf.run.paths.output) / 'states.nc')
-
-apos.to_intensive()
-apos.to_netcdf(Path(dconf.run.paths.output) / "emissions.apos.nc")
