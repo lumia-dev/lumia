@@ -312,10 +312,10 @@ class TracerEmis(xr.Dataset):
         self.attrs['units'] = dest
 
     @debug.trace_args()
-    def to_netcdf(self, filename, group=None, only_transported=False, **kwargs) -> Path:
+    def to_netcdf(self, filename, group=None, only_transported=False, mode='w', **kwargs) -> Path:
 
         # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
-        with Dataset(filename, 'w') as nc:
+        with Dataset(filename, mode) as nc:
             if group is not None:
                 nc = nc.createGroup(group)
 
@@ -487,9 +487,11 @@ class Data:
         if not zlib:
             complevel = 0.
         encoding = dict(zlib=zlib, complevel=complevel)
+        mode = 'w'
         for tracer in self._tracers:
             self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars},
-                                   engine='h5netcdf', **kwargs)
+                                   engine='h5netcdf', mode=mode, **kwargs)
+            mode = 'a'
         return Path(filename)
 
     @property
@@ -722,22 +724,23 @@ def load_preprocessed(
     - field     : name of the field to be read, in case there are several fields in the pre-processed emission file
     """
 
-    archive = Rclone(archive)
-    files_on_archive = archive.lsf()
+    if archive is not None :
+        archive = Rclone(archive)
+        files_on_archive = archive.lsf()
     
-    # Try to import one file for each month of the simulation. If not available, fallback on one file per year, finally, try a non time-specific file (e.g. climatology).
-    # I haven't felt the use to implement finer resolution files (e.g. daily), but it should be simple if needed ...
-    files_to_get = set()
-    for tt in date_range(start, end, freq='MS', inclusive='left'):
-        files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y-%m.nc'))
-        if len(files) == 0 :
-            files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y.nc'))
-        if len(files) == 0 :
-            files = fnmatch.filter(files_on_archive, prefix.name + '.nc')
-        files_to_get.update(files)
+        # Try to import one file for each month of the simulation. If not available, fallback on one file per year, finally, try a non time-specific file (e.g. climatology).
+        # I haven't felt the use to implement finer resolution files (e.g. daily), but it should be simple if needed ...
+        files_to_get = set()
+        for tt in date_range(start, end, freq='MS', inclusive='left'):
+            files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y-%m.nc'))
+            if len(files) == 0 :
+                files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y.nc'))
+            if len(files) == 0 :
+                files = fnmatch.filter(files_on_archive, prefix.name + '.nc')
+            files_to_get.update(files)
 
-    for file in files_to_get :
-        archive.get(prefix.parent / file)
+        for file in files_to_get :
+            archive.get(prefix.parent / file)
 
     with dask.config.set(**{'array.slicing.split_large_chunks': True}):
         data = xr.open_mfdataset(f'{prefix}*nc')

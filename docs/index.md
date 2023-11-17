@@ -56,7 +56,6 @@ pip install -e my_folder
     * Do get familiar with how conda environments work:
         - [conda documentation](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
         - [conda cheat sheet](https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf)
-    * Don't try to run the setup.py file directly! (i.e. don't try anything like `python setup.py install`).
     * Don't try to use the _Makefile_ directly (but you can look at it, it contains a shortened version of this documentation).
 
 # Testing the installation
