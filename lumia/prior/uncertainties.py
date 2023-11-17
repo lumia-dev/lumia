@@ -13,6 +13,7 @@ from typing import Tuple
 from pathlib import Path
 from h5py import File
 import hashlib
+from functools import cache
 
 
 _common = {}   # common for multiprocessing
@@ -50,6 +51,7 @@ def calc_dist_vector(iloc, stretch_ratio = 1., debug: bool = False):
     return V
 
 
+@cache
 def calc_dist_matrix(lats, lons, stretch_ratio=1.):
     M = zeros((len(lats), len(lons)))
     _common['lons'] = lons
