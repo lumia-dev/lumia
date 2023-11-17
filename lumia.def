@@ -1,9 +1,0 @@
-Bootstrap: localimage
-From: lumiaenv.simg
-
-%post
-    cd /lumia
-    rm -f *.simg
-
-%files
-    . /lumia

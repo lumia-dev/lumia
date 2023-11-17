@@ -1,0 +1,130 @@
+donkey :
+  temp : ??? 
+  footprints : ??? 
+  emissions : ??? 
+  congrad : ${lumia:bin/congrad.exe}
+  output : ??? 
+  backgrounds : ??? 
+  correlations : correlations
+  ncores : ??? 
+
+
+cosmos :
+  temp : ??? 
+  footprints : ??? 
+  footprints_scratch :  ${oc.env:SNIC_TMP}
+  emissions : ??? 
+  congrad : ${lumia:src/congrad/congrad.exe}
+  output : ??? 
+  backgrounds : ??? 
+  correlations : correlations
+  ncores : ${oc.env:SLURM_TASKS_PER_NODE}
+
+
+laptop :
+  temp : ??? 
+  footprints : ??? 
+  footprints_scratch : ${.footprints}
+  emissions : ??? 
+  output : output
+  correlations : ??? 
+  ncores : ???
+
+
+observations :
+  file :
+    path : /home/guillaume/Projects/CoCO2_WP4/lumia/co2/obspack_co2_466_GLOBALVIEWplus_v8.0_2023-03-30.2018.flexpart_20230627.tar.gz
+
+
+run :
+  start : 1 jan 2018
+  end : 1 jan 2019
+  paths :
+    output : ${machine.output}/${..tag}
+    cache_dir : ${machine.correlations}
+    emissions : ${machine.emissions}
+    temp : ${machine.temp}
+    footprints : ${machine.footprints}
+    footprints_scratch : ${machine.footprints_scratch}
+  domain : eurocom025x025
+  optimizer : ${cg_scipy}
+  tag : fossil+biosphere_v3
+  interval : H
+  footprints_archive : ???
+  spinup : 1MS
+  spindown : 1MS
+  ncores : ${machine.ncores}
+
+
+emissions :
+  tracers : [co2]
+  co2 :
+    path : ${run.paths.emissions}/${run.domain}
+    prefix : flux_co2.
+    region : "${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}"
+    interval : ${run.interval} 
+    categories :
+      GPP : VPRM_GPP_coco2
+      respiration : VPRM_RESP_coco2
+      ocean :
+        origin : mercator_coco2
+        resample_from : M
+        field : flux_co2
+      fires :
+        origin : gfas1.2
+        resample_from : D
+      anthropogenic :
+        origin : tno
+        field : flux_co2
+      # lateral :
+      #   origin : lateral_flux.lsce.coco2
+      #   resample_from : Y
+    metacategories :
+      biosphere : GPP + respiration
+    archive : rclone:lumia:fluxes/nc/${run.domain}
+
+
+model :
+  path_temp : ${run.paths.temp}
+  executable : ${lumia:transport/multitracer.py}
+  path_footprints : ${run.paths.footprints}
+  split_categories : yes
+  output_steps : [apri, apos]
+  extra_arguments :
+    apri : --check-footprints --copy-footprints ${run.paths.footprints_scratch}
+    "*" : -n ${run.ncores}
+  extra_fields : [footprint, mix_background, obsid]
+  serial : no
+  path_output : ${run.paths.output}
+  setup_uncertainties : ['apri']
+
+
+optimize:
+  emissions :
+    co2:
+      biosphere:
+        annual_uncertainty: 0.5 PgCO2
+        spatial_correlation: 500-e
+        temporal_correlation: 30D
+        optimization_interval: 1d
+#      anthropogenic:
+#        annual_uncertainty : 0.07 PgCO2
+#        spatial_correlation : 500-e
+#        temporal_correlation: 7D
+#        optimization_interval : 1d
+
+
+congrad:
+  output_path : ${run.paths.output}
+  number_of_iterations : 10
+  gradient_norm_reduction : 1.e6
+  communication_file: ${machine.temp}/congrad.nc
+  executable: ${machine.congrad}
+
+
+cg_scipy:
+  gradient_norm_reduction: ${lanczos.gradient_norm_reduction}
+  number_of_iterations: ${lanczos.number_of_iterations}
+  output_path: ${lanczos.output_path}
+  # gtol : 0.005
+  
