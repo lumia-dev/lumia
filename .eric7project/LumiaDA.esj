@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-11-16, 10:04:09"
+    "saved": "2023-11-17, 21:07:04"
   },
   "MultiProject": "",
   "Project": "",
@@ -62,7 +62,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        1068,
+        1900,
         0
       ],
       "Folds": [],
@@ -108,13 +108,7 @@
       "Editorindex": 7
     }
   ],
-  "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-    "Cursor": [
-      1068,
-      0
-    ]
-  },
+  "ActiveWindow": {},
   "Breakpoints": [
     [
       "/opt/conda/envs/flex/lib/python3.10/site-packages/icoscp/cpb/dobj.py",
@@ -56566,7 +56560,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1346,
+      1366,
       "",
       false,
       true,
@@ -91694,7 +91688,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1102,
+      1913,
       "",
       false,
       true,
@@ -91702,7 +91696,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1945,
+      1770,
       "",
       false,
       true,
@@ -91710,7 +91704,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1801,
+      1767,
       "",
       false,
       true,
@@ -91718,7 +91712,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1798,
+      1779,
       "",
       false,
       true,
@@ -91726,7 +91720,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1810,
+      1754,
       "",
       false,
       true,
@@ -91734,7 +91728,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1785,
+      1774,
       "",
       false,
       true,
@@ -91742,7 +91736,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1805,
+      1783,
       "",
       false,
       true,
@@ -91750,7 +91744,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1814,
+      1850,
       "",
       false,
       true,
@@ -91758,7 +91752,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1884,
+      1796,
       "",
       false,
       true,
@@ -91766,7 +91760,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1827,
+      1822,
       "",
       false,
       true,
@@ -91774,7 +91768,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1934,
+      1835,
       "",
       false,
       true,
@@ -91782,7 +91776,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1859,
+      1009,
       "",
       false,
       true,
@@ -91790,7 +91784,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1837,
+      957,
       "",
       false,
       true,
@@ -91798,7 +91792,31 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1069,
+      1124,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1056,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1116,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1111,
       "",
       false,
       true,
@@ -91845,7 +91863,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@601",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@912",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@916",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@1409",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@1429",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@14",

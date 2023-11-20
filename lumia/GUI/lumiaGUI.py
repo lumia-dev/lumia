@@ -1053,13 +1053,29 @@ class RefineObsSelectionGUI(ctk.CTk):
         #    return
              
         def applyRules():
+            bUseStationAltitudeFilter=ymlContents['observations']['filters']['bStationAltitude']
+            bUseSamplingHeightFilter=ymlContents['observations']['filters']['bSamplingHeight']
+            stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
+            stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
+            inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
+            inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
             for index, row in newDf.iterrows():
-                row['altOk'] = (((row['altitude'] >= stationMinAlt) &
-                                    (row['altitude'] <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
+                fa=row['altitude']
+                fh=row['samplingHeight'][0]
+                print(f"row['altitude']={row['altitude']},  fa={fa},  fh={fh},  stationMinAlt={stationMinAlt}")
+                if(fa<stationMinAlt):
+                    b1=(float(row['altitude']) >= stationMinAlt)
+                    b2=(float(row['altitude']) <= stationMaxAlt)
+                    b3=(bUseStationAltitudeFilter==False)
+                    b4=(b1 and b2)
+                    b5=(b4|b3)
+                    print(f">min b1={b1}, <max b2={b2},noFilt b3={b3}, b1 and b2 b4={b4}, b3 or b4 b5={b5}")
+                row['altOk'] = (((float(row['altitude']) >= stationMinAlt) &
+                                    (float(row['altitude']) <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
                 if(isinstance(row['samplingHeight'], list)):
-                    sH=row['samplingHeight'][0]
+                    sH=float(row['samplingHeight'][0])
                 else:
-                    sH=row['samplingHeight']
+                    sH=float(row['samplingHeight'])
                 row['HghtOk'] = (((sH >= inletMinHght) &
                                                 (sH <= inletMaxHght) ) | (bUseSamplingHeightFilter==False))
                 if((row['altOk']==False) or (row['HghtOk']==False)):
@@ -1082,13 +1098,17 @@ class RefineObsSelectionGUI(ctk.CTk):
                         bSel=True
                 bS=row['selected']
                 print(bSel,  bS)
-                # TODO: dClass check can be removed
-                if(((bS) and (int(row['dClass'])==4)) and (bSel != bS)): 
+                # TODO: dClass check can be removed?
+                row.iloc[0]=bSel
+                if((bS) and (bSel==False)):  # was selected, but falls outside the newly enforced filter now
+                    newDf.at[(index) ,  ('selected')] = bSel
+                    self.updateRowOfWidgets(widgetsLst, index, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                elif(((bS) and (int(row['dClass'])==4)) and (bSel != bS)): 
                     # if it is selected by altitude and samplingHght and wasn't selected before and if it is the right dClass
                     # only then do we change the row status to selected
                     if(newDf.at[(index) ,  ('selected')] != bSel):
                         newDf.at[(index) ,  ('selected')] = bSel
-                        self.updateRowOfWidgets(self, widgetsLst, index, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                        self.updateRowOfWidgets(widgetsLst, index, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
                     #updateRowOfWidgets(gridList, index, row)
                 elif((bSel != bS) and (int(row['dClass'])==4)): 
                     # we also need to re-draw the line if it was selected before but is so no longer -- due to new filters
