@@ -1059,17 +1059,31 @@ class RefineObsSelectionGUI(ctk.CTk):
             stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
             inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
             inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
-            for index, row in newDf.iterrows():
+            for ri, row in newDf.iterrows():
+                bprint=((ri==29)or(ri==31)or(ri==33)or(ri==34))
+                if ((row['stationID'] in 'ZSF') or (row['stationID'] in 'JAR') or (row['stationID'] in 'DEC')):
+                    id=row['stationID']
+                    print(f'stationID={id},  newDf-rowidx={ri}')
                 fa=row['altitude']
                 fh=row['samplingHeight'][0]
-                print(f"row['altitude']={row['altitude']},  fa={fa},  fh={fh},  stationMinAlt={stationMinAlt}")
+                if( bprint):
+                    print(f"row['altitude']={row['altitude']},  fa={fa},  fh={fh},  stationMinAlt={stationMinAlt}")
                 if(fa<stationMinAlt):
                     b1=(float(row['altitude']) >= stationMinAlt)
                     b2=(float(row['altitude']) <= stationMaxAlt)
                     b3=(bUseStationAltitudeFilter==False)
                     b4=(b1 and b2)
                     b5=(b4|b3)
-                    print(f">min b1={b1}, <max b2={b2},noFilt b3={b3}, b1 and b2 b4={b4}, b3 or b4 b5={b5}")
+                    #print(f">min b1={b1}, <max b2={b2},noFilt b3={b3}, b1 and b2 b4={b4}, b3 or b4 b5={b5}")
+                #logger.info(f"row['samplingHeight'][0]={row['samplingHeight'][0]},  fa={fa},  fh={fh},  inletMinHght={inletMinHght}")
+                if(fh<inletMinHght):
+                    b1=(float(row['samplingHeight'][0]) >= inletMinHght)
+                    b2=(float(row['samplingHeight'][0]) <= inletMaxHght)
+                    b3=(bUseStationAltitudeFilter==False)
+                    b4=(b1 and b2)
+                    b5=(b4|b3)
+                    if( bprint):
+                        print(f">min b1={b1}, <max b2={b2},noFilt b3={b3}, b1 and b2 b4={b4}, b3 or b4 b5={b5}")
                 row['altOk'] = (((float(row['altitude']) >= stationMinAlt) &
                                     (float(row['altitude']) <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
                 if(isinstance(row['samplingHeight'], list)):
@@ -1078,48 +1092,56 @@ class RefineObsSelectionGUI(ctk.CTk):
                     sH=float(row['samplingHeight'])
                 row['HghtOk'] = (((sH >= inletMinHght) &
                                                 (sH <= inletMaxHght) ) | (bUseSamplingHeightFilter==False))
-                if((row['altOk']==False) or (row['HghtOk']==False)):
-                    bSel=False
-                else:
+                
+                bSel=False
+                if((row['includeCountry']) and (row['includeStation']) and (row['altOk']) and (row['HghtOk'])and (int(row['dClass'])==4)):
                     # if station and country are selected only then may we toggle the 'selected' entry to True
-                    bShowStation=True
-                    bShowCountry=True
-                    try:
-                        widgetShowCountryID=(index*nWidgetsPerRow)+1  # includeCountry calculate the corresponding index to access the right widget in widgetsLst
-                        widgetShowStationID=(index*nWidgetsPerRow)+2  # includeStation calculate the corresponding index to access the right widget in widgetsLst
-                        bShowStation=widgetsLst[widgetShowStationID].get()
-                        while  ((widgetShowCountryID>0) and (widgetsLst[widgetShowCountryID]==None)):
-                            widgetShowCountryID=widgetShowCountryID-nWidgetsPerRow  # The current row may not have an active country entry. Look in previous rows
-                        if(widgetsLst[widgetShowCountryID]!=None):
-                            bShowCountry=widgetsLst[widgetShowCountryID].get()
-                    except:
-                        pass
-                    if(bShowStation and bShowCountry):
-                        bSel=True
+                    bSel=True
                 bS=row['selected']
-                print(bSel,  bS)
+                row.iloc[0]=bSel  # row['selected'] is the same as row.iloc[0]
+                newDf.at[(ri) ,  ('selected')] = bSel
+                newDf.at[(ri) ,  ('altOk')] = row['altOk']
+                newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
+                if((bSel != bS) and (int(row['dClass'])==4)): 
+                    self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                if( bprint):
+                    print(f"ApplyRules L.1105: new state Selected={bSel} old state= {bS}")
                 # TODO: dClass check can be removed?
-                row.iloc[0]=bSel
-                if((bS) and (bSel==False)):  # was selected, but falls outside the newly enforced filter now
-                    newDf.at[(index) ,  ('selected')] = bSel
-                    self.updateRowOfWidgets(widgetsLst, index, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
-                elif(((bS) and (int(row['dClass'])==4)) and (bSel != bS)): 
-                    # if it is selected by altitude and samplingHght and wasn't selected before and if it is the right dClass
-                    # only then do we change the row status to selected
-                    if(newDf.at[(index) ,  ('selected')] != bSel):
-                        newDf.at[(index) ,  ('selected')] = bSel
-                        self.updateRowOfWidgets(widgetsLst, index, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
-                    #updateRowOfWidgets(gridList, index, row)
-                elif((bSel != bS) and (int(row['dClass'])==4)): 
-                    # we also need to re-draw the line if it was selected before but is so no longer -- due to new filters
-                    #updateRowOfWidgets(gridList,  index, row)
-                    self.updateRowOfWidgets(widgetsLst, index, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                if(0>1):
+                    if((bS) and (bSel==False)):  # was selected, but falls outside the newly enforced filter now
+                        newDf.at[(ri) ,  ('selected')] = bSel
+                        newDf.at[(ri) ,  ('altOk')] = row['altOk']
+                        newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
+                        self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                    elif(((bS) and (int(row['dClass'])==4)) and (bSel != bS) and (row['altOk']) and (row['HghtOk'])): 
+                        # if it is selected by altitude and samplingHght and wasn't selected before and if it is the right dClass
+                        # only then do we change the row status to selected
+                        if(newDf.at[(ri) ,  ('selected')] != bSel):
+                            newDf.at[(ri) ,  ('selected')] = bSel
+                            newDf.at[(ri) ,  ('altOk')] = row['altOk']
+                            newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
+                            self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                        #updateRowOfWidgets(gridList, ri, row)
+                    elif((bSel != bS) and (int(row['dClass'])==4)): 
+                        # we also need to re-draw the line if it was selected before but is so no longer -- due to new filters
+                        #updateRowOfWidgets(gridList,  ri, row)
+                        newDf.at[(ri) ,  ('altOk')] = row['altOk']
+                        newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
+                        self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                    newDf.at[(ri) ,  ('altOk')] = row['altOk']
+                    newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
+                if(bprint):
+                    b1=newDf.at[(ri) ,  ('altOk')] 
+                    b2=newDf.at[(ri) ,  ('HghtOk')]
+                    sid=newDf.at[(ri) ,  ('stationID')]
+                    alt=newDf.at[(ri) ,  ('altitude')]
+                    print(f"applyRules L.1147: ri={ri},  altOk={b1},  HghtOk={b2},  station={sid},  alt={alt}")
+            print('.')
 
         def stationAltitudeFilterAction():
             stationMinAltCommonSense= -100 #m Dead Sea
             stationMaxAltCommonSense= 9000 #m Himalaya
             bStationFilterActive=self.FilterStationAltitudesCkb.get() 
-    
             sErrorMsg=""
             bStationFilterError=False        
             if(bStationFilterActive):
@@ -1529,6 +1551,10 @@ class RefineObsSelectionGUI(ctk.CTk):
             guiRow=rowidx # startRow+rowidx
             
             if((rowidx==0) or (row['country'] not in sLastCountry)):
+                # when the widgets are created,  row['includeCountry'] is used to indicate whether a CheckBox
+                # is painted for that row - only the first row of each country will have this
+                # Once the CheckBox was created, row['includeCountry'] is used to track wether the Country has been
+                # selected or deselected by the user. At start (in this subroutine) all Countries are selected.
                 row['includeCountry'] = True
                 sLastCountry=row['country'] 
             else:
@@ -1553,6 +1579,8 @@ class RefineObsSelectionGUI(ctk.CTk):
             #createRowOfWidgets(gridList, rowidx, row)                
             self.createRowOfWidgets(scrollableFrame4Widgets, widgetsLst, num,  rowidx, row,guiRow, sSamplingHeights, 
                                                     activeTextColor, inactiveTextColor, fsNORMAL, xPadding, yPadding, fsSMALL, obsDf=newDf)
+            newDf.at[(rowidx) ,  ('includeCountry')] =True # After painting the Country CheckBoxes needed, all countries are set to Included=True
+            newDf.at[(rowidx) ,  ('includeStation')] =True # After painting the Station CheckBoxes needed, all stations are set to Included=True
 
         # Update buttons frames idle tasks to let tkinter calculate buttons sizes
         scrollableFrame4Widgets.update_idletasks()
@@ -1775,20 +1803,33 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
             
-    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor):
+    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, srow, nWidgetsPerRow, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
+        row=obsDf.iloc[ri]
         widgetID=(ri*nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
-        print(f"CheckboxEventHandler: (ri={ri}, ci={ci}, widgetID={widgetID}, gridID={gridID})")
+        bprint=((ri==29)or(ri==31)or(ri==33)or(ri==34))
+        if(bprint):
+            print(f"CheckboxEventHandler: (ri={ri}, ci={ci}, widgetID={widgetID}, gridID={gridID})")
         bChkBxIsSelected=widgetsLst[widgetID].get()
         if(widgetsLst[widgetID] is not None):
             if(ci==0):
                 if(bChkBxIsSelected):
                     obsDf.at[(ri) ,  ('selected')] =True
+                    if(ri==33):
+                        bs=obsDf.at[(ri) ,  ('selected')]
+                        bc=obsDf.at[(ri) ,  ('includeCountry')]
+                        logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
+                        logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                     row.iloc[0]=True
                     widgetsLst[widgetID].configure(text_color='blue', text='On')
                 else:
                     obsDf.at[(ri) ,  ('selected')] =False
+                    if(ri==33):
+                        bs=obsDf.at[(ri) ,  ('selected')]
+                        bc=obsDf.at[(ri) ,  ('includeCountry')]
+                        logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
+                        logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                     row.iloc[0]=False
                     widgetsLst[widgetID].configure(text_color='green', text='Off')
                 self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
@@ -1798,30 +1839,63 @@ class RefineObsSelectionGUI(ctk.CTk):
                 thisCountry=obsDf.at[(ri) ,  ('country')]
                 includeStationIdx=widgetID+1
                 while((bSameCountry) and (ri<nRows)):
-                    if(widgetsLst[includeStationIdx] is None):
-                        bShowStation=False
-                    else:
-                        bShowStation=widgetsLst[includeStationIdx].get()
+                    #if(widgetsLst[includeStationIdx] is None):
+                    #    bIncludeStation=False
+                    #else:
+                    #    bIncludeStation=widgetsLst[includeStationIdx].get()
                     if(bChkBxIsSelected):
-                        # Set 'selected' to True only if the station is presently selected AND dClass is the highest available, else not
+                        # Set 'selected' to True only if the station, AltOk & HghtOk are presently selected AND dClass is the highest available, else not
                         #if(widgetsLst[widgetID] is not None):
                         #    bChkBxIsSelected=widgetsLst[widgetID].get()
-                        if (bShowStation) and (int(row['dClass'])==4):
+                        obsDf.at[(ri) ,  ('includeCountry')] =True
+                        if(ri==33):
+                            bs=obsDf.at[(ri) ,  ('selected')]
+                            bc=obsDf.at[(ri) ,  ('includeCountry')]
+                            logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
+                            logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
+                        if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
                             obsDf.at[(ri) ,  ('selected')] =True
                             row.iloc[0]=True
+                            if(widgetsLst[widgetID] is not None):
+                                widgetsLst[widgetID].configure(text_color=activeTextColor)
+                            if(bprint):
+                                print(f"ChkBoxEvent L1860: ri={ri},  set selected=True,  Country selected")
+                            if(ri==33):
+                                i=row['dClass']
+                                ba=row['altOk']
+                                bh=row['HghtOk']
+                                logger.info(f"bIncludeStation={bIncludeStation}, dClass={i},  altOk={ba},  HghtOk={bh}")
+                                bs=obsDf.at[(ri) ,  ('selected')]
+                                bc=obsDf.at[(ri) ,  ('includeCountry')]
+                                logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
+                                logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                         else:
                             obsDf.at[(ri) ,  ('selected')] =False
                             row.iloc[0]=False
-                        # obsDf.at[(ri) ,  ('includeCountry')] =True
-                        row.iloc[13]=True
-                        if(widgetsLst[widgetID] is not None):
-                            widgetsLst[widgetID].configure(text_color=activeTextColor)
+                            if(ri==33):
+                                bs=obsDf.at[(ri) ,  ('selected')]
+                                bc=obsDf.at[(ri) ,  ('includeCountry')]
+                                logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
+                                logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
+                            if(widgetsLst[widgetID] is not None):
+                                widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                            if(bprint):
+                                print(f"ChkBoxEvent L1867: ri={ri},  set selected=False,  Country selected")
+                        row.iloc[13]=True # 'includeCountry'
                     else:
+                        obsDf.at[(ri) ,  ('includeCountry')] =False
                         obsDf.at[(ri) ,  ('selected')] =False
                         row.iloc[0]=False
                         row.iloc[13]=False  # 'includeCountry'
+                        if(ri==33):
+                            bs=obsDf.at[(ri) ,  ('selected')]
+                            bc=obsDf.at[(ri) ,  ('includeCountry')]
+                            logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
+                            logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                         if(widgetsLst[widgetID] is not None):
                             widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                        if(bprint):
+                            print(f"ChkBoxEvent L1877: ri={ri},  set selected=False,  Country unselected")
                     self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
                     ri+=1
                     includeStationIdx+=nWidgetsPerRow
@@ -1838,14 +1912,19 @@ class RefineObsSelectionGUI(ctk.CTk):
                         (obsDf.at[(ri) ,  ('HghtOk')]==True)):
                         obsDf.at[(ri) ,  ('selected')] =True
                         row.iloc[0]=True
+                        #obsDf.at[(ri) ,  ('includeStation')] =True
+                    else:
+                        obsDf.at[(ri) ,  ('selected')] =False
+                        row.iloc[0]=False
                     obsDf.at[(ri) ,  ('includeStation')] =True
-                    row.iloc[14]=True
+                    #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
+                    row.iloc[14]=True # 'includeStation'
                     widgetsLst[widgetID].configure(text_color=activeTextColor)
                 else:
                     obsDf.at[(ri) ,  ('selected')] =False
                     row.iloc[0]=False
                     obsDf.at[(ri) ,  ('includeStation')] =False
-                    row.iloc[14]=False
+                    row.iloc[14]=False # 'includeStation'
                     widgetsLst[widgetID].configure(text_color=inactiveTextColor)
                 self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
  
@@ -1856,11 +1935,14 @@ class RefineObsSelectionGUI(ctk.CTk):
             set corresponding to a single line on the GUI.
             We only modify the state parameters of existing widgets.
         '''
+        ri=rowidx
         nWidgetsPerRow=5
         colidx=int(0)  # row['selected']
         # ###################################################
-        widgetID=(rowidx*nWidgetsPerRow)+colidx  # calculate the corresponding index to access the right widget in widgetsLst
-        print(f"updateRowOfWidgets: rowidx={rowidx}, colidx={colidx}, widgetID={widgetID}")
+        widgetID=(ri*nWidgetsPerRow)+colidx  # calculate the corresponding index to access the right widget in widgetsLst
+        bprint=((ri==29)or(ri==31)or(ri==33)or(ri==34))
+        if(bprint):
+            print(f"updateRowOfWidgets: rowidx={ri}, colidx={colidx}, widgetID={widgetID}")
         if(widgetsLst[widgetID] is not None):
             b=row['selected']
             if(b):
@@ -1885,11 +1967,13 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ###################################################
         widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
         if(widgetsLst[widgetID] is not None):
-            bShowCountry=row['includeCountry']
+            bIncludeCountry=row['includeCountry']
             bChkBxIsSelected=widgetsLst[widgetID].get()
-            if(bShowCountry != bChkBxIsSelected):  # update the widget selection status if necessary
-                if(bShowCountry):
+            if(bIncludeCountry != bChkBxIsSelected):  # update the widget selection status if necessary
+                if(bIncludeCountry): # and  (row['dClass']==4) and  (row['altOk']==True) and (row['HghtOk']==True) ):
                     widgetsLst[widgetID].select()
+                    if(bprint):
+                        logger.info(f"Selecting ChkBox with widgetID={widgetID} in row {ri}")
                 else:
                     widgetsLst[widgetID].deselect()
         
@@ -1898,14 +1982,15 @@ class RefineObsSelectionGUI(ctk.CTk):
         widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
         if(widgetsLst[widgetID] is not None):
             try:  # TODO: fix this
-                bShowStation=row['includeStation']
+                bIncludeStation=row['includeStation']
                 bChkBxIsSelected=widgetsLst[widgetID].get()
-                if(bShowStation != bChkBxIsSelected):  # update the widget selection status if necessary
-                    if((bShowStation)):
-                        if (int(row['dClass'])==4):
-                            widgetsLst[widgetID].select()
+                if(bIncludeStation != bChkBxIsSelected):  # update the widget selection status if necessary
+                    if(bIncludeStation) and  (row['dClass']==4) : #  and  (row['altOk']==True) and (row['HghtOk']==True) ):
+                        widgetsLst[widgetID].select()
                     else:
                         widgetsLst[widgetID].deselect()
+                        if(bprint):
+                            logger.info(f"Selecting ChkBox with widgetID={widgetID} in row {ri}")
             except:
                 pass
         
