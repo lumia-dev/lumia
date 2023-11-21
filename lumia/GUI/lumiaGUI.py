@@ -1060,30 +1060,9 @@ class RefineObsSelectionGUI(ctk.CTk):
             inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
             inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
             for ri, row in newDf.iterrows():
-                bprint=((ri==29)or(ri==31)or(ri==33)or(ri==34))
                 if ((row['stationID'] in 'ZSF') or (row['stationID'] in 'JAR') or (row['stationID'] in 'DEC')):
                     id=row['stationID']
                     print(f'stationID={id},  newDf-rowidx={ri}')
-                fa=row['altitude']
-                fh=row['samplingHeight'][0]
-                if( bprint):
-                    print(f"row['altitude']={row['altitude']},  fa={fa},  fh={fh},  stationMinAlt={stationMinAlt}")
-                if(fa<stationMinAlt):
-                    b1=(float(row['altitude']) >= stationMinAlt)
-                    b2=(float(row['altitude']) <= stationMaxAlt)
-                    b3=(bUseStationAltitudeFilter==False)
-                    b4=(b1 and b2)
-                    b5=(b4|b3)
-                    #print(f">min b1={b1}, <max b2={b2},noFilt b3={b3}, b1 and b2 b4={b4}, b3 or b4 b5={b5}")
-                #logger.info(f"row['samplingHeight'][0]={row['samplingHeight'][0]},  fa={fa},  fh={fh},  inletMinHght={inletMinHght}")
-                if(fh<inletMinHght):
-                    b1=(float(row['samplingHeight'][0]) >= inletMinHght)
-                    b2=(float(row['samplingHeight'][0]) <= inletMaxHght)
-                    b3=(bUseStationAltitudeFilter==False)
-                    b4=(b1 and b2)
-                    b5=(b4|b3)
-                    if( bprint):
-                        print(f">min b1={b1}, <max b2={b2},noFilt b3={b3}, b1 and b2 b4={b4}, b3 or b4 b5={b5}")
                 row['altOk'] = (((float(row['altitude']) >= stationMinAlt) &
                                     (float(row['altitude']) <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
                 if(isinstance(row['samplingHeight'], list)):
@@ -1104,39 +1083,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
                 if((bSel != bS) and (int(row['dClass'])==4)): 
                     self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
-                if( bprint):
-                    print(f"ApplyRules L.1105: new state Selected={bSel} old state= {bS}")
-                # TODO: dClass check can be removed?
-                if(0>1):
-                    if((bS) and (bSel==False)):  # was selected, but falls outside the newly enforced filter now
-                        newDf.at[(ri) ,  ('selected')] = bSel
-                        newDf.at[(ri) ,  ('altOk')] = row['altOk']
-                        newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
-                        self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
-                    elif(((bS) and (int(row['dClass'])==4)) and (bSel != bS) and (row['altOk']) and (row['HghtOk'])): 
-                        # if it is selected by altitude and samplingHght and wasn't selected before and if it is the right dClass
-                        # only then do we change the row status to selected
-                        if(newDf.at[(ri) ,  ('selected')] != bSel):
-                            newDf.at[(ri) ,  ('selected')] = bSel
-                            newDf.at[(ri) ,  ('altOk')] = row['altOk']
-                            newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
-                            self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
-                        #updateRowOfWidgets(gridList, ri, row)
-                    elif((bSel != bS) and (int(row['dClass'])==4)): 
-                        # we also need to re-draw the line if it was selected before but is so no longer -- due to new filters
-                        #updateRowOfWidgets(gridList,  ri, row)
-                        newDf.at[(ri) ,  ('altOk')] = row['altOk']
-                        newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
-                        self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
-                    newDf.at[(ri) ,  ('altOk')] = row['altOk']
-                    newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
-                if(bprint):
-                    b1=newDf.at[(ri) ,  ('altOk')] 
-                    b2=newDf.at[(ri) ,  ('HghtOk')]
-                    sid=newDf.at[(ri) ,  ('stationID')]
-                    alt=newDf.at[(ri) ,  ('altitude')]
-                    print(f"applyRules L.1147: ri={ri},  altOk={b1},  HghtOk={b2},  station={sid},  alt={alt}")
-            print('.')
 
         def stationAltitudeFilterAction():
             stationMinAltCommonSense= -100 #m Dead Sea
@@ -1197,20 +1143,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 ymlContents['observations']['filters']['inletMinHeight']=mnh
             applyRules()
 
-        if (0>1):
-            (idxX,idxY) = (5,5)
-            myFont = tkFont.Font(family="Georgia", size=fsNORMAL)
-            (w,h) = (myFont.measure("1234: "),myFont.metrics("linespace"))
-            print ("Printing index onto the canvas.")
-            for i in range(125):
-                idxText = f"{i}:"
-                self.myCanvas.create_rectangle(idxX,idxY,idxX+w,idxY+h)
-                self.myCanvas.create_text(idxX,idxY,text=idxText,font=myFont,anchor=tk.NW)
-                idxY += h+yPadding+yPadding
-            idxText = "."
-            self.myCanvas.create_rectangle(idxX,idxY,idxX+w,idxY+h)
-            self.myCanvas.create_text(idxX,idxY,text=idxText,font=myFont,anchor=tk.NW)
-            idxY += h+yPadding+yPadding
             
         # Row 0:  Title Label
         # ################################################################
@@ -1372,25 +1304,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.ICOSstationsLabel.grid(row=1, column=7,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
-        if(0>1):
-            self.ICOSplusCkbVar = tk.BooleanVar(value=True)
-            self.ICOSplusCkb = ctk.CTkCheckBox(rootFrame,
-                                text="Any station", font=("Georgia",  fsNORMAL),
-                                variable=self.ICOSplusCkbVar,
-                                 onvalue=True, offvalue=False)                             
-            self.ICOSplusCkb.grid(row=2, column=7,
-                              padx=xPadding, pady=yPadding,
-                              sticky="nw")
-    
-            self.ICOSonlyCkbVar = tk.BooleanVar(value=True)
-            self.ICOSonlyCkb = ctk.CTkCheckBox(rootFrame,
-                                text="ICOS only", font=("Georgia",  fsNORMAL),
-                                variable=self.ICOSonlyCkbVar,
-                                 onvalue=True, offvalue=False)                             
-            self.ICOSonlyCkb.grid(row=3, column=7,
-                              padx=xPadding, pady=yPadding,
-                              sticky="nw")
-        #if(0>1):
+        #
         self.isICOSRadioButtonVar = tk.IntVar(value=1)
         if (ymlContents['observations']['filters']['ICOSonly']==True):
             self.isICOSRadioButtonVar.set(2)
@@ -1702,73 +1616,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         myWidgetOtherLabels.grid(row=guiRow, column=colidx, columnspan=6, padx=xPadding, pady=yPadding, sticky='nw')
         widgetsLst.append(myWidgetOtherLabels)
         gridRow.append(myWidgetVar)
-
-
         # ###################################################
-        if(0>1):
-            colidx+=1 # =4  row['altitude']
-            gridID=int((100*rowidx)+colidx)
-            myWidgetVar= str(row['altitude']) 
-            myWidgetStationAltitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['altitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
-            myWidgetStationAltitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
-            widgetsLst.append(myWidgetStationAltitude)
-            gridRow.append(row['altitude'])
-    
-            colidx+=1 # =5  row['isICOS']
-            # ###################################################
-            gridID=int((100*rowidx)+colidx)
-            affiliationICOS="ICOS"
-            if(not row['isICOS']):
-                affiliationICOS="non-ICOS"
-            myWidgetVar= affiliationICOS 
-            myWidgetIsICOS  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=myWidgetVar,text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
-            myWidgetIsICOS.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
-            widgetsLst.append(myWidgetIsICOS)
-            gridRow.append(affiliationICOS)
-    
-            colidx+=1 # =6  row['latitude']
-            # ###################################################
-            gridID=int((100*rowidx)+colidx)
-            myWidgetVar= str(row['latitude']) 
-            myWidgetLatitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['latitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
-            myWidgetLatitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
-            widgetsLst.append(myWidgetLatitude)
-            gridRow.append(row['latitude'])
-    
-            colidx+=1 # =7  row['longitude']
-            # ###################################################
-            gridID=int((100*rowidx)+colidx)
-            myWidgetVar= str(row['longitude']) 
-            myWidgetLongitude  = GridCTkLabel(scrollableFrame4Widgets, gridID, text=str(row['longitude']),text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                                font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
-            myWidgetLongitude.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='nw')
-            widgetsLst.append(myWidgetLongitude)
-            gridRow.append(row['longitude'])
-            
-            colidx+=1 # =8  row['dClass']
-            # ###################################################
-            gridID=int((100*rowidx)+colidx)
-            myWidgetVar= tk.IntVar(value=gridID)
-            self.dClassNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                       text=row['dClass'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-            self.dClassNNLabel.grid(row=guiRow, column=colidx,
-                                      columnspan=1, padx=xPadding, pady=yPadding,
-                                      sticky='news')
-            gridRow.append(row['dClass'])
-            
-            colidx+=1 # =9  row['dataSetLabel']
-            # ###################################################
-            gridID=int((100*rowidx)+colidx)
-            myWidgetVar= tk.IntVar(value=gridID)
-            self.dataSetDescrNNLabel = ctk.CTkLabel(scrollableFrame4Widgets,text_color=sTextColor,
-                                       text=row['dataSetLabel'], font=("Georgia",  fsNORMAL), justify="left", anchor="w")
-            self.dataSetDescrNNLabel.grid(row=guiRow, column=colidx,
-                                      columnspan=3, padx=xPadding, pady=yPadding,
-                                      sticky='news')
-            gridRow.append(row['dataSetLabel'])
         # createRowOfWidgets() completed
 
 
@@ -1808,9 +1656,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=obsDf.iloc[ri]
         widgetID=(ri*nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
-        bprint=((ri==29)or(ri==31)or(ri==33)or(ri==34))
-        if(bprint):
-            print(f"CheckboxEventHandler: (ri={ri}, ci={ci}, widgetID={widgetID}, gridID={gridID})")
         bChkBxIsSelected=widgetsLst[widgetID].get()
         if(widgetsLst[widgetID] is not None):
             if(ci==0):
@@ -1858,29 +1703,11 @@ class RefineObsSelectionGUI(ctk.CTk):
                             row.iloc[0]=True
                             if(widgetsLst[widgetID] is not None):
                                 widgetsLst[widgetID].configure(text_color=activeTextColor)
-                            if(bprint):
-                                print(f"ChkBoxEvent L1860: ri={ri},  set selected=True,  Country selected")
-                            if(ri==33):
-                                i=row['dClass']
-                                ba=row['altOk']
-                                bh=row['HghtOk']
-                                logger.info(f"bIncludeStation={bIncludeStation}, dClass={i},  altOk={ba},  HghtOk={bh}")
-                                bs=obsDf.at[(ri) ,  ('selected')]
-                                bc=obsDf.at[(ri) ,  ('includeCountry')]
-                                logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
-                                logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                         else:
                             obsDf.at[(ri) ,  ('selected')] =False
                             row.iloc[0]=False
-                            if(ri==33):
-                                bs=obsDf.at[(ri) ,  ('selected')]
-                                bc=obsDf.at[(ri) ,  ('includeCountry')]
-                                logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
-                                logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                             if(widgetsLst[widgetID] is not None):
                                 widgetsLst[widgetID].configure(text_color=inactiveTextColor)
-                            if(bprint):
-                                print(f"ChkBoxEvent L1867: ri={ri},  set selected=False,  Country selected")
                         row.iloc[13]=True # 'includeCountry'
                     else:
                         obsDf.at[(ri) ,  ('includeCountry')] =False
@@ -1894,8 +1721,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                             logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                         if(widgetsLst[widgetID] is not None):
                             widgetsLst[widgetID].configure(text_color=inactiveTextColor)
-                        if(bprint):
-                            print(f"ChkBoxEvent L1877: ri={ri},  set selected=False,  Country unselected")
                     self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
                     ri+=1
                     includeStationIdx+=nWidgetsPerRow
@@ -1940,9 +1765,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         colidx=int(0)  # row['selected']
         # ###################################################
         widgetID=(ri*nWidgetsPerRow)+colidx  # calculate the corresponding index to access the right widget in widgetsLst
-        bprint=((ri==29)or(ri==31)or(ri==33)or(ri==34))
-        if(bprint):
-            print(f"updateRowOfWidgets: rowidx={ri}, colidx={colidx}, widgetID={widgetID}")
         if(widgetsLst[widgetID] is not None):
             b=row['selected']
             if(b):
@@ -1972,8 +1794,6 @@ class RefineObsSelectionGUI(ctk.CTk):
             if(bIncludeCountry != bChkBxIsSelected):  # update the widget selection status if necessary
                 if(bIncludeCountry): # and  (row['dClass']==4) and  (row['altOk']==True) and (row['HghtOk']==True) ):
                     widgetsLst[widgetID].select()
-                    if(bprint):
-                        logger.info(f"Selecting ChkBox with widgetID={widgetID} in row {ri}")
                 else:
                     widgetsLst[widgetID].deselect()
         
@@ -1989,8 +1809,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                         widgetsLst[widgetID].select()
                     else:
                         widgetsLst[widgetID].deselect()
-                        if(bprint):
-                            logger.info(f"Selecting ChkBox with widgetID={widgetID} in row {ri}")
             except:
                 pass
         
@@ -2077,25 +1895,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                                
         if(bStationFilterError):
             bErrors=True
-            
-        if (0>1):
-            # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
-            if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):
-                bErrors=True
-                sErrorMsg+="Error: At least one of Land, Fossil or Ocean needs to be adjustable, preferably Land.\n"
-            elif(not self.LandVegCkb.get()):
-                bWarnings=True
-                sWarningsMsg+="Warning: It is usually a bad idea NOT to adjust the land/vegetation net exchange. Are you sure?!\n"
-            if(self.FossilCkb.get()):
-                bWarnings=True
-                sWarningsMsg+="Warning: It is unusual wanting to adjust the fossil emissions in LUMIA. Are you sure?!\n"
-            if(self.OceanCkb.get()):
-                bWarnings=True
-                sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
-            if(bErrors==False):
-                ymlContents['optimize']['emissions']['co2']['biosphere']['adjust'] = self.LandVegCkb.get()
-                ymlContents['optimize']['emissions']['co2']['fossil']['adjust'] = self.FossilCkb.get()
-                ymlContents['optimize']['emissions']['co2']['ocean']['adjust'] = self.OceanCkb.get()                
             
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
