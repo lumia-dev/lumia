@@ -64,12 +64,12 @@ observations:
     rename: background:mix_background
     tracer: co2
   filters:
-    bSamplingHeight: true
-    bStationAltitude: true
+    bSamplingHeight: false
+    bStationAltitude: false
     inletMaxHeight: 700
     inletMinHeight: 0
     stationMaxAlt: 6500
-    stationMinAlt: 0
+    stationMinAlt: 30
     ICOSonly: false
   start: '2018-01-01 00:00:00'
   uncertainty:

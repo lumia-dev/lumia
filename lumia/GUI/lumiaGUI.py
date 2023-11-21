@@ -69,9 +69,9 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     bWeMustStack=False
     colW=int(iAvailWidth/nCols)-(0.5*xPad)+0.5
     colH=int( iAvailHght/nRows)-(0.5*yPad)+0.5
-    logger.info(f"avail colWidth= {colW} pxl: colHeight= {colH} pxl")
+    logger.debug(f"avail colWidth= {colW} pxl: colHeight= {colH} pxl")
     (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
-    logger.info(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
+    logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
     # Make the font smaller until the text fits into one column width
     while(w>colW):
         FontSize=FontSize-1
@@ -83,7 +83,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
             bCanvasTooSmall=True
             (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
             break
-        logger.info(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
+        logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
     # If the screen is too small, check if we could stack the output vertically using fewer columns
     if((bCanvasTooSmall) and (bWeCanStackColumns) and (nCols>1)):
         nCols=int((nCols*0.5)+0.5)
@@ -103,9 +103,9 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
             bestFontSize=FontSize
     FontSize=bestFontSize
     (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
-    logger.info(f"{sFontFamily} {FontSize}: (w={w},h={h})pxl")
+    logger.debug(f"{sFontFamily} {FontSize}: (w={w},h={h})pxl")
     if(h>colH):
-        logger.info("We may need a vertical scrollbar...")
+        logger.debug("We may need a vertical scrollbar...")
     fsNORMAL=FontSize # 12
     fsTINY=int((9*FontSize/fsNORMAL)+0.5)  # 9
     fsSMALL=int((10*FontSize/fsNORMAL)+0.5)  # 10
@@ -929,8 +929,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         activeTextColor='gray10'
         inactiveTextColor='gray50'
-        gridList = []  # collects all the dynamically created widgets for all the observational data sets
-        # re-organise the fDiscoveredObservations dataframe,
+       # re-organise the fDiscoveredObservations dataframe,
         # It is presently sorted by country, station, dataRanking (dClass), productionTime and samplingHeight -- in that order
         #   columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
         #                 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
@@ -1062,7 +1061,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             for ri, row in newDf.iterrows():
                 if ((row['stationID'] in 'ZSF') or (row['stationID'] in 'JAR') or (row['stationID'] in 'DEC')):
                     id=row['stationID']
-                    print(f'stationID={id},  newDf-rowidx={ri}')
+                    #print(f'stationID={id},  newDf-rowidx={ri}')
                 row['altOk'] = (((float(row['altitude']) >= stationMinAlt) &
                                     (float(row['altitude']) <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
                 if(isinstance(row['samplingHeight'], list)):
@@ -1347,66 +1346,100 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Cancel Button
         self.CancelButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), text="Cancel",
             fg_color='orange red', command=CancelAndQuit)
-        self.CancelButton.grid(row=1, column=11,
+        self.CancelButton.grid(row=2, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="nw")
 
         # Check choices
-        self.CheckButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), 
-                                        text="Check choices", text_color='gray5',  text_color_disabled='gray70', 
-                                        fg_color='OliveDrab1', command=CancelAndQuit)
-        self.CheckButton.grid(row=2, column=11,
-                          padx=xPadding, pady=yPadding,
-                          sticky="nw")
+        # self.CheckButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), 
+        #                                 text="Check choices", text_color='gray5',  text_color_disabled='gray70', 
+        #                                 fg_color='OliveDrab1', command=CancelAndQuit)
+        # self.CheckButton.grid(row=2, column=11,
+        #                   padx=xPadding, pady=yPadding,
+        #                   sticky="nw")
 
 
 
-        # Row 11  :  RUN Button
-        def GoButtonHit():
-            # def generateResults(self):
-            bGo=False
-            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents)
-            self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
-            self.displayBox.delete("0.0", "end")  # delete all text
-            if((bErrors) and (bWarnings)):
-                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
-            elif(bErrors):
-                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg)
-            elif(bWarnings):
-                self.displayBox.insert("0.0", "You chose to ignore the following warnings:\n"+sWarningsMsg)
-                if(self.bIgnoreWarningsCkbVar.get()):
-                    bGo=True
-                self.ignoreWarningsCkb.configure(state=tk.NORMAL)
-            else:
-                bGo=True
-            self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
-    
-            if(bGo):
-                # Save  all details of the configuration and the version of the software used:
-                current_date = datetime.now()
-                sNow=current_date.isoformat("T","minutes")
-                sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
-                    
-                try:
-                    with open(ymlFile, 'w') as outFile:
-                        yaml.dump(ymlContents, outFile)
-                
-                except:
-                    sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
-                    CancelAndQuit(sTxt)
-                    
-                sCmd="cp "+ymlFile+" "+sLogCfgFile
-                self.runSysCmd(sCmd)
-                sCmd="touch LumiaGui.go"
-                self.runSysCmd(sCmd)
-                logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
-                # self.bPleaseCloseTheGui.set(True)
-                global LOOP_ACTIVE
-                LOOP_ACTIVE = False
-                
+        #Col 10:  RUN Button
+        def GoBtnHit():
+            # get current time
+            current_date = datetime.now()
+            sNow=current_date.isoformat("T","minutes")
+            # Write the list of observational files
+            try:
+                nObs=len(newDf)
+                filtered = ((newDf['selected'] == True))
+                dfq= newDf[filtered]
+                nSelected=len(dfq)
+                logger.info(f"There are {nObs} valid data sets in the selected geographical region ingoring multiple sampling heights.")
+                logger.info(f"Thereof {nSelected} are presently selected.")
+            except:
+                pass
+            try:
+                newDf.to_csv('allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
+                dfq.to_csv("Lumia-ObsData-"+sNow+".csv", mode='w', sep=',')
+            except:
+                sTxt=f"Fatal Error: Failed to write to text the file allObsInTimeSpaceSlab.csv or Lumia-ObsData-{sNow}.csv in the local run directory. Please check your write permissions and possibly disk space etc."
+                CancelAndQuit(sTxt)
+            try:
+                excludedCountriesList = []
+                excludedStationsList = []
+                n=0
+                previousCountry=""
+                for rowidx, row in newDf.iterrows(): 
+                    if((row['selected']==False) and (int(row['dClass'])==4)):
+                        excludedStationsList.append(row['stationID'] )
+                        if(row['country'] not in previousCountry):  
+                            excludedCountriesList.append(row['country'])
+                            previousCountry=row['country']
+                        n+=1
+                nC=len(excludedCountriesList)
+                nS=len(excludedStationsList)
+                if(nC==0):
+                    logger.info("No countries were rejected")
+                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'CountriesExcluded',  'None')
+                else:
+                    s=""
+                    for element in excludedCountriesList:
+                        s=s+element+', '
+                    logger.info(f"{nC} countries ({s[:-2]}) were rejected")
+                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'CountriesExcluded',  s[:-2])
+                if(nS==0):
+                    logger.info("No observation stations were rejected")
+                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'StationsExcluded',  'None')
+                else:
+                    s=""
+                    for element in excludedStationsList:
+                        s=s+element+', '
+                    logger.info(f"{nS} observation stations ({s[:-2]}) were rejected")
+                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'StationsExcluded',  s[:-2])
+            except:
+                pass
+            # Save  all details of the configuration and the version of the software used:
+            sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
+            try:
+                with open(ymlFile, 'w') as outFile:
+                    yaml.dump(ymlContents, outFile)
+            except:
+                sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+                CancelAndQuit(sTxt)
+            
+            sCmd="cp "+ymlFile+" "+sLogCfgFile
+            self.runSysCmd(sCmd)
+            sCmd="touch LumiaGui.go"
+            self.runSysCmd(sCmd)
+            logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
+            # self.bPleaseCloseTheGui.set(True)
+            global LOOP_ACTIVE
+            LOOP_ACTIVE = False
+
+        # ######################################################            
         self.RunButton = ctk.CTkButton(rootFrame, font=("Georgia", fsNORMAL), 
                                          text_color='gray5',  text_color_disabled='gray70',  text="RUN", 
-                                         fg_color='green2', command=GoButtonHit)
+                                         fg_color='green2', command=GoBtnHit) 
+                                         #fg_color='green2', command=lambda widgetID=self.RunButton : GoButtonHit(widgetID, newDf)) 
+                                         #         myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+
         self.RunButton.grid(row=3, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="nw")
@@ -1425,7 +1458,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Create a frame for the canvas with non-zero row&column weights
         
         rootFrame.update() # above widgets are drawn and we can get column width measures
-        print(rootFrame.grid_bbox())
         x, y, width, height = rootFrame.grid_bbox()
 
         rootFrameCanvas = tk.Frame(rootFrame)
@@ -1533,8 +1565,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         else:
             sTextColor=inactiveTextColor
         
-        if(rowidx==0):
-            print(f"(rowidx={rowidx}, guiRow={guiRow})")
         colidx=int(0)  # row['selected']
         # ###################################################
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
@@ -1542,7 +1572,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="",font=("Georgia", fsNORMAL),
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             variable=myWidgetVar, onvalue=True, offvalue=False) 
-        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
         if(bSelected):
             myWidgetSelect.select()
         else:
@@ -1561,7 +1591,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             myWidgetVar= tk.BooleanVar(value=row['includeCountry'])
             myWidgetCountry  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False)  
-            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
             myWidgetCountry.select()
             myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
             widgetsLst.append(myWidgetCountry)
@@ -1576,7 +1606,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         myWidgetVar= tk.BooleanVar(value=row['includeStation'])
         myWidgetStationid  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False) 
-        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
         if(row['includeStation']):
             myWidgetStationid.select()
         else:
@@ -1624,7 +1654,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         widgetID=(ri*nWidgetsPerRow)+ci  # calculate the widgetID to access the right widget in widgetsLst
-        print(f"OptionMenuEventHandler: (ri={ri}, ci4={ci}, widgetID={widgetID}, gridID={gridID})")
+        #print(f"OptionMenuEventHandler: (ri={ri}, ci4={ci}, widgetID={widgetID}, gridID={gridID})")
         if(widgetsLst[widgetID] is not None):
             if(ci==4):  # SamplingHeight
                 newSamplingHeight=widgetsLst[widgetID].get() # a string var 
@@ -1643,7 +1673,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                             pids=obsDf.at[(ri) ,  ('pid')]
                             swapListElements(pids, 0, nPos)
                             obsDf.at[(ri) ,  ('pid')]=pids
-                            print(f"new samplingHeights={obsDf.at[(ri) ,  ('samplingHeight')]}")
+                            #print(f"new samplingHeights={obsDf.at[(ri) ,  ('samplingHeight')]}")
                             break
                         nPos+=1
                 except:
@@ -1651,7 +1681,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
             
-    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, srow, nWidgetsPerRow, activeTextColor, inactiveTextColor):
+    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=obsDf.iloc[ri]
