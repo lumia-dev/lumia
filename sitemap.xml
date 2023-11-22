@@ -2,22 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://lumia.nateko.lu.se/</loc>
-         <lastmod>2023-09-19</lastmod>
+         <lastmod>2023-11-22</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://lumia.nateko.lu.se/data/</loc>
+         <lastmod>2023-11-22</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://lumia.nateko.lu.se/dummy/</loc>
+         <lastmod>2023-11-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://lumia.nateko.lu.se/observations/</loc>
-         <lastmod>2023-09-19</lastmod>
+         <lastmod>2023-11-22</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://lumia.nateko.lu.se/prior/</loc>
+         <lastmod>2023-11-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://lumia.nateko.lu.se/settings/</loc>
-         <lastmod>2023-09-19</lastmod>
+         <lastmod>2023-11-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://lumia.nateko.lu.se/tutorial/</loc>
-         <lastmod>2023-09-19</lastmod>
+         <lastmod>2023-11-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

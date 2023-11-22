@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://lumia.nateko.lu.se/prior/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Prior uncertainties - LUMIA</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">LUMIA</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../observations/" class="dropdown-item">Observations</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">Prior uncertainties</a>
+</li>
+                                    
+<li>
+    <a href="../data/" class="dropdown-item">Emissions</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../observations/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../data/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lumia-dev/lumia/edit/omegaconf/docs/prior.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#prior-uncertainties" class="nav-link">Prior uncertainties</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#error-covariance-matrix" class="nav-link">Error-covariance matrix</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="prior-uncertainties">Prior uncertainties</h1>
+<p>The uncertainty settings should be grouped in a section of the configuration file, with the following structure :</p>
+<pre class="highlight"><code class="language-yaml">optimize :
+    emissions :
+        tracer1 :
+            category1 :
+                annual_uncertainty :
+                spatial_correlation :
+                    cortype :
+                temporal_correlation :
+                optimization_interval :
+            category2 : 
+                ...
+        tracer2 :
+            ...</code></pre>
+<p>The <strong>annual_uncertainty</strong> settings should be in the form of a value and unit (e.g. "1.2 TgCH4", "0.5 PgCO2", ...). The <strong>optimization_interval</strong> settings should be a string understandable by the <a href="https://pandas.pydata.org/docs/reference/api/pandas.tseries.frequencies.to_offset.html"><code>pandas.tseries.frequencies.to_offset</code></a> function. The <strong>spatial_correlation</strong> and <strong>temporal_correlation</strong> should contain a <code>cortype</code> sub-key, which determines which correlation function should be used. Depending on this, they may require additional subkeys (e.g. <code>corlen</code>, <code>stretch_ratio</code>, etc.).</p>
+<h2 id="error-covariance-matrix">Error-covariance matrix</h2>
+<p>The error covariance matrix is calculated in three steps:</p>
+<ol>
+<li>The standard are estimated, for each state vector component</li>
+<li>The correlations are determned</li>
+<li>The resulting total uncertainty is computed (by combining the standard deviations and correlations), and the standard deviations are scaled uniformly, to match a user-specified annual uncertainty target.</li>
+</ol>
+<details class="note" open="open">
+<summary>where is it in the code?</summary>
+<p>The uncertainty matrix is calculated in the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/prior/prior.py"><code>lumia.PriorConstraints.setup</code></a> method, which should be called by the main script (see, e.g. <a href="https://github.com/lumia-dev/lumia/blob/master/run/co2_inversion.py">run/co2_inversion.py</a>)</p>
+</details>
+<h3 id="1-standard-deviations">1. Standard deviations</h3>
+<p>The standard deviations (<span class="arithmatex">\(\sigma_\mathbf{x}\)</span>, i.e. the diagonal elements of the <span class="arithmatex">\(\mathbf{B}\)</span> matrix) are prescribed based on the absolute value of the prior emissions.</p>
+<p>Consider a control variable <span class="arithmatex">\(x\)</span>, controlling for the offsets to the prior emissions for a group of contiguous grid cells <span class="arithmatex">\(p_i\)</span> to <span class="arithmatex">\(p_j\)</span>, and from time steps <span class="arithmatex">\(t_n\)</span> to <span class="arithmatex">\(t_m\)</span>. Then the value of <span class="arithmatex">\(x\)</span> in a given iteration is:</p>
+<div class="arithmatex">\[ x = \sum_{t = n}^{m}\sum_{p = i}^{j} \left(E(t, p) - E^{apri}(t, p)\right)\]</div>
+<p>The prior values of <span class="arithmatex">\(x\)</span> (i.e. when <span class="arithmatex">\(E = E^{apri}\)</span>) is therefore 0.</p>
+<p>The corresponding prior uncertainty, <span class="arithmatex">\(\sigma_x\)</span>, is defined as:</p>
+<div class="arithmatex">\[\sigma_x = \sum_{t = n}^m\sum_{p = i}^j |E^{apri}(t, p)|\]</div>
+<p>In other words, the uncertainty on <span class="arithmatex">\(x\)</span> is proportional to the sum of the absolute values of the "components" of <span class="arithmatex">\(x\)</span>. This ensures in particular that the uncertainty doesn't drop to zero if the fluxes to which <span class="arithmatex">\(x\)</span> is an offset happen to cancel out each other (e.g. when respiration and photosynthesis are of equal amplitude).</p>
+<p>Note that the absolute values of the standard deviations computed in this step has no importance, as they are scaled to match a target annual uncertainty, in step 3 below. The aim of this step 1 is only to define how this annual uncertainty will be distributed, in time and space.</p>
+<details class="note" open="open">
+<summary>where is it in the code?</summary>
+<p>The standard deviations are directly calculated in the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/prior/prior.py"><code>lumia.PriorConstraints.setup</code></a> method. It relies on the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/mapping/multitracer.py"><code>lumia.Mapping.coarsen_cat</code></a> method to aggregate the model-resolution error estimates into a control-vector-like object.</p>
+</details>
+<h3 id="2-correlations">2. Correlations</h3>
+<p>Four correlation methods are implemented, and can be selected using the <strong>cortype</strong> subkey of the <strong>spatial_correlation</strong> and <strong>temporal_correlation</strong> sections. Three of them calculate correlation coefficients based on a mathematical function of the spatial or temporal distance between the grid-cells, whereas the last one reads pre-computed correlation-distance relationships from a file.</p>
+<details class="note" open="open">
+<summary>where is it in the code?</summary>
+<p>The uncertainty settings are read within the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/mapping/multitracer.py"><code>lumia.Mapping.setup_optimization</code></a> method. In addition, if you need to implement new options, you might need to edit the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/optimizer/categories.py"><code>lumia.optimizer.categories.Categories</code></a> class.</p>
+</details>
+<h4 id="correlation-functions">Correlation functions</h4>
+<ul>
+<li>Exponential (<strong>cortype</strong> = e): <span class="arithmatex">\(r = e^{- \left(d / L\right)}\)</span></li>
+<li>Gaussian (<strong>cortype</strong> = g): <span class="arithmatex">\(r_H = e^{- \left(d / L\right)^2}\)</span></li>
+<li>Hyperbolic (<strong>cortype</strong> = h): <span class="arithmatex">\(r_H = 1 / \left(1 + d / L\right)\)</span></li>
+</ul>
+<p>where <span class="arithmatex">\(d\)</span> is the geographical distance between the center of two gridcells, and <span class="arithmatex">\(L\)</span> is a user-specified correlation length (<strong>optimize.emissions.{tracer}.{catname}.horizontal_correlation.cortype</strong> key)</p>
+<p>For temporal correlations, only the exponential method is implemented, and <strong>cortype</strong> should be a string understandable by the <a href="https://pandas.pydata.org/docs/reference/api/pandas.tseries.frequencies.to_offset.html"><code>pandas.tseries.frequencies.to_offset</code></a> function.</p>
+<p>The last method (<strong>cortype</strong> = f) reads the correlation-distance relationship (<span class="arithmatex">\(r(d)\)</span>) from a file (see below). In which case, a <strong>corrfile</strong> argument is needed (and <strong>corlen</strong> is not used).</p>
+<details class="note" open="open">
+<summary>where is it in the code?</summary>
+<p>The correlation functions are all implemented in the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/prior/uncertainties.py"><code>lumia.prior.uncertainties</code></a> module (<code>SpatialCorrelation</code> and <code>TemporalCorrelation</code> classes).</p>
+</details>
+<h4 id="correlation-file">Correlation file</h4>
+<p><mark>Implementation pending</mark></p>
+<p>It is possible to provide correlation-distance relationships through a file. This allows for more complex correlation functions to be implemented. In order to use this feature, set <strong>cortype</strong> to "f" (or to "file"), and provide the name of the correlation file in a <strong>corfile</strong> key.</p>
+<p>The correlation file should be a netCDF file, containing one <em>correlations</em> group, with the following structure:</p>
+<pre class="highlight"><code>group: correlations {
+  dimensions:
+        point = 1644 ;
+        time = 365 ;
+  variables:
+        double lat(point) ;
+                lat:_FillValue = NaN ;
+        double lon(point) ;
+                lon:_FillValue = NaN ;
+        double horizontal_correlation(point, point) ;
+                horizontal_correlation:_FillValue = NaN ;
+        double temporal_correlations(time, time) ;
+                temporal_correlations:_FillValue = NaN ;
+        int64 time(time) ;
+                time:units = "days since 2018-01-01 00:00:00" ;
+                time:calendar = "proleptic_gregorian" ;
+        int64 point(point) ;
+  } // group correlations</code></pre>
+<p>The <code>horizontal_correlations</code> and <code>temporal_correlations</code> variables contain the spatial and temporal matrices. The <code>time</code> variable is the coordinate of the <code>time</code> dimension of the <code>temporal_correlations</code> matrix. The <code>lat</code> and <code>lon</code> variables store the spatial positions corresponding to the <code>point</code> coordinate of the <code>horizontal_correlation</code> matrix.</p>
+<details class="note" open="open">
+<summary>where is it in the code?</summary>
+<p>The matrices are read within the <code>SpatialCorrelation</code> and <code>TemporalCorrelation</code> classes of the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/prior/uncertainties.py"><code>lumia.prior.uncertainties</code></a> module. Specifically, it uses the <code>read_spatial_correlations</code> and <code>read_temporal_correlations</code> functions of that module, which doesn't just read the matrices, but also ensure that they are compatible with the current list of coordinates, since there can be <em>nan</em> values in the pre-computed matrices.</p>
+</details>
+<h3 id="3-uncertainty-scaling">3. Uncertainty scaling</h3>
+<p>The net uncertainty is calculated as:</p>
+<div class="arithmatex">\[ \sigma_{tot} = \sqrt{\mathbf{s} \cdot vec(\mathbf{C_h S C_t}^T)} \]</div>
+<p>with <span class="arithmatex">\(s\)</span> the vector containing the standard deviations of <span class="arithmatex">\(x\)</span>, <span class="arithmatex">\(S\)</span> the same vector, but reshaped as a (<em>nt</em>, <em>np</em>) matrix (with <em>nt</em> and <em>np</em> respectively the number of optimization time steps and optimization (clusters of) grid cells), and <em>vec</em> the operator reshaping a (<em>nt</em>, <em>np</em>) matrix as a <em>np</em> <span class="arithmatex">\(\times\)</span> <em>nt</em> vector. <span class="arithmatex">\(\mathbf{C_t}\)</span> and <span class="arithmatex">\(\mathbf{C_h}\)</span> are the temporal and spatial correlation matrices calculated in step 2.</p>
+<p>This relies on the properties that:</p>
+<ul>
+<li><span class="arithmatex">\(\mathbf{B = C_t \otimes C_h}\)</span></li>
+<li>the sum of a covariance matrix can be inferred from <span class="arithmatex">\(\mathbf{s \cdot Q \cdot s^T}\)</span> (with <span class="arithmatex">\(\mathbf{s}\)</span> the vector of standard deviations, and <span class="arithmatex">\(\mathbf{Q}\)</span> the correlation matrix</li>
+<li>The equivalence between <span class="arithmatex">\((\mathbf{C_t \otimes C_h)} vec(\mathbf{S})\)</span> and <span class="arithmatex">\(vec(\mathbf{C_h S C_t^T})\)</span></li>
+</ul>
+<p>Combining these three equations, we obtain <span class="arithmatex">\(\mathbf{\Sigma^2} = \mathbf{s \cdot C_t \otimes C_h \cdot s^T = s} \cdot vec(\mathbf{C_h S C_t^T})^T\)</span>, with <span class="arithmatex">\(\mathbf{\Sigma^2}\)</span> the total variance.</p>
+<p>Because the formula above doesn't construct the covariance matrix explicitly, but only its sum, it is (relatively) lightweight and efficient to compute. Once the total variance is computed, the standard deviations are multiplied by a scalar factor <span class="arithmatex">\(\gamma\)</span>, defined as</p>
+<div class="arithmatex">\[ \gamma = \frac{\mathbf{\Sigma_{target}}}{\mathbf{\Sigma}}\frac{\Delta}{\Delta_y} \]</div>
+<p>with <span class="arithmatex">\(\Sigma_{target}\)</span> the target annual uncertainty, <span class="arithmatex">\(\Delta\)</span> the length of the simulation (in seconds) and <span class="arithmatex">\(\Delta_y\)</span> the lenght of one year.</p>
+<details class="note" open="open">
+<summary>where is it in the code?</summary>
+<p>The uncertainty scaling is done directly in the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/prior/prior.py"><code>lumia.PriorConstraints.setup</code></a> method.</p>
+</details></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/mathjax.js"></script>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

@@ -40,6 +40,14 @@
 <li>
     <a href="observations/" class="dropdown-item">Observations</a>
 </li>
+                                    
+<li>
+    <a href="prior/" class="dropdown-item">Prior uncertainties</a>
+</li>
+                                    
+<li>
+    <a href="data/" class="dropdown-item">Emissions</a>
+</li>
                                 </ul>
                             </li>
                         </ul>
@@ -113,11 +121,7 @@
 <p>The Lund University Modular Inversion Algorithm (LUMIA) is a python package for performing atmospheric transport inversions.</p>
 <p>The release 2020.8 is described in <a href="https://www.geosci-model-dev-discuss.net/gmd-2019-227/">https://www.geosci-model-dev-discuss.net/gmd-2019-227/</a> can be downloaded <a href="lumia.202008.tar.gz">here</a>, however, we recommend instead getting the latest commit from <a href="https://github.com/lumia-dev/lumia.git">github</a>:</p>
 <pre class="highlight"><code class="language-bash">git clone --branch master https://github.com/lumia-dev/lumia.git</code></pre>
-<p>This documentation focuses on an updated release</p>
-<details class="danger" open="open">
-<summary>Pending update</summary>
-<p>this documentation is being revised at the very moment. The text in this page refers to the "master" branch, not to the "default" one).</p>
-</details>
+<p>This documentation focuses on the current version of the code.</p>
 <h1 id="folder-structure">Folder structure</h1>
 <p>The folder structure of LUMIA is the following:</p>
 <ul>
@@ -160,7 +164,6 @@ pip install -e my_folder</code></pre></p>
 <li><a href="https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf">conda cheat sheet</a></li>
 </ul>
 </li>
-<li>Don't try to run the setup.py file directly! (i.e. don't try anything like <code>python setup.py install</code>).</li>
 <li>Don't try to use the <em>Makefile</em> directly (but you can look at it, it contains a shortened version of this documentation).</li>
 </ul>
 </details>
@@ -201,9 +204,9 @@ This means that python cannot find the <code>lumia</code> module: either you are
 <ul>
 <li><a href="observations/"><code>lumia.observations</code></a> implements the observation vector (<span class="arithmatex">\(y\)</span>), the corresponding uncertainties (<span class="arithmatex">\(R\)</span>);</li>
 <li><a href="models.md"><code>lumia.models</code></a> handles the interface between LUMIA and the actual CTM (<span class="arithmatex">\(H\)</span>);</li>
-<li><a href="prior.md"><code>lumia.prior</code></a> implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;</li>
+<li><a href="prior/"><code>lumia.prior</code></a> implements the prior control vector <span class="arithmatex">\(x_b\)</span> and its uncertainty matrix <span class="arithmatex">\(B\)</span>;</li>
 <li><a href="optimizers.md"><code>lumia.optimizer</code></a> implements the optimization algorithm;</li>
-<li><a href="data.md"><code>lumia.data</code></a> implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;</li>
+<li><a href="data/"><code>lumia.data</code></a> implements the emissions (<span class="arithmatex">\(E\)</span>) themselves;</li>
 <li><a href="mapping.md"><code>lumia.mapping</code></a> implements the mapping operator (<span class="arithmatex">\(M\)</span>), that is used to convert between model data and control vector.</li>
 <li><a href="utils.md"><code>lumia.utils</code></a> contains various utilities, used by several of the other <code>lumia</code> modules. The <a href="utils.md">Utilities</a> page also describes the <code>gridtools</code> module, that is distributed along <code>lumia</code>.</li>
 <li><a href="transport.md"><code>transport</code></a> acts as a CTM (<span class="arithmatex">\(H\)</span>) in our LUMIA inversions.</li>
@@ -311,5 +314,5 @@ This means that python cannot find the <code>lumia</code> module: either you are
 
 <!--
 MkDocs version : 1.5.2
-Build Date UTC : 2023-09-19 14:09:47.746998+00:00
+Build Date UTC : 2023-11-22 16:27:31.563746+00:00
 -->

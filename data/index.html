@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://lumia.nateko.lu.se/data/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Emissions - LUMIA</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">LUMIA</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../observations/" class="dropdown-item">Observations</a>
+</li>
+                                    
+<li>
+    <a href="../prior/" class="dropdown-item">Prior uncertainties</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">Emissions</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../prior/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" class="nav-link disabled">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lumia-dev/lumia/edit/omegaconf/docs/data.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#emissions" class="nav-link">Emissions</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#pre-processed-emission-files" class="nav-link">Pre-processed emission files</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#archive" class="nav-link">Archive</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#meta-categories" class="nav-link">Meta-categories</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#lumia-emission-file" class="nav-link">LUMIA emission file</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="emissions">Emissions</h1>
+<p>The emissions to be transported are defined in the <code>emissions</code> section of the <a href="../settings/">configuration file</a>. The section is structured as follows:
+<pre class="highlight"><code class="language-yaml">emissions :
+    tracer : [tracer_i, tracer_j, ...] # List of tracers 
+    tracer_i:
+        region :        # Grid definition for tracer "tracer_i" 
+        interval :      # transport model temporal resolution
+        categories :
+            cat1 :      # "origin" of the emission files for cat "cat1"
+            cat2 :
+                origin : # "origin" of the emission files for cat "cat2"
+                ...    : # other settings, speficic to cat2
+            ...
+        metacategories :
+            metacat1 : 
+            metacat2 :
+        ...            :  
+    tracer_j:
+        ...</code></pre></p>
+<p>This section of the configuration file is essentially used to construct a single LUMIA emission file, containing the emissions for the simulation (i.e. emissions of all categories and all tracers, covering the entire length of the simulation), based on category and tracer-specific pre-processed emission files (see File formats section below).</p>
+<p>The yaml file keys determine the following settings:</p>
+<ul>
+<li>Mandatory keys:<ul>
+<li>list of emission tracers: <strong>emissions.tracers</strong> key (should be a list!)</li>
+<li>path of the pre-processed files to be read: <strong>path</strong>, <strong>prefix</strong> and <strong>origin</strong> keys. </li>
+<li>grid definition of the emission files : <strong>emissions.{tracer}.region</strong> key</li>
+<li>temporal resolution of the emissions: <strong>emissions.{tracer}.interval</strong> key</li>
+</ul>
+</li>
+<li>Optional keys:<ul>
+<li>name of the netCDF variable to be read: <strong>field</strong> key</li>
+<li>whether the pre-processed emission files should be resampled from a different temporal resolution: <strong>resample_from</strong> key.</li>
+<li>path to a rclone-mounted emission archive: <strong>archive</strong> key</li>
+<li>definition of metacategories: <strong>emissions.{tracer}.metacategories</strong> key(s)</li>
+</ul>
+</li>
+</ul>
+<p>The <strong>path</strong>, <strong>prefix</strong>, <strong>field</strong>, <strong>resample_from</strong> and <strong>archive</strong> keys can be provided at the tracer level (e.g. <strong>emissions.{tracer}.path</strong>) or at the category level (<strong>emissions.{tracer}.categories.{catname}.path</strong>). The <strong>origin</strong> key should be provided at the category level (<strong>emissions.{tracer}.categories.{catname}.origin</strong>), but if all the other keys are provided at the tracer-level, it is possible to simply use <strong>emissions.{tracer}.categories.{catname}</strong> as an "origin" key.</p>
+<h2 id="pre-processed-emission-files">Pre-processed emission files</h2>
+<p>The assembling of pre-processed, category-specific emission files into a single, simulation-specific emission file is performed by the <a href="https://github.com/lumia-dev/lumia/blob/master/src/lumia/data/xr.py"><code>lumia.Data.from_dconf</code> method</a>.</p>
+<p>The files should contain three coordinate variables (<em>time</em>, <em>lat</em> and <em>lon</em>), one (or more) emission fields defined on the same coordinates. It is also recommended to include a (<em>lat</em>, <em>lon</em>) area field for convenience, but this is not read or required by LUMIA. The <em>lat</em> and <em>lon</em> variables should refer to the center of the grid cells, while the <em>time</em> coordinate points to the start of each time period. The <em>time</em> coordinate should contain integer, and have a <em>units</em> and a <em>calendar</em> attribute, allowing conversion to a <code>numpy.datetime64</code> type. The recommended method for creating these files is to use the <a href="https://xarray.dev/">xarray</a> library.</p>
+<p>The path of the pre-processed files is determined by the <strong>path</strong>, <strong>prefix</strong> and <strong>origin</strong> keys: The file names follows the pattern <strong>{path}/{tres}/{prefix}{origin}.*.nc</strong>. Here <strong>prefix</strong> is meant as a tracer-spefic prefix (e.g. "co2_flux") and <strong>origin</strong> refers to the origin of the data in the file (e.g. "LPJ"). The <strong>{tres}</strong> key refers to the temporal resolution of the pre-processed emission files. By default it is identical as <strong>emissions.{tracer}.interval</strong>, but can be set at a lower temporal resolution using the <strong>resample_from</strong> key (in which case the emissions will simply be rebinned by LUMIA). </p>
+<p>For instance, if a <strong>biosphere</strong> category should read emissions from <em>/data/LUMIA/M/co2_emis.LPJGUESS-v20.2018.nc</em>, then:</p>
+<ul>
+<li><strong>emissions.co2.path</strong> (or <strong>emissions.co2.categories.biosphere.path</strong>) should be set to <em>/data/LUMIA</em></li>
+<li><strong>emissions.co2.prefix</strong> (or <strong>emissions.co2.categories.biosphere.prefix</strong>) should be set to <em>co2_emis.</em></li>
+<li><strong>emissions.co2.categories.biosphere.origin</strong> (or <strong>emissions.co2.categories.biosphere</strong>) should be set to <em>LPJGUESS-v20</em></li>
+<li>if <strong>emissions.co2.interval</strong> is not set to <em>M</em>, then a <strong>emissions.co2.resample_from</strong> (or <strong>emissions.co2.categories.biosphere.resample_from</strong>) key should be defined and set to <em>M</em>.</li>
+<li>if the file contains any other variable than the coordinates (<em>lat</em>, <em>lon</em>, <em>time</em>) and the variable containing the emission themselves, then a <strong>emissions.co2.categories.biosphere.field</strong> variable should be set.</li>
+</ul>
+<p>Note that at no point we specify the time component of the filename: LUMIA will load all the files matching the pattern <strong>{path}/{prefix}{origin}.*.nc</strong> as a <a href="https://docs.xarray.dev/en/stable/generated/xarray.open_mfdataset.html">multi-file netCDF Dataset</a>.</p>
+<h2 id="archive">Archive</h2>
+<p>The emission files need to be on a local file system for LUMIA to read them, however that can be just a temporary folder, with the files being stored on a remote permanent storage, accessed via <a href="https://rclone.org/">rclone</a>. The path to the archive should be provided by the <code>emissions.{tracer}.archive</code> key, with the pattern <code>rclone:{rclone_remote}:path/to/remote/dir</code>, where <code>{rclone_remote}</code> is a rclone remote path defined in your <code>rclone.conf</code> file (see the relevant <a href="https://rclone.org/docs/#syntax-of-remote-paths">rclone documentation</a>).</p>
+<h2 id="meta-categories">Meta-categories</h2>
+<p>It is possible to define <em>meta-categories</em>, as a linear combination of other categories. For instance in the (fictional) example below, we defined one "NEE" meta-category, as the sum of the GPP and respiration categories. We defined a "fossil" category by subtraction of "agri_fires" from the "anthropogenic" category, and we created a "fires" category combining the "natural_fires" one and the "agri_fires" one, but the latter with a 1.2 scaling factor.</p>
+<p>By default, the meta-categories are not transported (i.e. the transport model is unaware of them), but their impact on the concentrations is calculated. On the other hand, the categories used to build the meta-categories are transported, but their impact on concentrations is ignored.</p>
+<pre class="highlight"><code class="language-yaml">emissions :
+    co2 :
+        categories:
+            GPP : LPJ_GPP
+            respiration : LPJ_resp
+            anthropogenic : TNO
+            natural_fires : GFAS
+            agri_fires : 
+                origin : EDGAR
+                field : agriwasteburning
+        meta-categories :
+            NEE : GPP + respiration
+            fossil : anthropogenic - agri_fires
+            fires : natural_fires + 1.2 * agri_fires</code></pre>
+<h2 id="lumia-emission-file">LUMIA emission file</h2>
+<pre class="highlight"><code class="language-python">raise SectionYetToBeWrittenError ;-)</code></pre></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/mathjax.js"></script>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
