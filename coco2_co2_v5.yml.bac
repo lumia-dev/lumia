@@ -60,7 +60,9 @@ observations:
     rename: background:mix_background
     tracer: co2
   filters:
+    CountriesExcluded: []
     ICOSonly: false
+    StationsExcluded: []
     bSamplingHeight: false
     bStationAltitude: false
     inletMaxHeight: 700

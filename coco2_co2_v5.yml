@@ -42,9 +42,6 @@ model:
     steps:
     - apri
     - apos
-    stepsLiteralStr: !!python/object/new:__main__.AsLiteralString
-    - '[''apri'',''apos'']'
-    stepsStdStr: '[''apri'',''apos'']'
   path:
     footprints: ${run.paths.footprints}
     output: ${run.paths.output}
@@ -70,10 +67,9 @@ observations:
     rename: background:mix_background
     tracer: co2
   filters:
-    CountriesExcluded1: NoneX
-    CountriesExcludedLst: '[''HU'', ''PL'']'
-    CountriesExcludedN: []
+    CountriesExcluded: []
     ICOSonly: false
+    StationsExcluded: []
     bSamplingHeight: false
     bStationAltitude: false
     inletMaxHeight: 700

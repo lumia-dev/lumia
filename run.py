@@ -49,6 +49,10 @@ if (not os.path.isfile(ymlFile)):
     sys.exit(-3)
        
 
+from datetime import datetime
+current_date = datetime.now()
+sNow=current_date.isoformat("T","minutes") # sNow is the time stamp for all log files of a particular run
+
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
 if args.gui:
         #(updatedYmlContents) = callLumiaGUI(ymlContents, sLogCfgPath)
@@ -58,6 +62,7 @@ if args.gui:
     for entry in sys.argv[1:]:
         if (len(entry)>0):
             sCmd+=' '+entry
+    sCmd+=' --sNow='+sNow
     try:
         returnValue=os.system(sCmd)
     except:
@@ -126,9 +131,6 @@ else :
 
 
 # Save  all details of the configuration and the version of the software used:
-from datetime import datetime
-current_date = datetime.now()
-sNow=current_date.isoformat("T","minutes")
 sCmd=("mkdir -p "+rcf['run']['paths']['output'])
 try:
     os.system(sCmd)

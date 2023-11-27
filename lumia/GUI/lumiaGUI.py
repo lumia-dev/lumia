@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import io
+#import io
 import sys
 import pandas as pd
 import argparse
@@ -15,7 +15,7 @@ from loguru import logger
 import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
-import literalString as litstr
+#import literalString as litstr
 # from tkinter import ttk
 
 
@@ -137,7 +137,7 @@ class LumiaGui(ctk.CTk):
     # =====================================================================
     # The layout of the window will be written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents, sNow):  # *args, **kwargs):
+    def __init__(self, sLogCfgPath, ymlContents, ymlFile,  sNow):  # *args, **kwargs):
         #super().__init__(*args, **kwargs)
         # self.protocol("WM_DELETE_WINDOW", self.closed) 
 
@@ -640,32 +640,6 @@ class LumiaGui(ctk.CTk):
                 #sNow=current_date.isoformat("T","minutes")
                 sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
                 
-                if(0>1):    
-                    try:
-                        def literalize_list(v):
-                            assert isinstance(v, list)
-                            myStr=""+chr(91) # [ 
-                            for elem in v:
-                                myStr+=chr(39)+elem+chr(39)+","  #  #"'" "',"
-                            rtrnStr=myStr[:-1]+chr(93) #"]"
-                            return (rtrnStr)
-                        
-                        #def transform_value(d, key1, key2, key3, transformation):
-                        #    """recursively walk over data structure to find key and apply transformation on the value"""
-                        #    if  isinstance(ymlContents[key1][key2][key3], list):
-                        #        literalize_list(ymlContents[key1][key2][key3])
-                        # transform_value(ymlContents, 'model', 'output', 'steps', literalize_list)
-                        # ymlContents['model']['output']['steps']=literalize_list(ymlContents['model']['output']['steps'])
-                        #ymlContents['model']['output']['steps']=litstr.MyLiteralString(literalize_list(ymlContents['model']['output']['steps']))
-                        s=literalize_list(ymlContents['model']['output']['steps'])
-                        ymlContents['model']['output']['stepsStdStr']=s
-                        ymlContents['model']['output']['stepsLiteralStr']=AsLiteralString(s)
-                                           
-                    
-                    except:
-                        sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
-                        CancelAndQuit(sTxt)
-                    
                 sCmd="cp "+ymlFile+" "+sLogCfgFile
                 self.runSysCmd(sCmd)
                 sCmd="touch LumiaGui.go"
@@ -739,10 +713,10 @@ class LumiaGui(ctk.CTk):
                 bTimeError=True
                 sErrorMsg+='Invalid or corrupted End Date entered. Please use the ISO format YYY-MM-DD when entering dates.\n'
         if (not bTimeError): 
-            #current_date = datetime.now()
-            #sNow=current_date.isoformat("T","minutes")
+            current_date = datetime.now()
+            rightNow=current_date.isoformat("T","minutes")
             tMin=pd.Timestamp('1970-01-01 00:00:00')
-            tMax=pd.Timestamp(sNow[0:10]+' 23:59:59')
+            tMax=pd.Timestamp(rightNow[0:10]+' 23:59:59')
             if(tStart < tMin):
                 bWarnings=True
                 sWarningsMsg+='It is highly unusual that your chosen Start Date is before 1970-01-01. Are you sure?!\n'
@@ -914,7 +888,7 @@ class RefineObsSelectionGUI(ctk.CTk):
     # =====================================================================
     # The layout of the window is now written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents, fDiscoveredObservations, widgetsLst, sNow):  # *args, **kwargs):
+    def __init__(self, sLogCfgPath, ymlContents,ymlFile,  fDiscoveredObservations, widgetsLst, sNow):  # *args, **kwargs):
         # Get the screen resolution to scale the GUI in the smartest way possible...
         nWidgetsPerRow=5
         if os.environ.get('DISPLAY','') == '':
@@ -1053,6 +1027,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         #    return
              
         def applyRules():
+            bICOSonly=ymlContents['observations']['filters']['ICOSonly']
             bUseStationAltitudeFilter=ymlContents['observations']['filters']['bStationAltitude']
             bUseSamplingHeightFilter=ymlContents['observations']['filters']['bSamplingHeight']
             stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
@@ -1060,8 +1035,8 @@ class RefineObsSelectionGUI(ctk.CTk):
             inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
             inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
             for ri, row in newDf.iterrows():
-                if ((row['stationID'] in 'ZSF') or (row['stationID'] in 'JAR') or (row['stationID'] in 'DEC')):
-                    id=row['stationID']
+                #if ((row['stationID'] in 'ZSF') or (row['stationID'] in 'JAR') or (row['stationID'] in 'DEC')):
+                    #id=row['stationID']
                     #print(f'stationID={id},  newDf-rowidx={ri}')
                 row['altOk'] = (((float(row['altitude']) >= stationMinAlt) &
                                     (float(row['altitude']) <= stationMaxAlt) ) | (bUseStationAltitudeFilter==False)) 
@@ -1071,9 +1046,9 @@ class RefineObsSelectionGUI(ctk.CTk):
                     sH=float(row['samplingHeight'])
                 row['HghtOk'] = (((sH >= inletMinHght) &
                                                 (sH <= inletMaxHght) ) | (bUseSamplingHeightFilter==False))
-                
+                bIcosOk=((bICOSonly==False)or(row['isICOS']==True))
                 bSel=False
-                if((row['includeCountry']) and (row['includeStation']) and (row['altOk']) and (row['HghtOk'])and (int(row['dClass'])==4)):
+                if((row['includeCountry']) and (row['includeStation']) and (row['altOk']) and (row['HghtOk']) and (int(row['dClass'])==4) and (bIcosOk)):
                     # if station and country are selected only then may we toggle the 'selected' entry to True
                     bSel=True
                 bS=row['selected']
@@ -1143,7 +1118,15 @@ class RefineObsSelectionGUI(ctk.CTk):
                 ymlContents['observations']['filters']['inletMinHeight']=mnh
             applyRules()
 
-            
+        def isICOSrbAction():
+            isICOSrbValue=self.isICOSplusRadioButton.cget("variable")
+            if(isICOSrbValue==2):
+                ymlContents['observations']['filters']['ICOSonly']=True
+            else:
+                ymlContents['observations']['filters']['ICOSonly']=False
+            applyRules()                       
+    
+    
         # Row 0:  Title Label
         # ################################################################
 
@@ -1310,14 +1293,14 @@ class RefineObsSelectionGUI(ctk.CTk):
             self.isICOSRadioButtonVar.set(2)
         self.isICOSplusRadioButton = ctk.CTkRadioButton(rootFrame,
                                    text="Any station", font=("Georgia",  fsNORMAL),
-                                   variable=self.isICOSRadioButtonVar,  value=1)
+                                   variable=self.isICOSRadioButtonVar,  value=1,  command=isICOSrbAction)
         self.isICOSplusRadioButton.grid(row=2, column=7,
                             padx=xPadding, pady=yPadding,
                             sticky="nw")
          
         self.ICOSradioButton = ctk.CTkRadioButton(rootFrame,
                                    text="ICOS only", font=("Georgia",  fsNORMAL), 
-                                   variable=self.isICOSRadioButtonVar,  value=2)
+                                   variable=self.isICOSRadioButtonVar,  value=2,  command=isICOSrbAction)
         self.ICOSradioButton.grid(row=3, column=7,
                             padx=xPadding, pady=yPadding,
                             sticky="nw")
@@ -1403,7 +1386,8 @@ class RefineObsSelectionGUI(ctk.CTk):
                     for element in excludedStationsList:
                         s=s+element+', '
                     logger.info(f"{nS} observation stations ({s[:-2]}) were rejected")
-                setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'StationsExcluded'],   value=excludedStationsList)
+                setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'StationsExcluded'],   
+                                                                            value=excludedStationsList, bNewValue=True)
                 if(nC==0):
                     logger.info("No countries were rejected")
                 else:
@@ -1411,10 +1395,13 @@ class RefineObsSelectionGUI(ctk.CTk):
                     for element in excludedCountriesList:
                         s=s+element+', '
                     logger.info(f"{nC} countries ({s[:-2]}) were rejected")
-                setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcluded'],   value=excludedCountriesList)
+                setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcluded'],   
+                                                                            value=excludedCountriesList, bNewValue=True)
             except:
                 pass
             # Save  all details of the configuration and the version of the software used:
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'ICOSonly'],   
+                                                                        value=ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
             sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
             try:
                 with open(ymlFile, 'w') as outFile:
@@ -1961,12 +1948,26 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     '''
     ymlContents=None
     # Read the yaml configuration file
+    tryAgain=False
     try:
         with open(ymlFile, 'r') as file:
             ymlContents = yaml.safe_load(file)
+        sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
+        os.system(sCmd)
     except:
-        logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
-        sys.exit(1)
+        tryAgain=True
+    if(tryAgain==True):
+        sCmd="cp "+ymlFile+'.bac '+ymlFile # recover from most recent backup file.
+        os.system(sCmd)
+        try:
+            with open(ymlFile, 'r') as file:
+                ymlContents = yaml.safe_load(file)
+            sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
+            os.system(sCmd)
+        except:
+            tryAgain=True
+            logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
+            sys.exit(1)
         
 
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=True)
@@ -2039,9 +2040,9 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     # root = ctk.CTk()
     if(step2):
         widgetsLst = []
-        RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst, sNow=sNow) 
+        RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst, sNow=sNow) 
     else:
-        LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, sNow=sNow) 
+        LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile,  sNow=sNow) 
     return 
 
     
@@ -2082,12 +2083,18 @@ p.add_argument('--ymf', dest='ymf', default=None)   # yaml configuration file wh
 p.add_argument('--step2', dest='step2', default=False, action='store_true',  help="Step 2 to refine the selection among observations discovered on the carbon portal.")
 p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
 p.add_argument('--tag', dest='tag', default='')
+p.add_argument('--sNow', dest='sNow', default='',  help="A Timestamp string that can be handed from LUMIA for consistent naming of log files. If called stand-alone, the Timestamp is created automatically.")
 p.add_argument('--verbosity', '-v', dest='verbosity', default='INFO')
 #args = p.parse_args(sys.argv[1:])
 args, unknown = p.parse_known_args(sys.argv[1:])
 # Set the verbosity in the logger (loguru quirks ...)
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
+
+current_date = datetime.now()
+sNow=current_date.isoformat("T","minutes") # sNow is the time stamp for all log files of a particular run
+if(len(args.sNow) > 10):
+    sNow=args.sNow
 
 if(args.rcf is None):
     if(args.ymf is None):
@@ -2107,10 +2114,10 @@ if(args.fDiscoveredObservations is not None):
     fDiscoveredObservations=args.fDiscoveredObservations
 bError=False
 if((args.step2==True) and (fDiscoveredObservations is None)):
-    logger.error("LumiaGUI called for refinement of the observations allegedly found (step2) without providing the list of observations to be refined (check option --DiscoveredObs= please).")
+    logger.error("LumiaGUI called for refinement of the observations presumably found (step2) without providing the list of observations to be refined (check option --DiscoveredObs= please).")
     bError=True
 elif(os.path.exists(fDiscoveredObservations)==False):
-    logger.error(f"LumiaGUI called for refinement of the observations allegedly found (step2), but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
+    logger.error(f"LumiaGUI called for refinement of the observations presumably found (step2), but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
     bError=True
 if(bError):    
     sCmd="touch LumiaGui.stop"
@@ -2125,6 +2132,6 @@ if(bError):
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
 if args.gui:
     scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory, args.step2,  fDiscoveredObservations)
+    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory, args.step2,  fDiscoveredObservations, sNow=sNow)
     logger.info("LumiaGUI window closed")
 
