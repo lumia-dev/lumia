@@ -137,7 +137,7 @@ class LumiaGui(ctk.CTk):
     # =====================================================================
     # The layout of the window will be written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents):  # *args, **kwargs):
+    def __init__(self, sLogCfgPath, ymlContents, sNow):  # *args, **kwargs):
         #super().__init__(*args, **kwargs)
         # self.protocol("WM_DELETE_WINDOW", self.closed) 
 
@@ -178,8 +178,8 @@ class LumiaGui(ctk.CTk):
         rowHeight=int((maxH - vDeadSpace)/(nRows*1.0))
         # Dimensions of the window
         appWidth, appHeight = maxW, maxH
-        activeTextColor='gray10'
-        inactiveTextColor='gray50'
+        #activeTextColor='gray10'
+        #inactiveTextColor='gray50'
         
         self.lonMin = tk.DoubleVar(value=-25.0)
         self.lonMax = tk.DoubleVar(value=45.0)
@@ -618,7 +618,7 @@ class LumiaGui(ctk.CTk):
         def GoButtonHit():
             # def generateResults(self):
             bGo=False
-            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents)
+            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents, sNow=sNow)
             self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
             self.displayBox.delete("0.0", "end")  # delete all text
             if((bErrors) and (bWarnings)):
@@ -636,51 +636,35 @@ class LumiaGui(ctk.CTk):
     
             if(bGo):
                 # Save  all details of the configuration and the version of the software used:
-                current_date = datetime.now()
-                sNow=current_date.isoformat("T","minutes")
+                #current_date = datetime.now()
+                #sNow=current_date.isoformat("T","minutes")
                 sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
-                    
-                try:
-                    def literalize_list(v):
-                        assert isinstance(v, list)
-                        myStr=""+chr(91) # [ 
-                        for elem in v:
-                            myStr+=chr(39)+elem+chr(39)+","  #  #"'" "',"
-                        rtrnStr=myStr[:-1]+chr(93) #"]"
-                        return (rtrnStr)
-                    
-                    #def transform_value(d, key1, key2, key3, transformation):
-                    #    """recursively walk over data structure to find key and apply transformation on the value"""
-                    #    if  isinstance(ymlContents[key1][key2][key3], list):
-                    #        literalize_list(ymlContents[key1][key2][key3])
-                    # transform_value(ymlContents, 'model', 'output', 'steps', literalize_list)
-                    # ymlContents['model']['output']['steps']=literalize_list(ymlContents['model']['output']['steps'])
-                    #ymlContents['model']['output']['steps']=litstr.MyLiteralString(literalize_list(ymlContents['model']['output']['steps']))
-                    s=literalize_list(ymlContents['model']['output']['steps'])
-                    ymlContents['model']['output']['stepsStdStr']=s
-                    ymlContents['model']['output']['stepsLiteralStr']=AsLiteralString(s)
-                                       
-                    #ymlContents['model']['output']['steps']=AsLiteralString(s)
-                    #bytes(string_var, 'utf-8') 
-                    yaml.dump(ymlContents, sys.stdout)
-                    with open(ymlFile, 'w') as outFile:
-                        '''  pyyaml.dump writs lists in the following formatted style:
-                            model:
-                              output:
-                                steps:
-                                - apri
-                                - apos
-                            but we must have the following format to be compatible to rc file format:
-                            model:
-                              output:
-                                steps: ['apri', 'apos']                            
-                        '''
-                        
-                        yaml.dump(ymlContents, outFile) #, default_flow_style='|') #, default_flow_style=False)
                 
-                except:
-                    sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
-                    CancelAndQuit(sTxt)
+                if(0>1):    
+                    try:
+                        def literalize_list(v):
+                            assert isinstance(v, list)
+                            myStr=""+chr(91) # [ 
+                            for elem in v:
+                                myStr+=chr(39)+elem+chr(39)+","  #  #"'" "',"
+                            rtrnStr=myStr[:-1]+chr(93) #"]"
+                            return (rtrnStr)
+                        
+                        #def transform_value(d, key1, key2, key3, transformation):
+                        #    """recursively walk over data structure to find key and apply transformation on the value"""
+                        #    if  isinstance(ymlContents[key1][key2][key3], list):
+                        #        literalize_list(ymlContents[key1][key2][key3])
+                        # transform_value(ymlContents, 'model', 'output', 'steps', literalize_list)
+                        # ymlContents['model']['output']['steps']=literalize_list(ymlContents['model']['output']['steps'])
+                        #ymlContents['model']['output']['steps']=litstr.MyLiteralString(literalize_list(ymlContents['model']['output']['steps']))
+                        s=literalize_list(ymlContents['model']['output']['steps'])
+                        ymlContents['model']['output']['stepsStdStr']=s
+                        ymlContents['model']['output']['stepsLiteralStr']=AsLiteralString(s)
+                                           
+                    
+                    except:
+                        sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+                        CancelAndQuit(sTxt)
                     
                 sCmd="cp "+ymlFile+" "+sLogCfgFile
                 self.runSysCmd(sCmd)
@@ -722,7 +706,7 @@ class LumiaGui(ctk.CTk):
     # options and text from the available entry
     # fields and boxes and then generates
     # a prompt using them
-    def checkGuiValues(self, ymlContents):
+    def checkGuiValues(self, ymlContents, sNow):
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -755,8 +739,8 @@ class LumiaGui(ctk.CTk):
                 bTimeError=True
                 sErrorMsg+='Invalid or corrupted End Date entered. Please use the ISO format YYY-MM-DD when entering dates.\n'
         if (not bTimeError): 
-            current_date = datetime.now()
-            sNow=current_date.isoformat("T","minutes")
+            #current_date = datetime.now()
+            #sNow=current_date.isoformat("T","minutes")
             tMin=pd.Timestamp('1970-01-01 00:00:00')
             tMax=pd.Timestamp(sNow[0:10]+' 23:59:59')
             if(tStart < tMin):
@@ -930,7 +914,7 @@ class RefineObsSelectionGUI(ctk.CTk):
     # =====================================================================
     # The layout of the window is now written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents, fDiscoveredObservations, widgetsLst):  # *args, **kwargs):
+    def __init__(self, sLogCfgPath, ymlContents, fDiscoveredObservations, widgetsLst, sNow):  # *args, **kwargs):
         # Get the screen resolution to scale the GUI in the smartest way possible...
         nWidgetsPerRow=5
         if os.environ.get('DISPLAY','') == '':
@@ -1380,8 +1364,8 @@ class RefineObsSelectionGUI(ctk.CTk):
         #Col 10:  RUN Button
         def GoBtnHit():
             # get current time
-            current_date = datetime.now()
-            sNow=current_date.isoformat("T","minutes")
+            #current_date = datetime.now()
+            #sNow=current_date.isoformat("T","minutes")
             # Write the list of observational files
             try:
                 nObs=len(newDf)
@@ -1394,7 +1378,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                 pass
             try:
                 newDf.to_csv('allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
-                dfq.to_csv("Lumia-ObsData-"+sNow+".csv", mode='w', sep=',')
+                dfq.to_csv("Lumia-Refined-ObsData-"+sNow+".csv", mode='w', sep=',')
             except:
                 sTxt=f"Fatal Error: Failed to write to text the file allObsInTimeSpaceSlab.csv or Lumia-ObsData-{sNow}.csv in the local run directory. Please check your write permissions and possibly disk space etc."
                 CancelAndQuit(sTxt)
@@ -1870,7 +1854,7 @@ class RefineObsSelectionGUI(ctk.CTk):
     # options and text from the available entry
     # fields and boxes and then generates
     # a prompt using them
-    def checkGuiValues(self, ymlContents):
+    def checkGuiValues(self, ymlContents,  sNow):
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -1955,7 +1939,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
     
 
-def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDiscoveredObservations=None): 
+def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDiscoveredObservations=None,  sNow=''): 
     '''
     Function 
     callLumiaGUI exposes some paramters of the LUMIA config file (in yaml dta format) to a user
@@ -2055,9 +2039,9 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     # root = ctk.CTk()
     if(step2):
         widgetsLst = []
-        RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst) 
+        RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst, sNow=sNow) 
     else:
-        LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents) 
+        LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, sNow=sNow) 
     return 
 
     
@@ -2118,7 +2102,7 @@ if (not os.path.isfile(ymlFile)):
     sys.exit(-3)
 fDiscoveredObservations=None
 
-fDiscoveredObservations=None
+fDiscoveredObservations='./DiscoveredObservations.csv'
 if(args.fDiscoveredObservations is not None):
     fDiscoveredObservations=args.fDiscoveredObservations
 bError=False
@@ -2126,7 +2110,7 @@ if((args.step2==True) and (fDiscoveredObservations is None)):
     logger.error("LumiaGUI called for refinement of the observations allegedly found (step2) without providing the list of observations to be refined (check option --DiscoveredObs= please).")
     bError=True
 elif(os.path.exists(fDiscoveredObservations)==False):
-    logger.error(f"LumiaGUI called for refinement of the observations allegedly found (step2), but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read.")
+    logger.error(f"LumiaGUI called for refinement of the observations allegedly found (step2), but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
     bError=True
 if(bError):    
     sCmd="touch LumiaGui.stop"

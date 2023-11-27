@@ -336,7 +336,7 @@ def getSitecodeCsr(siteCode):
 
 # ***********************************************************************************************
 def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, 
-                                                                            timeStep=None,  ymlContents=None,  sDataType=None,  iVerbosityLv=1):
+                                                                            timeStep=None,  ymlContents=None,  sDataType=None, sNow='',   iVerbosityLv=1):
     """
     Function discoverObservationsOnCarbonPortal
     
@@ -524,7 +524,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
 
 
 # *****************************************************************************************************************************
-def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None, ymlFile=None, fDiscoveredObservations=None,  iVerbosityLv=1):
+def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None, ymlFile=None, fDiscoveredObservations=None, 
+                                                                            sNow='',  iVerbosityLv=1):
 # *****************************************************************************************************************************
 
     # Shall we call the GUI to tweak some parameters before we start the ball rolling?
@@ -543,9 +544,9 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
             sys.exit(42)
         logger.info("LumiaGUI window closed")
         if(os.path.isfile("LumiaGui.stop")):
-            logger.error("The user canceled the call of Lumia or soemthing went wrong in the GUI. Execution aborted. Lumia was not called.")
+            logger.error("The user canceled the call of Lumia or something went wrong in the Refinement GUI. Execution aborted. Lumia was not called.")
             sys.exit(42)
-
+        ValidObs.read_csv("Lumia-Refined-ObsData-"+sNow+".csv")
     # Read the ymlFile
     # Apply all filters found in the ymlFile
 

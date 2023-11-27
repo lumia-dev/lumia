@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-11-27, 02:52:53"
+    "saved": "2023-11-27, 10:34:04"
   },
   "MultiProject": "",
   "Project": "",
@@ -38,11 +38,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        62,
-        44
+        4,
+        28
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": -1,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 2
@@ -62,8 +62,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        2066,
-        24
+        2112,
+        0
       ],
       "Folds": [],
       "Zoom": -1,
@@ -74,8 +74,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
       "Cursor": [
-        107,
-        0
+        548,
+        55
       ],
       "Folds": [],
       "Zoom": 0,
@@ -109,16 +109,16 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
     "Cursor": [
-      2066,
-      24
+      4,
+      28
     ]
   },
   "Breakpoints": [
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1384,
+      1368,
       "",
       false,
       true,
@@ -126,7 +126,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      2019,
+      2003,
       "",
       false,
       true,
@@ -134,7 +134,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      2021,
+      2005,
       "",
       false,
       true,
@@ -142,7 +142,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      2014,
+      1998,
       "",
       false,
       true,
@@ -150,15 +150,39 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      2017,
+      2001,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      659,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+      555,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      183,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      179,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readObservationsFromCarbonPortal.py",
+      549,
       "",
       false,
       true,
@@ -197,14 +221,13 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/literalString.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/literalString.py@@8",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@911",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@916",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@922",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@895",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@900",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@906",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@136",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@140",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@618",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@929",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@933",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@913",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@917",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@14",
@@ -218,7 +241,11 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/config.py"
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/config.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py@@15"
       ]
     }
   ]

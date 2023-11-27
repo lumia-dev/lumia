@@ -4,6 +4,7 @@ import os
 import sys
 from pandas import Timestamp
 from argparse import ArgumentParser
+import yaml
 import lumia
 from rctools import RcFile as rc
 from loguru import logger
@@ -64,15 +65,23 @@ if args.gui:
         sys.exit(42)
     logger.info("LumiaGUI window closed")
     if(os.path.isfile("LumiaGui.stop")):
-        logger.error("The user canceled the call of Lumia or soemthing went wrong in the GUI. Execution aborted. Lumia was not called.")
+        logger.error("The user canceled the call of Lumia or something went wrong in the GUI. Execution aborted. Lumia was not called.")
         sys.exit(42)
 
 # Now read the yaml configuration file - whether altered by the GUI or not
+bTryYmlReader=False
 try:
     rcf=rc(ymlFile)
 except:
-    logger.error(f"Unable to read user provided configuration file {ymlFile}. Abort")
-    sys.exit(-2)
+    bTryYmlReader=True
+    
+if(bTryYmlReader):
+    try:
+        with open(ymlFile, 'r') as file:
+            rcf = yaml.safe_load(ymlFile)
+    except:
+        logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
+        sys.exit(-2)
 
 
 if args.setkey :
@@ -167,7 +176,7 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
     sLocation=rcf['observations']['file']['location']
     if ('CARBONPORTAL' in sLocation):
         from lumia.obsdb.obsCPortalDb import obsdb
-        db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile)
+        db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile,  sNow=sNow)
         db.observations.to_csv('obsDataAll3.csv', encoding='utf-8', mode='w', sep=',')
     else:
         from lumia.obsdb.InversionDb import obsdb

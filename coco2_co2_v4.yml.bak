@@ -1,0 +1,95 @@
+lumiacode :
+    homedir : /home/arndt/nateko/dev/lumia/lumiaDA/lumia   # Location of the Lumia source code/scripts
+
+run :
+    tracers : [co2]
+    grid : ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
+    gridname : 'eurocom025x025'   # common name for region and grid used in the path name to the tracer flux data
+    timestep : 1h
+    paths :
+        temp : /home/arndt/nateko/data/icos/DICE/tmp  # ./tmp
+        footprints : /home/arndt/nateko/data/icos/DICE/footprints  #./footprints
+        output : ./output
+        data : .                         # your current working directory under which you would have the ./fluxes/nc/eurocom025x025/ flux data files
+
+
+emissions :
+    co2 :
+        region : ${run.grid}
+        regionName : ${run.gridname}
+        interval : ${run.timestep}
+        path : ${run.paths.data}/fluxes/nc/                 # warning
+        categories :
+            fossil : EDGARv4.3_BP2019
+            biosphere : VPRM
+            ocean : mikaloff01
+        location :          # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory
+            biosphere : CARBONPORTAL
+            fossil : CARBONPORTAL
+            ocean : LOCAL
+        prefix : flux_co2.
+
+
+observations :
+    start: '2018-01-01 00:00:00'
+    end:   '2018-02-01 00:00:00'
+    file :
+        location : CARBONPORTAL      # location is CARBONPORTAL or LOCAL with the latter meaning the file is on local path like your local working directory. In the former case the value of 'path' is ignored.
+        cpDir : '/data/dataAppStorage/asciiAtcProductTimeSer/'  # only used if location is CARBONPORTAL, e.g. /data/dataAppStorage/asciiAtcProductTimeSer/
+        path : observations.tar.gz
+        rename :  background:mix_background
+        renameCpObs : {"dict":[{"oldname":"Site","newname":"code"},{"oldname":"SamplingHeight","newname":"height"},{"oldname":"co2","newname":"obs"},{"oldname":"Stdev","newname":"err_obs"},{"oldname":"Flag","newname":"icos_flag"},{"oldname":"Timestamp(Year, Month, day, hour, Minute)","newname":"time"}]}  # when reading cpb files from the carbon portal
+        renameTest : Site:code # {[  }} # Timestamp(Year, Month, day, hour, Minute) : time , background:mix_background, }}
+        tracer : co2
+    uncertainty :
+        default_weekly_error : 1.5                          # warning
+        frequency            : weekly
+        setup                : False
+        obs_field            : err_obs
+        dyn :
+            freq             : 7D
+    validation_file          : False
+    co2:
+        units                : ppm
+
+
+optimize :
+    emissions :
+        co2 :
+            biosphere :
+                annual_uncertainty : 0.47 PgC
+                spatial_correlation : 500-g
+                temporal_correlation : 30D
+                npoints : 2500
+                optimization_interval : 7d
+            resample : False
+    observations :
+        co2 :
+            uncertainty :
+                type : weekly    # or 'dyn' dynamic
+
+
+congrad :
+    gradient_norm_reduction : 1.e12
+    max_number_of_iterations : 60
+    communication_file : ${run.paths.temp}/congrad.nc
+    executable : ${lumiacode.homedir}/src/congrad/congrad.exe    # ${lumia:src/congrad/congrad.exe}       # /home/cec-ami/nateko/dev/lumia/src/congrad/congrad.exe
+
+
+model :
+    transport :
+        exec    : ${lumiacode.homedir}/transport/multitracer.py # ${lumia:transport/multitracer.py}         # /home/cec-ami/nateko/dev/lumia/transport/multitracer.py
+        serial  : False
+    output :
+        steps : ['apri', 'apos']
+    paths :
+        output : ${run.paths.output}
+        temp   : ${run.paths.temp}
+        footprints : ${run.paths.footprints}
+
+
+# not needed / deprecated?
+correlation.inputdir        : ./data/corr
+emissions.*.error_structure : linear
+obs.uncertainty.setup       : False
+obs.co2.units               : ppm

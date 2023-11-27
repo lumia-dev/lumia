@@ -32,7 +32,7 @@ def _calc_weekly_uncertainty(site, times, err):
 class obsdb(obsdb):
 
     @classmethod
-    def from_CPortal(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file', useGui: bool = False, ymlFile: str=None) -> "obsdb":
+    def from_CPortal(cls, rcf: Union[dict, rctools.RcFile], setup_uncertainties: bool = True, filekey : str = 'file', useGui: bool = False, ymlFile: str=None,  sNow:str='') -> "obsdb":
         """
         Construct an observation database based on a rc-file and the carbon portal. The class does the following:
         - loads all tracer observation files from the carbon portal
@@ -79,7 +79,7 @@ class obsdb(obsdb):
         Description: 1st step: Read all dry mole fraction files from all available records on the carbon portal
          - these obviously have no background co2 concentration values (which need to be provided by other means)
         """
-        (self, obsDf,  obsFile)=self.gatherObs_fromCPortal(rcf, useGui, ymlFile)
+        (self, obsDf,  obsFile)=self.gatherObs_fromCPortal(rcf, useGui, ymlFile, sNow=sNow)
         # all matching data was written to the obsFile
         
         # Read the file that has the background co2 concentrations
@@ -94,7 +94,7 @@ class obsdb(obsdb):
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
         return(self)
         
-    def gatherObs_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None,  errorEstimate=None) -> "obsdb":
+    def gatherObs_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None,  errorEstimate=None,  sNow='') -> "obsdb":
         # TODO: ·errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the
        # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~L.174) 
        # The value actually matters, in some cases: it can be used as a value for the weekly uncertainty, or for the default 
@@ -128,9 +128,9 @@ class obsdb(obsdb):
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
         (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, cpDir)=discoverObservationsOnCarbonPortal(tracer='CO2',  
-                    cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None,  iVerbosityLv=1)
+                    cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
         (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
-                                                                ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations,  iVerbosityLv=1)
+                                                                ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, iVerbosityLv=1)
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
         if((selectedDobjLst is None) or (len(selectedDobjLst)<1)):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")
