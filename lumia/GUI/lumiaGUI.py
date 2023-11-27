@@ -46,6 +46,23 @@ def formatMyString(inString, minLen, units=""):
         outStr=' '+outStr
     return(outStr+units)
 
+def nestedKeyExists(element, *keys):
+    '''
+    Check if *keys (nested) exists in `element` (dict).
+    '''
+    if not isinstance(element, dict):
+        raise AttributeError('nestedKeyExists() expects dict as first argument.')
+    if len(keys) == 0:
+        raise AttributeError('nestedKeyExists() expects at least two arguments, one given.')
+
+    _element = element
+    for key in keys:
+        try:
+            _element = _element[key]
+        except KeyError:
+            return False
+    return True
+
 def extract_numbers_from_string(s):
     # This regular expression pattern matches integers and floating-point numbers.
     pattern = r"[-+]?[.]?[d]+(?:,ddd)[.]?d(?:[eE][-+]?d+)?"
@@ -659,7 +676,7 @@ class LumiaGui(ctk.CTk):
                                 steps: ['apri', 'apos']                            
                         '''
                         
-                        yaml.dump(ymlContents, outFile, default_flow_style='|') #, default_flow_style=False)
+                        yaml.dump(ymlContents, outFile) #, default_flow_style='|') #, default_flow_style=False)
                 
                 except:
                     sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
@@ -1395,24 +1412,22 @@ class RefineObsSelectionGUI(ctk.CTk):
                         n+=1
                 nC=len(excludedCountriesList)
                 nS=len(excludedStationsList)
-                if(nC==0):
-                    logger.info("No countries were rejected")
-                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'CountriesExcluded',  'None')
-                else:
-                    s=""
-                    for element in excludedCountriesList:
-                        s=s+element+', '
-                    logger.info(f"{nC} countries ({s[:-2]}) were rejected")
-                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'CountriesExcluded',  s[:-2])
                 if(nS==0):
                     logger.info("No observation stations were rejected")
-                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'StationsExcluded',  'None')
                 else:
                     s=""
                     for element in excludedStationsList:
                         s=s+element+', '
                     logger.info(f"{nS} observation stations ({s[:-2]}) were rejected")
-                    setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'observations',  'filters',  'StationsExcluded',  s[:-2])
+                setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'StationsExcluded'],   value=excludedStationsList)
+                if(nC==0):
+                    logger.info("No countries were rejected")
+                else:
+                    s=""
+                    for element in excludedCountriesList:
+                        s=s+element+', '
+                    logger.info(f"{nC} countries ({s[:-2]}) were rejected")
+                setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcluded'],   value=excludedCountriesList)
             except:
                 pass
             # Save  all details of the configuration and the version of the software used:
@@ -1970,6 +1985,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
         sys.exit(1)
         
 
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=True)
     if(not step2):
         # Read simulation time
         if tStart is None :
@@ -1978,42 +1994,41 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
             start= pd.Timestamp(tStart)
         # start: '2018-01-01 00:00:00'    
         ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
-        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'start',  start.strftime('%Y,%m,%d'))
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'time',  'start'],   value=start.strftime('%Y,%m,%d'))
             
         if tEnd is None :
             end=pd.Timestamp(ymlContents['observations']['end'])
         else:
             end= pd.Timestamp(tEnd)
         ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
-        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'time',  'end',  end.strftime('%Y,%m,%d'))
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'))
+        emptyList=[]
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcluded1'],   value='NoneX')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcludedN'],   value=emptyList)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcludedLst'],   value= "['HU', 'PL']")
         
-        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'path',  'data',  '/data')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'temp',  '/temp')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'footprints',  '/footprints')
-        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'correlation',  'inputdir', '/data/corr' )
-        if not ('tag' in ymlContents):
-            add_keys_nested_dict(ymlContents, ['tag'], args.tag)
-        #if (ymlContents['tag'] is None):
-        #    ymlContents['tag'] = args.tag 
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr' )
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'tag'],  value=args.tag, bNewValue=True)
         
         # Run-dependent paths
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'run',  'paths',  'output',  os.path.join('/output', args.tag))
+        #if(not nestedKeyExists(ymlContents, 'run',  'paths',  'output')):
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output'],   value=os.path.join('/output', args.tag), bNewValue=False)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None)
         s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'var4d',  'communication',  'file',  s)
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'emissions',  '*',  'archive',  'rclone:lumia:fluxes/nc/')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'emissions',  '*',  'path',  '/data/fluxes/nc')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'model',  'transport',  'exec',  '/lumia/transport/multitracer.py')
-        setKeyVal_NestedLv2_CreateIfNotPresent(ymlContents, 'transport',  'output', 'T' )
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'transport',  'output', 'steps',  'forward' )
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward')
         
-        #ymlContents['softwareUsed']['lumia']['branch']= 'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git'
-        #ymlContents['softwareUsed']['lumia']['commit']= 'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git'
-        #ymlContents['softwareUsed']['runflex']['branch']= 'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git'
-        #ymlContents['softwareUsed']['runflex']['commit']= 'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git'
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'lumia',  'branch',  'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'lumia',  'commit',  'gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'runflex',  'branch',  'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git')
-        setKeyVal_NestedLv3_CreateIfNotPresent(ymlContents, 'softwareUsed',  'runflex',  'commit',  'gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git')
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'softwareUsed',  'runflex',  'branch'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'commit'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
     
     sLogCfgPath=""
     if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
@@ -2045,7 +2060,6 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
         LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents) 
     return 
 
-
     
      
 def add_keys_nested_dict(d, keys, value=None):
@@ -2055,15 +2069,25 @@ def add_keys_nested_dict(d, keys, value=None):
         d = d[key]
     d.setdefault(keys[-1], value)
 
-def setKeyVal_NestedLv2_CreateIfNotPresent(yDict, key1,  key2,  value):
-    if not ((key1 in yDict) and (key2 in yDict[key1])):
-        add_keys_nested_dict(yDict, [key1, key2], value)
+def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=False):
+    ''' Creates the nested key keyLst in the dictionary myDict if it does not already exist.
+        If the key already exists, then the key value is overwritten only if bNewValue is set
+    '''
+    nKeys=len(keyLst)
+    i=int(1)
+    for key in keyLst:
+        if key not in myDict:
+            if(i==nKeys):
+                myDict[key] = value
+            else:
+                myDict[key] = {}
+        elif((i==nKeys) and (bNewValue)):
+            myDict[key] = value
+        i+=1
+        myDict = myDict[key]
+    print(".")
+        
 
-def setKeyVal_NestedLv3_CreateIfNotPresent(yDict, key1,  key2, key3,   value):
-    setKeyVal_NestedLv2_CreateIfNotPresent(yDict, key1,  key2,  'None')
-    if not ((key2 in yDict[key1]) and (key3 in yDict[key1][key2])):
-        add_keys_nested_dict(yDict[key1], [key2, key3],  value)
-    
     
 p = argparse.ArgumentParser()
 p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
