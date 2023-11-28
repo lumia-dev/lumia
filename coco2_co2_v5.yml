@@ -53,7 +53,7 @@ model:
 observations:
   co2:
     units: ppm
-  end: '2018-02-01 23:59:59'
+  end: '2018-03-01 23:59:59'
   file:
     cpDir: /data/dataAppStorage/asciiAtcProductTimeSer/
     location: CARBONPORTAL
@@ -67,9 +67,11 @@ observations:
     rename: background:mix_background
     tracer: co2
   filters:
-    CountriesExcluded: []
+    CountriesExcluded:
+    - ES
     ICOSonly: false
-    StationsExcluded: []
+    StationsExcluded:
+    - TOH
     bSamplingHeight: false
     bStationAltitude: false
     inletMaxHeight: 700
@@ -134,7 +136,8 @@ softwareUsed:
     branch: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
     commit: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
     runflex: None
-tag: ''
+tag:
+  tag: ''
 time:
   end: 2018,02,01
   start: 2018,01,01

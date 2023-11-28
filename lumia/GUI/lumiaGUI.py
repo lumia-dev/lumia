@@ -638,8 +638,14 @@ class LumiaGui(ctk.CTk):
                 # Save  all details of the configuration and the version of the software used:
                 #current_date = datetime.now()
                 #sNow=current_date.isoformat("T","minutes")
+                try:
+                    with open(ymlFile, 'w') as outFile:
+                        yaml.dump(ymlContents, outFile)
+                except:
+                    sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+                    CancelAndQuit(sTxt)
+
                 sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
-                
                 sCmd="cp "+ymlFile+" "+sLogCfgFile
                 self.runSysCmd(sCmd)
                 sCmd="touch LumiaGui.go"
@@ -965,10 +971,10 @@ class RefineObsSelectionGUI(ctk.CTk):
         newDf.to_csv('newDfObs.csv', mode='w', sep=',')  
         nObs=len(newDf)
         filtered = ((newDf['selected'] == True))
-        dfq= newDf[filtered]
-        nSelected=len(dfq)
+        #dfq= newDf[filtered]
+        #nSelected=len(dfq)
         logger.info(f"There are {nObs} valid data sets in the selected geographical region ingoring multiple sampling heights.")
-        logger.info(f"Thereof {nSelected} are presently selected.")
+        #logger.info(f"Thereof {nSelected} are presently selected.")
         isDifferent=True
         nRows=0
         isSameStation = False
@@ -1018,6 +1024,17 @@ class RefineObsSelectionGUI(ctk.CTk):
         #main_frame = tk.Frame(root)
         rootFrame = tk.Frame(root, bg="cadet blue")
         rootFrame.grid(sticky='news')
+        excludedCountriesList = []
+        excludedStationsList = []
+        try:
+            excludedCountriesList = ymlContents['observations']['filters']['CountriesExcluded']
+        except:
+            pass
+        try:
+            excludedStationsList = ymlContents['observations']['filters']['StationsExcluded']
+        except:
+            pass
+            
         
         # Done this step - the GUI canvas with scrollbars has been created
 
@@ -1048,7 +1065,13 @@ class RefineObsSelectionGUI(ctk.CTk):
                                                 (sH <= inletMaxHght) ) | (bUseSamplingHeightFilter==False))
                 bIcosOk=((bICOSonly==False)or(row['isICOS']==True))
                 bSel=False
-                if((row['includeCountry']) and (row['includeStation']) and (row['altOk']) and (row['HghtOk']) and (int(row['dClass'])==4) and (bIcosOk)):
+                countryInactive=row['country'] in excludedCountriesList
+                stationInactive=row['stationID'] in excludedStationsList
+                # The row['includeCountry'] flag tells us whether we draw it as we draw country names only once for all its data sets
+                if((row['includeCountry']) and (row['includeStation']) and 
+                    (not countryInactive) and (not stationInactive) and 
+                    (row['altOk']) and (row['HghtOk']) and 
+                    (int(row['dClass'])==4) and (bIcosOk)):
                     # if station and country are selected only then may we toggle the 'selected' entry to True
                     bSel=True
                 bS=row['selected']
@@ -1366,17 +1389,18 @@ class RefineObsSelectionGUI(ctk.CTk):
                 sTxt=f"Fatal Error: Failed to write to text the file allObsInTimeSpaceSlab.csv or Lumia-ObsData-{sNow}.csv in the local run directory. Please check your write permissions and possibly disk space etc."
                 CancelAndQuit(sTxt)
             try:
-                excludedCountriesList = []
-                excludedStationsList = []
-                n=0
-                previousCountry=""
-                for rowidx, row in newDf.iterrows(): 
-                    if((row['selected']==False) and (int(row['dClass'])==4)):
-                        excludedStationsList.append(row['stationID'] )
-                        if(row['country'] not in previousCountry):  
-                            excludedCountriesList.append(row['country'])
+                if(0>1):
+                    n=0
+                    previousCountry=""
+                    for rowidx, row in newDf.iterrows(): 
+                        if((row['selected']==False) and (int(row['dClass'])==4)):
+                            excludedStationsList.append(row['stationID'] )
+                            if(row['country'] not in previousCountry):  
+                                excludedCountriesList.append(row['country'])
+                                previousCountry=row['country']
+                            n+=1
+                        if((len(row['country'])>1) and (row['country'] not in previousCountry)):
                             previousCountry=row['country']
-                        n+=1
                 nC=len(excludedCountriesList)
                 nS=len(excludedStationsList)
                 if(nS==0):
@@ -1509,10 +1533,14 @@ class RefineObsSelectionGUI(ctk.CTk):
                     sSamplingHeights.append(sElement)
                     
             #createRowOfWidgets(gridList, rowidx, row)                
-            self.createRowOfWidgets(scrollableFrame4Widgets, widgetsLst, num,  rowidx, row,guiRow, sSamplingHeights, 
-                                                    activeTextColor, inactiveTextColor, fsNORMAL, xPadding, yPadding, fsSMALL, obsDf=newDf)
-            newDf.at[(rowidx) ,  ('includeCountry')] =True # After painting the Country CheckBoxes needed, all countries are set to Included=True
-            newDf.at[(rowidx) ,  ('includeStation')] =True # After painting the Station CheckBoxes needed, all stations are set to Included=True
+            self.createRowOfWidgets(scrollableFrame4Widgets, widgetsLst, num,  rowidx, row,guiRow, 
+                                                    sSamplingHeights, excludedCountriesList, excludedStationsList,  activeTextColor, 
+                                                    inactiveTextColor, fsNORMAL, xPadding, yPadding, fsSMALL, obsDf=newDf)
+            # After drawing the initial widgets, all entries of station and country are set to true unless they are on an exclusion list
+            countryInactive=row['country'] in excludedCountriesList
+            stationInactive=row['stationID'] in excludedStationsList
+            newDf.at[(rowidx) ,  ('includeCountry')] = (not countryInactive)
+            newDf.at[(rowidx) ,  ('includeStation')] =(not stationInactive)
 
         # Update buttons frames idle tasks to let tkinter calculate buttons sizes
         scrollableFrame4Widgets.update_idletasks()
@@ -1539,8 +1567,9 @@ class RefineObsSelectionGUI(ctk.CTk):
         return
         
 
-    def createRowOfWidgets(self, scrollableFrame4Widgets, widgetsLst, num, rowidx, row, guiRow, sSamplingHeights, 
-                                                activeTextColor, inactiveTextColor, fsNORMAL, xPadding, yPadding, fsSMALL, obsDf):
+    def createRowOfWidgets(self, scrollableFrame4Widgets, widgetsLst, num, rowidx, row, guiRow, 
+                                                sSamplingHeights, excludedCountriesList, excludedStationsList, activeTextColor, 
+                                                inactiveTextColor, fsNORMAL, xPadding, yPadding, fsSMALL, obsDf):
         ''' draw all the widgets belonging to one observational data set corresponding to a single line on the GUI '''
         nWidgetsPerRow=5
         gridRow=[]
@@ -1550,6 +1579,8 @@ class RefineObsSelectionGUI(ctk.CTk):
             sTextColor=activeTextColor
         else:
             sTextColor=inactiveTextColor
+        countryInactive=row['country'] in excludedCountriesList
+        stationInactive=row['stationID'] in excludedStationsList
         
         colidx=int(0)  # row['selected']
         # ###################################################
@@ -1558,10 +1589,13 @@ class RefineObsSelectionGUI(ctk.CTk):
         myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="",font=("Georgia", fsNORMAL),
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             variable=myWidgetVar, onvalue=True, offvalue=False) 
-        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
+        myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, 
+                                                    widgetsLst, obsDf, nWidgetsPerRow, excludedCountriesList, excludedStationsList, activeTextColor, inactiveTextColor)) 
         if(bSelected):
             myWidgetSelect.select()
         else:
+            myWidgetSelect.deselect()
+        if((countryInactive) or (stationInactive)):
             myWidgetSelect.deselect()
         myWidgetSelect.grid(row=guiRow, column=colidx,
                           columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
@@ -1577,8 +1611,12 @@ class RefineObsSelectionGUI(ctk.CTk):
             myWidgetVar= tk.BooleanVar(value=row['includeCountry'])
             myWidgetCountry  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False)  
-            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
-            myWidgetCountry.select()
+            myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, 
+                                                        widgetsLst, obsDf, nWidgetsPerRow, excludedCountriesList, excludedStationsList, activeTextColor, inactiveTextColor)) 
+            if(countryInactive):
+                myWidgetCountry.deselect()
+            else:
+                myWidgetCountry.select()
             myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
             widgetsLst.append(myWidgetCountry)
         else:
@@ -1592,11 +1630,12 @@ class RefineObsSelectionGUI(ctk.CTk):
         myWidgetVar= tk.BooleanVar(value=row['includeStation'])
         myWidgetStationid  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False) 
-        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
-        if(row['includeStation']):
-            myWidgetStationid.select()
-        else:
+        myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, 
+                                                        widgetsLst, obsDf, nWidgetsPerRow, excludedCountriesList, excludedStationsList, activeTextColor, inactiveTextColor)) 
+        if(stationInactive):
             myWidgetStationid.deselect()
+        else:
+            myWidgetStationid.select()
         myWidgetStationid.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         widgetsLst.append(myWidgetStationid)
         gridRow.append(row['stationID'])
@@ -1667,7 +1706,8 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
             
-    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor):
+    def handleMyCheckboxEvent(self, gridID, widgetsLst, obsDf, nWidgetsPerRow, excludedCountriesList, 
+                                                        excludedStationsList, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=obsDf.iloc[ri]
@@ -1698,22 +1738,14 @@ class RefineObsSelectionGUI(ctk.CTk):
                 bSameCountry=True  # multiple rows may be affected
                 nRows=len(obsDf)
                 thisCountry=obsDf.at[(ri) ,  ('country')]
-                includeStationIdx=widgetID+1
                 while((bSameCountry) and (ri<nRows)):
-                    #if(widgetsLst[includeStationIdx] is None):
-                    #    bIncludeStation=False
-                    #else:
-                    #    bIncludeStation=widgetsLst[includeStationIdx].get()
                     if(bChkBxIsSelected):
                         # Set 'selected' to True only if the station, AltOk & HghtOk are presently selected AND dClass is the highest available, else not
-                        #if(widgetsLst[widgetID] is not None):
-                        #    bChkBxIsSelected=widgetsLst[widgetID].get()
+                        try:
+                            excludedCountriesList.remove(row['country'])
+                        except:
+                            pass
                         obsDf.at[(ri) ,  ('includeCountry')] =True
-                        if(ri==33):
-                            bs=obsDf.at[(ri) ,  ('selected')]
-                            bc=obsDf.at[(ri) ,  ('includeCountry')]
-                            logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
-                            logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                         if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
                             obsDf.at[(ri) ,  ('selected')] =True
                             row.iloc[0]=True
@@ -1726,6 +1758,9 @@ class RefineObsSelectionGUI(ctk.CTk):
                                 widgetsLst[widgetID].configure(text_color=inactiveTextColor)
                         row.iloc[13]=True # 'includeCountry'
                     else:
+                        # Remove country from list of excluded countries
+                        if(row['country'] not in excludedCountriesList):
+                            excludedCountriesList.append(row['country'])
                         obsDf.at[(ri) ,  ('includeCountry')] =False
                         obsDf.at[(ri) ,  ('selected')] =False
                         row.iloc[0]=False
@@ -1739,7 +1774,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                             widgetsLst[widgetID].configure(text_color=inactiveTextColor)
                     self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
                     ri+=1
-                    includeStationIdx+=nWidgetsPerRow
                     widgetID+=nWidgetsPerRow
                     if(ri>=nRows):
                         break
@@ -1747,27 +1781,49 @@ class RefineObsSelectionGUI(ctk.CTk):
                     if (thisCountry not in row['country']) :
                         bSameCountry=False
             elif(ci==2):  # stationID
-                if(bChkBxIsSelected):
-                    if((obsDf.at[(ri) ,  ('includeCountry')]==True) and
-                        (obsDf.at[(ri) ,  ('altOk')]==True) and
-                        (obsDf.at[(ri) ,  ('HghtOk')]==True)):
-                        obsDf.at[(ri) ,  ('selected')] =True
-                        row.iloc[0]=True
-                        #obsDf.at[(ri) ,  ('includeStation')] =True
+                bSameStation=True  # multiple rows may be affected
+                nRows=len(obsDf)
+                thisStation=obsDf.at[(ri) ,  ('stationID')]
+                #includeStationIdx=widgetID+2
+                while((bSameStation) and (ri<nRows)):
+                    if(bChkBxIsSelected):
+                        try:
+                            excludedStationsList.remove(row['stationID'])
+                        except:
+                            pass
+                        widgetsLst[widgetID].select()
+                        if((obsDf.at[(ri) ,  ('includeCountry')]==True) and
+                            (obsDf.at[(ri) ,  ('altOk')]==True) and
+                            (obsDf.at[(ri) ,  ('HghtOk')]==True) and
+                            (row['dClass']==4)):
+                            obsDf.at[(ri) ,  ('selected')] =True
+                            row.iloc[0]=True
+                            #obsDf.at[(ri) ,  ('includeStation')] =True
+                        else:
+                            obsDf.at[(ri) ,  ('selected')] =False
+                            row.iloc[0]=False
+                        obsDf.at[(ri) ,  ('includeStation')] =True
+                        #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
+                        row.iloc[14]=True # 'includeStation'
+                        widgetsLst[widgetID].configure(text_color=activeTextColor)
                     else:
+                        widgetsLst[widgetID].deselect()
+                        if(row['stationID'] not in excludedStationsList):
+                            excludedStationsList.append(row['stationID'])
                         obsDf.at[(ri) ,  ('selected')] =False
                         row.iloc[0]=False
-                    obsDf.at[(ri) ,  ('includeStation')] =True
-                    #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
-                    row.iloc[14]=True # 'includeStation'
-                    widgetsLst[widgetID].configure(text_color=activeTextColor)
-                else:
-                    obsDf.at[(ri) ,  ('selected')] =False
-                    row.iloc[0]=False
-                    obsDf.at[(ri) ,  ('includeStation')] =False
-                    row.iloc[14]=False # 'includeStation'
-                    widgetsLst[widgetID].configure(text_color=inactiveTextColor)
-                self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                        obsDf.at[(ri) ,  ('includeStation')] =False
+                        row.iloc[14]=False # 'includeStation'
+                        widgetsLst[widgetID].configure(text_color=inactiveTextColor)
+                    self.updateRowOfWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
+                    ri+=1
+                    widgetID+=nWidgetsPerRow
+                    #includeStationIdx+=nWidgetsPerRow
+                    if(ri>=nRows):
+                        break
+                    row=obsDf.iloc[ri]
+                    if (thisStation not in row['stationID']) :
+                        bSameStation=False
  
 
  
@@ -1979,19 +2035,14 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
             start= pd.Timestamp(tStart)
         # start: '2018-01-01 00:00:00'    
         ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'time',  'start'],   value=start.strftime('%Y,%m,%d'))
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'time',  'start'],   value=start.strftime('%Y,%m,%d'), bNewValue=True)
             
         if tEnd is None :
             end=pd.Timestamp(ymlContents['observations']['end'])
         else:
             end= pd.Timestamp(tEnd)
         ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'))
-        emptyList=[]
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcluded1'],   value='NoneX')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcludedN'],   value=emptyList)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'CountriesExcludedLst'],   value= "['HU', 'PL']")
-        
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'), bNewValue=True)
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data')
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp')
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints')
