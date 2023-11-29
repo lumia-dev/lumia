@@ -64,7 +64,7 @@ if args.gui:
             sCmd+=' '+entry
     sCmd+=' --sNow='+sNow
     try:
-        returnValue=os.system(sCmd)
+        returnValue=os.system('echo Hi') #sCmd)
     except:
         logger.error(f"Calling LumiaGUI failed. {returnValue} Execution stopped.")
         sys.exit(42)
@@ -74,19 +74,11 @@ if args.gui:
         sys.exit(42)
 
 # Now read the yaml configuration file - whether altered by the GUI or not
-bTryYmlReader=False
 try:
     rcf=rc(ymlFile)
 except:
-    bTryYmlReader=True
-    
-if(bTryYmlReader):
-    try:
-        with open(ymlFile, 'r') as file:
-            rcf = yaml.safe_load(ymlFile)
-    except:
-        logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
-        sys.exit(-2)
+    logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
+    sys.exit(-2)
 
 
 if args.setkey :
@@ -110,11 +102,13 @@ defaults = {
     'emissions.*.path': '/data/fluxes/nc',
     'model.transport.exec': '/lumia/transport/multitracer.py',
     'transport.output': 'T',
-    'transport.output.steps': ['forward'],
+    'transport.output.steps': ['forward']
 }
 
 # for tr in rcf.get('run.tracers', tolist='force'):
-for tr in list(rcf['run']['tracers']):      # or  list(rcf.get('run.tracers'))
+LLst=rcf['run']['tracers']
+for tr in LLst: 
+#for tr in list(rcf['run']['tracers']):      # or  list(rcf.get('run.tracers'))
     defaults[f'emissions.{tr}.archive'] = f'rclone:lumia:fluxes/nc/${{emissions.{tr}.region}}/${{emissions.{tr}.interval}}/'
 
 # Read simulation time

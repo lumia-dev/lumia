@@ -71,6 +71,7 @@ observations:
     - ES
     ICOSonly: false
     StationsExcluded:
+    - HEI
     - TOH
     bSamplingHeight: false
     bStationAltitude: false

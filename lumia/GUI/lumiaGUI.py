@@ -673,7 +673,7 @@ class LumiaGui(ctk.CTk):
             root.event_generate("<Destroy>")
         _thread.start_new_thread(loop_function, ())
         root.mainloop()     
-        root.destroy()
+        #root.destroy()
         return
         
 

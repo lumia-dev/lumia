@@ -63,12 +63,34 @@ class Config:
         lines = [_ for _ in lines if not _.startswith(comment)]
         lines = [_ for _ in lines if _.strip()]
 
-        # Is the file yaml or rc file?
-        values = [_.split(':')[1].strip() for _ in lines]  # TODO: cannot handle yml list, i.e. -api \n -apos - instead of ['apri', 'apos']
+        # Is the file yaml or rc file? yaml files have lists organised in blocks over multiple lines that we need to fold into one
+        # TODO: cannot handle yml list, i.e. {steps: \n -apri \n -apos} - instead of {steps: ['apri', 'apos']}
+        # 1) place all list entries into the same line as the corresponding key
+        # 2) drop all lines starting with ' - ' where the number of leading spaces may vary
+        idxCurListLine=0
+        junkLines=[]
+        bAssemblingList=False
+        for i, line in enumerate(lines):
+            if(' - ' in line):
+                if(bAssemblingList==False):
+                    idxCurListLine=i-1
+                    lines[idxCurListLine]=lines[idxCurListLine].strip("\n")
+                    lines[idxCurListLine]+=' [\''
+                else:
+                    lines[idxCurListLine]+=', \''
+                bAssemblingList=True
+                (junk, payload)=line.split(" - ",1)
+                lines[idxCurListLine]+=payload.strip("\n")+'\''
+                junkLines.append(line)
+            else:
+                if(bAssemblingList==True):
+                    lines[idxCurListLine]+=' ]\n'
+                bAssemblingList=False        
+        for line in junkLines:
+            lines.remove(line)  # drop any processed line starting with a minus sign
+
+        values = [_.split(':')[1].strip() for _ in lines]  
         if '' in values:
-            # yaml files will have sections (lines with nothing right of the ":" sign)
-            # a:
-            #   b: v
             return OmegaConf.load(file)
         else :
             # Otherwise, assume it's a rc-file (a.b : v), and convert it to dot-list (a.b=v) for import:
