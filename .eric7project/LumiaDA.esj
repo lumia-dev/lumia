@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2023-11-29, 09:53:27"
+    "saved": "2023-11-29, 14:50:12"
   },
   "MultiProject": "",
   "Project": "",
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        131,
-        10
+        50,
+        36
       ],
       "Folds": [],
       "Zoom": -1,
@@ -62,8 +62,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        1059,
-        16
+        2009,
+        31
       ],
       "Folds": [],
       "Zoom": 0,
@@ -98,7 +98,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
       "Cursor": [
-        66,
+        87,
         0
       ],
       "Folds": [],
@@ -111,8 +111,8 @@
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
     "Cursor": [
-      131,
-      10
+      50,
+      36
     ]
   },
   "Breakpoints": [
@@ -134,7 +134,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      206,
+      223,
       "",
       false,
       true,
@@ -142,7 +142,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      202,
+      219,
       "",
       false,
       true,
@@ -278,7 +278,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      119,
+      146,
       "",
       false,
       true,
@@ -286,7 +286,39 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      117,
+      146,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      114,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      2010,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      76,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      43,
       "",
       false,
       true,
@@ -349,7 +381,9 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py@@15"
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py@@15",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py@@21"
       ]
     }
   ]

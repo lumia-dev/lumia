@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+LATESTGITCOMMIT_LumiaDA='6be5dd54aa5a16b136c2c1e2685fc8abf2beb404'
+LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 import os
 import sys
+import git
 from pandas import Timestamp
 from argparse import ArgumentParser
 import yaml
@@ -9,6 +12,23 @@ import lumia
 from rctools import RcFile as rc
 from loguru import logger
 from lumia.formatters import xr
+
+def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=False):
+    ''' Creates the nested key keyLst in the dictionary myDict if it does not already exist.
+        If the key already exists, then the key value is overwritten only if bNewValue is set
+    '''
+    nKeys=len(keyLst)
+    i=int(1)
+    for key in keyLst:
+        if key not in myDict:
+            if(i==nKeys):
+                myDict[key] = value
+            else:
+                myDict[key] = {}
+        elif((i==nKeys) and (bNewValue)):
+            myDict[key] = value
+        i+=1
+        myDict = myDict[key]
 
 
 p = ArgumentParser()
@@ -34,7 +54,8 @@ args = p.parse_args(sys.argv[1:])
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
-
+script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))   
+    
 ymlFile=None
 if(args.rcf is None):
     if(args.ymf is None):
@@ -57,7 +78,6 @@ sNow=current_date.isoformat("T","minutes") # sNow is the time stamp for all log 
 if args.gui:
         #(updatedYmlContents) = callLumiaGUI(ymlContents, sLogCfgPath)
     # callLumiaGUI(rcf, args.start,  args.end )
-    script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
     sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py '
     for entry in sys.argv[1:]:
         if (len(entry)>0):
@@ -134,22 +154,65 @@ if len(rcf['run']['paths']['output'])<1:
     sLogCfgFile="./Lumia-runlog-"+sNow[:-3]+"config.yml"
 else:
     sLogCfgFile=rcf['run']['paths']['output']+"/Lumia-runlog-"+sNow+"-config.yml"
-# Shall we call the GUI to tweak some parameters before we start the ball rolling?
 
-sCmd="cp "+args.ymf+" "+sLogCfgFile
-os.system(sCmd)
-myFile = open(sLogCfgFile, mode="a")
-myFile.write('\n')
-myFile.write('softwareUsed:\n')
-myFile.write('    lumia:\n')
-myFile.write('        branch : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
-myFile.write('        commit : https://gitkraken.dev/link/Z2l0a3Jha2VuOi8vcmVwb2xpbmsvNzc4YmYwNzYzZmFlOWZhZDU1YmU4NWRkZTRiNDI2MTM4MzVhMzUyOC9jb21taXQvZDM2ZGRmMmU5N2NkYWM5Yzk4MDBkYjc4YWM5YTkxZGI4MDRkYmQ1Mj91cmw9Z2l0JTQwZ2l0aHViLmNvbSUzQWx1bWlhLWRldiUyRmx1bWlhLmdpdA%3D%3D\n')
-#myFile.write('        commit : gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git\n')
-myFile.write('    runflex:\n')
-myFile.write('        branch : gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git\n')
-myFile.write('        commit : gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git\n')
-myFile.close()
+# Get the local git hash so we have some clue of what version of LUMIA we may be using...
+haveLocalGit=False
+haveRemoteGit=False
+try:
+    # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+    localRepo = git.Repo(script_directory, search_parent_directories=True)
+    sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
+    print(f'Found local git repository info at : {sLocalGitRepos}')
+    branch=localRepo.head.ref # repo.head.ref=LumiaDA
+    print(f'Local git info suggests that the branch name is : {branch}')
+    repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
+    print(f'Local git info suggests that the remote github url is : {repoUrl}')
+    # repo.head.commit=6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+    myCom=str(localRepo.head.commit)
+    #myComB=localRepo.head.commit(branch)
+    remoteCommitUrl=repoUrl[:-4]+'/commit/'+str(localRepo.head.commit)
+    print(f'Local git info suggests that the latest commit is : {myCom}')
+    # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+    print(f'Which you should also be able to get from : {remoteCommitUrl}')
+    haveLocalGit=True
+except:
+    logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
 
+if(LATESTGITCOMMIT_LumiaDA not in myCom):
+    logger.error(f"Error: There is a mismatch between the current \nlocal git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this run.py file. \nPlease resolve the conflict before proceeding.")
+    sys.exit(-5)
+    
+rcf.setkey('softwareUsed.lumia.git.branch', 'LumiaDA')
+rcf.setkey('softwareUsed.lumia.git.url', 'git@github.com:lumia-dev/lumia.git')
+#rcf.setkey('softwareUsed.lumia.git.commit.accordingToLocalRepo', str(localRepo.head.commit))
+#rcf.setkey('softwareUsed.lumia.git.location.accordingToLocalRepo', remoteCommitUrl)
+rcf.setkey('softwareUsed.lumia.git.commit', LATESTGITCOMMIT_LumiaDA)
+rcf.setkey('softwareUsed.lumia.git.location', 'git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA)
+# runflex
+rcf.setkey('softwareUsed.runflex.git.branch', 'v2')
+rcf.setkey('softwareUsed.runflex.git.url', 'git@github.com:lumia-dev/runflex.git')
+rcf.setkey('softwareUsed.runflex.git.commit', LATESTGITCOMMIT_Runflex)
+rcf.setkey('softwareUsed.runflex.git.location', 'git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex)
+
+try:
+    with open(ymlFile, 'r') as file:
+        ymlContents = yaml.safe_load(file)
+except:
+    logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
+    sys.exit(1)
+
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value='LumiaDA', bNewValue=True)
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'url'],   value='git@github.com:lumia-dev/lumia.git', bNewValue=True)
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'commit'],   value=LATESTGITCOMMIT_LumiaDA, bNewValue=True)
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'location'],   value='git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA, bNewValue=True)
+# runflex
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'branch'],   value='v2', bNewValue=True)
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'url'],   value='git@github.com:lumia-dev/runflex.git', bNewValue=True)
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'commit'],   value=LATESTGITCOMMIT_Runflex, bNewValue=True)
+setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
+
+with open(ymlFile, 'w') as outFile:
+    yaml.dump(ymlContents, outFile)
 
 # Create subfolder based on the inversion time:
 defaults['run.paths.output'] = os.path.join(defaults['run.paths.output'], f'{start:%Y%m%d}-{end:%Y%m%d}')
@@ -160,9 +223,7 @@ rcf.set_defaults(**defaults)
 logger.info(f"Temporary files will be stored in {rcf.get('run.paths.temp')}")
 logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
-
 # lumia.paths.setup(rcf)
-
 
 # Load observations
 if args.noobs :

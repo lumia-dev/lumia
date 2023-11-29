@@ -119,13 +119,17 @@ run:
   tracers: ['co2']
 softwareUsed:
   lumia:
-    branch: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git
-    commit: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git
-    lumia: None
+    git:
+      branch: LumiaDA
+      commit: 6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+      location: git@github.com:lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+      url: git@github.com:lumia-dev/lumia.git
   runflex:
-    branch: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
-    commit: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
-    runflex: None
+    git:
+      branch: v2
+      commit: aad612b36a247046120bda30c8837acb5dec4f26
+      location: git@github.com:lumia-dev/runflex/commit/aad612b36a247046120bda30c8837acb5dec4f26
+      url: git@github.com:lumia-dev/runflex.git
 tag:
   tag: ''
 time:
