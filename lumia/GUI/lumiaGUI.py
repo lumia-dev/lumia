@@ -19,6 +19,12 @@ import tkinter.font as tkFont
 # from tkinter import ttk
 
 
+def grabFirstEntryFromList(myList):
+  try:
+    return myList[0]  
+  except:
+    return myList
+
 class AsLiteralString(str):
   pass
 
@@ -967,7 +973,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                     #TODO: dClass
                 
         if(not isDifferent):
-            newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row
+            newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row 
         newDf.to_csv('newDfObs.csv', mode='w', sep=',')  
         nObs=len(newDf)
         filtered = ((newDf['selected'] == True))
@@ -1384,23 +1390,16 @@ class RefineObsSelectionGUI(ctk.CTk):
                 pass
             try:
                 newDf.to_csv('allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
+                dfq['pid2'] = dfq['pid'].apply(grabFirstEntryFromList)
+                dfq['samplingHeight2'] = dfq['samplingHeight'].apply(grabFirstEntryFromList)
+                dfq.drop(columns='pid',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
+                dfq.drop(columns='samplingHeight',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
+                dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
                 dfq.to_csv("Lumia-Refined-ObsData-"+sNow+".csv", mode='w', sep=',')
             except:
                 sTxt=f"Fatal Error: Failed to write to text the file allObsInTimeSpaceSlab.csv or Lumia-ObsData-{sNow}.csv in the local run directory. Please check your write permissions and possibly disk space etc."
                 CancelAndQuit(sTxt)
             try:
-                if(0>1):
-                    n=0
-                    previousCountry=""
-                    for rowidx, row in newDf.iterrows(): 
-                        if((row['selected']==False) and (int(row['dClass'])==4)):
-                            excludedStationsList.append(row['stationID'] )
-                            if(row['country'] not in previousCountry):  
-                                excludedCountriesList.append(row['country'])
-                                previousCountry=row['country']
-                            n+=1
-                        if((len(row['country'])>1) and (row['country'] not in previousCountry)):
-                            previousCountry=row['country']
                 nC=len(excludedCountriesList)
                 nS=len(excludedStationsList)
                 if(nS==0):
@@ -2092,9 +2091,10 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     if(step2):
         widgetsLst = []
         RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst, sNow=sNow) 
+        return("Lumia-Refined-ObsData-"+sNow+".csv") 
     else:
         LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile,  sNow=sNow) 
-    return 
+    return() 
 
     
      
