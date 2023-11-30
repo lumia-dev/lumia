@@ -361,7 +361,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     else:        
         dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
     dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
-    logger.debug(f"dobjLst={dobjLst}")
+    #logger.debug(f"dobjLst={dobjLst}")
     # remove any possible duplicates from the list of objects
     finalDobjLst=set(dobjLst)
     lf=len(finalDobjLst)
@@ -369,7 +369,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     n=l-lf
     if(n>0):
         logger.debug(f"removed {n} duplicates")
-    logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer) Removing duplicates and collections...")
+    logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer) Removing duplicates (if any)...")
     if(0>1): #obsolete bit of code with new SPARQL query...but let's first test the new query thoroughly before removing this snipet
         cpCollections=collection.getIdList()
         for collitem in cpCollections.values:

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-#import io
 import sys
 import pandas as pd
 import argparse
@@ -92,9 +91,9 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     bWeMustStack=False
     colW=int(iAvailWidth/nCols)-(0.5*xPad)+0.5
     colH=int( iAvailHght/nRows)-(0.5*yPad)+0.5
-    logger.debug(f"avail colWidth= {colW} pxl: colHeight= {colH} pxl")
+    # logger.debug(f"avail colWidth= {colW} pxl: colHeight= {colH} pxl")
     (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
-    logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
+    # logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
     # Make the font smaller until the text fits into one column width
     while(w>colW):
         FontSize=FontSize-1
@@ -106,7 +105,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
             bCanvasTooSmall=True
             (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
             break
-        logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
+        # logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
     # If the screen is too small, check if we could stack the output vertically using fewer columns
     if((bCanvasTooSmall) and (bWeCanStackColumns) and (nCols>1)):
         nCols=int((nCols*0.5)+0.5)
@@ -678,7 +677,7 @@ class LumiaGui(ctk.CTk):
                 time.sleep(3)
             logger.info("Closing the GUI...")
             try:
-                root.event_generate("<Destroy>")
+                root.after(100, root.event_generate("<Destroy>"))
             except:
                 pass
         _thread.start_new_thread(loop_function, ())
@@ -1047,11 +1046,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         
         # Done this step - the GUI canvas with scrollbars has been created
 
-        #def updateRowOfWidgets(gridList, rowindex, row):
-        #    ''' updates the states of all the widgets belonging to one observational data set corresponding to a single line on the GUI '''
-        #    print("..to be implemented ...")
-        #    return
-             
         def applyRules():
             bICOSonly=ymlContents['observations']['filters']['ICOSonly']
             bUseStationAltitudeFilter=ymlContents['observations']['filters']['bStationAltitude']
@@ -1462,8 +1456,8 @@ class RefineObsSelectionGUI(ctk.CTk):
         #  ##################################################################
         # Create a frame for the canvas with non-zero row&column weights
         
-        rootFrame.update() # above widgets are drawn and we can get column width measures
-        x, y, width, height = rootFrame.grid_bbox()
+        #rootFrame.update() # above widgets are drawn and we can get column width measures
+        #x, y, width, height = rootFrame.grid_bbox()
 
         rootFrameCanvas = tk.Frame(rootFrame)
         rootFrameCanvas.grid(row=5, column=0,  columnspan=12,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
@@ -1489,7 +1483,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
         
         # 
-        startRow=5
+        #startRow=5
         yPadding=int(0.5*yPadding)
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         sLastCountry=''
@@ -1551,7 +1545,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                 time.sleep(3)
             logger.info("Closing the GUI...")
             try:
-                root.event_generate("<Destroy>")
+                root.after(1000, root.event_generate("<Destroy>"))  # Wait 1 sec so the the main thread can meanwhile be exited before the GUI is destroyed
             except:
                 pass
         _thread.start_new_thread(loop_function, ())

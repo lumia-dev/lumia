@@ -132,6 +132,7 @@ if args.noobs :
     db = obsdb(rcf.get('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     sLocation=rcf['observations']['file']['location']
+    sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
     if ('CARBONPORTAL' in sLocation):
         from lumia.obsdb.obsCPortalDb import obsdb
         db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile,  sNow=sNow)
