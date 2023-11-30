@@ -592,7 +592,6 @@ class LumiaGui(ctk.CTk):
                 logger.info("LumiaGUI was canceled.")
                 sCmd="touch LumiaGui.stop"
                 self.runSysCmd(sCmd)
-                #root.destroy
                 global LOOP_ACTIVE
                 LOOP_ACTIVE = False
         root.protocol("WM_DELETE_WINDOW", GuiClosed)
@@ -600,7 +599,6 @@ class LumiaGui(ctk.CTk):
             logger.info("LumiaGUI was canceled.")
             sCmd="touch LumiaGui.stop"
             self.runSysCmd(sCmd)
-            #self.bPleaseCloseTheGui.set(True)
             global LOOP_ACTIVE
             LOOP_ACTIVE = False
 
@@ -651,6 +649,11 @@ class LumiaGui(ctk.CTk):
                     sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
                     CancelAndQuit(sTxt)
 
+                try:
+                    sNow2=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
+                    print(f'Now2={sNow2}')
+                except:
+                    pass
                 sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
                 sCmd="cp "+ymlFile+" "+sLogCfgFile
                 self.runSysCmd(sCmd)
@@ -672,14 +675,14 @@ class LumiaGui(ctk.CTk):
             global LOOP_ACTIVE
             LOOP_ACTIVE = True
             while LOOP_ACTIVE:
-                #print(chk.state())
                 time.sleep(3)
             logger.info("Closing the GUI...")
-            #root.destroy()
-            root.event_generate("<Destroy>")
+            try:
+                root.event_generate("<Destroy>")
+            except:
+                pass
         _thread.start_new_thread(loop_function, ())
         root.mainloop()     
-        #root.destroy()
         return
         
 
@@ -900,7 +903,7 @@ class RefineObsSelectionGUI(ctk.CTk):
     # =====================================================================
     # The layout of the window is now written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents,ymlFile,  fDiscoveredObservations, widgetsLst, sNow):  # *args, **kwargs):
+    def __init__(self, sLogCfgPath, ymlContents, ymlFile,  fDiscoveredObservations, widgetsLst, sNow):  # *args, **kwargs):
         # Get the screen resolution to scale the GUI in the smartest way possible...
         nWidgetsPerRow=5
         if os.environ.get('DISPLAY','') == '':
@@ -1344,7 +1347,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 logger.info("LumiaGUI was canceled.")
                 sCmd="touch LumiaGui.stop"
                 self.runSysCmd(sCmd)
-                #root.destroy
                 global LOOP_ACTIVE
                 LOOP_ACTIVE = False
         root.protocol("WM_DELETE_WINDOW", GuiClosed)
@@ -1352,7 +1354,6 @@ class RefineObsSelectionGUI(ctk.CTk):
             logger.info("LumiaGUI was canceled.")
             sCmd="touch LumiaGui.stop"
             self.runSysCmd(sCmd)
-            #self.bPleaseCloseTheGui.set(True)
             global LOOP_ACTIVE
             LOOP_ACTIVE = False
 
@@ -1374,11 +1375,8 @@ class RefineObsSelectionGUI(ctk.CTk):
 
 
         #Col 10:  RUN Button
-        def GoBtnHit():
-            # get current time
-            #current_date = datetime.now()
-            #sNow=current_date.isoformat("T","minutes")
-            # Write the list of observational files
+        def GoBtnHit(ymlFile,  ymlContents):
+            sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
             try:
                 nObs=len(newDf)
                 filtered = ((newDf['selected'] == True))
@@ -1432,6 +1430,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             except:
                 sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
                 CancelAndQuit(sTxt)
+                return
             
             sCmd="cp "+ymlFile+" "+sLogCfgFile
             self.runSysCmd(sCmd)
@@ -1443,13 +1442,10 @@ class RefineObsSelectionGUI(ctk.CTk):
             LOOP_ACTIVE = False
 
         # ######################################################            
-        self.RunButton = ctk.CTkButton(rootFrame, font=("Georgia", fsNORMAL), 
-                                         text_color='gray5',  text_color_disabled='gray70',  text="RUN", 
-                                         fg_color='green2', command=GoBtnHit) 
-                                         #fg_color='green2', command=lambda widgetID=self.RunButton : GoButtonHit(widgetID, newDf)) 
-                                         #         myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, widgetsLst, obsDf, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)) 
-
-        self.RunButton.grid(row=3, column=11,
+        self.GoButton = ctk.CTkButton(rootFrame, font=("Georgia", fsNORMAL), 
+                                         text_color='gray5',  text_color_disabled='gray70',  text="RUN", fg_color='green2')  
+        self.GoButton.configure(command= lambda: GoBtnHit(ymlFile,  ymlContents)) 
+        self.GoButton.grid(row=3, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="nw")
                                         
@@ -1552,17 +1548,14 @@ class RefineObsSelectionGUI(ctk.CTk):
             global LOOP_ACTIVE
             LOOP_ACTIVE = True
             while LOOP_ACTIVE:
-                #print(chk.state())
                 time.sleep(3)
             logger.info("Closing the GUI...")
-            #root.destroy()
-            root.event_generate("<Destroy>")
+            try:
+                root.event_generate("<Destroy>")
+            except:
+                pass
         _thread.start_new_thread(loop_function, ())
         root.mainloop()
-        try:        
-            root.destroy() # just incase this hasn't already been done
-        except:
-            pass
         return
         
 

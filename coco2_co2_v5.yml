@@ -68,7 +68,7 @@ observations:
     tracer: co2
   filters:
     CountriesExcluded:
-    - ES
+    - HU
     ICOSonly: false
     StationsExcluded:
     - HEI
@@ -125,6 +125,13 @@ run:
     lat1: 73.0
     lon0: -15.0
     lon1: 35.0
+  thisRun:
+    PythonVersion: Python environment version is Python 3.10.10
+    hostName: tux.nateko.lu.se
+    platformCore: Linux-5.15.0-89-generic-x86_64-with-glibc2.35
+    platformFlavour: 9-Ubuntu SMP Mon Oct 30 20:42:41 UTC 202
+    uniqueIdentifierDateTime: 2023-11-30T10:53
+    username: cec-ami
   timestep: 1h
   tracers:
   - co2
@@ -132,8 +139,8 @@ softwareUsed:
   lumia:
     git:
       branch: LumiaDA
-      commit: 6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-      location: git@github.com:lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+      commit: 821c55e28d43cc18d062f8dee4fdc38a1ba2215a
+      location: git@github.com:lumia-dev/lumia/commit/821c55e28d43cc18d062f8dee4fdc38a1ba2215a
       url: git@github.com:lumia-dev/lumia.git
   runflex:
     git:

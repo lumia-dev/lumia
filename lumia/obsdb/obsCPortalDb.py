@@ -50,7 +50,7 @@ class obsdb(obsdb):
             rcf['observations'][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
             end=rcf['observations'].get('end', None), 
-            rcFile=rcf,  useGui=useGui,  ymlFile=ymlFile)
+            rcFile=rcf,  useGui=useGui,  ymlFile=ymlFile, sNow=sNow)
         # db.rcf = rcf
 
         # if (1>2):  # TODO: check. should not be needed
@@ -69,7 +69,7 @@ class obsdb(obsdb):
         return db
  
  
-    def load_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None) -> "obsdb":
+    def load_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None,  sNow='') -> "obsdb":
         """
         Public method  load_fromCPortal
 
