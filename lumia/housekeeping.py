@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='0764b3dc45944fcb7b4f1110fa3be587f8dab9c2' #'821c55e28d43cc18d062f8dee4fdc38a1ba2215a'
+LATESTGITCOMMIT_LumiaDA='0da33125ce175612bfd6ba40fb3d64783003a1aa'  # '0764b3dc45944fcb7b4f1110fa3be587f8dab9c2' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -119,6 +119,7 @@ def documentThisRun(ymlFile, args):
         yaml.dump(ymlContents, outFile)
     
     # prepare the call of LumiaGUI
+    # TODO: this shall become obsolete. LumiaGUI is to be called stand-alone before running LumiaDA
     sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py '
     for entry in sys.argv[1:]:
         if (len(entry)>0):

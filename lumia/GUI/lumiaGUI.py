@@ -10,12 +10,15 @@ import time
 import _thread
 import re
 from loguru import logger
-#from pandas.api.types import is_float_dtype
+from pandas import to_datetime
 import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
-#import literalString as litstr
-# from tkinter import ttk
+# lumia/icosPortalAccess/readObservationsFromCarbonPortal.py
+#from lumia import icosPortalAccess
+
+from queryCarbonPortal import discoverObservationsOnCarbonPortal
+from queryCarbonPortal import chooseAmongDiscoveredObservations
 
 
 def grabFirstEntryFromList(myList):
@@ -24,14 +27,6 @@ def grabFirstEntryFromList(myList):
   except:
     return myList
 
-class AsLiteralString(str):
-  pass
-
-def representAsLiteralString(dumper, data):
-  return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="") # , style='|' is a bad idea here
-
-yaml.add_representer(str, representAsLiteralString)
-yaml.representer.SafeRepresenter.add_representer(str, representAsLiteralString) 
 
 def swapListElements(list, pos1, pos2):
     # pos1 and pos2 should be counted from zero
@@ -138,29 +133,28 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
 
 
 # LumiaGui Class =============================================================
-class LumiaGui(ctk.CTk):
+class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
     # =====================================================================
     # The layout of the window will be written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents, ymlFile,  sNow):  # *args, **kwargs):
-        #super().__init__(*args, **kwargs)
-        # self.protocol("WM_DELETE_WINDOW", self.closed) 
-
+    def __init__(self, root,  sLogCfgPath, ymlContents, ymlFile):  # *args, **kwargs):
+        ctk.CTkToplevel.__init__(self, root)
+        self.parent = root
         # Get the screen resolution to scale the GUI in the smartest way possible...
-        if os.environ.get('DISPLAY','') == '':
-            print('no display found. Using :0.0')
-            os.environ.__setitem__('DISPLAY', ':0.0')
-        root=ctk.CTk()
-        #root = tk.Tk()
         if(os.path.isfile("LumiaGui.stop")):
             sCmd="rm LumiaGui.stop"
-            self.runSysCmd(sCmd,  ignoreError=True)
+            runSysCmd(sCmd,  ignoreError=True)
         if(os.path.isfile("LumiaGui.go")):
             sCmd="rm LumiaGui.go"
-            self.runSysCmd(sCmd,  ignoreError=True)
+            runSysCmd(sCmd,  ignoreError=True)
 
-        screenWidth = root.winfo_screenwidth()
-        screenHeight = root.winfo_screenheight()
+    def run(self, root,  sLogCfgPath, ymlContents, ymlFile,tracer, pdTimeStart, pdTimeEnd, timeStep, sDataType=None,  iVerbosityLv=1): 
+        dobjLst=[]
+        selectedDobjLst=[]
+        dfObsDataInfo=None
+        fDiscoveredObservations='./DiscoveredObservations.csv'
+        screenWidth = self.winfo_screenwidth()
+        screenHeight = self.winfo_screenheight()
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
             screenWidth=int(screenHeight*(1920/1080.0))
         maxW = int(0.92*screenWidth)
@@ -185,21 +179,20 @@ class LumiaGui(ctk.CTk):
         appWidth, appHeight = maxW, maxH
         #activeTextColor='gray10'
         #inactiveTextColor='gray50'
-        
         self.lonMin = tk.DoubleVar(value=-25.0)
         self.lonMax = tk.DoubleVar(value=45.0)
         self.latMin = tk.DoubleVar(value=23.0)
         self.latMax = tk.DoubleVar(value=83.0)
  
         # Sets the title of the window to "LumiaGui"
-        root.title("LUMIA run configuration")  
+        self.title("LUMIA run configuration")  
         # Sets the dimensions of the window to 800x900
-        root.geometry(f"{appWidth}x{appHeight}")   
+        self.geometry(f"{appWidth}x{appHeight}")   
 
         # Row 0:  Title Label
         # ################################################################
 
-        self.LatitudesLabel = ctk.CTkLabel(root,
+        self.LatitudesLabel = ctk.CTkLabel(self,
                                 text="LUMIA  --  Configure your next LUMIA run",  font=("Arial MT Extra Bold",  fsGIGANTIC))
         self.LatitudesLabel.grid(row=0, column=0,
                             columnspan=8,padx=xPadding, pady=yPadding,
@@ -208,22 +201,22 @@ class LumiaGui(ctk.CTk):
         # Row 1:  Headings left/right column
         # ################################################################
 
-        root.LatitudesLabel = ctk.CTkLabel(root, anchor="w",
+        self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
                                 text="Time interval",  font=("Georgia",  fsLARGE))
-        root.LatitudesLabel.grid(row=1, column=0,  
+        self.LatitudesLabel.grid(row=1, column=0,  
                             columnspan=2, padx=xPadding, pady=yPadding,
                             sticky="ew")
  
         # Row 2: Time interval
         # ################################################################
 
-        self.TimeStartLabel = ctk.CTkLabel(root, anchor="w",
+        self.TimeStartLabel = ctk.CTkLabel(self, anchor="w",
                                 text="Start date (00:00h):", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.TimeStartLabel.grid(row=2, column=0, 
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
 
-        self.TimeEndLabel = ctk.CTkLabel(root,
+        self.TimeEndLabel = ctk.CTkLabel(self,
                                 text="End date: (23:59h)", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.TimeEndLabel.grid(row=2, column=2,
                             columnspan=1,padx=xPadding, pady=yPadding,
@@ -238,20 +231,20 @@ class LumiaGui(ctk.CTk):
 
         s=self.sStartDate.get()
         # prep the StartDate field  
-        self.TimeStartEntry = ctk.CTkEntry(root,textvariable=self.sStartDate,  
+        self.TimeStartEntry = ctk.CTkEntry(self,textvariable=self.sStartDate,  
                           placeholder_text=ymlContents['observations']['start'][:10], width=colWidth)
         self.TimeStartEntry.grid(row=2, column=1,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
                             
         # prep the EndDate field
-        self.TimeEndEntry = ctk.CTkEntry(root,textvariable=self.sEndDate, 
+        self.TimeEndEntry = ctk.CTkEntry(self,textvariable=self.sEndDate, 
                           placeholder_text=ymlContents['observations']['end'][:10], width=colWidth)
         self.TimeEndEntry.grid(row=2, column=3,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # Lat/Lon
-        self.LatitudesLabel = ctk.CTkLabel(root, anchor="w",
+        self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
                                 text="Geographical extent of the area modelled (in deg. North/East)",  font=("Georgia",  fsLARGE))
         self.LatitudesLabel.grid(row=2, column=4,
                             columnspan=4,padx=xPadding, pady=yPadding,
@@ -266,7 +259,7 @@ class LumiaGui(ctk.CTk):
         #iObservationsFileLocation.set(1) # Read observations from local file
         if ('CARBONPORTAL' in ymlContents['observations']['file']['location']):
             self.iObservationsFileLocation.set(2)
-        self.ObsFileLocationLocalRadioButton = ctk.CTkRadioButton(root,
+        self.ObsFileLocationLocalRadioButton = ctk.CTkRadioButton(self,
                                    text="Observational CO2 data from local file", font=("Georgia",  fsNORMAL),
                                    variable=self.iObservationsFileLocation,  value=1)
         self.ObsFileLocationLocalRadioButton.grid(row=3, column=0,
@@ -275,12 +268,12 @@ class LumiaGui(ctk.CTk):
 
         # row 3: Latitudes Label
         txt=f"Latitude (≥{self.latMin.get()}°N):" # "Latitude (≥33°N):"
-        self.LatitudeMinLabel = ctk.CTkLabel(root,anchor="w",
+        self.LatitudeMinLabel = ctk.CTkLabel(self,anchor="w",
                                 text=txt, width=colWidth,  font=("Georgia",  fsNORMAL))
         self.LatitudeMinLabel.grid(row=3, column=4,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
-        self.LatitudeMaxLabel = ctk.CTkLabel(root,
+        self.LatitudeMaxLabel = ctk.CTkLabel(self,
                                 text="max (≤73°N):", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.LatitudeMaxLabel.grid(row=3, column=6,
                             columnspan=1,padx=xPadding, pady=yPadding,
@@ -304,13 +297,13 @@ class LumiaGui(ctk.CTk):
         # grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
         # sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
 
-        self.Latitude0Entry = ctk.CTkEntry(root,textvariable=self.sLat0,
+        self.Latitude0Entry = ctk.CTkEntry(self,textvariable=self.sLat0,
                           placeholder_text=self.sLat0, width=colWidth)
         self.Latitude0Entry.grid(row=3, column=5,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max
-        self.Latitude1Entry = ctk.CTkEntry(root,textvariable=self.sLat1,
+        self.Latitude1Entry = ctk.CTkEntry(self,textvariable=self.sLat1,
                           placeholder_text=self.sLat1, width=colWidth)
         self.Latitude1Entry.grid(row=3, column=7,
                             columnspan=1, padx=xPadding,
@@ -321,35 +314,35 @@ class LumiaGui(ctk.CTk):
         # 
 
         #  Entry LocalFile
-        self.observationsFilePathLabel = ctk.CTkLabel(root,
+        self.observationsFilePathLabel = ctk.CTkLabel(self,
                                 text="obs.file.path:", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.observationsFilePathLabel.grid(row=4, column=0,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
-        self.ObsFileLocationLocalEntry = ctk.CTkEntry(root,
+        self.ObsFileLocationLocalEntry = ctk.CTkEntry(self,
                           placeholder_text= ymlContents['observations']['file']['path'], width=colWidth)
         self.ObsFileLocationLocalEntry.grid(row=4, column=1,
                             columnspan=3, padx=xPadding,
                             pady=yPadding, sticky="ew")
 
         # row 4 Longitudes  my_string = f'{my_float:.3f}'
-        self.LongitudeMinLabel = ctk.CTkLabel(root, text="Longitude (≥-15°E):", anchor="w", font=("Georgia",  fsNORMAL), width=colWidth)
+        self.LongitudeMinLabel = ctk.CTkLabel(self, text="Longitude (≥-15°E):", anchor="w", font=("Georgia",  fsNORMAL), width=colWidth)
         self.LongitudeMinLabel.grid(row=4, column=4,
                            padx=xPadding, pady=yPadding,
                            sticky="ew")
-        self.LongitudeMaxLabel = ctk.CTkLabel(root, text="max (≤35°E):",  font=("Georgia",  fsNORMAL), width=colWidth)
+        self.LongitudeMaxLabel = ctk.CTkLabel(self, text="max (≤35°E):",  font=("Georgia",  fsNORMAL), width=colWidth)
         self.LongitudeMaxLabel.grid(row=4, column=6,
                            padx=xPadding, pady=yPadding,
                            sticky="ew")
         # Longitude0 Entry Field
         # min
-        self.Longitude0Entry = ctk.CTkEntry(root, textvariable=self.sLon0, 
+        self.Longitude0Entry = ctk.CTkEntry(self, textvariable=self.sLon0, 
                             placeholder_text=self.sLon0, width=colWidth)
         self.Longitude0Entry.grid(row=4, column=5,
                            columnspan=1, padx=xPadding,
                            pady=yPadding, sticky="ew")
         # max
-        self.Longitude1Entry = ctk.CTkEntry(root,textvariable=self.sLon1,
+        self.Longitude1Entry = ctk.CTkEntry(self,textvariable=self.sLon1,
                             placeholder_text=self.sLon1, width=colWidth)
         self.Longitude1Entry.grid(row=4, column=7,
                            columnspan=1, padx=xPadding,
@@ -358,7 +351,7 @@ class LumiaGui(ctk.CTk):
         # Row 5
         # ################################################################
         # 
-        self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(root,
+        self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(self,
                                    text="Obsdata Ranking", font=("Georgia",  fsNORMAL), 
                                    variable=self.iObservationsFileLocation,  value=2)
         self.ObsFileLocationCPortalRadioButton.grid(row=5, column=0,
@@ -369,13 +362,13 @@ class LumiaGui(ctk.CTk):
         self.ActivateStationFiltersRbVar = tk.IntVar(value=1)
         if ((ymlContents['observations']['filters']['bStationAltitude'])or(ymlContents['observations']['filters']['bSamplingHeight'])):
             self.ActivateStationFiltersRbVar.set(2)
-        self.ActivateStationFiltersRadioButton = ctk.CTkRadioButton(root,
+        self.ActivateStationFiltersRadioButton = ctk.CTkRadioButton(self,
                                    text="Filter stations", font=("Georgia",  18), 
                                    variable=self.ActivateStationFiltersRbVar,  value=2)
         self.ActivateStationFiltersRadioButton.grid(row=5, column=2,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="ew")
-        self.useAllStationsRadioButton = ctk.CTkRadioButton(root,
+        self.useAllStationsRadioButton = ctk.CTkRadioButton(self,
                                    text="Use all stations", font=("Georgia",  18), 
                                    variable=self.ActivateStationFiltersRbVar,  value=1)
         self.useAllStationsRadioButton.grid(row=5, column=3,
@@ -383,7 +376,7 @@ class LumiaGui(ctk.CTk):
                                   sticky="ew")
                                 
         # Emissions data (a prioris)
-        self.LatitudesLabel = ctk.CTkLabel(root, anchor="w",
+        self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
                                 text="Emissions data (a priori)",  font=("Georgia",  fsLARGE))
         self.LatitudesLabel.grid(row=5, column=4,  
                             columnspan=3, padx=xPadding, pady=yPadding,
@@ -395,7 +388,7 @@ class LumiaGui(ctk.CTk):
         # ObservationsFileLocation
         rankingList=ymlContents['observations']['file']['ranking']
         self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
-        self.ObsFileRankingBox = ctk.CTkTextbox(root,
+        self.ObsFileRankingBox = ctk.CTkTextbox(self,
                                          width=colWidth,
                                          height=(2*rowHeight+vSpacer))
         self.ObsFileRankingBox.grid(row=6, column=0,
@@ -411,7 +404,7 @@ class LumiaGui(ctk.CTk):
         # Station altitude filter
         # bTest=ymlContents['observations']['filters']['bStationAltitude']
         self.bFilterStationAltitudeCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
-        self.filterStationAltitudeCkb = ctk.CTkCheckBox(root,
+        self.filterStationAltitudeCkb = ctk.CTkCheckBox(self,
                                 text="Station altitudes:",  font=("Georgia",  18), 
                                 variable=self.bFilterStationAltitudeCkbVar,
                                 onvalue=True, offvalue=False)  
@@ -423,13 +416,13 @@ class LumiaGui(ctk.CTk):
         self.stationMinAlt=tk.StringVar(value=f'{stationMinAlt}')
         self.stationMaxAlt=tk.StringVar(value=f'{stationMaxAlt}')
         # min Altitude Entry
-        self.stationMinAltEntry = ctk.CTkEntry(root,textvariable=self.stationMinAlt,
+        self.stationMinAltEntry = ctk.CTkEntry(self,textvariable=self.stationMinAlt,
                           placeholder_text=self.stationMinAlt, width=colWidth)
         self.stationMinAltEntry.grid(row=6, column=2,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max Altitude Entry
-        self.stationMaxAltEntry = ctk.CTkEntry(root,textvariable=self.stationMaxAlt,
+        self.stationMaxAltEntry = ctk.CTkEntry(self,textvariable=self.stationMaxAlt,
                           placeholder_text=self.stationMaxAlt, width=colWidth)
         self.stationMaxAltEntry.grid(row=6, column=3,
                             columnspan=1, padx=xPadding,
@@ -437,7 +430,7 @@ class LumiaGui(ctk.CTk):
                              
 
         # Emissions data (a prioris)
-        self.observationsFilePathLabel = ctk.CTkLabel(root,
+        self.observationsFilePathLabel = ctk.CTkLabel(self,
                                 text="Land/Vegetation NEE:", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.observationsFilePathLabel.grid(row=6, column=4,
                             columnspan=1,padx=xPadding, pady=yPadding,
@@ -445,7 +438,7 @@ class LumiaGui(ctk.CTk):
 
         # Land/Vegetation Net Exchange combo box
         self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions']['co2']['categories']['biosphere'])
-        self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(root,
+        self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.LandNetExchangeModelCkbVar)
         self.LandNetExchangeOptionMenu.grid(row=6, column=5,
@@ -459,7 +452,7 @@ class LumiaGui(ctk.CTk):
 
         # inlet height filter
         self.bFilterSamplingHeightCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bSamplingHeight'])
-        self.filterSamplingHeightCkb = ctk.CTkCheckBox(root,
+        self.filterSamplingHeightCkb = ctk.CTkCheckBox(self,
                                 text="Sampling height:",  font=("Georgia",  fsNORMAL), 
                                 variable=self.bFilterSamplingHeightCkbVar, 
                                 onvalue=True, offvalue=False)  
@@ -471,13 +464,13 @@ class LumiaGui(ctk.CTk):
         self.inletMinHght=tk.StringVar(value=f'{inletMinHght}')
         self.inletMaxHght=tk.StringVar(value=f'{inletMaxHght}')
         # min inlet height
-        self.inletMinHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMinHght,
+        self.inletMinHghtEntry = ctk.CTkEntry(self,textvariable=self.inletMinHght,
                           placeholder_text=self.inletMinHght, width=colWidth)
         self.inletMinHghtEntry.grid(row=7, column=2,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max inlet height
-        self.inletMaxHghtEntry = ctk.CTkEntry(root,textvariable=self.inletMaxHght,
+        self.inletMaxHghtEntry = ctk.CTkEntry(self,textvariable=self.inletMaxHght,
                           placeholder_text=self.inletMaxHght, width=colWidth)
         self.inletMaxHghtEntry.grid(row=7, column=3,
                             columnspan=1, padx=xPadding,
@@ -485,7 +478,7 @@ class LumiaGui(ctk.CTk):
 
 
         # Emissions data (a prioris)
-        self.observationsFilePathLabel = ctk.CTkLabel(root,
+        self.observationsFilePathLabel = ctk.CTkLabel(self,
                                 text="Fossil emissions:", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.observationsFilePathLabel.grid(row=7, column=4,
                             columnspan=1,padx=xPadding, pady=yPadding,
@@ -493,7 +486,7 @@ class LumiaGui(ctk.CTk):
         # Fossil emissions combo box
         # Latest is presently https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3
         self.FossilEmisCkbVar = tk.StringVar(value=ymlContents['emissions']['co2']['categories']['fossil']) #"EDGARv4_LATEST"
-        self.FossilEmisOptionMenu = ctk.CTkOptionMenu(root, dropdown_font=("Georgia",  fsNORMAL), 
+        self.FossilEmisOptionMenu = ctk.CTkOptionMenu(self, dropdown_font=("Georgia",  fsNORMAL), 
                                         values=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"], 
                                         variable=self.FossilEmisCkbVar)
                 #  https://hdl.handle.net/11676/Ce5IHvebT9YED1KkzfIlRwDi (2022) https://doi.org/10.18160/RFJD-QV8J EDGARv4.3 and BP statistics 2023
@@ -509,14 +502,14 @@ class LumiaGui(ctk.CTk):
         # ################################################################
         # 
         # Emissions data (a prioris)
-        self.observationsFilePathLabel = ctk.CTkLabel(root,
+        self.observationsFilePathLabel = ctk.CTkLabel(self,
                                 text="Ocean net exchange:", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.observationsFilePathLabel.grid(row=8, column=4,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         # Ocean Net Exchange combo box
         self.OceanNetExchangeCkbVar = tk.StringVar(value=ymlContents['emissions']['co2']['categories']['ocean'])  # "mikaloff01"
-        self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(root,
+        self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["mikaloff01"], dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.OceanNetExchangeCkbVar)
         self.OceanNetExchangeOptionMenu.grid(row=8, column=5,
@@ -527,18 +520,18 @@ class LumiaGui(ctk.CTk):
         # Row 9
         # ################################################################
         # 
-        self.TuningParamLabel = ctk.CTkLabel(root,
+        self.TuningParamLabel = ctk.CTkLabel(self,
                                 text="LUMIA may adjust:", width=colWidth,  font=("Georgia",  fsNORMAL))
         self.TuningParamLabel.grid(row=9, column=0,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         #self.LandVegCkbVar = tk.StringVar(value="Vegetation")
-        #self.LandVegCkb = ctk.CTkCheckBox(root,
+        #self.LandVegCkb = ctk.CTkCheckBox(self,
         #                     text="Land/Vegetation",
         #                     variable=self.LandVegCkbVar,
         #                     onvalue="Vegetation", offvalue="c1")
         self.LandVegCkbVar = tk.BooleanVar(value=True)
-        self.LandVegCkb = ctk.CTkCheckBox(root,
+        self.LandVegCkb = ctk.CTkCheckBox(self,
                              text="Land/Vegetation", font=("Georgia",  fsNORMAL), 
                              variable=self.LandVegCkbVar,
                              onvalue=True, offvalue=False)
@@ -547,7 +540,7 @@ class LumiaGui(ctk.CTk):
                           sticky="ew")
 
         self.FossilCkbVar = tk.BooleanVar(value=False)
-        self.FossilCkb = ctk.CTkCheckBox(root,
+        self.FossilCkb = ctk.CTkCheckBox(self,
                             text="Fossil (off)", font=("Georgia",  fsNORMAL),
                             variable=self.FossilCkbVar,
                              onvalue=True, offvalue=False)                             
@@ -556,7 +549,7 @@ class LumiaGui(ctk.CTk):
                           sticky="ew")
 
         self.OceanCkbVar = tk.BooleanVar(value=False)
-        self.OceanCkb = ctk.CTkCheckBox(root,
+        self.OceanCkb = ctk.CTkCheckBox(self,
                             text="Ocean (off)", font=("Georgia",  fsNORMAL),
                             variable=self.OceanCkbVar,
                              onvalue=True, offvalue=False)                            
@@ -565,7 +558,7 @@ class LumiaGui(ctk.CTk):
                           sticky="ew")
 
         #self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        #self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
+        #self.ignoreWarningsCkb = ctk.CTkCheckBox(self,state=tk.DISABLED, 
         #                    text="Ignore Warnings", font=("Georgia",  fsNORMAL),
         #                    text_color=inactiveTextColor, text_color_disabled=activeTextColor, 
         #                    variable=self.bIgnoreWarningsCkbVar,
@@ -578,7 +571,7 @@ class LumiaGui(ctk.CTk):
         # ################################################################
         # 
         # Text Box
-        self.displayBox = ctk.CTkTextbox(root, width=200,
+        self.displayBox = ctk.CTkTextbox(self, width=200,
                                         text_color="red", font=("Georgia",  fsSMALL),  height=100)
         self.displayBox.grid(row=10, column=0, columnspan=6,rowspan=2, 
                              padx=20, pady=20, sticky="nsew")
@@ -586,23 +579,37 @@ class LumiaGui(ctk.CTk):
         #self.displayBox.delete("0.0", "end")  # delete all text
         self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
 
-        def GuiClosed():
-            if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
-                logger.info("LumiaGUI was canceled.")
-                sCmd="touch LumiaGui.stop"
-                self.runSysCmd(sCmd)
+        def CloseTheGUI(bAskUser=True,  bWriteStop=True):
+            if(bAskUser):  # only happens if the GUI window was closed brutally
+                if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
+                    if(bWriteStop):
+                        logger.info("LumiaGUI was canceled.")
+                        sCmd="touch LumiaGui.stop"
+                        runSysCmd(sCmd)
+            else:  # the user clicked Cancel or Go
+                if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+                    logger.info("LumiaGUI was canceled.")
+                    sCmd="touch LumiaGui.stop"
+                    runSysCmd(sCmd)
                 global LOOP_ACTIVE
                 LOOP_ACTIVE = False
-        root.protocol("WM_DELETE_WINDOW", GuiClosed)
+                logger.info("Closing the GUI...")
+                try:
+                    self.after(100, self.event_generate("<Destroy>"))
+                except:
+                    pass
+        self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
+        
         def CancelAndQuit(): 
-            logger.info("LumiaGUI was canceled.")
-            sCmd="touch LumiaGui.stop"
-            self.runSysCmd(sCmd)
-            global LOOP_ACTIVE
-            LOOP_ACTIVE = False
+            #logger.info("LumiaGUI was canceled.")
+            #sCmd="touch LumiaGui.stop"
+            #runSysCmd(sCmd)
+            CloseTheGUI(bAskUser=False,  bWriteStop=True)
+            #global LOOP_ACTIVE
+            #LOOP_ACTIVE = False
 
         # Cancel Button
-        self.CancelButton = ctk.CTkButton(master=root, font=("Georgia", 18), text="Cancel",
+        self.CancelButton = ctk.CTkButton(master=self, font=("Georgia", 18), text="Cancel",
             command=CancelAndQuit)
         self.CancelButton.grid(row=10, column=7,
                                         columnspan=1, padx=xPadding,
@@ -610,7 +617,7 @@ class LumiaGui(ctk.CTk):
 
         # Row 11  :  RUN Button
         self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        self.ignoreWarningsCkb = ctk.CTkCheckBox(root,state=tk.DISABLED, 
+        self.ignoreWarningsCkb = ctk.CTkCheckBox(self,state=tk.DISABLED, 
                             text="Ignore Warnings", font=("Georgia",  fsNORMAL),
                             variable=self.bIgnoreWarningsCkbVar, text_color='gray5',  text_color_disabled='gray70', 
                              onvalue=True, offvalue=False)                            
@@ -621,7 +628,7 @@ class LumiaGui(ctk.CTk):
         def GoButtonHit():
             # def generateResults(self):
             bGo=False
-            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents, sNow=sNow)
+            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents)
             self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
             self.displayBox.delete("0.0", "end")  # delete all text
             if((bErrors) and (bWarnings)):
@@ -640,30 +647,27 @@ class LumiaGui(ctk.CTk):
             if(bGo):
                 # Save  all details of the configuration and the version of the software used:
                 #current_date = datetime.now()
-                #sNow=current_date.isoformat("T","minutes")
                 try:
                     with open(ymlFile, 'w') as outFile:
                         yaml.dump(ymlContents, outFile)
                 except:
                     sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
-                    CancelAndQuit(sTxt)
+                    logger.error(sTxt)
+                    CancelAndQuit()
 
-                try:
-                    sNow2=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
-                    print(f'Now2={sNow2}')
-                except:
-                    pass
+                sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
                 sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
                 sCmd="cp "+ymlFile+" "+sLogCfgFile
-                self.runSysCmd(sCmd)
+                runSysCmd(sCmd)
                 sCmd="touch LumiaGui.go"
-                self.runSysCmd(sCmd)
+                runSysCmd(sCmd)
                 logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
                 # self.bPleaseCloseTheGui.set(True)
-                global LOOP_ACTIVE
-                LOOP_ACTIVE = False
+                CloseTheGUI(bAskUser=False,  bWriteStop=False)
+                #global LOOP_ACTIVE
+                #LOOP_ACTIVE = False
                 
-        self.RunButton = ctk.CTkButton(root, font=("Georgia", fsNORMAL), 
+        self.RunButton = ctk.CTkButton(self, font=("Georgia", fsNORMAL), 
                                          text="RUN",
                                          command=GoButtonHit)
         self.RunButton.grid(row=11, column=7,
@@ -677,13 +681,21 @@ class LumiaGui(ctk.CTk):
                 time.sleep(3)
             logger.info("Closing the GUI...")
             try:
-                root.after(100, root.event_generate("<Destroy>"))
+                self.after(100, self.event_generate("<Destroy>"))
             except:
                 pass
+                #logger.error('Failed to destroy the first page of the GUI for whatever reason...')
+
+
         _thread.start_new_thread(loop_function, ())
-        root.mainloop()     
-        return
+        #root.mainloop()     
+        return(dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)
         
+    def show(self):
+        self.deiconify()
+        self.wm_protocol("WM_DELETE_WINDOW", self.destroy)
+        self.wait_window(self)
+        return 
 
     def AskUserAboutWarnings(self):
         GoBackAndFixIt=True
@@ -694,7 +706,7 @@ class LumiaGui(ctk.CTk):
     # options and text from the available entry
     # fields and boxes and then generates
     # a prompt using them
-    def checkGuiValues(self, ymlContents, sNow):
+    def checkGuiValues(self, ymlContents):
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -870,14 +882,14 @@ class LumiaGui(ctk.CTk):
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
         
-    def runSysCmd(self, sCmd,  ignoreError=False):
-        try:
-            os.system(sCmd)
-        except:
-            if(ignoreError==False):
-                sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
-                logger.warning(sTxt)
-                # self.CancelAndQuit(sTxt)
+def runSysCmd(sCmd,  ignoreError=False):
+    try:
+        os.system(sCmd)
+    except:
+        if(ignoreError==False):
+            sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
+            logger.warning(sTxt)
+            # self.CancelAndQuit(sTxt)
 
 
 class GridCTkCheckBox(ctk.CTkCheckBox):
@@ -902,20 +914,66 @@ class RefineObsSelectionGUI(ctk.CTk):
     # =====================================================================
     # The layout of the window is now written
     # in the init function itself
-    def __init__(self, sLogCfgPath, ymlContents, ymlFile,  fDiscoveredObservations, widgetsLst, sNow):  # *args, **kwargs):
+    def __init__(self, root,  sLogCfgPath, ymlContents, ymlFile,  fDiscoveredObservations, widgetsLst):  # *args, **kwargs):
         # Get the screen resolution to scale the GUI in the smartest way possible...
+        ctk.set_appearance_mode("System")  
+        ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
+        screenWidth = root.winfo_screenwidth()
+        screenHeight = root.winfo_screenheight()
+        print(f'screenWidth={screenWidth},  screenHeight={screenHeight}', flush=True)
+        if(screenWidth<100):
+            print('Oooops')
+        if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
+            screenWidth=int(screenHeight*(1920/1080.0))
+        self.maxW = int(0.92*screenWidth)
+        self.maxH = int(0.92*screenHeight)
+        # Dimensions of the window
+        self.appWidth, self.appHeight = self.maxW, self.maxH
+        
+        root.title("LUMIA: Refine the selection of observations to be used")  
+        # Sets the dimensions of the window to something reasonable with respect to the user's screren properties
+        root.geometry(f"{self.appWidth}x{self.appHeight}")   
+        root.grid_rowconfigure(0, weight=1)
+        root.columnconfigure(0, weight=1)
+
+
+    def run(self, root,  sLogCfgPath, ymlContents, ymlFile,  fDiscoveredObservations, widgetsLst, pdTimeStart,  pdTimeEnd, timeStep, tracer):
         nWidgetsPerRow=5
-        if os.environ.get('DISPLAY','') == '':
-            print('no display found. Using :0.0')
-            os.environ.__setitem__('DISPLAY', ':0.0')
-        root=ctk.CTk()
         if(os.path.isfile("LumiaGui.stop")):
             sCmd="rm LumiaGui.stop"
-            self.runSysCmd(sCmd,  ignoreError=True)
+            runSysCmd(sCmd,  ignoreError=True)
         if(os.path.isfile("LumiaGui.go")):
             sCmd="rm LumiaGui.go"
-            self.runSysCmd(sCmd,  ignoreError=True)
+            runSysCmd(sCmd,  ignoreError=True)
 
+        # run through the first page of the GUI so we select the right time interval, region, emissions files etc
+        guiPage1=LumiaGui(root,  sLogCfgPath, ymlContents, ymlFile) 
+        # query the CarbonPortal for suitable data sets that match the requests defined in the config.yml file and the latest GUI choices
+        #root.withdraw()
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=guiPage1.run(root, sLogCfgPath,  
+                    ymlContents, ymlFile,tracer, pdTimeStart, pdTimeEnd, timeStep, sDataType=None,  iVerbosityLv=1) 
+        # root.wait_window(guiPage1)
+        guiPage1.show()
+
+        sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
+        #(dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer,   
+        #                    pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
+
+        nCols=12 # sum of labels and entry fields per row
+        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
+        xPadding=int(0.008*self.maxW)
+        wSpacer=int(2*0.008*self.maxW)
+        yPadding=int(0.008*self.maxH)
+        vSpacer=int(2*0.008*self.maxH)
+        myFontFamily="Georgia"
+        sLongestTxt="Latitude NN :"
+        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
+            calculateEstheticFontSizes(myFontFamily,  self.maxW,  self.maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
+                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
+        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
+        vDeadSpace=2*yPadding 
+        colWidth=int((self.maxW - hDeadSpace)/(nCols*1.0))
+        rowHeight=int((self.maxH - vDeadSpace)/(nRows*1.0))
         activeTextColor='gray10'
         inactiveTextColor='gray50'
        # re-organise the fDiscoveredObservations dataframe,
@@ -997,36 +1055,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         newDf.to_csv('selectedObs.csv', mode='w', sep=',')  
             
 
-        screenWidth = root.winfo_screenwidth()
-        screenHeight = root.winfo_screenheight()
-        if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
-            screenWidth=int(screenHeight*(1920/1080.0))
-        maxW = int(0.92*screenWidth)
-        maxH = int(0.92*screenHeight)
-        nCols=12 # sum of labels and entry fields per row
-        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
-        xPadding=int(0.008*maxW)
-        wSpacer=int(2*0.008*maxW)
-        yPadding=int(0.008*maxH)
-        vSpacer=int(2*0.008*maxH)
-        myFontFamily="Georgia"
-        sLongestTxt="Latitude NN :"
-        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
-            calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
-                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
-        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
-        vDeadSpace=2*yPadding 
-        colWidth=int((maxW - hDeadSpace)/(nCols*1.0))
-        rowHeight=int((maxH - vDeadSpace)/(nRows*1.0))
-        # Dimensions of the window
-        appWidth, appHeight = maxW, maxH
-        
-        # Sets the title of the window to "LumiaGui"
-        root.title("LUMIA: Refine the selection of observations to be used")  
-        # Sets the dimensions of the window to 800x900
-        root.geometry(f"{appWidth}x{appHeight}")   
-        root.grid_rowconfigure(0, weight=1)
-        root.columnconfigure(0, weight=1)
         
         # Now we venture to make the root scrollable....
         #main_frame = tk.Frame(root)
@@ -1336,20 +1364,20 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ################################################################
         # 
 
-        def GuiClosed():
+        def CloseTheGUI():
             if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
                 logger.info("LumiaGUI was canceled.")
                 sCmd="touch LumiaGui.stop"
-                self.runSysCmd(sCmd)
-                global LOOP_ACTIVE
-                LOOP_ACTIVE = False
-        root.protocol("WM_DELETE_WINDOW", GuiClosed)
+                runSysCmd(sCmd)
+                global LOOP2_ACTIVE
+                LOOP2_ACTIVE = False
+        root.protocol("WM_DELETE_WINDOW", CloseTheGUI)
         def CancelAndQuit(): 
             logger.info("LumiaGUI was canceled.")
             sCmd="touch LumiaGui.stop"
-            self.runSysCmd(sCmd)
-            global LOOP_ACTIVE
-            LOOP_ACTIVE = False
+            runSysCmd(sCmd)
+            global LOOP2_ACTIVE
+            LOOP2_ACTIVE = False
 
         # Cancel Button
         self.CancelButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), text="Cancel",
@@ -1427,13 +1455,13 @@ class RefineObsSelectionGUI(ctk.CTk):
                 return
             
             sCmd="cp "+ymlFile+" "+sLogCfgFile
-            self.runSysCmd(sCmd)
+            runSysCmd(sCmd)
             sCmd="touch LumiaGui.go"
-            self.runSysCmd(sCmd)
+            runSysCmd(sCmd)
             logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
             # self.bPleaseCloseTheGui.set(True)
-            global LOOP_ACTIVE
-            LOOP_ACTIVE = False
+            global LOOP2_ACTIVE
+            LOOP2_ACTIVE = False
 
         # ######################################################            
         self.GoButton = ctk.CTkButton(rootFrame, font=("Georgia", fsNORMAL), 
@@ -1465,8 +1493,9 @@ class RefineObsSelectionGUI(ctk.CTk):
         rootFrameCanvas.grid_columnconfigure(0, weight=8)
         # Set grid_propagate to False to allow 5-by-5 buttons resizing later
         #rootFrameCanvas.grid_propagate(False)
-        cWidth = appWidth - xPadding
-        cHeight = appHeight - (7*rowHeight) - (3*yPadding)
+        cWidth = self.appWidth - xPadding
+        cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
+        cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
         
         # Add a scrollableCanvas in that frame
         scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="cadet blue", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
@@ -1539,9 +1568,9 @@ class RefineObsSelectionGUI(ctk.CTk):
 
             
         def loop_function():
-            global LOOP_ACTIVE
-            LOOP_ACTIVE = True
-            while LOOP_ACTIVE:
+            global LOOP2_ACTIVE
+            LOOP2_ACTIVE = True
+            while LOOP2_ACTIVE:
                 time.sleep(3)
             logger.info("Closing the GUI...")
             try:
@@ -1549,7 +1578,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             except:
                 pass
         _thread.start_new_thread(loop_function, ())
-        root.mainloop()
+        #root.mainloop()
         return
         
 
@@ -1883,7 +1912,7 @@ class RefineObsSelectionGUI(ctk.CTk):
     # options and text from the available entry
     # fields and boxes and then generates
     # a prompt using them
-    def checkGuiValues(self, ymlContents,  sNow):
+    def checkGuiValues(self, ymlContents):
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -1957,18 +1986,9 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
         
-    def runSysCmd(self, sCmd,  ignoreError=False):
-        try:
-            os.system(sCmd)
-        except:
-            if(ignoreError==False):
-                sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
-                logger.warning(sTxt)
-                # self.CancelAndQuit(sTxt)
-
     
 
-def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDiscoveredObservations=None,  sNow=''): 
+def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  fDiscoveredObservations=None,  bStartup=True): 
     '''
     Function 
     callLumiaGUI exposes some paramters of the LUMIA config file (in yaml dta format) to a user
@@ -1985,9 +2005,9 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     @type yaml return object (could be a dictionary or other Python structure
     @param sLogCfgFile Name of the YAML configuration file
     @type string (file name)
-    @param sNow  current date+time as string in ISO format
     @type string
     '''
+    bPage2Done=False
     ymlContents=None
     # Read the yaml configuration file
     tryAgain=False
@@ -2011,46 +2031,49 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
             logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
             sys.exit(1)
         
-
+    current_date = datetime.now()
+    sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
+    # value= end.strftime('%Y,%m,%d')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run',  'thisRun', 'uniqueIdentifierDateTime'],  value=sNow, bNewValue=True)
+    
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=True)
-    if(not step2):
-        # Read simulation time
-        if tStart is None :
-            start=pd.Timestamp(ymlContents['observations']['start'])
-        else:
-            start= pd.Timestamp(tStart)
-        # start: '2018-01-01 00:00:00'    
-        ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'time',  'start'],   value=start.strftime('%Y,%m,%d'), bNewValue=True)
-            
-        if tEnd is None :
-            end=pd.Timestamp(ymlContents['observations']['end'])
-        else:
-            end= pd.Timestamp(tEnd)
-        ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'), bNewValue=True)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr' )
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'tag'],  value=args.tag, bNewValue=True)
+    # Read simulation time
+    if tStart is None :
+        start=pd.Timestamp(ymlContents['observations']['start'])
+    else:
+        start= pd.Timestamp(tStart)
+    # start: '2018-01-01 00:00:00'    
+    ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'time',  'start'],   value=start.strftime('%Y,%m,%d'), bNewValue=True)
         
-        # Run-dependent paths
-        #if(not nestedKeyExists(ymlContents, 'run',  'paths',  'output')):
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output'],   value=os.path.join('/output', args.tag), bNewValue=False)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None)
-        s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T')
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward')
-        
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'softwareUsed',  'runflex',  'branch'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'commit'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+    if tEnd is None :
+        end=pd.Timestamp(ymlContents['observations']['end'])
+    else:
+        end= pd.Timestamp(tEnd)
+    ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'), bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr' )
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'tag'],  value=args.tag, bNewValue=True)
+    
+    # Run-dependent paths
+    #if(not nestedKeyExists(ymlContents, 'run',  'paths',  'output')):
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output'],   value=os.path.join('/output', args.tag), bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None)
+    s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward')
+    
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'softwareUsed',  'runflex',  'branch'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'commit'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
     
     sLogCfgPath=""
     if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
@@ -2075,13 +2098,43 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  step2=False,   fDisc
     # ctk.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
     ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
     # root = ctk.CTk()
-    if(step2):
-        widgetsLst = []
-        RefineObsSelectionGUI(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst, sNow=sNow) 
-        return("Lumia-Refined-ObsData-"+sNow+".csv") 
+    tracer='CO2'
+    if (isinstance(ymlContents['observations']['file']['tracer'], list)):
+        trac=ymlContents['observations']['file']['tracer']
+        tracer=trac[0]
     else:
-        LumiaGui(sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile,  sNow=sNow) 
-    return() 
+        tracer=ymlContents['observations']['file']['tracer']
+    tracer=tracer.upper()    
+    #cpDir=ymlContents['observations']['file']['cpDir']
+    sStart=ymlContents['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
+    sEnd=ymlContents['observations']['end']
+    pdTimeStart = to_datetime(sStart, format="%Y-%m-%d %H:%M:%S")
+    pdTimeStart=pdTimeStart.tz_localize('UTC')
+    pdTimeEnd = to_datetime(sEnd, format="%Y-%m-%d %H:%M:%S")
+    pdTimeEnd=pdTimeEnd.tz_localize('UTC')
+    timeStep=ymlContents['run']['timestep']
+    if(bStartup):
+        bStartup=False
+        if(os.path.isfile("LumiaGui.stop")):
+            sCmd="rm LumiaGui.stop"
+            runSysCmd(sCmd,  ignoreError=True)
+        if(os.path.isfile("LumiaGui.go")):
+            sCmd="rm LumiaGui.go"
+            runSysCmd(sCmd,  ignoreError=True)
+        
+    if os.environ.get('DISPLAY','') == '':
+        print('no display found. Using :0.0')
+        os.environ.__setitem__('DISPLAY', ':0.0')
+    root=ctk.CTk()
+    widgetsLst = []
+    guiPage2=RefineObsSelectionGUI(root,  sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, 
+                        fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst) 
+    print('gui2object created')
+    guiPage2.run(root,  sLogCfgPath, ymlContents, ymlFile, fDiscoveredObservations, 
+                            widgetsLst, pdTimeStart, pdTimeEnd, timeStep, tracer) 
+    print('left guiPage2')
+    root.mainloop()
+    return("Lumia-Refined-ObsData-"+sNow+".csv") 
 
     
      
@@ -2113,15 +2166,12 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
 
     
 p = argparse.ArgumentParser()
-p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
 p.add_argument('--start', dest='start', default=None, help="Start of the simulation in date+time ISO notation as in \'2018-08-31 00:18:00\'. Overwrites the value in the rc-file")
 p.add_argument('--end', dest='end', default=None, help="End of the simulation as in \'2018-12-31 23:59:59\'. Overwrites the value in the rc-file")
-p.add_argument('--rcf', dest='rcf', default=None)   # what used to be the resource file (now yaml file) - only yaml format is supported
-p.add_argument('--ymf', dest='ymf', default=None)   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
-p.add_argument('--step2', dest='step2', default=False, action='store_true',  help="Step 2 to refine the selection among observations discovered on the carbon portal.")
-p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
+p.add_argument('--rcf', dest='rcf', default=None, help="Same as the --ymf option. Deprecated. For backward compatibility only.")   
+p.add_argument('--ymf', dest='ymf', default=None,  help='yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.')   
+#p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
 p.add_argument('--tag', dest='tag', default='')
-p.add_argument('--sNow', dest='sNow', default='',  help="A Timestamp string that can be handed from LUMIA for consistent naming of log files. If called stand-alone, the Timestamp is created automatically.")
 p.add_argument('--verbosity', '-v', dest='verbosity', default='INFO')
 #args = p.parse_args(sys.argv[1:])
 args, unknown = p.parse_known_args(sys.argv[1:])
@@ -2129,10 +2179,6 @@ args, unknown = p.parse_known_args(sys.argv[1:])
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
-current_date = datetime.now()
-sNow=current_date.isoformat("T","minutes") # sNow is the time stamp for all log files of a particular run
-if(len(args.sNow) > 10):
-    sNow=args.sNow
 
 if(args.rcf is None):
     if(args.ymf is None):
@@ -2148,14 +2194,9 @@ if (not os.path.isfile(ymlFile)):
 fDiscoveredObservations=None
 
 fDiscoveredObservations='./DiscoveredObservations.csv'
-if(args.fDiscoveredObservations is not None):
-    fDiscoveredObservations=args.fDiscoveredObservations
 bError=False
-if((args.step2==True) and (fDiscoveredObservations is None)):
-    logger.error("LumiaGUI called for refinement of the observations presumably found (step2) without providing the list of observations to be refined (check option --DiscoveredObs= please).")
-    bError=True
-elif(os.path.exists(fDiscoveredObservations)==False):
-    logger.error(f"LumiaGUI called for refinement of the observations presumably found (step2), but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
+if(os.path.exists(fDiscoveredObservations)==False):
+    logger.error(f"LumiaGUI called for refinement of the observations presumably found, but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
     bError=True
 if(bError):    
     sCmd="touch LumiaGui.stop"
@@ -2168,8 +2209,7 @@ if(bError):
     
     
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
-if args.gui:
-    scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-    callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory, args.step2,  fDiscoveredObservations, sNow=sNow)
-    logger.info("LumiaGUI window closed")
+scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
+callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory,  fDiscoveredObservations)
+logger.info("LumiaGUI window closed")
 
