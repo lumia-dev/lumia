@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='0da33125ce175612bfd6ba40fb3d64783003a1aa'  # '0764b3dc45944fcb7b4f1110fa3be587f8dab9c2' 
+LATESTGITCOMMIT_LumiaDA='c177867c3cfdfd31f64893c52db4a6ae3c198b9a'  # '0764b3dc45944fcb7b4f1110fa3be587f8dab9c2' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -114,8 +114,16 @@ def documentThisRun(ymlFile, args):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'url'],   value='git@github.com:lumia-dev/runflex.git', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'commit'],   value=LATESTGITCOMMIT_Runflex, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
+
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'version'],   value=int(6), bNewValue=True)
+    # If LumiaGUI was run beforehand, than input files are known and specified in the config file and ['observations']['file']['discoverData'] is set to False
+    # else, LumiaDA has to go and hunt for ObsData on the carbon portal the old fashioned way ('discoverData'==True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'file', 'discoverData'],   value=True, bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedObsData'],   value='None', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedPIDs'],   value='None', bNewValue=False)
     
-    with open(ymlFile, 'w') as outFile:
+    
+    with open(ymlFile, 'w') as outFile:  # we are updating/replacing the configuration file
         yaml.dump(ymlContents, outFile)
     
     # prepare the call of LumiaGUI
@@ -129,16 +137,3 @@ def documentThisRun(ymlFile, args):
 
 
 
-if(0>1):    
-    rcf.setkey('softwareUsed.lumia.git.branch', 'LumiaDA')
-    rcf.setkey('softwareUsed.lumia.git.url', 'git@github.com:lumia-dev/lumia.git')
-    #rcf.setkey('softwareUsed.lumia.git.commit.accordingToLocalRepo', str(localRepo.head.commit))
-    #rcf.setkey('softwareUsed.lumia.git.location.accordingToLocalRepo', remoteCommitUrl)
-    rcf.setkey('softwareUsed.lumia.git.commit', LATESTGITCOMMIT_LumiaDA)
-    rcf.setkey('softwareUsed.lumia.git.location', 'git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA)
-    # runflex
-    rcf.setkey('softwareUsed.runflex.git.branch', 'v2')
-    rcf.setkey('softwareUsed.runflex.git.url', 'git@github.com:lumia-dev/runflex.git')
-    rcf.setkey('softwareUsed.runflex.git.commit', LATESTGITCOMMIT_Runflex)
-    rcf.setkey('softwareUsed.runflex.git.location', 'git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex)
-    

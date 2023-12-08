@@ -17,8 +17,10 @@ from pandas.api.types import is_float_dtype
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
 from icoscp.cpb.dobj import Dobj
-from icosPortalAccess.readObservationsFromCarbonPortal import discoverObservationsOnCarbonPortal, getSitecodeCsr
-from icosPortalAccess.readObservationsFromCarbonPortal import chooseAmongDiscoveredObservations
+#from icosPortalAccess.readObservationsFromCarbonPortal import discoverObservationsOnCarbonPortal, getSitecodeCsr
+#from icosPortalAccess.readObservationsFromCarbonPortal import chooseAmongDiscoveredObservations
+from GUI.queryCarbonPortal import discoverObservationsOnCarbonPortal
+from GUI.queryCarbonPortal import chooseAmongDiscoveredObservations
 
 def _calc_weekly_uncertainty(site, times, err):
     err = zeros(len(times)) + err
@@ -112,7 +114,8 @@ class obsdb(obsdb):
         nDataSets=0
         # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
         # discoverObservationsOnCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
-        cpDir=rcf['observations']['file']['cpDir']
+        # cpDir=/data/dataAppStorage/asciiAtcProductTimeSer/
+        # cpDir=rcf['observations']['file']['cpDir']
         #remapObsDict=rcf['observations']['file']['renameCpObs']
         #if self.start is None:
         sStart=self.rcf['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
@@ -128,10 +131,17 @@ class obsdb(obsdb):
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
         sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
-        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, cpDir)=discoverObservationsOnCarbonPortal(tracer='CO2',  
-                    cpDir=cpDir,  pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
-        (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
-                                                                ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, iVerbosityLv=1)
+        selectedObsFile=self.rcf['observations']['file']['selectedObsData']
+        if(self.rcf['observations']['file']['discoverData']):
+            (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer='CO2',  
+                        pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
+            (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
+                                                                ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, selectedObsFile=selectedObsFile,  iVerbosityLv=1)
+            self.rcf['observations']['file']['selectedPIDs'] = selectedDobjLst    
+        else:
+            dobjLstFile=self.rcf['observations']['file']['selectedPIDs']
+            with open(dobjLstFile) as file:
+               selectedDobjLst = [line.rstrip() for line in file]
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
         if((selectedDobjLst is None) or (len(selectedDobjLst)<1)):
             logger.error("Fatal Error! ABORT! dobjLst is empty. We did not find any dry-mole-fraction tracer observations on the carbon portal. We need a human to fix this...")

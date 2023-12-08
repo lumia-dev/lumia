@@ -53,9 +53,9 @@ model:
 observations:
   co2:
     units: ppm
-  end: '2018-03-02 23:59:59'
+  end: '2018-03-03 23:59:59'
   file:
-    cpDir: /data/dataAppStorage/asciiAtcProductTimeSer/
+    discoverData: false
     location: CARBONPORTAL
     path: observations.tar.gz
     ranking:
@@ -65,14 +65,13 @@ observations:
     - NRT
     - AnyOther
     rename: background:mix_background
+    selectedObsData: ./output/Lumia-2023-12-08T22:14:54-selected-ObsData-CO2.csv
+    selectedPIDs: ./output/Lumia-2023-12-08T22:14:54-selected-PIDs-CO2.csv
     tracer: co2
   filters:
-    CountriesExcluded:
-    - CZ
+    CountriesExcluded: []
     ICOSonly: false
-    StationsExcluded:
-    - HEI
-    - TOH
+    StationsExcluded: []
     bSamplingHeight: false
     bStationAltitude: false
     inletMaxHeight: 700
@@ -130,7 +129,7 @@ run:
     hostName: tux.nateko.lu.se
     platformCore: Linux-5.15.0-89-generic-x86_64-with-glibc2.35
     platformFlavour: 9-Ubuntu SMP Mon Oct 30 20:42:41 UTC 202
-    uniqueIdentifierDateTime: '2023-12-08T14:00:00'
+    uniqueIdentifierDateTime: '2023-12-08T22:14:54'
     username: cec-ami
   timestep: 1h
   tracers:
@@ -153,8 +152,11 @@ softwareUsed:
       location: git@github.com:lumia-dev/runflex/commit/aad612b36a247046120bda30c8837acb5dec4f26
       url: git@github.com:lumia-dev/runflex.git
 tag: ''
+thisConfigFile:
+  dataformat:
+    version: 6
 time:
-  end: 2018,03,02
+  end: 2018,03,03
   start: 2018,01,01
 transport:
   output: T

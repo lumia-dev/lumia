@@ -19,10 +19,6 @@ from icoscp.cpb import metadata
 bDEBUG =False
 
 # GLOBALS
-# TODO: observational data is in a different path copmpared to level3 netcdf files....
-path_cp = '/data/dataAppStorage/asciiAtcProductTimeSer/'
-# https://meta.icos-cp.eu/objects/LLz6BZr6LCt1Pt0w-U_DLxWZ
-# /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
 #
 # The pre-processed data used by Lumia (as a-priori) is described e.g. here:
 # https://meta.icos-cp.eu/objects/sNkFBomuWN94yAqEXXSYAW54
@@ -212,7 +208,7 @@ def getDobjFromSparql(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datet
 
 
 # ***********************************************************************************************
-def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
+def extractFnamesFromDobj(dobj, iVerbosityLv=1):
     '''
     Function 
 
@@ -235,8 +231,6 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
     sFileNameOnCarbonPortal=None
     sPID=''
     fNameLst=[]
-    if (cpDir is None):
-        cpDir=path_cp
     try:
         if len(dobj.split('/')) > 1:
             # 
@@ -254,7 +248,14 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
                         bGrabNextUrl=False
                         #  /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
                         fNameLst.append(sPID)
+                        '''
                         if(1==0): # Let's disable this for now. We use the icoscp library that read the file via the pid and we may easily miss a valid file location here.
+                            # TODO: observational data is in a different path copmpared to level3 netcdf files....
+                            # https://meta.icos-cp.eu/objects/LLz6BZr6LCt1Pt0w-U_DLxWZ
+                            # /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
+                            cpDir=None # may get this from the config.yml file
+                            if (cpDir is None):
+                                cpDir=/data/dataAppStorage/asciiAtcProductTimeSer/
                             sFileNameOnCarbonPortal = cpDir+sPID+'.cpb'
                             try:
                                 # Make sure this file actually exists and is accessible on the portal
@@ -266,6 +267,7 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
                             except:
                                 logger.error('The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal. Please check first of all the directory you provided for observations.file.cpDir in your .yml resource file.')
                                 # sys.exit(-1)   /data/dataAppStorage/asciiAtcProductTimeSer/ZZb1E_dJQtRICzobwg0ib86C
+                        '''
     except:
         logger.error("No valid observational data found in SPARQL query dobj=")
         logger.error(f"{dobj}")
@@ -275,7 +277,7 @@ def extractFnamesFromDobj(dobj, cpDir=None, iVerbosityLv=1):
 
 
 # ***********************************************************************************************
-def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: datetime=None, pdTimeEnd: datetime=None, 
+def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, 
                                                                             timeStep=None,  ymlContents=None,  sDataType=None, sNow='',   iVerbosityLv=1):
     """
     Function discoverObservationsOnCarbonPortal
@@ -300,7 +302,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
         dobj=getCo2DryMolFractionObjectsFromSparql(pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd,  timeStep=timeStep, iVerbosityLv=iVerbosityLv)
     else:        
         dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
-    dobjLst=extractFnamesFromDobj(dobj, cpDir=cpDir, iVerbosityLv=iVerbosityLv)
+    dobjLst=extractFnamesFromDobj(dobj, iVerbosityLv=iVerbosityLv)
     #logger.debug(f"dobjLst={dobjLst}")
     # remove any possible duplicates from the list of objects
     finalDobjLst=set(dobjLst)
@@ -323,12 +325,12 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     # if("SQxOn3waZ55FjDKxcXI41xVD" in finalDobjLst):
     #    finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
     # pid="UqPhG00TNqHmcRybZ1e43ZX9"
-    pid="5-kp-zFm31bQs47leuuGCBTZ"
+    collpid="5-kp-zFm31bQs47leuuGCBTZ"
     # if("European Obspack compilation of atmospheric carbon dioxide data" in meta['specificInfo']['title'])
     while(1<0) :  # TODO wait fur bugfix in ocscp Lib     (len(pid)>10):
-        pidUrl="https://meta.icos-cp.eu/objects/"+pid
-        if(pid in finalDobjLst):
-            finalDobjLst.remove(pid)
+        pidUrl="https://meta.icos-cp.eu/objects/"+collpid
+        if(collpid in finalDobjLst):
+            finalDobjLst.remove(collpid)
             logger.info(f"Rejecting pidUrl: {pidUrl}    European_Obspack_compilation_of_atmospheric_carbon_dioxide_data in favour of its more up-to-date individual data records.")
         dob = Dobj(pidUrl)  # TODO crashes with pidUrl=https://meta.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9     -- Why??
         logger.debug(f"dobj: {dob}")
@@ -458,7 +460,12 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     dfqdd=dfq.drop_duplicates(['stationID', 'dClass', 'samplingHeight'], keep='first')  # discards older  'productionTime' datasets
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     # But we are still keeping all sampling heights.
-    fDiscoveredObservations="DiscoveredObservations.csv"
+    sLogCfgPath=""
+    if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
+        sLogCfgPath="./"
+    else:
+        sLogCfgPath=ymlContents['run']['paths']['output']+"/"
+    fDiscoveredObservations=sLogCfgPath+"Lumia-"+sNow+"-DiscoveredObservations.csv"
     nObsDataRecords2 = len(dfqdd)
     logger.info(f"{nObsDataRecords2} valid observational data records remaining from {nTotalStations2} stations across Europe.")
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')
@@ -470,7 +477,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
 
 # *****************************************************************************************************************************
 def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None, ymlFile=None, fDiscoveredObservations=None, 
-                                                                            sNow='',  bSkipGui=False,  iVerbosityLv=1):
+                                                                            sNow='', selectedObsFile='',   bSkipGui=False,  iVerbosityLv=1):
 # *****************************************************************************************************************************
 
     # Shall we call the GUI to tweak some parameters before we start the ball rolling?
@@ -492,7 +499,7 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
         if(os.path.isfile("LumiaGui.stop")):
             logger.error("The user canceled the call of Lumia or something went wrong in the Refinement GUI. Execution aborted. Lumia was not called.")
             sys.exit(42)
-    ValidObs.read_csv("Lumia-Refined-ObsData-"+sNow+".csv")
+    ValidObs.read_csv(selectedObsFile)
     # Read the ymlFile
     # Apply all filters found in the ymlFile
 

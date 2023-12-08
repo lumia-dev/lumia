@@ -18,7 +18,7 @@ import tkinter.font as tkFont
 #from lumia import icosPortalAccess
 
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
-from queryCarbonPortal import chooseAmongDiscoveredObservations
+#from queryCarbonPortal import chooseAmongDiscoveredObservations
 
 
 def grabFirstEntryFromList(myList):
@@ -152,7 +152,6 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         dobjLst=[]
         selectedDobjLst=[]
         dfObsDataInfo=None
-        fDiscoveredObservations='./DiscoveredObservations.csv'
         screenWidth = self.winfo_screenwidth()
         screenHeight = self.winfo_screenheight()
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
@@ -655,13 +654,9 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                     logger.error(sTxt)
                     CancelAndQuit()
 
-                sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
-                sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
-                sCmd="cp "+ymlFile+" "+sLogCfgFile
-                runSysCmd(sCmd)
                 sCmd="touch LumiaGui.go"
                 runSysCmd(sCmd)
-                logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
+                logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
                 # self.bPleaseCloseTheGui.set(True)
                 CloseTheGUI(bAskUser=False,  bWriteStop=False)
                 #global LOOP_ACTIVE
@@ -689,7 +684,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         _thread.start_new_thread(loop_function, ())
         #root.mainloop()     
-        return(dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)
+        return(dobjLst, selectedDobjLst, dfObsDataInfo)
         
     def show(self):
         self.deiconify()
@@ -914,7 +909,7 @@ class RefineObsSelectionGUI(ctk.CTk):
     # =====================================================================
     # The layout of the window is now written
     # in the init function itself
-    def __init__(self, root,  sLogCfgPath, ymlContents, ymlFile,  fDiscoveredObservations, widgetsLst):  # *args, **kwargs):
+    def __init__(self, root,  sLogCfgPath, ymlContents, ymlFile, widgetsLst):  # *args, **kwargs):
         # Get the screen resolution to scale the GUI in the smartest way possible...
         ctk.set_appearance_mode("System")  
         ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
@@ -937,7 +932,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         root.columnconfigure(0, weight=1)
 
 
-    def run(self, root,  sLogCfgPath, ymlContents, ymlFile,  fDiscoveredObservations, widgetsLst, pdTimeStart,  pdTimeEnd, timeStep, tracer):
+    def run(self, root,  sLogCfgPath, ymlContents, ymlFile,  widgetsLst, pdTimeStart,  pdTimeEnd, timeStep, tracer):
         nWidgetsPerRow=5
         if(os.path.isfile("LumiaGui.stop")):
             sCmd="rm LumiaGui.stop"
@@ -950,13 +945,14 @@ class RefineObsSelectionGUI(ctk.CTk):
         guiPage1=LumiaGui(root,  sLogCfgPath, ymlContents, ymlFile) 
         # query the CarbonPortal for suitable data sets that match the requests defined in the config.yml file and the latest GUI choices
         #root.withdraw()
-        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=guiPage1.run(root, sLogCfgPath,  
+        guiPage1.attributes('-topmost', 'true')
+        (dobjLst, selectedDobjLst, dfObsDataInfo)=guiPage1.run(root, sLogCfgPath,  
                     ymlContents, ymlFile,tracer, pdTimeStart, pdTimeEnd, timeStep, sDataType=None,  iVerbosityLv=1) 
         # root.wait_window(guiPage1)
         guiPage1.show()
-        cpDir=ymlContents['observations']['file']['cpDir']
+        #cpDir=ymlContents['observations']['file']['cpDir']
         sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
-        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer, cpDir,   
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer,   
                             pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
 
         nCols=12 # sum of labels and entry fields per row
@@ -1421,7 +1417,22 @@ class RefineObsSelectionGUI(ctk.CTk):
                 dfq.drop(columns='includeCountry',inplace=True)
                 dfq.drop(columns='includeStation',inplace=True)
                 dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
-                dfq.to_csv("Lumia-Refined-ObsData-"+sNow+".csv", mode='w', sep=',')
+                sLogCfgPath=""
+                if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
+                    sLogCfgPath="./"
+                else:
+                    sLogCfgPath=ymlContents['run']['paths']['output']+"/"
+                ymlContents['observations']['file']['selectedObsData']=sLogCfgPath+"Lumia-"+sNow+"-selected-ObsData-"+tracer+".csv"
+                dfq.to_csv(ymlContents['observations']['file']['selectedObsData'], mode='w', sep=',')
+                dfPids=dfq['pid']
+                ymlContents['observations']['file']['selectedPIDs']=sLogCfgPath+"Lumia-"+sNow+"-selected-PIDs-"+tracer+".csv"
+                selectedPidLst = dfPids.iloc[1:].tolist()
+                sFOut=ymlContents['observations']['file']['selectedPIDs']
+                # dfPids.to_csv(ymlContents['observations']['file']['selectedPIDs'], mode='w', sep=',')
+                with open( sFOut, 'w') as fp:
+                    for item in selectedPidLst:
+                        fp.write("%s\n" % item)
+                
             except:
                 sTxt=f"Fatal Error: Failed to write to text the file allObsInTimeSpaceSlab.csv or Lumia-ObsData-{sNow}.csv in the local run directory. Please check your write permissions and possibly disk space etc."
                 CancelAndQuit(sTxt)
@@ -1451,7 +1462,8 @@ class RefineObsSelectionGUI(ctk.CTk):
             # Save  all details of the configuration and the version of the software used:
             setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'ICOSonly'],   
                                                                         value=ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
-            sLogCfgFile=sLogCfgPath+"Lumia-runlog-"+sNow+"-config.yml"    
+            sLogCfgFile=sLogCfgPath+"Lumia-"+sNow+"-runlog-config.yml"  
+            ymlContents['observations']['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
             try:
                 with open(ymlFile, 'w') as outFile:
                     yaml.dump(ymlContents, outFile)
@@ -1994,7 +2006,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         
     
 
-def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  fDiscoveredObservations=None,  bStartup=True): 
+def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True): 
     '''
     Function 
     callLumiaGUI exposes some paramters of the LUMIA config file (in yaml dta format) to a user
@@ -2134,13 +2146,12 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  fDiscoveredObservati
     root=ctk.CTk()
     widgetsLst = []
     guiPage2=RefineObsSelectionGUI(root,  sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, 
-                        fDiscoveredObservations=fDiscoveredObservations, widgetsLst=widgetsLst) 
+                        widgetsLst=widgetsLst) 
     print('gui2object created')
-    guiPage2.run(root,  sLogCfgPath, ymlContents, ymlFile, fDiscoveredObservations, 
-                            widgetsLst, pdTimeStart, pdTimeEnd, timeStep, tracer) 
+    guiPage2.run(root,  sLogCfgPath, ymlContents, ymlFile, widgetsLst, pdTimeStart, pdTimeEnd, timeStep, tracer) 
     print('left guiPage2')
     root.mainloop()
-    return("Lumia-Refined-ObsData-"+sNow+".csv") 
+    return(ymlContents['observations']['file']['selectedObsData']) 
 
     
      
@@ -2199,11 +2210,11 @@ if (not os.path.isfile(ymlFile)):
     sys.exit(-3)
 fDiscoveredObservations=None
 
-fDiscoveredObservations='./DiscoveredObservations.csv'
+
 bError=False
-if(os.path.exists(fDiscoveredObservations)==False):
-    logger.error(f"LumiaGUI called for refinement of the observations presumably found, but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
-    bError=True
+#if(os.path.exists(fDiscoveredObservations)==False):
+#    logger.error(f"LumiaGUI called for refinement of the observations presumably found, but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
+#    bError=True
 if(bError):    
     sCmd="touch LumiaGui.stop"
     try:
@@ -2216,6 +2227,6 @@ if(bError):
     
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
 scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory,  fDiscoveredObservations)
+callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory)
 logger.info("LumiaGUI window closed")
 

@@ -19,7 +19,7 @@ from lumia.tracers import species, Unit
 from lumia.Tools.time_tools import periods_to_intervals
 from netCDF4 import Dataset
 import icosPortalAccess.readLv3NcFileFromCarbonPortal as fromICP
-from icoscp.cpb.dobj import Dobj
+#from icoscp.cpb.dobj import Dobj
 import numbers
 from lumia.formatters import cdoWrapper
 from archive import Rclone
