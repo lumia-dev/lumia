@@ -954,10 +954,10 @@ class RefineObsSelectionGUI(ctk.CTk):
                     ymlContents, ymlFile,tracer, pdTimeStart, pdTimeEnd, timeStep, sDataType=None,  iVerbosityLv=1) 
         # root.wait_window(guiPage1)
         guiPage1.show()
-
+        cpDir=ymlContents['observations']['file']['cpDir']
         sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
-        #(dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer,   
-        #                    pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer, cpDir,   
+                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
 
         nCols=12 # sum of labels and entry fields per row
         nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
@@ -1412,8 +1412,14 @@ class RefineObsSelectionGUI(ctk.CTk):
                 newDf.to_csv('allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
                 dfq['pid2'] = dfq['pid'].apply(grabFirstEntryFromList)
                 dfq['samplingHeight2'] = dfq['samplingHeight'].apply(grabFirstEntryFromList)
+                #,selected,country,stationID,altOk,altitude,HghtOk,samplingHeight[Lst],isICOS,latitude,longitude,dClass,dataSetLabel,includeCountry,includeStation,pid[Lst],pid2,samplingHeight2
                 dfq.drop(columns='pid',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
                 dfq.drop(columns='samplingHeight',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
+                dfq.drop(columns='selected',inplace=True)
+                dfq.drop(columns='altOk',inplace=True)
+                dfq.drop(columns='HghtOk',inplace=True)
+                dfq.drop(columns='includeCountry',inplace=True)
+                dfq.drop(columns='includeStation',inplace=True)
                 dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
                 dfq.to_csv("Lumia-Refined-ObsData-"+sNow+".csv", mode='w', sep=',')
             except:
@@ -2105,7 +2111,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  fDiscoveredObservati
     else:
         tracer=ymlContents['observations']['file']['tracer']
     tracer=tracer.upper()    
-    #cpDir=ymlContents['observations']['file']['cpDir']
+    
     sStart=ymlContents['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
     sEnd=ymlContents['observations']['end']
     pdTimeStart = to_datetime(sStart, format="%Y-%m-%d %H:%M:%S")

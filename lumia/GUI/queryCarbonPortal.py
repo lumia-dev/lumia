@@ -464,7 +464,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', cpDir=None, pdTimeStart: da
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')
     selectedDobjCol=dfqdd['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
-    return(finalDobjLst, selectedDobjLst, dfqdd, fDiscoveredObservations, cpDir)
+    return(finalDobjLst, selectedDobjLst, dfqdd, fDiscoveredObservations)
 
 
 
