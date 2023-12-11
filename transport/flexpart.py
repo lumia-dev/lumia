@@ -14,6 +14,10 @@ logger = logging.getLogger(os.path.basename(__file__))
 
 class FlexpartFootprintFile(FootprintFile):
     def __init__(self, filename, silent=False, cache=False):
+        try:
+            logger.info(f"FlexpartFootprintFile({FootprintFile}) with  filename={ filename}.")
+        except:
+            logger.info("FlexpartFootprintFile(Uknown) with  filename=Unknown.")
         super().__init__(filename, silent, cache)
         self.open()
         self.shift_t = 0
@@ -93,6 +97,10 @@ class FlexpartFootprintFile(FootprintFile):
 
 class FlexpartFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emis=None, mp=None, checkfile=None):
+        try:
+            logger.info(f"FlexpartFootprintTransport({FootprintTransport}) .")
+        except:
+            logger.info("FlexpartFootprintTransport(Unknown) ")
         super().__init__(rcf, obs, emis, FlexpartFootprintFile, mp, checkfile)
         self.footprint_files = {} 
 
@@ -119,6 +127,10 @@ class FlexpartFootprintTransport(FootprintTransport):
         self.footprint_ids = {}
         for fname in tqdm(flist, disable=silent) :
             fpf = FlexpartFootprintFile(fname)
+            try:
+                logger.info(f"FlexpartFootprintTransport.checkFiles( path={ path}) with fname={ fname} and fpf={fpf}.")
+            except:
+                logger.info("FlexpartFootprintTransport.checkFiles(Unknown) with  fname=? and fpf=?")
             self.footprint_files[fname] = fpf
             self.footprint_ids = {**self.footprint_ids, **dict.fromkeys(fpf.footprints, fpf.filename)}
 

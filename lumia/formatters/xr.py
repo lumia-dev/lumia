@@ -857,7 +857,7 @@ def load_preprocessed(
     # There you can find links to the anthropogenic (EDGARv4.3), ocean (Mikaloff-Fletcher 2007) and to the diagnostic biosphere model VPRM
     #
     # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
-
+    logger.info(f"Rclone({archive})")
     archive = Rclone(archive)
     # archive is now a structure with main values: Rclone(protocol='rclone', remote='lumia', path='fluxes/nc/eurocom025x025/1h/' )
     # in case of reading from the carbon portal the archive.path variable is not used, so no need to get fancy here 
@@ -885,9 +885,10 @@ def load_preprocessed(
                 if(words[-2]=='EDGARv4'):
                     sKeyWord='anthropogenic' 
                     sScndKeyWord='EDGARv4.3' 
+            logger.debug(f"calling fromICP.readLv3NcFileFromCarbonPortal(sKeyWord={sKeyWord}, None, None, year={year}, sScndKeyWord={sScndKeyWord}) derived from sFileName={sFileName}")
             fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
             if(fname is None):
-                logger.error(f"Abort in lumia/formatter/xr.py: No valid data opbject was found for sKeyWord={sKeyWord} and sScndKeyWord={sScndKeyWord} on the carbon portal")
+                logger.error(f"Abort in lumia/formatter/xr.py: No valid data object was found for sKeyWord={sKeyWord}, year={year} and sScndKeyWord={sScndKeyWord} on the carbon portal (derived from sFileName={sFileName})")
                 sys.exit(1)
         else:
             #dob = Dobj(pidUrl)

@@ -123,7 +123,7 @@ def dict_syntax(func):
 def flatten(data: dict, prefix='', separator='.') -> dict:
     """
     Flatten an OmegaConf.DictConfig structure: the hierarchy of keys is flattened, and the name of the keys
-    is modified to reflex the original hierarchy:
+    is modified to reflect the original hierarchy:
     conf = {'level1': {
                 {level2 :
                     {'key1' : value, 'key2': value},

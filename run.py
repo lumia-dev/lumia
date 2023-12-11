@@ -133,14 +133,31 @@ if args.noobs :
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     sLocation=rcf['observations']['file']['location']
     sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
+    # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
+    try:
+        tracer='CO2'
+        if (isinstance(rcf['observations']['file']['tracer'], list)):
+            trac=rcf['observations']['file']['tracer']
+            tracer=trac[0]
+        else:
+            tracer=rcf['observations']['file']['tracer']
+        tracer=tracer.upper()    
+        sLogCfgPath=""
+        if ((rcf['run']['paths']['output'] is None) or len(rcf['run']['paths']['output']))<1:
+            sLogCfgPath="./"
+        else:
+            sLogCfgPath=rcf['run']['paths']['output']+"/"
+        sOut=sLogCfgPath+"Lumia-"+sNow+"-AllObsData-withBg-"+tracer+".csv"
+    except:
+        sOut='obsDataAll3.csv'
     if ('CARBONPORTAL' in sLocation):
         from lumia.obsdb.obsCPortalDb import obsdb
         db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile)
-        db.observations.to_csv('obsDataAll3.csv', encoding='utf-8', mode='w', sep=',')
+        db.observations.to_csv( sOut, encoding='utf-8', mode='w', sep=',')
     else:
         from lumia.obsdb.InversionDb import obsdb
         db = obsdb.from_rc(rcf)
-        db.observations.to_csv('obsDataAllFromLocal3.csv', encoding='utf-8', mode='w', sep=',')
+        db.observations.to_csv( sOut[:-4]+'-local.csv', encoding='utf-8', mode='w', sep=',')
 else :
     # if we just want to write the emissions ...
     db = None

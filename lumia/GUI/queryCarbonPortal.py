@@ -332,7 +332,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
         if(collpid in finalDobjLst):
             finalDobjLst.remove(collpid)
             logger.info(f"Rejecting pidUrl: {pidUrl}    European_Obspack_compilation_of_atmospheric_carbon_dioxide_data in favour of its more up-to-date individual data records.")
-        dob = Dobj(pidUrl)  # TODO crashes with pidUrl=https://meta.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9     -- Why??
+        dob = Dobj(pidUrl)  # TODO: crashes with pidUrl=https://meta.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9     -- Why??
         logger.debug(f"dobj: {dob}")
         dobnext=dob.next
         if(dobnext):
