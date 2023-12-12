@@ -19,7 +19,7 @@ ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time di
                              Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
                              elegance: if the first time step starts at one, then measurments are assumed to be reported at the
                              end of each time step, while Lumia expect this time to represent the beginning of the time interval.
-                             Therefor we the time axis back in time by one timestep which is then equivalent to having
+                             Therefor we shift the time axis back in time by one timestep which is then equivalent to having
                              times representing the beginning of an observation period.
 '''
 

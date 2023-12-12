@@ -12,7 +12,7 @@ from lumia.formatters.cdoWrapper import ensureReportedTimeIsStartOfMeasurmentInt
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
-from pandas import DataFrame, to_datetime, concat , read_csv, Timestamp, offsets  #, read_hdf, Series  #, read_hdf, Series
+from pandas import DataFrame, to_datetime, concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
 from pandas.api.types import is_float_dtype
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
@@ -362,116 +362,7 @@ class obsdb(obsdb):
         # logger.info(f"{allObsDfs.shape[0]} observation read from {filename}")
         return(self,  allObsDfs,  'obsData-NoBkgnd.csv')
     
-    def obsoleteEnsureReportedTimeIsStartOfMeasurmentInterval(sExistingFile,  tim0) -> "obsdb":
-        '''  
-        ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is one (undesired)
-                                 or zero (as it should). Normally the netcdf header should provide whether the times reported
-                                 refer to the start of the time step, the middle or the end. VPRM files do, EDGAR4.3 files don't.
-                                 Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
-                                 elegance: if the first time step starts at one, then measurments are assumed to be reported at the
-                                 end of each time step, while Lumia expect this time to represent the beginning of the time interval.
-                                 Therefore we shift the time axis back in time by one timestep which is then equivalent to having
-                                 times representing the beginning of an observation period.
-                                 I had to add a fix for background co2 concentration netcdf files that are reported at the middle of
-                                the time step and that need to be shifted by 30 minutes
-            # TODO: If Time starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement interval
-            #             as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
-            # We can fix this by shifting the time axis by one hour (with cdo):
-            # cdo shifttime,-1hour xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
-            # TODO: This needs to be made smarter so we can call CDO and fix the time axis no matter what.....
-        '''
-        if (sExistingFile is None) :
-            logger.error("Fatal error in cdoWrapper:ensureReportedTimeIsStartOfMeasurmentInterval(): no input file provided.")
-            sys.exit(1)
-        if((tim0 is not None) and (tim0==0)):
-                # we are good. No need to shift. Time dimension starts at zero.
-                return(sExistingFile,  True)
-        
-        # Do we have to shift the time axis or not? 
-        # read the first value from the time dimension and see if it is zero.
-        xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
-        dTime=xrExisting.time.data
-        t1 = Timestamp(dTime[0])
-        tim0=t1.hour
-        tim0m=t1.minute
-        # print('tim0=%d'%tim0, flush=True)
-        if((tim0==0) and (tim0m==0)):
-                # we are good. No need to shift. Time dimension starts at zero.
-                return(sExistingFile,  True)
-        if(os.path.exists(sExistingFile[:-3]+'_0hours.nc')): # Perhaps we already have a fixed file?
-            try:
-                xrExisting = xr.open_dataset(sExistingFile[:-3]+'_0hours.nc', drop_variables='NEE') # only read the dimensions
-                dTime=xrExisting.time.data
-                t1 = Timestamp(dTime[0])
-                tim0=t1.hour
-                tim0m=t1.minute
-                # print('tim0=%d'%tim0, flush=True)
-                if((tim0==0) and (tim0m==0)):
-                        # we are good. No need to shift. Time dimension starts at zero.
-                        return(sExistingFile[:-3]+'_0hours.nc',  True)
-            except:
-                print("No worries")
-        tStep=dTime[1] - dTime[0]
-        tStep*=1e-9  # from nanoseconds to seconds - we expect 3600s=1h
-        timeStep=int(tStep/60) # time step in minutes
-        # print('time step= %dh'%timeStep, flush=True)
-        # We expect tim0==tStep or half a time step at this stage, which is the reason for shifting the time dimension by one time unit.
-        dtim=(tim0*60)+tim0m
-        if((dtim!=timeStep) and (2*dtim!=timeStep)): 
-            logger.warning(f"First time axis value in input file {sExistingFile} is not zero(=midnight) nor zero plus half nor zero plus one time step.")
-        fnameOutput=sExistingFile[:-3]+'_0hours.nc'
-        cdoCmd='cdo shifttime,-%dminute %s  %s'%(dtim, sExistingFile, fnameOutput)
-        print(cdoCmd, flush=True)
-        rvalue=os.system(cdoCmd) 
-        if(rvalue!=0):
-            # cdo has issues with the netcdf co2 background concentration files that Guillaume created. Try one last alternative approach:
-            # dump the netcdf file to a text file and modify the start time, then use ncgen to reassemble.
-            os.system("rm "+fnameOutput)
-            sCmd='ncdump '+sExistingFile+' >'+sExistingFile+'.dump'
-            rvalue=os.system(sCmd)
-            with open(sExistingFile+'.dump') as f:
-                lines = f.readlines()
-            f.close()
-            # outLines=[]
-            with open(sExistingFile+'.dump2', 'w') as file:
-                for line in lines:
-                    newline=''
-                    bReplaceLine=False
-                    if 'time:units = \"hours since ' in line:
-                        # time:units = "hours since 2018-01-01 00:30:00" ;  => time:units = "hours since 2018-01-01 00:00:00" ;
-                        bNextChunkIsHours=False
-                        chunks=line.split(' ')
-                        for chunk in chunks:
-                            if any(chars.isdigit() for chars in chunk):  # must be the date chunk 2018-01-01
-                                bNextChunkIsHours=True
-                            newline=newline+chunk+' '
-                            if(bNextChunkIsHours):
-                                newline=newline+'00:00:00\" ;\r\n'
-                                bReplaceLine=True
-                                break
-                    if(bReplaceLine==True):
-                        # outLines.append(newline)
-                        file.write(newline)
-                    else:
-                        # outLines.append(line)                
-                        file.write(line)
-                    bReplaceLine=False
-            file.close()
-            # Now outLines should have all the data as before, but with the start time set to 00:00:00 as expected by Lumia
-            # with open(sExistingFile+'.dump2', 'w') as file:
-            #    file.write(jsondumps(outLines))
-            sCmd='ncgen -o '+sExistingFile[:-3]+'_0hours.nc '+sExistingFile+'.dump2 '
-            rvalue=os.system(sCmd)
-            sCmd='rm '+sExistingFile+'.dump2'
-            os.system(sCmd)
-            sCmd='rm '+sExistingFile+'.dump'
-            os.system(sCmd)
-            if(rvalue==0):
-                return(sExistingFile[:-3]+'_0hours.nc',  True)
-            else:
-                return(sExistingFile,  False)
-        return(sExistingFile,  True)
-     
+   
     
     def  combineObsAndBgnd(self, obsDf, bgDf, bInterpolationRequired=False) -> "obsdb":
         """
@@ -751,7 +642,7 @@ class obsdb(obsdb):
                     bInterpolationRequired=False
                     return(trspBgDf, bInterpolationRequired)
                 bgDf=trspBgDf[['time', 'code', 'background']].copy()
-                bgDf.to_csv('./backgroundCo2Concentrations/background_2018a.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+                # bgDf.to_csv('./backgroundCo2Concentrations/background_2018a.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
                 colRename=""
                 try:
                     colRename=self.rcf['background']['concentrations']['co2']['rename']

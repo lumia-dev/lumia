@@ -2,12 +2,12 @@
 
 import os
 import sys
-import lumia.housekeeping as hk
 from pandas import Timestamp
 from argparse import ArgumentParser
 import lumia
 from rctools import RcFile as rc
 from loguru import logger
+import lumia.housekeeping as hk
 from lumia.formatters import xr
 
 p = ArgumentParser()

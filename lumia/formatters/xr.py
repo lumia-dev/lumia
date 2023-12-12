@@ -798,15 +798,23 @@ class Data:
                 if (os.path.sep!=myPath2FluxData[-1]):     # Does the path end in a directory separator (forward or back-slash depending on OS)?
                     myPath2FluxData=myPath2FluxData+os.path.sep
                 myarchivePseudoDict='rclone:lumia:'+myPath2FluxData
-                prefix = os.path.join(myPath2FluxData, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                if((origin is None)or(origin == '') or ('None' == origin)):
+                    prefix = os.path.join(myPath2FluxData, rcf.get(f'emissions.{tr}.prefix') )
+                else:
+                    prefix = os.path.join(myPath2FluxData, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
                 logger.debug("prefix= "+prefix)
                 # If the location in emissions.{tr}.location.{cat} is REMOTE, then we read that file directly from the carbon 
                 # portal, else we assume it is available on the local system in the user-stated path.
                 # if origin.startswith('@'): is now obsolete, because it is incompatible with the yaml naming rules
                 sLocation=rcf.get(f'emissions.{tr}.location.{cat}')
+                catDatasetName=rcf.get(f'emissions.{tr}.categories.{cat}')
                 if ('CARBONPORTAL' in sLocation):
                     # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
-                    sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin)
+                    if((origin is None)or(origin == '') or ('None' == origin)):
+                        sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') )
+                    else:
+                        sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin)
+                    sFileName+=catDatasetName
                     # Hint from rclone: The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". 
                     #                              In that case, __post_init__ will then split this into three attributes: protocol, remote and path.
                     # # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
@@ -844,6 +852,7 @@ def load_preprocessed(
     Arguments:
     - prefix     : prefix of the pre-processed files (including the path)
     - start, end : minimum (inclusive) and maximum (exclusive) dates of the emissions
+    - category: one of {biosphere, fossil, ocean}
     
     Optional arguments:
     - freq      : frequency of the produced emissions. If the pre-processed files are at a lower frequency, they will
@@ -881,7 +890,7 @@ def load_preprocessed(
             sScndKeyWord=None
             if (('co2' in sFileName)and(sKeyWord=='VPRM')):  # TODO or if it is LPJGUESS...
                 sScndKeyWord='NEE' # we want the net exchange of carbon
-            if (('co2' in sFileName)and(sKeyWord[:8]=='3_BP2019')):  # TODO: This needs to become smarter.....
+            if (('co2' in sFileName)and((sKeyWord[:8]=='3_BP2019')or(sKeyWord[:6]=='LATEST'))):  # TODO: This needs to become smarter.....
                 if(words[-2]=='EDGARv4'):
                     sKeyWord='anthropogenic' 
                     sScndKeyWord='EDGARv4.3' 

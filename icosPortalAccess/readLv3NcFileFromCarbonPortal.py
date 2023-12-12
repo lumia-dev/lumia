@@ -307,7 +307,7 @@ def queryCarbonPortal4PID(cp_path,sKeyword, timeStart, timeEnd,  iRequestedYear,
     bScndKWordFound=True
     if ('mikaloff'==sKeyword[:8]):  # may have a trailing number that we need to remove
         sKeyword='mikaloff'
-    sFileNameOnCarbonPortal=None
+    #sFileNameOnCarbonPortal=None
     sPID=''
     try:
         if len(dobj_L3.split('/')) > 1:
