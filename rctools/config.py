@@ -119,8 +119,9 @@ class Config:
             for kk in splitkey(key):
                 value = value[kk]
         except (TypeError, errors.ConfigKeyError) as e:
-            # We get TypeError when the we are already at the lowest level of the hierarchy (e.g. trying to get a.b.c, but a key a.b: value exists)
+            # We get TypeError when we are already at the lowest level of the hierarchy (e.g. trying to get a.b.c, but a key a.b: value exists)
             # and we get ConfigKeyError in other cases (e.g. a.b is a section but doesn't contain a key or subsection c).
+            # TODO: Not working as described. If the key emissions.co2.resample_from is missing, no exception is triggered and 'None' instead of the default value is returned /cec-ami 2023-12-13
             parent = self._find_parent(key)
             if parent is not None :
                 value = self.get(parent)
@@ -136,6 +137,25 @@ class Config:
             value = list(value)
 
         return value
+
+    def getAlt(self, arg1,  arg2=None,  arg3=None,  arg4=None,  arg5=None,  default=None):
+        # an alternative to the get() function that seems to have some intricate issues with the default value sent
+        rVal=default
+        try:
+            if(arg2 is None):
+                rVal=self.get['arg1']
+            elif(arg3 is None):
+                rVal=self.get['arg1']['arg2']
+            elif(arg4 is None):
+                rVal=self.get['arg1']['arg2']['arg3']
+            elif(arg5 is None):
+                rVal=self.get['arg1']['arg2']['arg3']['arg4']
+            else:
+                rVal=self.get['arg1']['arg2']['arg3']['arg4']['arg5']
+        except:
+            rVal=default
+        return(rVal)
+        
 
     def set(self, key: Union[str, List[str]], value):
         if type(value) in resolvers:

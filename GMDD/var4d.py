@@ -27,15 +27,21 @@ def optimize(rcfile, setuponly=False, verbosity='INFO'):
 
     # Load the observations database
     db = obsdb(filename=obsfile, start=start, end=end)
-    if rcf.get('footprints.setup', default=True):
+    # bugfix for  rcf.get('footprints.setup', default=True)
+    bFootprintsSetup=rcf.getAlt('footprints','setup', default=True)
+    if(bFootprintsSetup):
         db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
 
     # Eventual refinement of the obs sites selection:
-    if rcf.get("observations.use_sites", default=False):
+    # bugfix for rcf.get("observations.use_sites", default=False):
+    bObsUseSites=rcf.getAlt("observations","use_sites", default=False)
+    if (bObsUseSites):
         db.SelectSites(rcf.get("observations.use_sites"))
 
     # Load the pre-processed emissions:
-    categories = dict.fromkeys(rcf.get('emissions.categories') + rcf.get('emissions.categories.extras', default=[]))
+    # categories = dict.fromkeys(rcf.get('emissions.categories') + rcf.get('emissions.categories.extras', default=[]))
+    sRcf=rcf.getAlt('emissions','categories','extras', default=[])
+    categories = dict.fromkeys(rcf.get('emissions.categories') + sRcf)
     for cat in categories :
         categories[cat] = rcf.get(f'emissions.{cat}.origin')
     emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
@@ -51,7 +57,8 @@ def optimize(rcfile, setuponly=False, verbosity='INFO'):
 
     # ... Should this to to the optimizer?
     ctrl.setupPrior(interface.StructToVec(emis))#, lsm_from_file=rcf.get('emissions.lsm.file')))
-    errtype = rcf.get('optim.err.type', default='monthlyPrior')
+    # bugfix for errtype = rcf.get('optim.err.type', default='monthlyPrior')
+    errtype=rcf.getAlt('optim','err','type', default='monthlyPrior')
     if errtype == 'monthlyPrior' :
         unc = PercentMonthlyPrior
     elif errtype == 'hourlyPrior' : 
@@ -66,7 +73,7 @@ def optimize(rcfile, setuponly=False, verbosity='INFO'):
     ctrl.setupUncertainties(err)
 
     # Initialize the optimization and run it
-    from numpy import zeros
+    #from numpy import zeros
     opt = lumia.optimizer.Optimizer(rcf, ctrl, model, interface)
     if not setuponly :
         opt.Var4D()

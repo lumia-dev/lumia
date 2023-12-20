@@ -34,7 +34,7 @@ class Interface :
             self.SetupUncertainties(**kwargs)
 
     def SetupPrior(self, emis):
-        if self.rcf.get('optim.unit.convert', default=True):
+        if self.rcf.getAlt('optim','unit','convert', default=True):
             emis.to_extensive()  # Convert to umol
         # Calculate the initial control vector
         vec = self.StructToVec(emis)
@@ -129,12 +129,12 @@ class Interface :
                 dem = self.distribflux_space(dem, cat.name)
                 struct[cat.name]['emis'] = struct[cat.name]['emis'] + dem
 
-        if self.rcf.get('optim.unit.convert', default=True):
+        if self.rcf.getAlt('optim','unit','convert', default=True):
             struct.to_intensive()
         return struct
 
     def VecToStruct_adj(self, adjstruct):
-        if self.rcf.get('optim.unit.convert', default=True):
+        if self.rcf.getAlt('optim','unit','convert', default=True):
             adjstruct.to_intensive()
 
         adjvec = []

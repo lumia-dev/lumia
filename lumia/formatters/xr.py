@@ -24,6 +24,7 @@ import numbers
 from lumia.formatters import cdoWrapper
 from archive import Rclone
 from typing import Iterator
+from icoscp.cpb.dobj import Dobj
 
 
 @dataclass
@@ -229,14 +230,16 @@ class TracerEmis(xr.Dataset):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
         assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value)}")
-        # print(value.shape,  flush=True)
-        # print(self.shape,  flush=True)
+        logger.debug(f'name={name}')
+        logger.debug(f'value.shape={value.shape}')
+        logger.debug(f'self.shape={self.shape}')
         assert value.shape == self.shape, logger.error(f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
         if attrs is None:
             attrs = {}
         attrs['tracer'] = self.tracer
         self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
         self.attrs['categories'].append(name)
+        return(self.shape)
 
     def add_metacat(self, name: str, constructor: Union[dict, str], attrs: dict = None):
         """
@@ -732,6 +735,7 @@ class Data:
         Additionally, start and time arguments must be provided
         """
         em = cls()
+        emDataShape=None 
         # TODO: we need to loop through the tracers, not hard-wire co2
         for tr in list(rcf.get('run.tracers')):
 
@@ -761,14 +765,23 @@ class Data:
                 #   - use the emissions.tracer.cat.resample_from key (i.e. category-specific)
                 #   - fallback on the emissions.tracer.resample_from key (non-category specific)
                 #   - default to "False" (no resampling)
-                freq_src = rcf.get(
-                    f'emissions.{tr}.{cat}.resample_from', 
-                    rcf.get(f'emissions.{tr}.resample_from', 
-                            default=freq
-                    )
-                )
-                
-                origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
+                #freq_src = rcf.get(
+                #    f'emissions.{tr}.{cat}.resample_from', 
+                #    rcf.get(f'emissions.{tr}.resample_from', 
+                #            default=freq
+                #    )
+                #)
+                # TODO: Not working as described. If the key emissions.co2.resample_from is missing, no exception is triggered and 'None' instead of the default value is returned /cec-ami 2023-12-13
+                #if((freq_src is None)or(freq_src == '') or ('None' == freq_src)):
+                #    freq_src=freq
+                #A more pythonic way might be to achieve the desired behaviour with try/catch blocks:
+                freq_src=rcf.getAlt('emissions', tr, cat,'resample_from', default=freq)
+                # origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
+                fallback=rcf.getAlt('emissions', tr, 'categories', cat, default=None)
+                origin = rcf.getAlt('emissions', tr, 'categories', cat, 'origin', default=fallback)
+                if(origin is None):
+                    logger.error(f'Abort. No emissions file specified in your yaml config file for key emissions.{tr}.categories.{cat}.')
+                    sys.exit(73)
                 logger.debug("tr.path= "+rcf.get(f'emissions.{tr}.path'))
                 #logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))   # !! one cannot simply assign a Grid to a string
                 regionGrid=rcf.get(f'emissions.{tr}.region')
@@ -814,22 +827,30 @@ class Data:
                         sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') )
                     else:
                         sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin)
-                    sFileName+=catDatasetName
+                    if (catDatasetName not in origin):
+                        sFileName+='.'+catDatasetName
                     # Hint from rclone: The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". 
                     #                              In that case, __post_init__ will then split this into three attributes: protocol, remote and path.
                     # # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
                     # emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
                     # myarchivePseudoDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=myarchivePseudoDict, \
-                                                                sFileName=sFileName,  bFromPortal=True,  iVerbosityLv=2)
+                                                                sFileName=sFileName, cat=cat,  bFromPortal=True,  iVerbosityLv=2)
                     logger.info(f"Emissions data: emis.shape = {emis.shape}")
                 else:
                     # myarchivePseudoDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
-                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=myarchivePseudoDict,  grid=grid)
+                    emis = load_preprocessed(prefix, start, end, freq=freq, archive=myarchivePseudoDict,  grid=grid,  cat=cat)
                     # self contains in its dictionary #    'emissions.co2.archive': 'rclone:lumia:fluxes/nc/${emissions.co2.region}/${emissions.co2.interval}/'
                     logger.info(f"Emissions data: emis.shape = {emis.shape}")
+                    
+                if (emDataShape is not None):
+                    if(emis.shape != emDataShape):
+                        logger.error(f"Emissions data shape {emis.shape} for category {cat} does not match other emissions data {emDataShape} read a moment earlier. This is an issue and prevents further porocessing.")
+                #emDataShape=None        assert value.shape == self.shape, logger.error(f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
                 # emis is a Data object containing the emissions values in a lat-lon-timestep cube for one category
-                em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
+                logger.debug(f"Emissions data read for category {cat}")
+                emDataShape=em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
+                logger.debug(f"Emissions data for category {cat} added to em.xr data structure.")
         return em
 
     
@@ -841,6 +862,7 @@ def load_preprocessed(
     grid: Grid = None,
     archive: str = None,
     sFileName: str=None,
+    cat:str=None, 
     bFromPortal =False,
     iVerbosityLv=1
     ) -> ndarray:
@@ -873,9 +895,10 @@ def load_preprocessed(
     
     # Import a file for each year at least partially covered:
     years = unique(date_range(start, end, freq='MS', inclusive='left').year)
-    data = []
+    emData = []
     for year in years :
         if(bFromPortal):
+            # Note that we work primarily with the PID as opposed to the actual file name.
             # sSearchMask='flux_co2.VPRM' 
             words = sFileName.split('.')
             sKeyWord=words[-1]
@@ -888,15 +911,15 @@ def load_preprocessed(
             # https://data.icos-cp.eu/portal/#%7B%22filterCategories%22%3A%7B%22project%22%3A%5B%22misc%22%5D%2C%22type%22%3A%5B%22co2EmissionInventory%22%5D%2C%22submitter%22%3A%5B%22oCP%22%5D%2C%22level%22%3A%5B3%5D%7D%7D
             # 
             sScndKeyWord=None
-            if (('co2' in sFileName)and(sKeyWord=='VPRM')):  # TODO or if it is LPJGUESS...
+            if (('co2' in sFileName)and((sKeyWord=='VPRM') or ('biosphere' in cat) or (sKeyWord[:3]=='LPJ'))):  # TODO or if it is LPJGUESS...
                 sScndKeyWord='NEE' # we want the net exchange of carbon
-            if (('co2' in sFileName)and((sKeyWord[:8]=='3_BP2019')or(sKeyWord[:6]=='LATEST'))):  # TODO: This needs to become smarter.....
-                if(words[-2]=='EDGARv4'):
-                    sKeyWord='anthropogenic' 
-                    sScndKeyWord='EDGARv4.3' 
+            if (('co2' in sFileName)and(('fossil' in cat)or(sKeyWord[:8]=='3_BP2019')or(sKeyWord[:6]=='LATEST'))):  # TODO: This needs to become smarter.....
+                sKeyWord='anthropogenic'   # sKeyWord could be 
+                sScndKeyWord='EDGARv4.3' 
             logger.debug(f"calling fromICP.readLv3NcFileFromCarbonPortal(sKeyWord={sKeyWord}, None, None, year={year}, sScndKeyWord={sScndKeyWord}) derived from sFileName={sFileName}")
-            fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord,  iVerbosityLv=2)
-            if(fname is None):
+            fname=fromICP.readLv3NcFileFromCarbonPortal(sKeyWord, None, None, year,  sScndKeyWord, cat=cat, iVerbosityLv=2)
+            
+            if((fname is None) or (len(fname)<10)):
                 logger.error(f"Abort in lumia/formatter/xr.py: No valid data object was found for sKeyWord={sKeyWord}, year={year} and sScndKeyWord={sScndKeyWord} on the carbon portal (derived from sFileName={sFileName})")
                 sys.exit(1)
         else:
@@ -924,36 +947,42 @@ def load_preprocessed(
         #           interval  as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
         # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         if((tim0 is None)or(tim0!=0)):
-            fname=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname,  tim0, grid)  
-        
+            (fname, bSuccess)=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname, grid=grid, tim0= tim0)  
+        if(not bSuccess):
+            logger.error(f"Abort. Unable to align the time values to start-of-mearuring-interval (and midnight) in carbon portal file {fname}")
+            sys.exit(56)
         try:
             logger.info(f"Reading contents from flux file {fname}")
-            data.append(xr.load_dataarray(fname))
+            em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
+            logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+            logger.debug(em1Data)
+            emData.append(em1Data)
+            # data.append(xr.load_dataarray(fname, engine="netcdf4", decode_times=True))
         except:
-            logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname) with fname={fname}")
+            logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
             sys.exit(1)
-    data = xr.concat(data, dim='time').sel(time=slice(start, end))
-
+    emData = xr.concat(emData, dim='time').sel(time=slice(start, end))
+    
     # Resample if needed
     if freq is not None :
         times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
         logger.info('times_dest=')
         logger.info(times_dest)
-        tres1 = Timestamp(data.time.data[1])-Timestamp(data.time.data[0])
+        tres1 = Timestamp(emData.time.data[1])-Timestamp(emData.time.data[0])
         tres2 = times_dest[1]-times_dest[0]
         if tres1 != tres2 :
             assert tres1 > tres2, f"Temporal resolution can only be upscaled (resolution in the data files: {tres1}; requested resolution: {tres2})"
             assert (tres1 % tres2).total_seconds() == 0
             logger.info(f"Increase the resolution of the emissions from {tres1.total_seconds()/3600:.0f}h to {tres2.total_seconds()/3600:.0f}h")
-            data = data.reindex(time=times_dest).ffill('time')
+            emData = emData.reindex(time=times_dest).ffill('time')
 
-    times = data.time.to_pandas()
-    data = data[(times >= start) * (times < end), :, :]  # xarray.dataarray[time:lat:lon] co2 emission values for the given 3D space
+    times = emData.time.to_pandas()
+    emData = emData[(times >= start) * (times < end), :, :]  # xarray.dataarray[time:lat:lon] co2 emission values for the given 3D space
     # Coarsen if needed
     # # # if grid is not None :    raise NotImplementedError
     # obsolete - that's what ensureCorrectGrid() is for.... 
     
-    return data.data
+    return emData.data
 
 
 # Interfaces:

@@ -10,6 +10,7 @@ import os
 import re
 import datetime
 from loguru import logger
+from icoscp.cpb.dobj import Dobj
 
 #Import ICOS tools:
 # from icoscp.sparql import sparqls, runsparql
@@ -95,7 +96,7 @@ def getEndTimeForSparqlQuery(pdEndTime,  iYr=0):
 
 # ********************************************
 
-def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  iYear=0):
+def findDobjFromPartialNameAndDate(sKeyword, cat='Unknown', pdTimeStart=None, pdTimeEnd=None,   iYear=0):
     '''
     Function    findDobjFromPartialNameAndDate
 
@@ -129,10 +130,13 @@ def findDobjFromPartialNameAndDate(sKeyword, pdTimeStart=None, pdTimeEnd=None,  
 
     sTimeStart=getStartTimeForSparqlQuery(pdTimeStart, iYear)
     sTimeEnd=getEndTimeForSparqlQuery(pdTimeEnd, iYear)
-    if(sKeyword=='VPRM'):
+    if((sKeyword=='VPRM') or ('biosphere' in cat) or (sKeyword[:3]=='LPJ') ):
         sDataType='biosphereModelingSpatial'
-    if(sKeyword=='anthropogenic'):
+    elif((sKeyword=='anthropogenic') or ('fossil' in cat) or ('EDGAR' in  sKeyword)):
         sDataType='co2EmissionInventory' # ForCo2
+    else:
+        logger.error(f'Please make me smarter. I have no rule as to what data type I should hand to the Sparql query parameter >dobj cpmeta:hasObjectSpec< for the given KeyWord {sKeyword}.')    
+        sys.exit(-17)
     query = '''
         prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
         prefix prov: <http://www.w3.org/ns/prov#>
@@ -173,7 +177,7 @@ def remove_unwanted_characters(myString):
 # ***********************************************************************************************
 
 
-def queryCarbonPortal4FluxFileName(cp_path,sKeyword, timeStart, timeEnd,  iRequestedYear,  sScndKeyWord=None, iVerbosityLv=1):
+def queryCarbonPortal4FluxFileName(cp_path,sKeyword, timeStart, timeEnd,  iRequestedYear,  sScndKeyWord=None, cat='Unknown',  iVerbosityLv=1):
     """
     Function queryCarbonPortal4FluxFileName
 
@@ -200,11 +204,11 @@ def queryCarbonPortal4FluxFileName(cp_path,sKeyword, timeStart, timeEnd,  iReque
 
     """
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear),output_format='nc').run()
+    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword,  cat, timeStart, timeEnd, iRequestedYear),output_format='nc').run()
     # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
     # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
     bScndKWordFound=True
-    if ('mikaloff'==sKeyword[:8]):  # may have a trailing number that we need to remove
+    if (('ocean' in cat) or ('mikaloff'==sKeyword[:8])):  # may have a trailing number that we need to remove
         sKeyword='mikaloff'
     sFileNameOnCarbonPortal=None
     sPID=''
@@ -218,7 +222,7 @@ def queryCarbonPortal4FluxFileName(cp_path,sKeyword, timeStart, timeEnd,  iReque
             if(sScndKeyWord is not None):
                 bScndKWordFound=False
                 bGrabNextUrl=False
-                if(sKeyword=='anthropogenic'):
+                if((sKeyword=='anthropogenic') or ('fossil' in cat)):
                     sExtendedKeyWord=sScndKeyWord+'_'   # e.g. _NEE_ to search for a whole word
                 else:
                     sExtendedKeyWord='_'+sScndKeyWord+'_'   # e.g. _NEE_ to search for a whole word
@@ -262,16 +266,30 @@ def queryCarbonPortal4FluxFileName(cp_path,sKeyword, timeStart, timeEnd,  iReque
         # print('The SPARQL query for flux observations for the requested time interval found no matching data records.')
         return(None)
     try:
+        dob = Dobj("https://meta.icos-cp.eu/objects/"+sPID)
+        pidMeta = dob.meta()
+        fName=pidMeta.fileName            
+    except:
+        pass
+    try:
         # Make sure this file actually exists and is accessible on the portal
         f=open(sFileNameOnCarbonPortal, 'rb')
         f.close()
     except:
-        logger.error(f"Error: The file {sFileNameOnCarbonPortal} cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal.")
+        try:
+            dob = Dobj("https://meta.icos-cp.eu/objects/"+sPID)
+            pidMeta = dob.meta()
+            fName=pidMeta.fileName            
+            sFileNameOnCarbonPortal = cp_path+fName
+            f=open(sFileNameOnCarbonPortal, 'rb')
+            f.close()
+        except:
+            logger.error(f"Error: The file {sFileNameOnCarbonPortal} cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal.")
         sFileNameOnCarbonPortal=None
         return('')
     else:
         if(iVerbosityLv>1):
-            print("Successfully found the data file "+sFileNameOnCarbonPortal+" on the carbon portal.", flush=True)
+            logger.info(f"Successfully found the {cat} emissions data file {sFileNameOnCarbonPortal} on the carbon portal.")
     return sFileNameOnCarbonPortal
 
 
@@ -301,7 +319,7 @@ def queryCarbonPortal4PID(cp_path,sKeyword, timeStart, timeEnd,  iRequestedYear,
 
     """
     # example: sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
-    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword, timeStart, timeEnd, iRequestedYear),output_format='nc').run()
+    dobj_L3 = RunSparql(sparql_query=findDobjFromPartialNameAndDate(sKeyword,  '', timeStart, timeEnd, iRequestedYear),output_format='nc').run()
     # Returns VPRM NEE, GEE, and respiration in a string structure, though in this order, as uri, stored in the dobj.value(s):
     # "value" : "https://meta.icos-cp.eu/objects/xLjxG3d9euFZ9SOUj69okhaU" ! VPRM NEE biosphere model result for 2018: net ecosystem exchange of CO2
     bScndKWordFound=True
@@ -371,7 +389,7 @@ def queryCarbonPortal4PID(cp_path,sKeyword, timeStart, timeEnd,  iRequestedYear,
 
 # ***********************************************************************************************
 
-def readLv3NcFileFromCarbonPortal(sKeyword, start: datetime=None, end: datetime=None, year=0,  sScndKeyWord=None,  iVerbosityLv=1):
+def readLv3NcFileFromCarbonPortal(sKeyword, start: datetime=None, end: datetime=None, year=0,  sScndKeyWord=None, cat='Unknown',   iVerbosityLv=1):
     """
     Function readLv3NcFileFromCarbonPortal
 
@@ -392,7 +410,7 @@ def readLv3NcFileFromCarbonPortal(sKeyword, start: datetime=None, end: datetime=
     Attempts to find the corresponding unique-identifier (PID) for the requested data record.
     The latter should refer to a level3 netcdf file (by name) on the ICOS data portal.
     The function relies on a sparql query and tries to read the requested netCdf file from the carbon portal.
-    Returns (xarray-dataset) if successful; (None) if unsuccessful.
+    Returns (fileName) if successful; (None) if unsuccessful.
     """
     #VPRM_ECMWF_GEE_2020_CP.nc
     # find level3 netcdf file with known filename in ICOS CP data portal
@@ -402,7 +420,7 @@ def readLv3NcFileFromCarbonPortal(sKeyword, start: datetime=None, end: datetime=
         print("readLv3NcFileFromCarbonPortal: Looking for %s flux files for year %d." %(sKeyword, year),  flush=True)
     # sFileName='VPRM_ECMWF_NEE_2020_CP.nc'
     # sKeyword='VPRM'
-    inputname = queryCarbonPortal4FluxFileName(path_cp,sKeyword, start, end, year, sScndKeyWord,  iVerbosityLv)
+    inputname = queryCarbonPortal4FluxFileName(path_cp,sKeyword, start, end, year, sScndKeyWord, cat=cat, iVerbosityLv=iVerbosityLv)
     # pidUrl = queryCarbonPortal4PID(path_cp,sKeyword, start, end, year, sScndKeyWord,  iVerbosityLv)
 
 

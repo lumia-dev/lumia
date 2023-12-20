@@ -34,7 +34,9 @@ start = datetime(*rcf.get('time.start'))
 end = datetime(*rcf.get('time.end'))
 
 # Load the pre-processed emissions:
-categories = dict.fromkeys(rcf.get('emissions.categories') + rcf.get('emissions.categories.extras', default=[]))
+# categories = dict.fromkeys(rcf.get('emissions.categories') + rcf.get('emissions.categories.extras', default=[]))
+sRcf=rcf.getAlt('emissions','categories','extras', default=[])
+categories = dict.fromkeys(rcf.get('emissions.categories') + sRcf)
 for cat in categories :
     categories[cat] = rcf.get(f'emissions.{cat}.origin')
 emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
@@ -49,7 +51,8 @@ ctrl = monthlyFlux.Control(rcf, preconditioner=precon)
 interface = Interface(ctrl.name, model.name, rcf, ancilliary=emis)
 
 ctrl.setupPrior(interface.StructToVec(emis))#, lsm_from_file=rcf.get('emissions.lsm.file')))
-errtype = rcf.get('optim.err.type', default='monthlyPrior')
+# bugfix for errtype = rcf.get('optim.err.type', default='monthlyPrior')
+errtype=rcf.getAlt('optim','err','type', default='monthlyPrior')
 if errtype == 'monthlyPrior' :
     unc = PercentMonthlyPrior
 elif errtype == 'hourlyPrior' :
@@ -60,6 +63,8 @@ elif errtype == 'true_error' :
     unc = ErrorFromTruth
 elif errtype == 'field' :
     unc = ErrorFromField
+else:
+    errtype = rcf['monthlyPrior']
 err = unc(rcf, interface)(emis)
 
 ctrl.setupUncertainties(err)

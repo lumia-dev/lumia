@@ -20,7 +20,7 @@ class transport(object):
         self.outputdir = self.rcf.get('model.path.output')
         self.tempdir = self.rcf.get('model.path.temp', self.outputdir)
         self.executable = self.rcf.get("model.exec")
-        self.serial = self.rcf.get("model.options.serial", default=False)
+        self.serial = self.rcf.getAlt("model","options","serial", default=False)
         self.footprint_path = self.rcf.get('model.path.footprints')
 
         # Initialize the obs if needed
@@ -92,7 +92,7 @@ class transport(object):
                     db.sites[col]=db.sites[col].astype(float)
         logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
         # if DEBUG: self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
-        if self.rcf.get('model.split_categories', default=True):
+        if self.rcf.getAlt('model','split_categories', default=True):
             import time
             time.sleep(5)
             logger.info("obsoperator._init_.calcDepartures() L74 self=")
@@ -117,7 +117,7 @@ class transport(object):
         self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
 
         # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
-        for key in list(self.rcf.get('model.store_extra_fields', default=[])) :
+        for key in list(self.rcf.getAlt('model','store_extra_fields', default=[])) :
             if(is_float_dtype(db.observations.loc[:, key].values)==False):
                 db.observations.loc[:, key].values=db.observations.loc[:, key].values.astype(float)
             self.db.observations.loc[:, key] = db.observations.loc[:, key].values
@@ -143,7 +143,7 @@ class transport(object):
             observations = self.db
             logger.info('obsoperator.init.runForward(): observations set to self.db')
 
-        compression = step in self.rcf.get('model.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
+        compression = step in self.rcf.getAlt('model','output','steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
         emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
         del struct
         dbf = observations.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
@@ -159,7 +159,7 @@ class transport(object):
         logger.info('obsoperator.init.runForward(): cmd=')
         print(cmd)
         
-        cmd.extend(self.rcf.get('model.transport.extra_arguments', default=[]))
+        cmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
         # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
         runcmd(cmd)
 
@@ -196,7 +196,7 @@ class transport(object):
 
         if self.serial :
             cmd.append('--serial')
-        cmd.extend(list(self.rcf.get('model.transport.extra_arguments', default='')))
+        cmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
         runcmd(cmd)
 
         # Collect the results :

@@ -25,18 +25,24 @@ class Emissions:
         for cat in self.categories :
             self.categories[cat] = rcf.get(f'emissions.{cat}.origin')
         resample = None
-        if rcf.get('emissions.resample', default=False):
+        bResamp=rcf.getAlt('emissions','resample', default=False)
+        if (bResamp):
             resample = rcf.get('emissions.interval')
         prefix = os.path.join(rcf.get('emissions.prefix'), f'flux_{self.tracer}.')
-        self.data = ReadArchive(prefix, self.start, self.end, categories=self.categories, archive=rcf.get('emissions.archive', default=None), freq=resample)
-
-        if rcf.get('optim.unit.convert', default=False):
+        emArchive=rcf.getAlt('emissions','archive', default=None)
+        self.data = ReadArchive(prefix, self.start, self.end, categories=self.categories, archive=emArchive, freq=resample)
+        bConvert=rcf.getAlt('optim','unit','convert', default=False)
+        if bConvert:
             logger.info("Trying to convert fluxes to umol (from umol/m2/s")
             self.data.to_extensive()   # Convert to umol
-            self.print_summary(unit=self.rcf.get(f'emissions.{self.tracer}.unit'))
+            unit=self.rcf.get(f'emissions.{self.tracer}.unit')
+            self.print_summary(unit=unit)
 
         # Coarsen the data if needed:
-        # TODO: Perhaps better like this? lon0=self.rcf['run']['grid']['lon0'],
+        # TODO: There is no region key in the yaml files I have. However, there is
+        #  run.grid: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25, dlat:0.25}} and emissions.{tracer}.region
+        # and run.region.lat0/lat1/lon0/etc
+        # Perhaps better like this? lon0=self.rcf['run']['grid']['lon0'],
         reg = region(
             lon0=self.rcf.get('region.lon0'),
             lon1=self.rcf.get('region.lon1'),
@@ -333,7 +339,10 @@ def ReadArchive(prefix, start, end, freq=None, **kwargs):
             tqdm.write(f"Emissions from category {cat} will be read from file {fname}")
             # Make sure that the file is here:
             localArchive.get(fname, dirname)
-            ds.append(xr.load_dataarray(os.path.join(dirname, fname)))
+            try:
+                ds.append(xr.load_dataarray(os.path.join(dirname, fname)))  # we may need to add , engine="netcdf4", decode_times=True  here too
+            except:
+                ds.append(xr.load_dataarray(os.path.join(dirname, fname), engine="netcdf4", decode_times=True)) 
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
 
         # Resample to a higher frequency?

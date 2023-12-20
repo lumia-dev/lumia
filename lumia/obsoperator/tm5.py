@@ -129,7 +129,7 @@ class transport(object):
                     logger.debug(tracer)
                     for cat in ds[regname][tracer].groups :
                         logger.debug(cat)
-                        if self.rcf.get(f'emissions.{cat}.optimize', default=False):
+                        if self.rcf.getAlt('emissions',cat, 'optimize', default=False):
                             data = ds[regname][tracer][cat]['adj_emis'][:]
                             # adjoint of split emis (re-introduce high temporal resolution)
                             data = self.splitEmis_adj(adjemis[cat]['time_interval']['time_start'], data)

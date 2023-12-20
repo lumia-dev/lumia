@@ -71,12 +71,20 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
         dTime=xrExisting.time.data
         t1 = pd.Timestamp(dTime[0])
         tim0=t1.hour
+        try:
+            header=xrExisting.head() 
+            print(header,  flush=True)
+            ln=xrExisting.attrs['time']['long_name']
+            if('end of interval' in ln):
+                xrExisting.attrs['time']['long_name'] = "time at start of interval"
+        except:
+            pass
         d=dict(xrExisting.dims) # contains the shape of the existing file as {'lat':480, 'lon':400, 'time':8760}
         # print(fLats.values[d['lat'] - 1],  flush=True)
-        LatWidth=fLats.values[d['lat'] - 1] - fLats.values[0]    # north-south-extent of the stored region in degrees latitude
-        dLatExs=abs(LatWidth/(d['lat'] -1))                                      # stepsize or difference between nearest grid-points in degrees latitude
-        LonWidth=fLons.values[d['lon'] - 1] - fLons.values[0]  # width/east-west extent of the stored region in degrees longitude
-        dLonExs=abs(LonWidth/(d['lon'] - 1))                                    # stepsize or difference between nearest grid-points in degrees longitude
+        LatWidth=fLats.values[d['lat'] - 1] - fLats.values[0]    #  72.95833-33.04167=39.91667 north-south-extent of the stored region in degrees latitude
+        dLatExs=abs(LatWidth/(d['lat'] -1))       # 0.08333 deg  # stepsize or difference between nearest grid-points in degrees latitude
+        LonWidth=fLons.values[d['lon'] - 1] - fLons.values[0]  # 34.94-(-14.94)=49.875 width/east-west extent of the stored region in degrees longitude
+        dLonExs=abs(LonWidth/(d['lon'] - 1))         # =0.125 deg ; stepsize or difference between nearest grid-points in degrees longitude
 
         # step 3: Then compare the two grids, that is to say the desired grid and the one extracted from the existing file
         if ((abs(grid.dlat - dLatExs) < 0.002) and (abs(grid.dlon - dLonExs) < 0.002)):
@@ -93,7 +101,7 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
             f.close()
         except:
             print('Fatal error: Cannot find the grid file '+fRefGridFile+' below your working folder. Either copy it there or create the file with')
-            print('cdo griddes YOUR_ANY_NETCDFFILE_ON_DESIRED_GRID >'+fRefGridFile)
+            print('cdo grids YOUR_ANY_NETCDFFILE_ON_DESIRED_GRID >'+fRefGridFile)
             print('Next time Lumia automatically creates the regridded data file by executing:')
             print('cdo remapcon,'+fRefGridFile+' '+sExistingFile+'  '+"."+os.path.sep+"regridded"+os.path.sep+sdlat+'x'+sdlon+os.path.sep+os.path.basename(sExistingFile)+'.'+"dLat"+sdlat+"dLon"+sdlon, flush=True)
             # print('cdo  remapcon,cdo-icos-quarter-degree.grid  /data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU ./250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250', flush=True)
@@ -114,6 +122,12 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
             # Did cdo create the re-gridded flux file as expected?
             f=open(fnameOut, 'rb')
             f.close()
+            xrNew = xr.open_dataset(fnameOut, drop_variables='NEE') # only read the dimensions + 'emission'
+            dTime=xrNew.time.data
+            t1 = pd.Timestamp(dTime[0])
+            tim0=t1.hour
+            d=dict(xrNew.dims) # contains the shape of the existing file as {'lat':480, 'lon':400, 'time':8760}
+            logger.debug(f'shape of emissions data={d}')
         except:
             logger.error(f"Fatal error: cdo did not create the re-gridded output file {fnameOut} as expected from the command >>cdo {cdoCmd}<<.")
             sys.exit(-1)
@@ -122,14 +136,14 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
     return(fnameOut, tim0) # we will use a re-gridded file we created earlier or that already exists
     
 
-def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = None,  checkGrid = True,  tim0=0):
+def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = None,  checkGrid = True,  tim0=None):
     '''  
     ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is one (undesired)
                              or zero (as it should). Normally the netcdf header should provide whether the times reported
                              refer to the start of the time step, the middle or the end. VPRM files do, EDGAR4.3 files don't.
                              Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
                              elegance: if the first time step starts at one, then measurments are assumed to be reported at the
-                             end of each time step, while Lumia expect this time to represent the beginning of the time interval.
+                             end of each time step, while Lumia expects this time to represent the beginning of the time interval.
                              Therefore we shift the time axis back in time by one timestep which is then equivalent to having
                              times representing the beginning of an observation period.
                              I had to add a fix for background co2 concentration netcdf files that are reported at the middle of

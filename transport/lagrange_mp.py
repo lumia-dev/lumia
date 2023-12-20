@@ -203,7 +203,7 @@ class Lagrange:
     def runAdjoint_sp(self):
         # Create an empty adjoint structure:
         region = Region(self.rcf)
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get('emissions.%s.optimize'%c, default=0) == 1]
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.getAlt('emissions', c,'optimize', default=0) == 1]
         start = datetime(*self.rcf.get('time.start'))
         end = datetime(*self.rcf.get('time.end'))
         dt = time_interval(self.rcf.get('emissions.interval'))
@@ -271,7 +271,7 @@ class Lagrange:
 
     def splitDb(self):
         nobs = self.obs.observations.shape[0]
-        nchunks = self.rcf.get('model.transport.split', default=1)
+        nchunks = self.rcf.getAlt('model','transport','split', default=1)
 
         logger.debug(f"The database will be split in {nchunks} chunks")
 

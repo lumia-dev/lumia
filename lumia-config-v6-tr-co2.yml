@@ -111,8 +111,9 @@ optimize:
         type: weekly
 path:
   data: /data
+region: ${run.region}
 run:
-  grid: ${Grid:{lon0:-15.000,lat0:35.000,lon1:34.000,lat1:73.000,dlon:0.25, dlat:0.25}}
+  grid: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25, dlat:0.25}}
   gridname: eurocom025x025
   paths:
     data: .
@@ -120,7 +121,9 @@ run:
     output: ./output
     temp: /home/arndt/nateko/data/icos/DICE/tmp
   region:
-    lat0: 34.0
+    dlat: 0.25
+    dlon: 0.25
+    lat0: 33.0
     lat1: 73.0
     lon0: -15.0
     lon1: 35.0
@@ -129,7 +132,7 @@ run:
     hostName: tux.nateko.lu.se
     platformCore: Linux-5.15.0-91-generic-x86_64-with-glibc2.35
     platformFlavour: 01-Ubuntu SMP Tue Nov 14 13:30:08 UTC 202
-    uniqueIdentifierDateTime: '2023-12-12T10:13:13'
+    uniqueIdentifierDateTime: '2023-12-20T02:02:38'
     username: cec-ami
   timestep: 1h
   tracers:
@@ -140,8 +143,8 @@ softwareUsed:
     commit: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git
     git:
       branch: LumiaDA
-      commit: 8bb45dfaab4de6663e343fb770e84f3db94320a7
-      location: git@github.com:lumia-dev/lumia/commit/8bb45dfaab4de6663e343fb770e84f3db94320a7
+      commit: c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9
+      location: git@github.com:lumia-dev/lumia/commit/c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9
       url: git@github.com:lumia-dev/lumia.git
   runflex:
     branch: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git

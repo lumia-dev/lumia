@@ -101,7 +101,8 @@ class Uncertainties:
         return fname
 
     def errStructToVec(self, errstruct):
-        data = self.interface.StructToVec(errstruct, lsm_from_file=self.rcf.get('emissions.lsm.file', default=False))
+        #data = self.interface.StructToVec(errstruct, lsm_from_file=self.rcf.get('emissions.lsm.file', default=False))
+        data = self.interface.StructToVec(errstruct, lsm_from_file=self.rcfAlt.get('emissions','lsm','file', default=False))
         data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
         return data.drop(columns=['value'])
 
@@ -111,7 +112,12 @@ class PercentMonthlyPrior(Uncertainties):
         fluxes = deepcopy(struct)
         self.data = self.interface.StructToVec(fluxes)
         for cat in self.categories :
+            # TODO: the next line does not make sense to me. There is no cat.name for a start. And the value,
+            # if set, would probably be under emissions.{tracer}.{cat}.error_field
+            #field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat)
             field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat)
+            if((field is None) or (field=='') or (field=='None')): # an alternative workaround for the default value being ignored in rcf.get()
+                field=cat
             if cat.optimize :
                 errfact = cat.uncertainty*0.01
                 errcat = abs(self.data.loc[self.data.category == field, 'value'].values)*errfact
@@ -138,6 +144,8 @@ class PercentHourlyPrior(Uncertainties):
             if cat.optimize :
                 errfact = cat.uncertainty*0.01
                 field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
+                if((field is None) or (field=='') or (field=='None')): # an alternative workaround for the default value being ignored in rcf.get()
+                    field=cat.name
                 data[cat.name]['emis'] = abs(data[field]['emis'])*errfact
         self.data = self.errStructToVec(data)
 
@@ -149,6 +157,8 @@ class PercentAnnualPrior(Uncertainties):
             if cat.optimize :
                 errfact = cat.uncertainty*0.01
                 field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
+                if((field is None) or (field=='') or (field=='None')): # an alternative workaround for the default value being ignored in rcf.get()
+                    field=cat.name
                 data[cat.name]['emis'][:] = (abs(data[field]['emis'])*errfact).mean(0)
         self.data = self.errStructToVec(data)
 
@@ -173,6 +183,8 @@ class PercentHourlyPrior_homogenized(Uncertainties):
             if cat.optimize :
                 # Optionally, use a different field
                 field = self.rcf.get(f'emissions.{cat.name}.error_field', default=cat.name)
+                if((field is None) or (field=='') or (field=='None')): # an alternative workaround for the default value being ignored in rcf.get()
+                    field=cat.name
 
                 # base error is the flux itself
                 err = abs(data[field]['emis'])

@@ -282,16 +282,19 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # min
         # gridString=ymlContents['run']['grid']  # '${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}'
 
-        Lat0=ymlContents['run']['region']['lat0']  # 33.0
+        try:
+            Lat0=ymlContents['run']['region']['lat0']  # 33.0
+        except:
+            Lat0=33.0
         Lat1=ymlContents['run']['region']['lat1']   #73.0
         Lon0=ymlContents['run']['region']['lon0']  # -15.0
         Lon1=ymlContents['run']['region']['lon1']   #35.0
-        s=str(Lat0)
-        s=f'{Lat0:.3f}'
-        self.sLat0=tk.StringVar(value=s)
-        self.sLat1=tk.StringVar(value=f'{Lat1:.2f}')
-        self.sLon0=tk.StringVar(value=f'{Lon0:.2f}')
-        self.sLon1=tk.StringVar(value=f'{Lon1:.2f}')
+        dLat=ymlContents['run']['region']['dlat']   # 0.25
+        dLon=ymlContents['run']['region']['dlon']  # 0.25
+        self.sLat0=tk.StringVar(value=f'{Lat0:.3f}')
+        self.sLat1=tk.StringVar(value=f'{Lat1:.3f}')
+        self.sLon0=tk.StringVar(value=f'{Lon0:.3f}')
+        self.sLon1=tk.StringVar(value=f'{Lon1:.3f}')
         
         # grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
         # sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)

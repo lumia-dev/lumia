@@ -574,7 +574,7 @@ class obsdb(obsdb):
                 bgFnames=[]
                 for yr in range(startyr,  endyr+1,  1):
                     ncFname=fnametrunk+str(yr)+'.nc'
-                    (ncFname,  bSuccess)=ensureReportedTimeIsStartOfMeasurmentInterval(ncFname,  tim0=30,  checkGrid =False)
+                    (ncFname,  bSuccess)=ensureReportedTimeIsStartOfMeasurmentInterval(ncFname,  checkGrid =False,  tim0=30)
                     if(bSuccess):
                         bgFnames.append(ncFname)
                     else:

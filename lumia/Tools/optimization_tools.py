@@ -31,19 +31,28 @@ class Categories:
             yield getattr(self, item)
 
     def setup(self, rcf):
-        catlist = rcf.get(f'emissions.categories')
+        catlist = rcf.get('emissions.categories')
         for cat in catlist :
             self.add(cat)
-            self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
+            # bugfix for self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
+            bOpt=False
+            try:
+                bOpt=rcf.get['emissions'][cat]['optimize']
+            except:
+                bOpt=False
+            self[cat].optimize =bOpt
             self[cat].is_ocean = rcf.get('emissions.%s.is_ocean'%cat, totype=bool, default=False)
-            self[cat].unit = rcf.get('emissions.%s.unit', default='PgC')
+            # doubleBug: rcf.get/default and %s not specified:  self[cat].unit = rcf.get('emissions.%s.unit', default='PgC')
+            self[cat].unit = rcf.getAlt('emissions',cat,'unit', default='PgC')
             if self[cat].optimize :
                 self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
-                self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
+                #self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
+                self[cat].min_uncertainty = rcf.getAlt('emissions',cat,'error_min', default=0)
                 self[cat].error_structure = rcf.get(f'emissions.{cat}.error_structure')
                 self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
                 self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
-                self[cat].apply_lsm = rcf.get(f'emissions.{cat}.apply_lsm', default=True)
+                # bugfix for lf[cat].apply_lsm = rcf.get(f'emissions.{cat}.apply_lsm', default=True)
+                self[cat].apply_lsm = rcf.getAlt('emissions',cat,'apply_lsm', default=True)
                 optint = rcf.get('optimization.interval')
                 if re.match('\d*y', optint):
                     n = re.split('d', optint)[0]

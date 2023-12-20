@@ -67,7 +67,7 @@ class Interface:
         for tracer in self.tracers :
 
             # Add meta-categories (if any!)
-            for k, v in self.rcf.get(f'emissions.{tracer}.metacategories', default=dict()).items():
+            for k, v in self.rcf.getAlt('emissions',tracer,'metacategories', default=dict()).items():
                 self.model_data[tracer].add_metacat(k, v)
 
         for cat in self.model_data.categories :
@@ -76,10 +76,16 @@ class Interface:
             attrs = {'optimized': optimize_cat}
             if optimize_cat:
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will be optimized')
+                applyLsm=self.rcf.get(f'{pfx}.{cat.name}.apply_lsm', default=True)
+                if((applyLsm is None) or (applyLsm=='None') or (applyLsm=='')):
+                    applyLsm=True
+                isOcean=self.rcf.get(f'{pfx}.{cat.name}.is_ocean', default=False)
+                if((isOcean is None) or (isOcean=='None') or (isOcean=='')):
+                    isOcean=False
                 attrs.update({
                     'optimization_interval': self.rcf.get(f'{pfx}.{cat.name}.optimization_interval'),
-                    'apply_lsm': self.rcf.get(f'{pfx}.{cat.name}.apply_lsm', default=True),
-                    'is_ocean': self.rcf.get(f'{pfx}.{cat.name}.is_ocean', default=False),
+                    'apply_lsm': applyLsm,
+                    'is_ocean': isOcean,
                     'n_optim_points': self.rcf.get(f'{pfx}.{cat.name}.npoints'),
                     'horizontal_correlation': self.rcf.get(f'{pfx}.{cat.name}.spatial_correlation'),
                     'temporal_correlation': self.rcf.get(f'{pfx}.{cat.name}.temporal_correlation'),

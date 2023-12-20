@@ -297,7 +297,7 @@ class FootprintTransport:
 
         # Internals
         self.executable = __file__
-        self.ncpus = ncpus# self.rcf.get('model.transport.split', default=os.cpu_count())
+        self.ncpus = ncpus# self.rcf.getAlt('model','transport','split', default=os.cpu_count())
         self._set_parallelization(False)
         if mp :
             self._set_parallelization('ray')
@@ -381,7 +381,7 @@ class FootprintTransport:
         adj = Data()
         for tracer in self.tracers :
             region = grid_from_rc(self.rcf, name=tracer)
-            categories = [c for c in self.rcf.get(f'emissions.{tracer}.categories') if self.rcf.get(f'emissions.{tracer}.{c}.optimize', default=False)]
+            categories = [c for c in self.rcf.get(f'emissions.{tracer}.categories') if self.rcf.getAlt('emissions', tracer, c, 'optimize', default=False)]
             dt = time_interval(self.rcf.get(f'emissions.{tracer}.interval'))
             adj.add_tracer(CreateStruct_adj(tracer, categories, region, start, end, dt))
         adj = Flux(adj)
@@ -425,7 +425,8 @@ class FootprintTransport:
         # 1) Get the list of categories to be optimized:
         self.obs.observations.loc[:, 'mix_background'] = 0.
         #self.obs.observations = self.obs.observations.loc[:0]
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', totype=bool, default=False) is True]
+        #categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', totype=bool, default=False) is True]
+        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.getAlt('emissions', c, 'optimize', default=False) is True]
         self.runForward(categories=categories)
         x1 = self.emis.asvec()
         self.obs.observations.dropna(subset=['mix'], inplace=True)

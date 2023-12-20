@@ -186,7 +186,7 @@ def load_observations(rcf: RcFile) -> obsdb:
         obs.uncertainty.setup : TODO: that one and the next shouldn't be here ...
         obs.uncertainty
     """
-    if rcf.get('observations.make_from_footprints', default=False):
+    if rcf.getAlt('observations','make_from_footprints', default=False):
         from lumia.obsdb.runflex import obsdb
         db = obsdb(rcf['observations.footprints'], rcf['run.start'], rcf['run.end'], tracers=list(rcf['run.tracers']))
     else:
@@ -257,7 +257,7 @@ def optimize(rcf: RcFile) -> SimpleNamespace:
     logger.info(f"Entering main_functions_optimize() and calling opt.Var4D() opt={opt}")
     opt.Var4D()
 
-    if rcf.get('observations.validation', default=False):
+    if rcf.getAlt('observations','validation', default=False):
         obs_valid = obsdb.from_rc(rcf, filekey='validation', setup_uncertainties=False)
         model.run_forward(opt.interface.model_data, obs_valid, step='validation')
     return SimpleNamespace(obs=obs, model=model, emis=emis, optim=opt)

@@ -8,6 +8,84 @@ import lumia
 from rctools import RcFile as rc
 from loguru import logger
 import lumia.housekeeping as hk
+
+if(0>1):
+    import xarray as xr
+    import pandas as pd
+    emData = []
+    fname='./regridded/250x250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots'
+    #fname='/data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU'
+    try:
+        # Have we created this file previously so we could simply read it instead of creating it first?
+        f=open(fname, 'rb')
+        f.close()
+        # tim0=0  # we could assume time axis starts at zero. If this software created it, then that should be the case. But let's be prudent....
+    except:
+        logger.error(f"Abort unable to f=open({fname})")
+        #sys.exit(56)
+    try:
+        em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
+        logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+        print(em1Data, flush=True)
+    except:
+        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+    fname='./regridded/250x250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250'
+    try:
+        # Have we created this file previously so we could simply read it instead of creating it first?
+        f=open(fname, 'rb')
+        f.close()
+        # tim0=0  # we could assume time axis starts at zero. If this software created it, then that should be the case. But let's be prudent....
+    except:
+        logger.error(f"Abort unable to f=open({fname})")
+        sys.exit(56)
+    try:
+        em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
+        logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+        print(em1Data, flush=True)
+        try:
+            header=em1Data.head() 
+            print(header,  flush=True)
+            ln=em1Data['time'].attrs['long_name']
+            if('end of interval' in ln):
+                em1Data['time'].attrs['long_name'] = "time at start of interval"
+        except:
+            pass
+    except:
+        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+    try:
+        em1Data=xr.load_dataarray(fname)
+        logger.info(f"Success: xr.load_dataarray({fname})")
+        print(em1Data, flush=True)
+    except:
+        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+    try:
+        em1Data=xr.load_dataarray(fname, engine="netcdf4")
+        logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4)")
+        print(em1Data, flush=True)
+    except:
+        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+    try:
+        xrExisting = xr.open_dataset(fname)
+        fLats=xrExisting.lat
+        fLons=xrExisting.lon
+        dTime=xrExisting.time.data
+        t1 = pd.Timestamp(dTime[0])
+        tim0=t1.hour
+        logger.info(f"Success: xr.open_dataset({fname})")
+        print(xrExisting, flush=True)
+    except:
+        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
+    fname='./regridded/250x250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250'
+    try:
+        logger.info(f"Reading contents from flux file {fname}")
+        em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
+        logger.info('Success.')
+        emData.append(em1Data)
+    except:
+        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname, engine=netcdf4, decode_times=True) with fname={fname}")
+        sys.exit(1)
+    sys.exit(0)
+
 from lumia.formatters import xr
 
 p = ArgumentParser()
@@ -68,9 +146,45 @@ if args.gui:
 # Now read the yaml configuration file - whether altered by the GUI or not
 try:
     rcf=rc(ymlFile)
+    griddy=rcf.getAlt('run','grid',  default='${Grid:{lon0:-15.0, lat0:33.0, lon1:35.0, lat1:73.0, dlon:0.25, dlat:0.25}}')
 except:
     logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
     sys.exit(-2)
+try:
+    lon00=rcf.get('region.lon0')
+    lon11=rcf.get('region.lon1')
+    print(f'lon00={lon00},  lon11={lon11}')
+except:
+    pass
+try:
+    Lon0= float(-15.0)
+    Lon1 = float(35.0)
+    Lat0= float(33.0)
+    Lat1=float(73.0)
+    dollar='$'
+    lBrac='{'
+    rBrac='}'
+    griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:0.25, dlat:0.25%s%s' % (dollar, lBrac,lBrac, Lon0,Lon1, Lat0, Lat1, rBrac, rBrac))
+    print(griddy2)
+except:
+    pass
+
+try:
+    lon0=rcf.get('region.lon0')
+except:
+    pass
+try:
+    lon1=rcf.get('region.lon1')
+except:
+    pass
+try:
+    lat0=rcf.get('run.grid.Grid.lat0')
+except:
+    pass
+try:
+    lat1=rcf['run']['region']['lat1']
+except:
+    pass
 
 
 if args.setkey :
@@ -125,6 +239,10 @@ rcf.set_defaults(**defaults)
 logger.info(f"Temporary files will be stored in {rcf.get('run.paths.temp')}")
 logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
+# Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
+sKeyword='LPJGUESS'
+emis = xr.Data.from_rc(rcf, start, end)
+emis.print_summary()
 
 # Load observations
 if args.noobs :
@@ -165,8 +283,8 @@ else :
 # TODO: Done. I have moved " Load the pre-processed emissions" to after Load observations block again - just for testing so we can 
 # work on reading co2 emissions via DA before being bugged down by reading observations in the debugger....
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
-emis = xr.Data.from_rc(rcf, start, end)
-emis.print_summary()
+#emis = xr.Data.from_rc(rcf, start, end)
+#emis.print_summary()
 
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=xr)
@@ -184,8 +302,8 @@ if args.optimize or args.gradtest :
         model.calcDepartures(emis, 'apri')   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
         db.setup_uncertainties_dynamic(
             'mix_apri',
-            rcf.get('observations.uncertainty.dyn.freq', default='7D'),
-            rcf.get('observations.uncertainty.obs_field', default='err_obs')
+            rcf.getAlt('observations','uncertainty','dyn','freq', default='7D'),
+            rcf.getAlt('observations','uncertainty','obs_field', default='err_obs')
         )
     else :
         db.setup_uncertainties()
@@ -200,7 +318,7 @@ if args.optimize or args.adjtest or args.gradtest :
     if args.optimize :
         logger.info(f"Entering run_args.optimize_149 and calling opt.Var4D() with opt={opt}")
         opt.Var4D()
-        if rcf.get('observation.validation_file', default=False):
+        if rcf.getAlt('observation','validation_file', default=False):
             obs_valid = obsdb.from_rc(rcf, filekey='observation.validation_file', setupUncertainties=False)
             model.run_forward(control.model_data, obs_valid, step='validation')
         else:
