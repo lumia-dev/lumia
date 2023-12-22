@@ -384,6 +384,8 @@ class Uncertainties:
         for cat in self.interface.categories :
             if cat.optimize :
                 # In the following code, we set the variances of the fluxes at the transport scale
+                s=cat.error_structure
+                logger.debug(f'cat.error_structure={s}')
                 if cat.error_structure == 'linear':
                     data[cat.name]['emis'] = data[cat.name]['emis']**2
                 elif cat.error_structure == 'log':

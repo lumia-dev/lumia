@@ -289,7 +289,7 @@ class FootprintTransport:
         self.obs = Observations(obs)
         self.obs.checkIndex(reindex=True)
         self.emfile = emfile
-        self.tracers = self.rcf.get('tracers', tolist='force')
+        self.tracers = self.rcf.rcfGet('tracers', tolist='force')
 
         # Just in case ...
         self.obsfile = obs
@@ -297,7 +297,8 @@ class FootprintTransport:
 
         # Internals
         self.executable = __file__
-        self.ncpus = ncpus# self.rcf.getAlt('model','transport','split', default=os.cpu_count())
+        self.ncpus = ncpus
+        # self.ncpus = self.rcf.rcfGet('model.transport.split', default=os.cpu_count())
         self._set_parallelization(False)
         if mp :
             self._set_parallelization('ray')
@@ -375,14 +376,16 @@ class FootprintTransport:
     def runAdjoint(self):
         # 1) Create an empty adjoint structure
         #region = Region(self.rcf)
-        start = datetime(*self.rcf.get('time.start'))
-        end = datetime(*self.rcf.get('time.end'))
+        start = datetime(*self.rcf.rcfGet('time.start'))
+        end = datetime(*self.rcf.rcfGet('time.end'))
 
         adj = Data()
         for tracer in self.tracers :
             region = grid_from_rc(self.rcf, name=tracer)
-            categories = [c for c in self.rcf.get(f'emissions.{tracer}.categories') if self.rcf.getAlt('emissions', tracer, c, 'optimize', default=False)]
-            dt = time_interval(self.rcf.get(f'emissions.{tracer}.interval'))
+            cats=self.rcf.rcfGet(f'emissions.{tracer}.categories')
+            logger.debug(f'rcf.rcfGet(emissions.{tracer}.categories)={cats}')
+            categories = [c for c in self.rcf.rcfGet(f'emissions.{tracer}.categories') if self.rcf.rcfGet(f'emissions.{tracer}.{c}.optimize', default=False)]
+            dt = time_interval(self.rcf.rcfGet(f'emissions.{tracer}.interval'))
             adj.add_tracer(CreateStruct_adj(tracer, categories, region, start, end, dt))
         adj = Flux(adj)
 
@@ -402,7 +405,7 @@ class FootprintTransport:
             common['start'] = adj[tracer].start
             common['end'] = adj[tracer].end
             common['tres'] = adj[tracer].period
-            # common['tmpdir'] = self.rcf.get('run.paths.temp')
+            # common['tmpdir'] = self.rcf.rcfGet('run.paths.temp')
             common['tmpdir'] = self.rcf['run']['paths']['temp']
             common['obslist'] = self.obs.observations
             common['fpclass'] = self.FootprintFileClass
@@ -425,8 +428,8 @@ class FootprintTransport:
         # 1) Get the list of categories to be optimized:
         self.obs.observations.loc[:, 'mix_background'] = 0.
         #self.obs.observations = self.obs.observations.loc[:0]
-        #categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.get(f'emissions.{c}.optimize', totype=bool, default=False) is True]
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.getAlt('emissions', c, 'optimize', default=False) is True]
+        tracers = self.rcf.rcfGet('run.tracers',  default=['CO2'])
+        categories = [c for c in self.rcf.rcfGet('emissions.categories') if self.rcf.rcfGet(f'emissions.{tracers[0]}.{c}.optimize', totype=bool, default=False) is True]
         self.runForward(categories=categories)
         x1 = self.emis.asvec()
         self.obs.observations.dropna(subset=['mix'], inplace=True)

@@ -146,45 +146,36 @@ if args.gui:
 # Now read the yaml configuration file - whether altered by the GUI or not
 try:
     rcf=rc(ymlFile)
-    griddy=rcf.getAlt('run','grid',  default='${Grid:{lon0:-15.0, lat0:33.0, lon1:35.0, lat1:73.0, dlon:0.25, dlat:0.25}}')
 except:
     logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
     sys.exit(-2)
+
+# Some testing in the debugger.... ignore
 try:
-    lon00=rcf.get('region.lon0')
-    lon11=rcf.get('region.lon1')
+    griddy=rcf.getAlt('run','grid',  default='${Grid:{lon0:-15.0, lat0:33.0, lon1:35.0, lat1:73.0, dlon:0.25, dlat:0.25}}')
+    lon00=rcf.rcfGet('region.lon0')
+    lon11=rcf.rcfGet('region.lon1')
     print(f'lon00={lon00},  lon11={lon11}')
-except:
-    pass
-try:
-    Lon0= float(-15.0)
-    Lon1 = float(35.0)
-    Lat0= float(33.0)
-    Lat1=float(73.0)
-    dollar='$'
-    lBrac='{'
-    rBrac='}'
-    griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:0.25, dlat:0.25%s%s' % (dollar, lBrac,lBrac, Lon0,Lon1, Lat0, Lat1, rBrac, rBrac))
-    print(griddy2)
 except:
     pass
 
 try:
-    lon0=rcf.get('region.lon0')
+    lon0=rcf.rcfGet('region.lon0')
 except:
     pass
 try:
-    lon1=rcf.get('region.lon1')
+    lon1=rcf.rcfGet('region.lon1')
 except:
     pass
 try:
-    lat0=rcf.get('run.grid.Grid.lat0')
+    lat0=rcf.rcfGet('run.grid.Grid.lat0')
 except:
     pass
 try:
     lat1=rcf['run']['region']['lat1']
 except:
     pass
+# end of testing
 
 
 if args.setkey :
@@ -211,20 +202,20 @@ defaults = {
     'transport.output.steps': ['forward']
 }
 
-# for tr in rcf.get('run.tracers', tolist='force'):
+# for tr in rcf.rcfGet('run.tracers', tolist='force'):
 LLst=rcf['run']['tracers']
 for tr in LLst: 
-#for tr in list(rcf['run']['tracers']):      # or  list(rcf.get('run.tracers'))
+#for tr in list(rcf['run']['tracers']):      # or  list(rcf.rcfGet('run.tracers'))
     defaults[f'emissions.{tr}.archive'] = f'rclone:lumia:fluxes/nc/${{emissions.{tr}.region}}/${{emissions.{tr}.interval}}/'
 
 # Read simulation time
 if args.start is None :
-    start = Timestamp(rcf.get('time.start'))
+    start = Timestamp(rcf.rcfGet('time.start'))
 else :
     start = Timestamp(args.start)
     rcf.setkey('time.start', start.strftime('%Y,%m,%d'))
 if args.end is None :
-    end = Timestamp(rcf.get('time.end'))
+    end = Timestamp(rcf.rcfGet('time.end'))
 else :
     end = Timestamp(args.end)
     rcf.setkey('time.end', end.strftime('%Y,%m,%d'))
@@ -236,7 +227,7 @@ defaults['run.paths.temp'] = os.path.join(defaults['run.paths.temp'], f'{start:%
 
 rcf.set_defaults(**defaults)
 
-logger.info(f"Temporary files will be stored in {rcf.get('run.paths.temp')}")
+logger.info(f"Temporary files will be stored in {rcf.rcfGet('run.paths.temp')}")
 logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
@@ -247,18 +238,20 @@ emis.print_summary()
 # Load observations
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
-    db = obsdb(rcf.get('paths.footprints'), start, end)
+    db = obsdb(rcf.rcfGet('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     sLocation=rcf['observations']['file']['location']
     sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
     # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
     try:
-        tracer='CO2'
-        if (isinstance(rcf['observations']['file']['tracer'], list)):
+        # TODO: this need to be generalised, so we can read obsData for multiple tracers.
+        tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+        tracer=tracers[0]
+        if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
             trac=rcf['observations']['file']['tracer']
             tracer=trac[0]
         else:
-            tracer=rcf['observations']['file']['tracer']
+            tracer=rcf['observations'][tracer]['file']['tracer']
         tracer=tracer.upper()    
         sLogCfgPath=""
         if ((rcf['run']['paths']['output'] is None) or len(rcf['run']['paths']['output']))<1:
@@ -297,13 +290,13 @@ if args.forward :
 
 # Setup uncertainties if needed:
 if args.optimize or args.gradtest :
-    if rcf.get('observations.uncertainty.frequency') == 'dyn':
+    if rcf.rcfGet('observations.uncertainty.frequency') == 'dyn':
         logger.info(f" run_args.optimize_dyn(): before calling .calcDepartures(emis, apri) with emis={emis}")
         model.calcDepartures(emis, 'apri')   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
         db.setup_uncertainties_dynamic(
             'mix_apri',
-            rcf.getAlt('observations','uncertainty','dyn','freq', default='7D'),
-            rcf.getAlt('observations','uncertainty','obs_field', default='err_obs')
+            rcf.rcfGet('observations.uncertainty.dyn.freq', default='7D'),
+            rcf.rcfGet('observations.uncertainty.obs_field', default='err_obs')
         )
     else :
         db.setup_uncertainties()
@@ -318,7 +311,7 @@ if args.optimize or args.adjtest or args.gradtest :
     if args.optimize :
         logger.info(f"Entering run_args.optimize_149 and calling opt.Var4D() with opt={opt}")
         opt.Var4D()
-        if rcf.getAlt('observation','validation_file', default=False):
+        if rcf.rcfGet('observation.validation_file', default=False):
             obs_valid = obsdb.from_rc(rcf, filekey='observation.validation_file', setupUncertainties=False)
             model.run_forward(control.model_data, obs_valid, step='validation')
         else:

@@ -289,8 +289,6 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         Lat1=ymlContents['run']['region']['lat1']   #73.0
         Lon0=ymlContents['run']['region']['lon0']  # -15.0
         Lon1=ymlContents['run']['region']['lon1']   #35.0
-        dLat=ymlContents['run']['region']['dlat']   # 0.25
-        dLon=ymlContents['run']['region']['dlon']  # 0.25
         self.sLat0=tk.StringVar(value=f'{Lat0:.3f}')
         self.sLat1=tk.StringVar(value=f'{Lat1:.3f}')
         self.sLon0=tk.StringVar(value=f'{Lon0:.3f}')
@@ -439,14 +437,15 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
 
         # Land/Vegetation Net Exchange combo box
-        self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions']['co2']['categories']['biosphere'])
+        tracers = ymlContents['run']['tracers']
+        tracer=tracers[0]
+        self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere'])
         self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.LandNetExchangeModelCkbVar)
         self.LandNetExchangeOptionMenu.grid(row=6, column=5,
                                         padx=xPadding, pady=yPadding,
                                         columnspan=2, sticky="ew")
- 
 
         # Row 7
         # ################################################################
@@ -487,7 +486,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
         # Fossil emissions combo box
         # Latest is presently https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3
-        self.FossilEmisCkbVar = tk.StringVar(value=ymlContents['emissions']['co2']['categories']['fossil']) #"EDGARv4_LATEST"
+        self.FossilEmisCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['fossil']) #"EDGARv4_LATEST"
         self.FossilEmisOptionMenu = ctk.CTkOptionMenu(self, dropdown_font=("Georgia",  fsNORMAL), 
                                         values=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"], 
                                         variable=self.FossilEmisCkbVar)
@@ -510,7 +509,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         # Ocean Net Exchange combo box
-        self.OceanNetExchangeCkbVar = tk.StringVar(value=ymlContents['emissions']['co2']['categories']['ocean'])  # "mikaloff01"
+        self.OceanNetExchangeCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['ocean'])  # "mikaloff01"
         self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["mikaloff01"], dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.OceanNetExchangeCkbVar)
@@ -630,7 +629,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         def GoButtonHit():
             # def generateResults(self):
             bGo=False
-            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents)
+            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents, tracer=tracer)
             self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
             self.displayBox.delete("0.0", "end")  # delete all text
             if((bErrors) and (bWarnings)):
@@ -704,7 +703,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
     # options and text from the available entry
     # fields and boxes and then generates
     # a prompt using them
-    def checkGuiValues(self, ymlContents):
+    def checkGuiValues(self, ymlContents, tracer):
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -788,8 +787,17 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
             ymlContents['run']['region']['lat1'] = Lat1
             ymlContents['run']['region']['lon0'] = Lon0
             ymlContents['run']['region']['lon1'] = Lon1
-            # run:  grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
-            ymlContents['run']['grid'] = '${Grid:{lon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:0.25, dlat:0.25}}' % (Lon0,Lon1, Lat0, Lat1)
+            dLat=ymlContents['run']['region']['dlat']   # 0.25
+            dLon=ymlContents['run']['region']['dlon']  # 0.25
+           # run:  grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
+            ymlContents['run']['grid'] = '${Grid:{lon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f}}' % (Lon0,Lon1, Lat0, Lat1, dLon, dLat)
+            dollar='$'
+            lBrac='{'
+            rBrac='}'
+            griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f%s%s' % (dollar, lBrac,lBrac, Lon0,Lon1, Lat0, Lat1, dLon, dLat, rBrac, rBrac))
+            logger.debug(f'griddy2={griddy2}')
+            ymlContents['run']['griddy2']=griddy2
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'griddy2'],   value=griddy2, bNewValue=True)
 
         # ObservationsFileLocation
         if (self.iObservationsFileLocation.get()==2):
@@ -801,13 +809,13 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # Emissions data (a prioris)
         # Land/Vegetation Net Exchange combo box
         sLandVegModel=self.LandNetExchangeOptionMenu.get()  # 'VPRM', 'LPJ-GUESS'
-        ymlContents['emissions']['co2']['categories']['biosphere']=sLandVegModel
+        ymlContents['emissions'][tracer]['categories']['biosphere']=sLandVegModel
         # Fossil emissions combo box
         sFossilEmisDataset = self.FossilEmisOptionMenu.get()  # "EDGARv4_LATEST")
-        ymlContents['emissions']['co2']['categories']['fossil']=sFossilEmisDataset
+        ymlContents['emissions'][tracer]['categories']['fossil']=sFossilEmisDataset
         # Ocean Net Exchange combo box
         sOceanNetExchangeDataset = self.OceanNetExchangeCkbVar.get()  # "mikaloff01"
-        ymlContents['emissions']['co2']['categories']['ocean']=sOceanNetExchangeDataset
+        ymlContents['emissions'][tracer]['categories']['ocean']=sOceanNetExchangeDataset
 
         # Station Filters if any
         bStationFilterError=False
@@ -873,9 +881,9 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
             bWarnings=True
             sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
         if(bErrors==False):
-            ymlContents['optimize']['emissions']['co2']['biosphere']['adjust'] = self.LandVegCkb.get()
-            ymlContents['optimize']['emissions']['co2']['fossil']['adjust'] = self.FossilCkb.get()
-            ymlContents['optimize']['emissions']['co2']['ocean']['adjust'] = self.OceanCkb.get()                
+            ymlContents['optimize']['emissions'][tracer]['biosphere']['adjust'] = self.LandVegCkb.get()
+            ymlContents['optimize']['emissions'][tracer]['fossil']['adjust'] = self.FossilCkb.get()
+            ymlContents['optimize']['emissions'][tracer]['ocean']['adjust'] = self.OceanCkb.get()                
             
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
@@ -2073,23 +2081,23 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
         end= pd.Timestamp(tEnd)
     ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'), bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr' )
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr', bNewValue=False )
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'tag'],  value=args.tag, bNewValue=True)
     
     # Run-dependent paths
     #if(not nestedKeyExists(ymlContents, 'run',  'paths',  'output')):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output'],   value=os.path.join('/output', args.tag), bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=False)
     s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s, bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward', bNewValue=False)
     
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
@@ -2119,12 +2127,16 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     # ctk.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
     ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
     # root = ctk.CTk()
-    tracer='CO2'
-    if (isinstance(ymlContents['observations']['file']['tracer'], list)):
-        trac=ymlContents['observations']['file']['tracer']
-        tracer=trac[0]
-    else:
-        tracer=ymlContents['observations']['file']['tracer']
+    tracer='co2'
+    try:
+        if (isinstance(ymlContents['run']['tracers'], list)):
+            trac=ymlContents['run']['tracers']
+            tracer=trac[0]
+        else:
+            tracer=ymlContents['run']['tracers']
+    except:
+        tracer='co2'
+        
     tracer=tracer.upper()    
     
     sStart=ymlContents['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'

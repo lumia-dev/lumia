@@ -19,10 +19,10 @@ class transport(object):
     def __init__(self, rcf, obs=None):
         logger.info(f"Entering tm5__init__() with self={self}")
         self.rcf = rcf
-        self.tm5rc = RcFile(self.rcf.get('model.tm5.rcfile'))
+        self.tm5rc = RcFile(self.rcf.rcfGet('model.tm5.rcfile'))
         self.struct = Struct()
-        self.start = self.rcf.get('time.start', todate=True, fmt='%Y,%m,%d', tolist=False)
-        self.end = self.rcf.get('time.end', todate=True, fmt='%Y,%m,%d', tolist=False)
+        self.start = self.rcf.rcfGet('time.start', todate=True, fmt='%Y,%m,%d', tolist=False)
+        self.end = self.rcf.rcfGet('time.end', todate=True, fmt='%Y,%m,%d', tolist=False)
 
         if obs is not None :
             self.setupObs(obs)
@@ -31,7 +31,7 @@ class transport(object):
         self.db = obsdb
 
     def calcDepartures(self, struct, step=None, serial=False):
-        # tmpdir = self.rcf.get('run.path3.temp')
+        # tmpdir = self.rcf.rcfGet('run.path3.temp')
         logger.info(f"Entering tm5.calcDepartures() with self={self}")
         logger.info(f"Entering tm5.calcDepartures() with struct={struct}")
         tmpdir = self.rcf['run']['paths']['temp']        
@@ -48,18 +48,18 @@ class transport(object):
         # Run TM5:
         cmd = ['singularity', 'exec',
                '-B', f'{os.environ["TM5_METEO"]}:/meteo',
-               '-B', f'{self.rcf.get("path.run")}:/input',
-               '-B', f'{self.rcf.get("path.run")}:/output',
-               '--home', self.rcf.get('tm5.path'),
-               os.path.join(self.rcf.get('tm5.path'), 'singularity/tm5env.sif'),
+               '-B', f'{self.rcf.rcfGet("path.run")}:/input',
+               '-B', f'{self.rcf.rcfGet("path.run")}:/output',
+               '--home', self.rcf.rcfGet('tm5.path'),
+               os.path.join(self.rcf.rcfGet('tm5.path'), 'singularity/tm5env.sif'),
                '/opt/intel/oneapi/intelpython/latest/envs/tm5/bin/python', '-u',
-               os.path.join(self.rcf.get('tm5.path'), 'forward.py'),
+               os.path.join(self.rcf.rcfGet('tm5.path'), 'forward.py'),
                '--start', self.start.strftime('%Y%m%d'),
                '--end', self.end.strftime('%Y%m%d'),
-               '--rc', self.rcf.get('model.tm5.rcfile')
+               '--rc', self.rcf.rcfGet('model.tm5.rcfile')
         ]
 
-        #executable = self.rcf.get("model.transport.exec")
+        #executable = self.rcf.rcfGet("model.transport.exec")
         #cmd = [sys.executable, '-u', executable, '--rc', rcf, '--forward']
         runcmd(cmd)
 
@@ -72,7 +72,7 @@ class transport(object):
         return self.db.observations.loc[:, ['mismatch', 'err']]
 
     def runAdjoint(self, departures):
-        # tmpdir = self.rcf.get('run.paths.temp')
+        # tmpdir = self.rcf.rcfGet('run.paths.temp')
         logger.info(f"Entering tm5.runAdjoint() with self={self}")
         logger.info(f"Entering tm5.departures() with self={departures}")
         tmpdir = self.rcf['run']['paths']['temp']
@@ -87,18 +87,18 @@ class transport(object):
         cmd = [
             'singularity', 'exec',
             '-B', f'{os.environ["TM5_METEO"]}:/meteo',
-            '-B', f'{self.rcf.get("path.run")}:/input',
-            '-B', f'{self.rcf.get("path.run")}:/output',
-            '--home', self.rcf.get('tm5.path'),
-            os.path.join(self.rcf.get('tm5.path'), 'singularity/tm5env.sif'),
+            '-B', f'{self.rcf.rcfGet("path.run")}:/input',
+            '-B', f'{self.rcf.rcfGet("path.run")}:/output',
+            '--home', self.rcf.rcfGet('tm5.path'),
+            os.path.join(self.rcf.rcfGet('tm5.path'), 'singularity/tm5env.sif'),
             '/opt/intel/oneapi/intelpython/latest/envs/tm5/bin/python',  '-u',
-            os.path.join(self.rcf.get('tm5.path'), 'adjoint.py'),
+            os.path.join(self.rcf.rcfGet('tm5.path'), 'adjoint.py'),
             '--start', self.start.strftime('%Y%m%d'),
             '--end', self.end.strftime('%Y%m%d'),
-            '--rc', self.rcf.get('model.tm5.rcfile')
+            '--rc', self.rcf.rcfGet('model.tm5.rcfile')
         ]
 
-        #executable = self.rcf.get("model.transport.exec")
+        #executable = self.rcf.rcfGet("model.transport.exec")
         #cmd = [sys.executable, '-u', executable, '--rc', rcf, '--adjoint']
         runcmd(cmd)
 
@@ -129,7 +129,7 @@ class transport(object):
                     logger.debug(tracer)
                     for cat in ds[regname][tracer].groups :
                         logger.debug(cat)
-                        if self.rcf.getAlt('emissions',cat, 'optimize', default=False):
+                        if self.rcf.rcfGet(f'emissions.{cat}.optimize', default=False):
                             data = ds[regname][tracer][cat]['adj_emis'][:]
                             # adjoint of split emis (re-introduce high temporal resolution)
                             data = self.splitEmis_adj(adjemis[cat]['time_interval']['time_start'], data)

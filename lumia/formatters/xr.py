@@ -737,14 +737,14 @@ class Data:
         em = cls()
         emDataShape=None 
         # TODO: we need to loop through the tracers, not hard-wire co2
-        for tr in list(rcf.get('run.tracers')):
+        for tr in list(rcf.rcfGet('run.tracers')):
 
             # Create spatial grid - provided by minLat, maxLat, dLat, minLong, maxLong, dLong (e.g. Europe, quarter degree)
-            #grid = grid_from_rc(rcf, name=rcf.get(f'emissions.{tr}.region'))
-            grid = rcf.get(f'emissions.{tr}.region')
+            #grid = grid_from_rc(rcf, name=rcf.rcfGet(f'emissions.{tr}.region'))
+            grid = rcf.rcfGet(f'emissions.{tr}.region')
 
             # Create temporal grid:
-            freq = rcf.get(f'emissions.{tr}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
+            freq = rcf.rcfGet(f'emissions.{tr}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
             time = date_range(start, end, freq=freq, inclusive='left') # the time interval requested in the rc file
 
             # Get tracer characteristics
@@ -765,9 +765,9 @@ class Data:
                 #   - use the emissions.tracer.cat.resample_from key (i.e. category-specific)
                 #   - fallback on the emissions.tracer.resample_from key (non-category specific)
                 #   - default to "False" (no resampling)
-                #freq_src = rcf.get(
+                #freq_src = rcf.rcfGet(
                 #    f'emissions.{tr}.{cat}.resample_from', 
-                #    rcf.get(f'emissions.{tr}.resample_from', 
+                #    rcf.rcfGet(f'emissions.{tr}.resample_from', 
                 #            default=freq
                 #    )
                 #)
@@ -775,31 +775,32 @@ class Data:
                 #if((freq_src is None)or(freq_src == '') or ('None' == freq_src)):
                 #    freq_src=freq
                 #A more pythonic way might be to achieve the desired behaviour with try/catch blocks:
-                freq_src=rcf.getAlt('emissions', tr, cat,'resample_from', default=freq)
-                # origin = rcf.get(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
-                fallback=rcf.getAlt('emissions', tr, 'categories', cat, default=None)
-                origin = rcf.getAlt('emissions', tr, 'categories', cat, 'origin', default=fallback)
+                #freq_src=rcf.rcfGet('emissions', tr, cat,'resample_from', default=freq)
+                freq_src=rcf.rcfGet(f'emissions.{tr}.{cat}.resample_from', default=freq)
+                # origin = rcf.rcfGet(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
+                fallback=rcf.rcfGet(f'emissions.{tr}.categories.{cat}', default=None)
+                origin = rcf.rcfGet(f'emissions.{tr}.categories.{cat}.origin', fallback=fallback)
                 if(origin is None):
                     logger.error(f'Abort. No emissions file specified in your yaml config file for key emissions.{tr}.categories.{cat}.')
                     sys.exit(73)
-                logger.debug("tr.path= "+rcf.get(f'emissions.{tr}.path'))
-                #logger.debug("tr.region= "+rcf.get(f'emissions.{tr}.region'))   # !! one cannot simply assign a Grid to a string
-                regionGrid=rcf.get(f'emissions.{tr}.region')
+                logger.debug("tr.path= "+rcf.rcfGet(f'emissions.{tr}.path'))
+                #logger.debug("tr.region= "+rcf.rcfGet(f'emissions.{tr}.region'))   # !! one cannot simply assign a Grid to a string
+                regionGrid=rcf.rcfGet(f'emissions.{tr}.region')
                 # print(regionGrid,  flush=True)
                 sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
                 logger.debug("tr.region= "+ sRegion)
                 logger.debug("freq_src= "+freq_src)
-                logger.debug("tr.prefix "+rcf.get(f'emissions.{tr}.prefix'))
+                logger.debug("tr.prefix "+rcf.rcfGet(f'emissions.{tr}.prefix'))
                 logger.debug("origin="+origin)
-                # emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.get(f'emissions.{tr}.path'),  grid=grid)
-                myPath2FluxData1=rcf.get(f'emissions.{tr}.path')
-                myPath2FluxData3=rcf.get(f'emissions.{tr}.interval')
+                # emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.rcfGet(f'emissions.{tr}.path'),  grid=grid)
+                myPath2FluxData1=rcf.rcfGet(f'emissions.{tr}.path')
+                myPath2FluxData3=rcf.rcfGet(f'emissions.{tr}.interval')
                 myPath2FluxData2=''
                 try:
-                    myPath2FluxData2=rcf.get(f'emissions.{tr}.regionName')
+                    myPath2FluxData2=rcf.rcfGet(f'emissions.{tr}.regionName')
                 except:
                     print('Warning: No key emissions:TRACER:regionName found in user defined resource file (used in pathnames). I shall try to guess it...',  flush=True)
-                    mygrid=rcf.get(f'emissions.{tr}.region')
+                    mygrid=rcf.rcfGet(f'emissions.{tr}.region')
                     if((250==int(mygrid.dlat*1000)) and (250==int(mygrid.dlon*1000)) and (abs((0.5*(mygrid.lat0+mygrid.lat1))-53)<mygrid.dlat)and (abs((0.5*(mygrid.lon0+mygrid.lon1))-10)<mygrid.dlon)):
                         myPath2FluxData2='eurocom025x025' # It is highly likely that the region is centered in Europe and has a lat/lon grid of a quarter degree
                     else:
@@ -812,27 +813,27 @@ class Data:
                     myPath2FluxData=myPath2FluxData+os.path.sep
                 myarchivePseudoDict='rclone:lumia:'+myPath2FluxData
                 if((origin is None)or(origin == '') or ('None' == origin)):
-                    prefix = os.path.join(myPath2FluxData, rcf.get(f'emissions.{tr}.prefix') )
+                    prefix = os.path.join(myPath2FluxData, rcf.rcfGet(f'emissions.{tr}.prefix') )
                 else:
-                    prefix = os.path.join(myPath2FluxData, rcf.get(f'emissions.{tr}.prefix') + origin + '.')
+                    prefix = os.path.join(myPath2FluxData, rcf.rcfGet(f'emissions.{tr}.prefix') + origin + '.')
                 logger.debug("prefix= "+prefix)
                 # If the location in emissions.{tr}.location.{cat} is REMOTE, then we read that file directly from the carbon 
                 # portal, else we assume it is available on the local system in the user-stated path.
                 # if origin.startswith('@'): is now obsolete, because it is incompatible with the yaml naming rules
-                sLocation=rcf.get(f'emissions.{tr}.location.{cat}')
-                catDatasetName=rcf.get(f'emissions.{tr}.categories.{cat}')
+                sLocation=rcf.rcfGet(f'emissions.{tr}.location.{cat}')
+                catDatasetName=rcf.rcfGet(f'emissions.{tr}.categories.{cat}')
                 if ('CARBONPORTAL' in sLocation):
                     # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
                     if((origin is None)or(origin == '') or ('None' == origin)):
-                        sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') )
+                        sFileName = os.path.join(rcf.rcfGet(f'emissions.{tr}.prefix') )
                     else:
-                        sFileName = os.path.join(rcf.get(f'emissions.{tr}.prefix') + origin)
+                        sFileName = os.path.join(rcf.rcfGet(f'emissions.{tr}.prefix') + origin)
                     if (catDatasetName not in origin):
                         sFileName+='.'+catDatasetName
                     # Hint from rclone: The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". 
                     #                              In that case, __post_init__ will then split this into three attributes: protocol, remote and path.
                     # # archive could contain something like rclone:lumia:fluxes/nc/eurocom025x025/1h/
-                    # emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.get(f'emissions.{tr}.archive'), \
+                    # emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=rcf.rcfGet(f'emissions.{tr}.archive'), \
                     # myarchivePseudoDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=myarchivePseudoDict, \
                                                                 sFileName=sFileName, cat=cat,  bFromPortal=True,  iVerbosityLv=2)

@@ -13,7 +13,7 @@ class Minimizer:
     def __init__(self, rcf, nstate=None, filename: str = None):
         self.rcf = rcf
         self.nstate = nstate
-        filename = self.rcf.get('congrad.communication_file') if filename is None else filename
+        filename = self.rcf.rcfGet('congrad.communication_file') if filename is None else filename
         self.commfile = CommFile(filename, rcf)
         self.file_initialized = True
         if nstate is not None :
@@ -53,7 +53,7 @@ class Minimizer:
         return status
 
     def runMinimizer(self):
-        exec_name = self.rcf.getAlt('congrad','executable', default='congrad.exe')
+        exec_name = self.rcf.rcfGet('congrad.executable', default='congrad.exe')
         cmd = [exec_name, '--write-traject', '--state-file', self.commfile.filepath]
         logger.info(colorize(' '.join([str(_) for _ in cmd]), 'g'))
         subprocess.check_call(cmd)
@@ -148,9 +148,12 @@ class CommFile(object):
         fid.createDimension('n_state', nstate)
         fid.createDimension('dim_x', 0)
         fid.createDimension('dim_g', 0)
-        fid.iter_max = self.rcf.getAlt('var4d','max_iter', default=1000)
-        fid.iter_convergence = self.rcf.getAlt('var4d','fixed_iterations', default=1000)
-        fid.preduc = 1./self.rcf.getAlt('var4d','gradient','norm','reduction', default=1.e12)
+        #fid.iter_max = self.rcf.getAlt('var4d','max_iter', default=1000)
+        #fid.iter_convergence = self.rcf.getAlt('var4d','fixed_iterations', default=1000)
+        #fid.preduc = 1./self.rcf.getAlt('var4d','gradient','norm','reduction', default=1.e12)
+        fid.iter_max = self.rcf.rcfGet('var4d.max_iter', default=1000)
+        fid.iter_convergence = self.rcf.rcfGet('var4d.fixed_iterations', default=1000)
+        fid.preduc = 1./self.rcf.rcfGet('var4d.gradient.norm.reduction', default=1.e12)
         fid.congrad_finished = 0
         fid.J_tot = 0
         fid.createVariable('x_c', 'd', ('n_state', 'dim_x'))

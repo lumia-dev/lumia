@@ -21,8 +21,8 @@ class Optimizer(object):
 
         # Paths :
         self.paths = SimpleNamespace(
-            output = self.rcf.get('run.paths.output'),
-            archive = self.rcf.getAlt('run','paths','archive', default=False)
+            output = self.rcf.rcfGet('run.paths.output'),
+            archive = self.rcf.rcfGet('run.paths.archive', default=False)
         )
 
         checkDir(self.paths.output)

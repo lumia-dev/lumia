@@ -142,7 +142,7 @@ if __name__ == '__main__':
     model = LumiaFootprintTransport(args.rc, args.db, args.emis, mp=not args.serial, ncpus=args.ncpus)
 
     if args.checkFootprints:
-        model.checkFootprints(model.rcf.get('path.footprints'))
+        model.checkFootprints(model.rcf.rcfGet('path.footprints'))
 
     if args.forward :
         model.runForward()

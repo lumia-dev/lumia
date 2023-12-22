@@ -54,14 +54,20 @@ class obsdb(obsdb):
         #db.map_fields(rcf['observations'][filekey].get('rename', []))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
+        # TODO: thew whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble
+        # jumble code has only been tested for one tracer. However, in order to read rcf['observations'][tracer][filekey]['tracer'] we 
+        # require prior knowledge of said tracer in order to read that key.... and thus the tracer name really needs to be handed down 
+        # from the calling function. For now, a hot fix picking the first tracer just so it works at least with one tracer
         if "tracer" not in db.observations.columns:
-            tracer = rcf['observations'][filekey]['tracer']
+            tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+            #tracer = rcf['observations']['tracer'][filekey]['tracer']
+            tracer = tracers[0]
             logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
         return db
 
     def setup_uncertainties(self, *args, **kwargs):
-        errtype = self.rcf.get('observations.uncertainty.frequency')
+        errtype = self.rcf.rcfGet('observations.uncertainty.frequency')
         if errtype == 'weekly':
             self.setup_uncertainties_weekly()
         elif errtype == 'cst':
@@ -76,7 +82,7 @@ class obsdb(obsdb):
         res = []
         # if 'observations.uncertainty.default_weekly_error' in self.rcf.keys :  TODO: TypeError: self.rcf.keys  is not iterable
         if (1==1):
-            default_error = self.rcf.get('observations.uncertainty.default_weekly_error')
+            default_error = self.rcf.rcfGet('observations.uncertainty.default_weekly_error')
             if 'err' not in self.sites.columns :
                 self.sites.loc[:, 'err'] = default_error
 

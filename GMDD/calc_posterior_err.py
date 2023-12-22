@@ -30,16 +30,19 @@ rcfile = 'results/GMD/SRefG/transport.apos.rc'
 
 #################################################
 rcf = lumia.rc(rcfile)
-start = datetime(*rcf.get('time.start'))
-end = datetime(*rcf.get('time.end'))
+start = datetime(*rcf.rcfGet('time.start'))
+end = datetime(*rcf.rcfGet('time.end'))
 
 # Load the pre-processed emissions:
-# categories = dict.fromkeys(rcf.get('emissions.categories') + rcf.get('emissions.categories.extras', default=[]))
-sRcf=rcf.getAlt('emissions','categories','extras', default=[])
-categories = dict.fromkeys(rcf.get('emissions.categories') + sRcf)
-for cat in categories :
-    categories[cat] = rcf.get(f'emissions.{cat}.origin')
-emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
+# categories = dict.fromkeys(rcf.rcfGet('emissions.categories') + rcf.rcfGet('emissions.categories.extras', default=[]))
+# sRcf=rcf.getAlt('emissions','categories','extras', default=[])
+tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+sRcf= rcf.rcfGet('emissions.categories.extras', default=[])
+categories = dict.fromkeys(rcf.rcfGet(f'emissions.{tracers[0]}.categories') + sRcf)
+for cat in categories : # We assume that we use the same categories for all tracers
+    categories[cat] = rcf.rcfGet(f'emissions.{tracers[0]}.{cat}.origin') # {tracer}.{cat}
+for tracer in tracers:
+    emis = lagrange.ReadArchive(rcf.rcfGet(f'emissions.{tracer}.prefix'), start, end, categories=categories)
 
 # Initialize the obs operator (transport model)
 model = lumia.transport(rcf, formatter=lagrange)
@@ -50,9 +53,10 @@ ctrl = monthlyFlux.Control(rcf, preconditioner=precon)
 # Create the "Interface" (to convert between control vector and model driver structure)
 interface = Interface(ctrl.name, model.name, rcf, ancilliary=emis)
 
-ctrl.setupPrior(interface.StructToVec(emis))#, lsm_from_file=rcf.get('emissions.lsm.file')))
-# bugfix for errtype = rcf.get('optim.err.type', default='monthlyPrior')
-errtype=rcf.getAlt('optim','err','type', default='monthlyPrior')
+ctrl.setupPrior(interface.StructToVec(emis))#, lsm_from_file=rcf.rcfGet(f'emissions.{tracers[0]}.lsm.file')))
+# bugfix for errtype = rcf.rcfGet('optim.err.type', default='monthlyPrior')
+#errtype=rcf.getAlt('optim','err','type', default='monthlyPrior')
+errtype = rcf.rcfGet('optim.err.type', default='monthlyPrior')
 if errtype == 'monthlyPrior' :
     unc = PercentMonthlyPrior
 elif errtype == 'hourlyPrior' :
@@ -64,12 +68,12 @@ elif errtype == 'true_error' :
 elif errtype == 'field' :
     unc = ErrorFromField
 else:
-    errtype = rcf['monthlyPrior']
+    errtype = 'monthlyPrior'
 err = unc(rcf, interface)(emis)
 
 ctrl.setupUncertainties(err)
 
-cf = CommFile(rcf.get('var4d.communication.file'), rcf)
+cf = CommFile(rcf.rcfGet('var4d.communication.file'), rcf)
 
 converged_eigvals, converged_eigvecs = cf.read_eigsys()
 LE = zeros_like(converged_eigvecs)
@@ -83,6 +87,6 @@ eapri = VecToStruct(dapri, interface)
 eapos = VecToStruct(dapos, interface)
 
 from h5py import File
-with File(f'{rcf.get("run.paths.output")}/errors.h5', 'w') as f :
+with File(f'{rcf.rcfGet("run.paths.output")}/errors.h5', 'w') as f :
     f['eapri'] = eapri#['emis']
     f['eapos'] = eapos#['emis']

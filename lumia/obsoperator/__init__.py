@@ -17,11 +17,11 @@ class transport(object):
         self.rcf = rcf
 
         # Set paths :
-        self.outputdir = self.rcf.get('model.path.output')
-        self.tempdir = self.rcf.get('model.path.temp', self.outputdir)
-        self.executable = self.rcf.get("model.exec")
-        self.serial = self.rcf.getAlt("model","options","serial", default=False)
-        self.footprint_path = self.rcf.get('model.path.footprints')
+        self.outputdir = self.rcf.rcfGet('model.path.output')
+        self.tempdir = self.rcf.rcfGet('model.path.temp', self.outputdir)
+        self.executable = self.rcf.rcfGet("model.exec")
+        self.serial = self.rcf.rcfGet("model.options.serial", default=False) # self.serial = self.rcf.getAlt("model","options","serial", default=False)
+        self.footprint_path = self.rcf.rcfGet('model.path.footprints')
 
         # Initialize the obs if needed
         if obs is not None : 
@@ -92,7 +92,7 @@ class transport(object):
                     db.sites[col]=db.sites[col].astype(float)
         logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
         # if DEBUG: self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
-        if self.rcf.getAlt('model','split_categories', default=True):
+        if self.rcf.rcfGet('model.split_categories', default=True): # if self.rcf.getAlt('model','split_categories', default=True):
             import time
             time.sleep(5)
             logger.info("obsoperator._init_.calcDepartures() L74 self=")
@@ -117,7 +117,7 @@ class transport(object):
         self.db.observations.loc[:, 'mismatch'] = db.observations.mix.values-self.db.observations.loc[:,'obs']
 
         # Optional: store extra columns that the transport model may have written (to pass them again to the transport model in the following steps)
-        for key in list(self.rcf.getAlt('model','store_extra_fields', default=[])) :
+        for key in list(self.rcf.rcfGet('model.store_extra_fields', default=[])) : # for key in list(self.rcf.getAlt('model','store_extra_fields', default=[])) :
             if(is_float_dtype(db.observations.loc[:, key].values)==False):
                 db.observations.loc[:, key].values=db.observations.loc[:, key].values.astype(float)
             self.db.observations.loc[:, key] = db.observations.loc[:, key].values
@@ -125,7 +125,7 @@ class transport(object):
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
         # Output if needed:
-        if step not in self.rcf.get('model.no_output', ['var4d']):
+        if step not in self.rcf.rcfGet('model.no_output', ['var4d']):
             self.save(tag=step, structf=emf)
 
         # Return model-data mismatches
@@ -143,7 +143,7 @@ class transport(object):
             observations = self.db
             logger.info('obsoperator.init.runForward(): observations set to self.db')
 
-        compression = step in self.rcf.getAlt('model','output','steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
+        compression = step in self.rcf.rcfGet('model.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
         emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
         del struct
         dbf = observations.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
@@ -159,7 +159,7 @@ class transport(object):
         logger.info('obsoperator.init.runForward(): cmd=')
         print(cmd)
         
-        cmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
+        cmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default=[])) # cmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
         # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
         runcmd(cmd)
 
@@ -196,7 +196,7 @@ class transport(object):
 
         if self.serial :
             cmd.append('--serial')
-        cmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
+        cmd.extend(list(self.rcf.rcfGet('model.transport.extra_arguments', default=''))) #cmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
         runcmd(cmd)
 
         # Collect the results :
@@ -225,7 +225,7 @@ class transport(object):
     #     cmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--adjtest', '--emis', emf, '--db', dbf]
     #     if self.serial :
     #         cmd.append('--serial')
-    #     cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
+    #     cmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default='').split(','))
     #     runcmd(cmd)
 
     def adjoint_test(self, struct):

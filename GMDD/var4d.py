@@ -19,32 +19,33 @@ def optimize(rcfile, setuponly=False, verbosity='INFO'):
 
     # Create basic objects
     rcf = lumia.rc(rcfile)
-    obsfile = rcf.get('observations.filename')
+    obsfile = rcf.rcfGet('observations.filename')
 
     # Read additional basic settings from rc-file:
-    start = datetime(*rcf.get('time.start'))
-    end = datetime(*rcf.get('time.end'))
+    start = datetime(*rcf.rcfGet('time.start'))
+    end = datetime(*rcf.rcfGet('time.end'))
 
     # Load the observations database
     db = obsdb(filename=obsfile, start=start, end=end)
-    # bugfix for  rcf.get('footprints.setup', default=True)
-    bFootprintsSetup=rcf.getAlt('footprints','setup', default=True)
+    # bugfix for  rcf.rcfGet('footprints.setup', default=True)
+    # bFootprintsSetup=rcf.getAlt('footprints','setup', default=True)
+    bFootprintsSetup= rcf.rcfGet('footprints.setup', default=True)
     if(bFootprintsSetup):
-        db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
+        db.setupFootprints(path=rcf.rcfGet('footprints.path'), cache=rcf.rcfGet('footprints.cache'))
 
     # Eventual refinement of the obs sites selection:
-    # bugfix for rcf.get("observations.use_sites", default=False):
-    bObsUseSites=rcf.getAlt("observations","use_sites", default=False)
+    bObsUseSites=rcf.rcfGet("observations.use_sites", default=False)
+    #bObsUseSites=rcf.getAlt("observations","use_sites", default=False)
     if (bObsUseSites):
-        db.SelectSites(rcf.get("observations.use_sites"))
-
+        db.SelectSites(rcf.rcfGet("observations.use_sites"))
+    tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
     # Load the pre-processed emissions:
-    # categories = dict.fromkeys(rcf.get('emissions.categories') + rcf.get('emissions.categories.extras', default=[]))
-    sRcf=rcf.getAlt('emissions','categories','extras', default=[])
-    categories = dict.fromkeys(rcf.get('emissions.categories') + sRcf)
+    # categories = dict.fromkeys(rcf.rcfGet('emissions.categories') + rcf.rcfGet('emissions.categories.extras', default=[]))
+    sRcf=categories = rcf.rcfGet(f'emissions.{tracers[0]}.categories.extras', default=[])  #rcf.getAlt('emissions','categories','extras', default=[])
+    categories = dict.fromkeys(rcf.rcfGet(f'emissions.{tracers[0]}.categories') + sRcf)
     for cat in categories :
-        categories[cat] = rcf.get(f'emissions.{cat}.origin')
-    emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
+        categories[cat] = rcf.rcfGet(f'emissions.{tracers[0]}.{cat}.origin')
+    emis = lagrange.ReadArchive(rcf.rcfGet(f'emissions.{tracers[0]}.prefix'), start, end, categories=categories)
 
     # Initialize the obs operator (transport model)
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
@@ -56,9 +57,9 @@ def optimize(rcfile, setuponly=False, verbosity='INFO'):
     interface = Interface(ctrl.name, model.name, rcf, ancilliary=emis)
 
     # ... Should this to to the optimizer?
-    ctrl.setupPrior(interface.StructToVec(emis))#, lsm_from_file=rcf.get('emissions.lsm.file')))
-    # bugfix for errtype = rcf.get('optim.err.type', default='monthlyPrior')
-    errtype=rcf.getAlt('optim','err','type', default='monthlyPrior')
+    ctrl.setupPrior(interface.StructToVec(emis))#, lsm_from_file=rcf.rcfGet('emissions.lsm.file')))
+    errtype = rcf.rcfGet('optim.err.type', default='monthlyPrior')
+    # errtype=rcf.getAlt('optim','err','type', default='monthlyPrior')
     if errtype == 'monthlyPrior' :
         unc = PercentMonthlyPrior
     elif errtype == 'hourlyPrior' : 

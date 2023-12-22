@@ -49,8 +49,8 @@ class Control:
         self.rcf = rcf
         self.categories = Categories(rcf)
         self.region = Region(self.rcf)
-        self.start = datetime(*self.rcf.get('time.start'))
-        self.end = datetime(*self.rcf.get('time.end'))
+        self.start = datetime(*self.rcf.rcfGet('time.start'))
+        self.end = datetime(*self.rcf.rcfGet('time.end'))
 
     def setupPrior(self, prior):
         self.vectors.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']]
@@ -71,7 +71,7 @@ class Control:
                 Hor_L = self.horizontal_correlations[cat.horizontal_correlation]
                 Temp_L = self.temporal_correlations[cat.temporal_correlation]
                 ipos = catIndex.index(cat.name)
-                # state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.get('run.paths.temp'))
+                # state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf.rcfGet('run.paths.temp'))
                 state += self.preco.xc_to_x(uncertainty, Temp_L, Hor_L, state_preco, ipos, 1, path=self.rcf['run']['paths']['temp'])
         if add_prior: 
             state += self.vectors.loc[:, 'state_prior']
@@ -91,7 +91,7 @@ class Control:
                 Hor_Lt = self.horizontal_correlations[cat.horizontal_correlation].transpose()
                 Temp_Lt = self.temporal_correlations[cat.temporal_correlation].transpose()
                 ipos = catIndex.index(cat.name)
-                # g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.get('run.paths.temp'))
+                # g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf.rcfGet('run.paths.temp'))
                 g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos, 1, path=self.rcf['run']['paths']['temp'])
         return g_c
         
@@ -121,7 +121,7 @@ class Control:
         # rcf
         rcf = fid.create_group('rcf')
         for key in self.rcf.keys :
-            rcf.attrs[key] = self.rcf.get(key)
+            rcf.attrs[key] = self.rcf.rcfGet(key)
             
         fid.close()
         

@@ -135,7 +135,7 @@ def parse_config(args: Namespace) -> RcFile:
             if v in rcf :
                 msg = f'Only one of the keys "{k}" and "{v}" should be defined. Please fix your settings ...'
                 logger.exception(RuntimeError(msg))
-            rcf.set(v, rcf.get(k.rsplit('.', -1)[0])._content[k.split('.')[-1]])
+            rcf.set(v, rcf.rcfGet(k.rsplit('.', -1)[0])._content[k.split('.')[-1]])
 
         # Regardless of
         rcf.set(k, f'${{oc.deprecated:{v}}}')
@@ -148,13 +148,13 @@ def parse_config(args: Namespace) -> RcFile:
 
     # handle the --start and --end options
     if args.start is None:
-        start = Timestamp(rcf.get('run.start'))
+        start = Timestamp(rcf.rcfGet('run.start'))
     else:
         start = Timestamp(args.start)
         rcf.setkey('run.start', start.strftime('%Y-%m-%d'))
 
     if args.end is None:
-        end = Timestamp(rcf.get('run.end'))
+        end = Timestamp(rcf.rcfGet('run.end'))
     else:
         end = Timestamp(args.end)
         rcf.setkey('run.end', end.strftime('%Y-%m-%d'))
@@ -167,8 +167,8 @@ def parse_config(args: Namespace) -> RcFile:
     tag = args.tag
     if not tag :
         tag = f'{start:%Y%m%d}-{end:%Y%m%d}'
-    rcf['run']['paths']['temp'] = os.path.join(rcf.get('run.paths.output'), tag)
-    rcf['run']['paths']['output'] = os.path.join(rcf.get('run.paths.output'), tag)
+    rcf['run']['paths']['temp'] = os.path.join(rcf.rcfGet('run.paths.output'), tag)
+    rcf['run']['paths']['output'] = os.path.join(rcf.rcfGet('run.paths.output'), tag)
     
     return rcf
 
@@ -186,7 +186,7 @@ def load_observations(rcf: RcFile) -> obsdb:
         obs.uncertainty.setup : TODO: that one and the next shouldn't be here ...
         obs.uncertainty
     """
-    if rcf.getAlt('observations','make_from_footprints', default=False):
+    if rcf.rcfGet('observations.make_from_footprints', default=False):
         from lumia.obsdb.runflex import obsdb
         db = obsdb(rcf['observations.footprints'], rcf['run.start'], rcf['run.end'], tracers=list(rcf['run.tracers']))
     else:
@@ -201,7 +201,7 @@ def setup_uncertainties(model: lumia.transport, emis: xr.Data = None) -> lumia.t
     If "obs.uncertainty" is set to "dyn", then the uncertainty is based on the prior fit of the model to the data,
     therefore this (can) involve a forward model run.
     """
-    for conf in model.rcf.get('optimize.observations').values():
+    for conf in model.rcf.rcfGet('optimize.observations').values():
         res = None
         if conf['uncertainty']['type'] == 'dyn':
             logger.info(f"mainfunctions_setup_uncertainties(): setting up uncertainties for conf={conf} and type=dyn")
@@ -257,7 +257,7 @@ def optimize(rcf: RcFile) -> SimpleNamespace:
     logger.info(f"Entering main_functions_optimize() and calling opt.Var4D() opt={opt}")
     opt.Var4D()
 
-    if rcf.getAlt('observations','validation', default=False):
+    if rcf.rcfGet('observations.validation', default=False):
         obs_valid = obsdb.from_rc(rcf, filekey='validation', setup_uncertainties=False)
         model.run_forward(opt.interface.model_data, obs_valid, step='validation')
     return SimpleNamespace(obs=obs, model=model, emis=emis, optim=opt)
@@ -266,7 +266,7 @@ def optimize(rcf: RcFile) -> SimpleNamespace:
 def validate(rcf: RcFile) -> SimpleNamespace:
     obs = obsdb.from_rc(rcf, filekey='validation', setup_uncertainties=False)
     model = lumia.transport(rcf, obs=obs, formatter=xr)
-    emis = xr.Data.from_file(Path(rcf.get('path.output')) / 'emissions_apos.nc')
+    emis = xr.Data.from_file(Path(rcf.rcfGet('path.output')) / 'emissions_apos.nc')
     model.run_forward(emis, obs, step='validation')
     return SimpleNamespace(obs=obs, model=model, emis=emis)
 
@@ -305,6 +305,6 @@ def prepare_emis(rcf: RcFile) -> xr.Data:
     """
     Construct an emission file for the simulation based on pre-processed, annual, category-specific emission files.
     """
-    emis = xr.Data.from_rc(rcf, rcf.get('run.start'), rcf.get('run.end'))
+    emis = xr.Data.from_rc(rcf, rcf.rcfGet('run.start'), rcf.rcfGet('run.end'))
     emis.print_summary()
     return emis

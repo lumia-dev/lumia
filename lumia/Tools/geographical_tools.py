@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 class Region(region):
     def __init__(self, rcf):
-        rname = rcf.get('region')
+        rname = rcf.rcfGet('region')
         region.__init__(
             self,
             name=rname,
-            lat0=rcf.get('region.lat0'), lat1=rcf.get('region.lat1'), dlat=rcf.get('region.dlat'),
-            lon0=rcf.get('region.lon0'), lon1=rcf.get('region.lon1'), dlon=rcf.get('region.dlon')
+            lat0=rcf.rcfGet('region.lat0'), lat1=rcf.rcfGet('region.lat1'), dlat=rcf.rcfGet('region.dlat'),
+            lon0=rcf.rcfGet('region.lon0'), lon1=rcf.rcfGet('region.lon1'), dlon=rcf.rcfGet('region.dlon')
         )          # TODO: Perhaps better like this? lon0= rcf['run']['grid']['lon0'],
 
 class GriddedData:

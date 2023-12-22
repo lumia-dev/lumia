@@ -66,7 +66,13 @@ class obsdb(obsdb):
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:
-            tracer = rcf['observations'][filekey]['tracer']
+            # TODO: thew whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble
+            # jumble code has only been tested for one tracer. However, in order to read rcf['observations'][tracer][filekey]['tracer'] we 
+            # require prior knowledge of said tracer in order to read that key.... and thus the tracer name really needs to be handed down 
+            # from the calling function. For now, a hot fix picking the first tracer just so it works at least with one tracer
+            tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+            #tracer = rcf['observations']['tracer'][filekey]['tracer']
+            tracer = tracers[0]
             logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
         return db
@@ -467,7 +473,7 @@ class obsdb(obsdb):
         nRemaining=len(dfGoodBgValuesOnly)
         nDroppedBgRows=nTotal - nRemaining - nDroppedObsRows
         if(nDroppedBgRows > 0):
-            whatToDo= 'DAILYMEAN' # 'DAILYMEAN' # self.rcf.get('background.concentrations.co2.stationWithoutBackgroundConcentration')
+            whatToDo= 'DAILYMEAN' # 'DAILYMEAN' # self.rcf.rcfGet('background.concentrations.co2.stationWithoutBackgroundConcentration')
             if(whatToDo=='DAILYMEAN'):
                 dfDailyMeans = dfGoodBgValuesOnly[['time','background']].resample('D', on='time').mean()
                 # dfDailyMeans.rename(columns={'background':'dMeanBackground'}, inplace=True)
@@ -490,7 +496,7 @@ class obsdb(obsdb):
                 logger.info(f"Filled {nDroppedBgRows} rows with daily-mean values of the background co2 concentration across all valid sites. {nRemaining} good rows are remaining")
             elif(whatToDo=='FIXED'):
                 # replace background CO2 concentration values that are missing with the fixed user-provided estimate of the background co2 concentrations
-                EstimatedBgConcentration=410.0 # float(self.rcf.get('background.concentrations.co2.userProvidedBackgroundConcentration'))
+                EstimatedBgConcentration=410.0 # float(self.rcf.rcfGet('background.concentrations.co2.userProvidedBackgroundConcentration'))
                 if(EstimatedBgConcentration<330.0):
                     logger.error(f'The user provided value for background.concentrations.co2.userProvidedBackgroundConcentration={EstimatedBgConcentration} is <330ppm,  which seems unreasonable. Please review you yml configuration file.')
                 if(EstimatedBgConcentration>500.0):
@@ -531,13 +537,13 @@ class obsdb(obsdb):
         #     concentrations :
         #       stationWithoutBackgroundConcentration : DROP   # DROP or exclude station, user-provided FIXED estimate, DAILYMEAN across all other stations
         #       userProvidedBackgroundConcentration : 410 # ppm - only used if stationWithoutBackgroundConcentration==FIXED
-        whatToDo=self.rcf.get('background.concentrations.co2.stationWithoutBackgroundConcentration')
+        whatToDo=self.rcf.rcfGet('background.concentrations.co2.stationWithoutBackgroundConcentration')
         if(whatToDo=='DAILYMEAN'):
             meanValue=411.0
             obsDfWthBg.fillna(meanValue)
         if(whatToDo=='FIXED'):
             # replace background CO2 concentration values that are missing with the fixed user-provided estimate of the background co2 concentrations
-            EstimatedBgConcentration=float(self.rcf.get('background.concentrations.co2.userProvidedBackgroundConcentration'))
+            EstimatedBgConcentration=float(self.rcf.rcfGet('background.concentrations.co2.userProvidedBackgroundConcentration'))
             if(EstimatedBgConcentration<330.0):
                 logger.error(f'The user provided value for background.concentrations.co2.userProvidedBackgroundConcentration={EstimatedBgConcentration} is <330ppm,  which seems unreasonable. Please review you yml configuration file.')
             if(EstimatedBgConcentration>500.0):
@@ -665,7 +671,7 @@ class obsdb(obsdb):
 
 
     def setup_uncertainties(self, *args, **kwargs):
-        errtype = self.rcf.get('observations.uncertainty.frequency')
+        errtype = self.rcf.rcfGet('observations.uncertainty.frequency')
         if errtype == 'weekly':
             self.setup_uncertainties_weekly()
         elif errtype == 'cst':
@@ -681,7 +687,7 @@ class obsdb(obsdb):
         res = []
         # if 'observations.uncertainty.default_weekly_error' in self.rcf.keys :  TODO: TypeError: self.rcf.keys  is not iterable
         if (1==1):
-            default_error = self.rcf.get('observations.uncertainty.default_weekly_error')
+            default_error = self.rcf.rcfGet('observations.uncertainty.default_weekly_error')
             if 'err' not in self.sites.columns :
                 self.sites.loc[:, 'err'] = default_error
                 

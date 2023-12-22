@@ -31,44 +31,44 @@ class Categories:
             yield getattr(self, item)
 
     def setup(self, rcf):
-        catlist = rcf.get('emissions.categories')
-        for cat in catlist :
-            self.add(cat)
-            # bugfix for self[cat].optimize = rcf.get('emissions.%s.optimize'%cat, totype=bool, default=False)
-            bOpt=False
-            try:
-                bOpt=rcf.get['emissions'][cat]['optimize']
-            except:
-                bOpt=False
-            self[cat].optimize =bOpt
-            self[cat].is_ocean = rcf.get('emissions.%s.is_ocean'%cat, totype=bool, default=False)
-            # doubleBug: rcf.get/default and %s not specified:  self[cat].unit = rcf.get('emissions.%s.unit', default='PgC')
-            self[cat].unit = rcf.getAlt('emissions',cat,'unit', default='PgC')
-            if self[cat].optimize :
-                self[cat].uncertainty = rcf.get('emissions.%s.error'%cat)
-                #self[cat].min_uncertainty = rcf.get('emissions.%s.error_min'%cat, default=0)
-                self[cat].min_uncertainty = rcf.getAlt('emissions',cat,'error_min', default=0)
-                self[cat].error_structure = rcf.get(f'emissions.{cat}.error_structure')
-                self[cat].horizontal_correlation = rcf.get('emissions.%s.corr'%cat)
-                self[cat].temporal_correlation = rcf.get('emissions.%s.tcorr'%cat)
-                # bugfix for lf[cat].apply_lsm = rcf.get(f'emissions.{cat}.apply_lsm', default=True)
-                self[cat].apply_lsm = rcf.getAlt('emissions',cat,'apply_lsm', default=True)
-                optint = rcf.get('optimization.interval')
-                if re.match('\d*y', optint):
-                    n = re.split('d', optint)[0]
-                    u = relativedelta(years=1)
-                elif re.match('\d*m', optint):
-                    n = re.split('m', optint)[0]
-                    u = relativedelta(months=1)
-                elif re.match('\d*d', optint):
-                    n = re.split('d', optint)[0]
-                    u = relativedelta(days=1)
-                elif re.match('\d*h', optint):
-                    n = re.split('h', optint)[0]
-                    u = relativedelta(hours=1)
-                n = int(n) if n != '' else 1
-                self[cat].optimization_interval = n*u 
-                #self[cat].optimization_interval = rcf.get('optimization.interval')
+        tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+        for tracer in tracers:
+            catlist = rcf.rcfGet('emissions.%s.categories'%tracer)
+            for cat in catlist :
+                self.add(cat)
+                # TODO: this may need a little more thought. We might need self[tracer][cat].optimize etc.
+                self[cat].optimize = rcf.rcfGet('emissions.%s.%s.optimize'%(tracer, cat), totype=bool, default=False)
+                self[cat].is_ocean = rcf.rcfGet('emissions.%s.%s.is_ocean'%(tracer, cat), totype=bool, default=False)
+                # doubleBug: rcf.get/default and %s not specified:  self[cat].unit = rcf.rcfGet('emissions.%s.unit', default='PgC')
+                self[cat].unit = rcf.rcfGet('emissions.%s.%s.unit'%(tracer, cat), default='PgC')
+                if self[cat].optimize :
+                    self[cat].uncertainty = rcf.rcfGet('emissions.%s.%s.error'%(tracer, cat))
+                    self[cat].min_uncertainty = rcf.rcfGet('emissions.%s.%s.error_min'%(tracer, cat), default=0)
+                    #self[cat].min_uncertainty = rcf.getAlt('emissions',cat,'error_min', default=0)
+                    self[cat].error_structure = rcf.rcfGet(f'emissions.{tracer}.{cat}.error_structure')
+                    self[cat].horizontal_correlation = rcf.rcfGet('emissions.%s.%s.corr'%(tracer, cat))
+                    self[cat].temporal_correlation = rcf.rcfGet('emissions.%s.%s.tcorr'%(tracer, cat))
+                    self[cat].apply_lsm = rcf.rcfGet(f'emissions.{tracer}.{cat}.apply_lsm', default=True)
+                    #self[cat].apply_lsm = rcf.getAlt('emissions',cat,'apply_lsm', default=True)
+                    optint = rcf.rcfGet('optimization.interval')
+                    # deprecation warning: invalid escape sequence '\d' 
+                    # Python 3 interprets string literals as Unicode strings, and therefore a \d is treated as an escaped Unicode
+                    # character. Therefore, any RegEx pattern should be declared as a raw string instead by prepending r
+                    if re.match(r'\d*y', optint):
+                        n = re.split('d', optint)[0]
+                        u = relativedelta(years=1)
+                    elif re.match(r'\d*m', optint):
+                        n = re.split('m', optint)[0]
+                        u = relativedelta(months=1)
+                    elif re.match(r'\d*d', optint):
+                        n = re.split('d', optint)[0]
+                        u = relativedelta(days=1)
+                    elif re.match(r'\d*h', optint):
+                        n = re.split('h', optint)[0]
+                        u = relativedelta(hours=1)
+                    n = int(n) if n != '' else 1
+                    self[cat].optimization_interval = n*u 
+                    #self[cat].optimization_interval = rcf.rcfGet('optimization.interval')
 
     def __len__(self):
         return len(self.list)

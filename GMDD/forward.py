@@ -15,23 +15,25 @@ def Forward(rcf, verbosity='INFO'):
 
     # Read config
     rcf = rc(rcf)
-    start = datetime(*rcf.get('time.start'))
-    end = datetime(*rcf.get('time.end'))
+    start = datetime(*rcf.rcfGet('time.start'))
+    end = datetime(*rcf.rcfGet('time.end'))
 
     # Read observations
-    obsfile = rcf.get('observations.filename')
+    obsfile = rcf.rcfGet('observations.filename')
     db = obsdb(filename=obsfile)
-    db.setupFootprints(path=rcf.get('footprints.path'), cache=rcf.get('footprints.cache'))
+    db.setupFootprints(path=rcf.rcfGet('footprints.path'), cache=rcf.rcfGet('footprints.cache'))
 
     # Read fluxes
-    categories = dict.fromkeys(rcf.get('emissions.categories'))
+    # TODO: This ought to be dependent on the tracer and Forward(rcf, verbosity='INFO') should have another parameter stating TRACER
+    tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+    categories = dict.fromkeys(rcf.rcfGet(f'emissions.{tracers[0]}.categories'))
     for cat in categories :
-        categories[cat] = rcf.get(f'emissions.{cat}.origin')
-    emis = lagrange.ReadArchive(rcf.get('emissions.prefix'), start, end, categories=categories)
+        categories[cat] = rcf.rcfGet(f'emissions.{tracers[0]}.{cat}.origin')
+    emis = lagrange.ReadArchive(rcf.rcfGet(f'emissions.{tracers[0]}.prefix'), start, end, categories=categories)
 
     # transport model run
     model = lumia.transport(rcf, obs=db, formatter=lagrange)
-    model.runForward(struct=emis, step=rcf.get('tag'))
+    model.runForward(struct=emis, step=rcf.rcfGet('tag'))
 
     return model
 

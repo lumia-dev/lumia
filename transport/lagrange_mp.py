@@ -203,10 +203,13 @@ class Lagrange:
     def runAdjoint_sp(self):
         # Create an empty adjoint structure:
         region = Region(self.rcf)
-        categories = [c for c in self.rcf.get('emissions.categories') if self.rcf.getAlt('emissions', c,'optimize', default=0) == 1]
-        start = datetime(*self.rcf.get('time.start'))
-        end = datetime(*self.rcf.get('time.end'))
-        dt = time_interval(self.rcf.get('emissions.interval'))
+        # can we get tracer from self?
+        tracers = self.rcf.rcfGet('run.tracers',  default=['CO2'])
+        #categories = [c for c in self.rcf.rcfGet('emissions.categories') if self.rcf.getAlt('emissions', c,'optimize', default=0) == 1]
+        categories = [c for c in self.rcf.rcfGet('emissions.{tracers[0]}.categories') if self.rcf.rcfGet(f'emissions.{tracers[0]}.{c}.optimize', default=0) == 1]
+        start = datetime(*self.rcf.rcfGet('time.start'))
+        end = datetime(*self.rcf.rcfGet('time.end'))
+        dt = time_interval(self.rcf.rcfGet('emissions.interval'))
         adj = CreateStruct(categories, region, start, end, dt)
 
         # Loop over the footprint files:
@@ -271,7 +274,7 @@ class Lagrange:
 
     def splitDb(self):
         nobs = self.obs.observations.shape[0]
-        nchunks = self.rcf.getAlt('model','transport','split', default=1)
+        nchunks = self.rcf.rcfGet('model.transport.split', default=1)
 
         logger.debug(f"The database will be split in {nchunks} chunks")
 
@@ -291,7 +294,7 @@ class Lagrange:
                 db = self.obs.get_iloc(slice(ichunk*chunk_size, (ichunk+1)*chunk_size))
 
                 # Write observation file
-                dbfid, dbf = tempfile.mkstemp(dir=self.rcf.get('path.run'), prefix='obs.', suffix='.tar.gz')
+                dbfid, dbf = tempfile.mkstemp(dir=self.rcf.rcfGet('path.run'), prefix='obs.', suffix='.tar.gz')
 
                 # The previous function actually creates a file. We need to remove it or we end up with too many open files
                 os.fdopen(dbfid).close()

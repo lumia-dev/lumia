@@ -67,30 +67,27 @@ class Interface:
         for tracer in self.tracers :
 
             # Add meta-categories (if any!)
-            for k, v in self.rcf.getAlt('emissions',tracer,'metacategories', default=dict()).items():
+            # for k, v in self.rcf.getAlt('emissions',tracer,'metacategories', default=dict()).items():
+            for k, v in self.rcf.rcfGet(f'emissions.{tracer}.metacategories', default=dict()).items():    
                 self.model_data[tracer].add_metacat(k, v)
 
         for cat in self.model_data.categories :
             pfx = f'optimize.emissions.{cat.tracer}'
-            optimize_cat = cat.name in self.rcf.get(pfx)
+            optimize_cat = cat.name in self.rcf.rcfGet(pfx)
             attrs = {'optimized': optimize_cat}
             if optimize_cat:
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will be optimized')
-                applyLsm=self.rcf.get(f'{pfx}.{cat.name}.apply_lsm', default=True)
-                if((applyLsm is None) or (applyLsm=='None') or (applyLsm=='')):
-                    applyLsm=True
-                isOcean=self.rcf.get(f'{pfx}.{cat.name}.is_ocean', default=False)
-                if((isOcean is None) or (isOcean=='None') or (isOcean=='')):
-                    isOcean=False
+                applyLsm=self.rcf.rcfGet(f'{pfx}.{cat.name}.apply_lsm', default=True)
+                isOcean=self.rcf.rcfGet(f'{pfx}.{cat.name}.is_ocean', default=False)
                 attrs.update({
-                    'optimization_interval': self.rcf.get(f'{pfx}.{cat.name}.optimization_interval'),
+                    'optimization_interval': self.rcf.rcfGet(f'{pfx}.{cat.name}.optimization_interval'),
                     'apply_lsm': applyLsm,
                     'is_ocean': isOcean,
-                    'n_optim_points': self.rcf.get(f'{pfx}.{cat.name}.npoints'),
-                    'horizontal_correlation': self.rcf.get(f'{pfx}.{cat.name}.spatial_correlation'),
-                    'temporal_correlation': self.rcf.get(f'{pfx}.{cat.name}.temporal_correlation'),
+                    'n_optim_points': self.rcf.rcfGet(f'{pfx}.{cat.name}.npoints'),
+                    'horizontal_correlation': self.rcf.rcfGet(f'{pfx}.{cat.name}.spatial_correlation'),
+                    'temporal_correlation': self.rcf.rcfGet(f'{pfx}.{cat.name}.temporal_correlation'),
                 })
-                err = ureg(self.rcf.get(f'{pfx}.{cat.name}.annual_uncertainty'))
+                err = ureg(self.rcf.rcfGet(f'{pfx}.{cat.name}.annual_uncertainty'))
                 scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
                 attrs['total_uncertainty'] = err.m * scf
             else :

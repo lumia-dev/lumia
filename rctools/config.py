@@ -138,6 +138,43 @@ class Config:
 
         return value
 
+    def checkDefault(self, keyval,  default) -> Any :
+        if((keyval is None) or (keyval=='') or (keyval=='None')): # an alternative workaround for the default value being ignored in rcf.rcfGet()
+            keyval=default
+        return(keyval)
+
+    def rcfGet(self, key: Union[str, List[str]], **kwargs) -> Any :
+        try :
+            value = self._data
+            for kk in splitkey(key):
+                value = value[kk]
+        except (TypeError, errors.ConfigKeyError) as e:
+            # We get TypeError when we are already at the lowest level of the hierarchy (e.g. trying to get a.b.c, but a key a.b: value exists)
+            # and we get ConfigKeyError in other cases (e.g. a.b is a section but doesn't contain a key or subsection c).
+            # TODO: Not working as described. If the key emissions.co2.resample_from is missing, no exception is triggered and 'None' instead of the default value is returned /cec-ami 2023-12-13
+            parent = self._find_parent(key)
+            if parent is not None :
+                value = self.get(parent)
+                # We have an issue if value is 'None' or None or ''
+            elif 'fallback' in kwargs:
+                value = self.get(kwargs['fallback'])
+            elif 'default' in kwargs:
+                value = kwargs['default']
+            else :
+                logger.critical(f'Key "{key}" not found!')
+                raise e
+            if((value is None) or (value=='None') or (value=='')):
+                if 'fallback' in kwargs:
+                    value = self.get(kwargs['fallback'])
+                elif 'default' in kwargs:
+                    value = kwargs['default']
+
+        if isinstance(value, ListConfig):
+            value = list(value)
+
+        return value
+        
+        
     def getAlt(self, arg1,  arg2=None,  arg3=None,  arg4=None,  arg5=None,  default=None):
         # an alternative to the get() function that seems to have some intricate issues with the default value sent
         rVal=default
