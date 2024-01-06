@@ -53,7 +53,7 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
     sdlat=str(int(grid.dlat*1000))
     sdlon=str(int(grid.dlon*1000))
     fnameOut="."+os.path.sep+"regridded"+os.path.sep+sdlat+'x'+sdlon+os.path.sep+sExistingFile.split(os.path.sep)[-1] +".dLat"+sdlat+"dLon"+sdlon
-    print('Hunting for flux input file '+fnameOut,  flush=True)
+    logger.debug(f'Hunting for flux input file fnameOut={fnameOut}')
     try:
         # Have we created this file previously so we could simply read it instead of creating it first?
         f=open(fnameOut, 'rb')
@@ -138,7 +138,7 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
 
 def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = None,  checkGrid = True,  tim0=None):
     '''  
-    ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is one (undesired)
+    ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value non-equal zero (undesired)
                              or zero (as it should). Normally the netcdf header should provide whether the times reported
                              refer to the start of the time step, the middle or the end. VPRM files do, EDGAR4.3 files don't.
                              Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
@@ -148,9 +148,9 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
                              times representing the beginning of an observation period.
                              I had to add a fix for background co2 concentration netcdf files that are reported at the middle of
                             the time step and that need to be shifted by 30 minutes
-        # TODO: If Time starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement interval
-        #             as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
-        # We can fix this by shifting the time axis by one hour (with cdo):
+        # TODO: we should analyse the netcdf header itself more rigourously and rely on that, perhaps with some fallback.
+        #             
+        # Example for shifting the time axis by one hour (with cdo):
         # cdo shifttime,-1hour xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250
         # TODO: This needs to be made smarter so we can call CDO and fix the time axis no matter what.....
 '''

@@ -8,84 +8,6 @@ import lumia
 from rctools import RcFile as rc
 from loguru import logger
 import lumia.housekeeping as hk
-
-if(0>1):
-    import xarray as xr
-    import pandas as pd
-    emData = []
-    fname='./regridded/250x250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250.eots'
-    #fname='/data/dataAppStorage/netcdf/xLjxG3d9euFZ9SOUj69okhaU'
-    try:
-        # Have we created this file previously so we could simply read it instead of creating it first?
-        f=open(fname, 'rb')
-        f.close()
-        # tim0=0  # we could assume time axis starts at zero. If this software created it, then that should be the case. But let's be prudent....
-    except:
-        logger.error(f"Abort unable to f=open({fname})")
-        #sys.exit(56)
-    try:
-        em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
-        logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-        print(em1Data, flush=True)
-    except:
-        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-    fname='./regridded/250x250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250'
-    try:
-        # Have we created this file previously so we could simply read it instead of creating it first?
-        f=open(fname, 'rb')
-        f.close()
-        # tim0=0  # we could assume time axis starts at zero. If this software created it, then that should be the case. But let's be prudent....
-    except:
-        logger.error(f"Abort unable to f=open({fname})")
-        sys.exit(56)
-    try:
-        em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
-        logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-        print(em1Data, flush=True)
-        try:
-            header=em1Data.head() 
-            print(header,  flush=True)
-            ln=em1Data['time'].attrs['long_name']
-            if('end of interval' in ln):
-                em1Data['time'].attrs['long_name'] = "time at start of interval"
-        except:
-            pass
-    except:
-        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-    try:
-        em1Data=xr.load_dataarray(fname)
-        logger.info(f"Success: xr.load_dataarray({fname})")
-        print(em1Data, flush=True)
-    except:
-        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-    try:
-        em1Data=xr.load_dataarray(fname, engine="netcdf4")
-        logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4)")
-        print(em1Data, flush=True)
-    except:
-        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-    try:
-        xrExisting = xr.open_dataset(fname)
-        fLats=xrExisting.lat
-        fLons=xrExisting.lon
-        dTime=xrExisting.time.data
-        t1 = pd.Timestamp(dTime[0])
-        tim0=t1.hour
-        logger.info(f"Success: xr.open_dataset({fname})")
-        print(xrExisting, flush=True)
-    except:
-        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-    fname='./regridded/250x250/xLjxG3d9euFZ9SOUj69okhaU.dLat250dLon250'
-    try:
-        logger.info(f"Reading contents from flux file {fname}")
-        em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
-        logger.info('Success.')
-        emData.append(em1Data)
-    except:
-        logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray(fname, engine=netcdf4, decode_times=True) with fname={fname}")
-        sys.exit(1)
-    sys.exit(0)
-
 from lumia.formatters import xr
 
 p = ArgumentParser()
@@ -150,34 +72,6 @@ except:
     logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
     sys.exit(-2)
 
-# Some testing in the debugger.... ignore
-try:
-    griddy=rcf.getAlt('run','grid',  default='${Grid:{lon0:-15.0, lat0:33.0, lon1:35.0, lat1:73.0, dlon:0.25, dlat:0.25}}')
-    lon00=rcf.rcfGet('region.lon0')
-    lon11=rcf.rcfGet('region.lon1')
-    print(f'lon00={lon00},  lon11={lon11}')
-except:
-    pass
-
-try:
-    lon0=rcf.rcfGet('region.lon0')
-except:
-    pass
-try:
-    lon1=rcf.rcfGet('region.lon1')
-except:
-    pass
-try:
-    lat0=rcf.rcfGet('run.grid.Grid.lat0')
-except:
-    pass
-try:
-    lat1=rcf['run']['region']['lat1']
-except:
-    pass
-# end of testing
-
-
 if args.setkey :
     for kv in args.setkey :
         k, v = kv.split(':')
@@ -228,10 +122,10 @@ defaults['run.paths.temp'] = os.path.join(defaults['run.paths.temp'], f'{start:%
 rcf.set_defaults(**defaults)
 
 logger.info(f"Temporary files will be stored in {rcf.rcfGet('run.paths.temp')}")
-logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
+#logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
-sKeyword='LPJGUESS'
+# sKeyword='LPJGUESS'
 emis = xr.Data.from_rc(rcf, start, end)
 emis.print_summary()
 

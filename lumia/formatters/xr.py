@@ -765,33 +765,27 @@ class Data:
                 #   - use the emissions.tracer.cat.resample_from key (i.e. category-specific)
                 #   - fallback on the emissions.tracer.resample_from key (non-category specific)
                 #   - default to "False" (no resampling)
-                #freq_src = rcf.rcfGet(
-                #    f'emissions.{tr}.{cat}.resample_from', 
-                #    rcf.rcfGet(f'emissions.{tr}.resample_from', 
-                #            default=freq
-                #    )
-                #)
                 # TODO: Not working as described. If the key emissions.co2.resample_from is missing, no exception is triggered and 'None' instead of the default value is returned /cec-ami 2023-12-13
-                #if((freq_src is None)or(freq_src == '') or ('None' == freq_src)):
-                #    freq_src=freq
-                #A more pythonic way might be to achieve the desired behaviour with try/catch blocks:
                 #freq_src=rcf.rcfGet('emissions', tr, cat,'resample_from', default=freq)
                 freq_src=rcf.rcfGet(f'emissions.{tr}.{cat}.resample_from', default=freq)
                 # origin = rcf.rcfGet(f'emissions.{tr}.categories.{cat}.origin', fallback=f'emissions.{tr}.categories.{cat}')
                 fallback=rcf.rcfGet(f'emissions.{tr}.categories.{cat}', default=None)
+                if not (isinstance(fallback, str)):
+                    fallback=None
                 origin = rcf.rcfGet(f'emissions.{tr}.categories.{cat}.origin', fallback=fallback)
                 if(origin is None):
-                    logger.error(f'Abort. No emissions file specified in your yaml config file for key emissions.{tr}.categories.{cat}.')
+                    logger.error(f'Abort. No emissions file specified in your yaml config file for key emissions.{tr}.categories.{cat}.origin')
                     sys.exit(73)
                 logger.debug("tr.path= "+rcf.rcfGet(f'emissions.{tr}.path'))
-                #logger.debug("tr.region= "+rcf.rcfGet(f'emissions.{tr}.region'))   # !! one cannot simply assign a Grid to a string
                 regionGrid=rcf.rcfGet(f'emissions.{tr}.region')
                 # print(regionGrid,  flush=True)
                 sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
-                logger.debug("tr.region= "+ sRegion)
-                logger.debug("freq_src= "+freq_src)
-                logger.debug("tr.prefix "+rcf.rcfGet(f'emissions.{tr}.prefix'))
-                logger.debug("origin="+origin)
+                logger.debug(f"tr.region= {sRegion}")
+                logger.debug(f"freq_src= {freq_src}")
+                if(origin is None):
+                    logger.debug("origin=None")
+                else:
+                    logger.debug(f"origin={origin}")
                 # emis = load_preprocessed(prefix, start, end, freq=freq, archive=rcf.rcfGet(f'emissions.{tr}.path'),  grid=grid)
                 myPath2FluxData1=rcf.rcfGet(f'emissions.{tr}.path')
                 myPath2FluxData3=rcf.rcfGet(f'emissions.{tr}.interval')
@@ -799,12 +793,12 @@ class Data:
                 try:
                     myPath2FluxData2=rcf.rcfGet(f'emissions.{tr}.regionName')
                 except:
-                    print('Warning: No key emissions:TRACER:regionName found in user defined resource file (used in pathnames). I shall try to guess it...',  flush=True)
+                    logger.warning(f'Warning: No key emissions.{tr}.regionName found in user defined resource file (used in pathnames). I shall try to guess it...',  flush=True)
                     mygrid=rcf.rcfGet(f'emissions.{tr}.region')
                     if((250==int(mygrid.dlat*1000)) and (250==int(mygrid.dlon*1000)) and (abs((0.5*(mygrid.lat0+mygrid.lat1))-53)<mygrid.dlat)and (abs((0.5*(mygrid.lon0+mygrid.lon1))-10)<mygrid.dlon)):
                         myPath2FluxData2='eurocom025x025' # It is highly likely that the region is centered in Europe and has a lat/lon grid of a quarter degree
                     else:
-                        print('Abort in lumia/formatter/xr.py: My guess of eurocom025x025 was not a very good guess. Please provide a emissions:TRACER:regionName key in your yml configuration file and try again.', flush=True)
+                        logger.error(f'Abort. My guess of eurocom025x025 was not a very good guess. Please provide a emissions.{tr}.regionName key in your yml configuration file and try again.', flush=True)
                         sys.exit(1)
                 if(myPath2FluxData1[-1]!=os.path.sep):
                     myPath2FluxData1=myPath2FluxData1+os.path.sep
@@ -817,11 +811,11 @@ class Data:
                 else:
                     prefix = os.path.join(myPath2FluxData, rcf.rcfGet(f'emissions.{tr}.prefix') + origin + '.')
                 logger.debug("prefix= "+prefix)
-                # If the location in emissions.{tr}.location.{cat} is REMOTE, then we read that file directly from the carbon 
+                # If the location in emissions.{tr}.location.{cat} is CARBONPORTAL, then we read that file directly from the carbon 
                 # portal, else we assume it is available on the local system in the user-stated path.
                 # if origin.startswith('@'): is now obsolete, because it is incompatible with the yaml naming rules
                 sLocation=rcf.rcfGet(f'emissions.{tr}.location.{cat}')
-                catDatasetName=rcf.rcfGet(f'emissions.{tr}.categories.{cat}')
+                catDatasetName=rcf.rcfGet(f'emissions.{tr}.categories.{cat}.origin')
                 if ('CARBONPORTAL' in sLocation):
                     # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
                     if((origin is None)or(origin == '') or ('None' == origin)):
@@ -947,6 +941,7 @@ def load_preprocessed(
         # Beware: If the time dimension starts with one rather than zero hours, then the time recorded refers to the end of the 1h measurement
         #           interval  as opposed to Lumia, which expects that time to represent the start of the measurement time interval.
         # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
+        bSuccess=True
         if((tim0 is None)or(tim0!=0)):
             (fname, bSuccess)=cdoWrapper.ensureReportedTimeIsStartOfMeasurmentInterval(fname, grid=grid, tim0= tim0)  
         if(not bSuccess):

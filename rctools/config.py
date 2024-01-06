@@ -175,25 +175,6 @@ class Config:
         return value
         
         
-    def getAlt(self, arg1,  arg2=None,  arg3=None,  arg4=None,  arg5=None,  default=None):
-        # an alternative to the get() function that seems to have some intricate issues with the default value sent
-        rVal=default
-        try:
-            if(arg2 is None):
-                rVal=self.get['arg1']
-            elif(arg3 is None):
-                rVal=self.get['arg1']['arg2']
-            elif(arg4 is None):
-                rVal=self.get['arg1']['arg2']['arg3']
-            elif(arg5 is None):
-                rVal=self.get['arg1']['arg2']['arg3']['arg4']
-            else:
-                rVal=self.get['arg1']['arg2']['arg3']['arg4']['arg5']
-        except:
-            rVal=default
-        return(rVal)
-        
-
     def set(self, key: Union[str, List[str]], value):
         if type(value) in resolvers:
             value = resolvers[type(value)].reverse(value)
@@ -217,7 +198,7 @@ class Config:
 
     def _find_parent(self, key) -> Union[str, None]:
         possible_matches = [k for k in self.flatten().keys() if '*' in k]
-        matches = [k for k in possible_matches if re.match(k.replace('*', '\w+'), key)]
+        matches = [k for k in possible_matches if re.match(k.replace('*', r'\w+'), key)]
         while len(matches) > 1:
             # First, select the matches that branch the lowest:
             pos = [m.index('*') for m in matches]

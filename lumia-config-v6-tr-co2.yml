@@ -20,33 +20,34 @@ emissions:
   co2:
     categories:
       biosphere:
-        datasetname: VPRM
-        optimize: false
+        origin: VPRM
         is_ocean: false
         unit: PgC
         error_min: 0
         tcorr: ${optimize.emissions.co2.biosphere.temporal_correlation}
       fossil:
-        datasetname: EDGARv4_LATEST
+        origin: EDGARv4_LATEST
         optimize: false
         is_ocean: false
         unit: PgC
         error_min: 0
         tcorr: ${optimize.emissions.co2.fossil.temporal_correlation}
       ocean:
-        datasetname: mikaloff01
+        origin: mikaloff01
         optimize: false
         is_ocean: true
         unit: PgC
         error_min: 0
         tcorr: ${optimize.emissions.co2.ocean.temporal_correlation}
+    interval: ${run.timestep}
     location:
       biosphere: CARBONPORTAL
       fossil: CARBONPORTAL
       ocean: LOCAL
     path: ${run.paths.data}/fluxes/nc/
     prefix: flux_co2.
-  interval: ${run.timestep}
+    region: ${run.grid}
+    regionName: ${run.gridname}
   region: ${run.grid}
   regionName: ${run.gridname}
 emissions.*.error_structure: linear
@@ -83,9 +84,9 @@ observations:
         rename: background:mix_background
         selectedObsData: ./output/Lumia-2023-12-08T22:14:54-selected-ObsData-CO2.csv
         selectedPIDs: ./output/Lumia-2023-12-08T22:14:54-selected-PIDs-CO2.csv
+        tracer: co2
     units: ppm
   end: '2018-03-03 23:59:59'
-    # tracer: co2
   filters:
     CountriesExcluded: []
     ICOSonly: false
