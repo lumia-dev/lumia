@@ -155,7 +155,7 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
         tracer=tracer.upper()    
     except:
         logger.error('Key run.tracers not retrievable from stated yaml config file')
-    sLocation=rcf['observations']['file'][tracer]['location']
+    sLocation=rcf['observations'][tracer]['file']['location']
     # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
     try:
         # TODO: this need to be generalised, so we can read obsData for multiple tracers.

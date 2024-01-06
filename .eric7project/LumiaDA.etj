@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-06, 17:34:10"
+    "saved": "2024-01-06, 19:22:06"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -792,9 +792,9 @@
       "priority": 1,
       "lineno": 161,
       "completed": false,
-      "created": 1704558847.7840612,
+      "created": 1704565323.7863085,
       "type": 1,
-      "uid": "{9501d588-5327-4f6d-8c01-3cb21e256c0c}",
+      "uid": "{ea7a48b9-11a9-403d-97d9-01879a087f0a}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
@@ -805,9 +805,9 @@
       "priority": 1,
       "lineno": 182,
       "completed": false,
-      "created": 1704558847.7884722,
+      "created": 1704565323.790071,
       "type": 1,
-      "uid": "{cc1a827f-867a-4016-8991-64945ee8e2ef}",
+      "uid": "{f949efba-6072-489b-a482-fd4060ec72da}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
