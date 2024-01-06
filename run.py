@@ -144,18 +144,21 @@ if args.noobs :
     from lumia.obsdb.runflex import obsdb
     db = obsdb(rcf.rcfGet('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
-    sLocation=rcf['observations']['file']['location']
-    # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
     try:
-        # TODO: this need to be generalised, so we can read obsData for multiple tracers.
         tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
         tracer=tracers[0]
         if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
-            trac=rcf['observations']['file']['tracer']
+            trac=rcf['observations'][tracer]['file']['tracer']
             tracer=trac[0]
         else:
             tracer=rcf['observations'][tracer]['file']['tracer']
         tracer=tracer.upper()    
+    except:
+        logger.error('Key run.tracers not retrievable from stated yaml config file')
+    sLocation=rcf['observations']['file'][tracer]['location']
+    # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
+    try:
+        # TODO: this need to be generalised, so we can read obsData for multiple tracers.
         sLogCfgPath=""
         if ((rcf['run']['paths']['output'] is None) or len(rcf['run']['paths']['output']))<1:
             sLogCfgPath="./"
