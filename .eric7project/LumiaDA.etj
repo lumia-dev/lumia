@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-06, 16:10:55"
+    "saved": "2024-01-06, 16:19:19"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -96,19 +96,6 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py"
-    },
-    {
-      "summary": "TODO: this shall become obsolete. LumiaGUI is to be called stand-alone before running LumiaDA",
-      "description": "",
-      "priority": 1,
-      "lineno": 130,
-      "completed": false,
-      "created": 1704540488.1002595,
-      "type": 1,
-      "uid": "{855f607f-837b-4b8e-9dca-b79f38265c0a}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/housekeeping.py"
     },
     {
       "summary": "TODO: check. should not be needed",
@@ -811,6 +798,19 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
+    },
+    {
+      "summary": "TODO: this shall become obsolete. LumiaGUI is to be called stand-alone before running LumiaDA",
+      "description": "",
+      "priority": 1,
+      "lineno": 130,
+      "completed": false,
+      "created": 1704554356.89446,
+      "type": 1,
+      "uid": "{697e11d7-2443-49ae-8114-5d5bdfc74548}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/housekeeping.py"
     }
   ]
 }

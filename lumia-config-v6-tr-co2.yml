@@ -72,19 +72,19 @@ model:
 observations:
   co2:
     file:
-        discoverData: false
-        location: CARBONPORTAL
-        path: observations.tar.gz
-        ranking:
-        - ObsPack
-        - Level2
-        - Level1
-        - NRT
-        - AnyOther
-        rename: background:mix_background
-        selectedObsData: ./output/Lumia-2023-12-08T22:14:54-selected-ObsData-CO2.csv
-        selectedPIDs: ./output/Lumia-2023-12-08T22:14:54-selected-PIDs-CO2.csv
-        tracer: co2
+      discoverData: false
+      location: CARBONPORTAL
+      path: observations.tar.gz
+      ranking:
+      - ObsPack
+      - Level2
+      - Level1
+      - NRT
+      - AnyOther
+      rename: background:mix_background
+      selectedObsData: ./output/Lumia-2023-12-08T22:14:54-selected-ObsData-CO2.csv
+      selectedPIDs: ./output/Lumia-2023-12-08T22:14:54-selected-PIDs-CO2.csv
+      tracer: co2
     units: ppm
   end: '2018-03-03 23:59:59'
   filters:
