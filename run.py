@@ -124,6 +124,16 @@ rcf.set_defaults(**defaults)
 logger.info(f"Temporary files will be stored in {rcf.rcfGet('run.paths.temp')}")
 #logger.info(f"Temporary files will be stored in {rcf['run']['paths']['temp']}")
 
+sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
+sOut=rcf.rcfGet('run.paths.output')
+if not os.path.exists(f'{sOut}/{sNow}-runlog-config.yml'):
+    sCmd=f'cp {ymlFile} {sOut}/{sNow}-runlog-config.yml'
+    try:
+        os.system(sCmd)
+    except:
+        logger.error("Fatal error: the following system command failed. Please check write permissions and disk space in the target directory.")
+        logger.error(sCmd)
+        sys.exit(-1)
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
 # sKeyword='LPJGUESS'
 emis = xr.Data.from_rc(rcf, start, end)
@@ -135,7 +145,6 @@ if args.noobs :
     db = obsdb(rcf.rcfGet('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     sLocation=rcf['observations']['file']['location']
-    sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
     # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
     try:
         # TODO: this need to be generalised, so we can read obsData for multiple tracers.

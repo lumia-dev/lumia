@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-06, 15:35:51"
+    "saved": "2024-01-06, 16:10:55"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -748,32 +748,6 @@
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py"
     },
     {
-      "summary": "TODO: this need to be generalised, so we can read obsData for multiple tracers.",
-      "description": "",
-      "priority": 1,
-      "lineno": 141,
-      "completed": false,
-      "created": 1704551401.7029896,
-      "type": 1,
-      "uid": "{21b32441-97ec-49d0-a8b9-cceb58f60d8b}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
-    },
-    {
-      "summary": "TODO: Done. I have moved \" Load the pre-processed emissions\" to after Load observations block again - just for testing so we can",
-      "description": "",
-      "priority": 1,
-      "lineno": 170,
-      "completed": false,
-      "created": 1704551401.7064877,
-      "type": 1,
-      "uid": "{dd285816-5403-4f7d-8e94-aefaa6247b3a}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
-    },
-    {
       "summary": "TODO: cannot handle yml list, i.e. {steps: \\n -apri \\n -apos} - instead of {steps: ['apri', 'apos']}",
       "description": "",
       "priority": 1,
@@ -811,6 +785,32 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py"
+    },
+    {
+      "summary": "TODO: this need to be generalised, so we can read obsData for multiple tracers.",
+      "description": "",
+      "priority": 1,
+      "lineno": 150,
+      "completed": false,
+      "created": 1704553852.2931976,
+      "type": 1,
+      "uid": "{e9237a79-b851-4de4-af1a-2f8bde0f161a}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
+    },
+    {
+      "summary": "TODO: Done. I have moved \" Load the pre-processed emissions\" to after Load observations block again - just for testing so we can",
+      "description": "",
+      "priority": 1,
+      "lineno": 179,
+      "completed": false,
+      "created": 1704553852.2970805,
+      "type": 1,
+      "uid": "{100f31f0-61e4-4487-86d6-f294d68e2caa}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py"
     }
   ]
 }
