@@ -50,7 +50,14 @@ class obsdb:
             self.extraFields = {}
         if filename is not None:
             bFromCPortal=False
-            if('CARBONPORTAL' in rcFile['observations']['file'].get('location', None)):
+            tracers = rcFile.rcfGet('run.tracers',  default=['co2'])
+            tracer=tracers[0]
+            if (isinstance(rcFile['observations'][tracer]['file']['tracer'], list)):
+                trac=rcFile['observations'][tracer]['file']['tracer']
+                tracer=trac[0]
+            else:
+                tracer=rcFile['observations'][tracer]['file']['tracer']        
+            if('CARBONPORTAL' in rcFile['observations'][tracer]['file'].get('location', None)):
                 bFromCPortal=True
 
             if (bFromCPortal):

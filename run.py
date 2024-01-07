@@ -134,6 +134,8 @@ if not os.path.exists(f'{sOut}/{sNow}-runlog-config.yml'):
         logger.error("Fatal error: the following system command failed. Please check write permissions and disk space in the target directory.")
         logger.error(sCmd)
         sys.exit(-1)
+        
+        
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
 # sKeyword='LPJGUESS'
 emis = xr.Data.from_rc(rcf, start, end)
@@ -145,14 +147,14 @@ if args.noobs :
     db = obsdb(rcf.rcfGet('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     try:
-        tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
+        tracers = rcf.rcfGet('run.tracers',  default=['co2'])
         tracer=tracers[0]
         if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
             trac=rcf['observations'][tracer]['file']['tracer']
             tracer=trac[0]
         else:
             tracer=rcf['observations'][tracer]['file']['tracer']
-        tracer=tracer.upper()    
+        tracer=tracer.lower()    
     except:
         logger.error('Key run.tracers not retrievable from stated yaml config file')
     sLocation=rcf['observations'][tracer]['file']['location']

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='a99ed05e52d8d14cf16870d094e20dd2caebbede' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
+LATESTGITCOMMIT_LumiaDA='c4a52b50b290b54ffcf34bda9b325459ffc30de3' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -116,7 +116,7 @@ def documentThisRun(ymlFile, args):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
 
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'version'],   value=int(6), bNewValue=True)
-    # If LumiaGUI was run beforehand, than input files are known and specified in the config file and ['observations']['file']['discoverData'] is set to False
+    # If LumiaGUI was run beforehand, than input files are known and specified in the config file and ['observations'][tracer]['file']['discoverData'] is set to False
     # else, LumiaDA has to go and hunt for ObsData on the carbon portal the old fashioned way ('discoverData'==True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'file', 'discoverData'],   value=True, bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedObsData'],   value='None', bNewValue=False)

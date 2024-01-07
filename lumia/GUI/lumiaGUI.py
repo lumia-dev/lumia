@@ -256,7 +256,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # ObservationsFileLocation
         self.iObservationsFileLocation= tk.IntVar(value=1)
         #iObservationsFileLocation.set(1) # Read observations from local file
-        if ('CARBONPORTAL' in ymlContents['observations']['file']['location']):
+        if ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
             self.iObservationsFileLocation.set(2)
         self.ObsFileLocationLocalRadioButton = ctk.CTkRadioButton(self,
                                    text="Observational CO2 data from local file", font=("Georgia",  fsNORMAL),
@@ -320,7 +320,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         self.ObsFileLocationLocalEntry = ctk.CTkEntry(self,
-                          placeholder_text= ymlContents['observations']['file']['path'], width=colWidth)
+                          placeholder_text= ymlContents['observations'][tracer]['file']['path'], width=colWidth)
         self.ObsFileLocationLocalEntry.grid(row=4, column=1,
                             columnspan=3, padx=xPadding,
                             pady=yPadding, sticky="ew")
@@ -386,7 +386,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # ################################################################
         # 
         # ObservationsFileLocation
-        rankingList=ymlContents['observations']['file']['ranking']
+        rankingList=ymlContents['observations'][tracer]['file']['ranking']
         self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
         self.ObsFileRankingBox = ctk.CTkTextbox(self,
                                          width=colWidth,
@@ -437,8 +437,12 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
 
         # Land/Vegetation Net Exchange combo box
-        tracers = ymlContents['run']['tracers']
-        tracer=tracers[0]
+        tracers = ymlContents['run'][tracer]['tracers']
+        if (isinstance(tracers, list)):
+            trac=ymlContents['observations'][tracer]['file']['tracer']
+            tracer=trac[0]
+        else:
+            tracer=ymlContents['observations'][tracer]['file']['tracer']        
         self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere'])
         self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
@@ -801,9 +805,9 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         # ObservationsFileLocation
         if (self.iObservationsFileLocation.get()==2):
-            ymlContents['observations']['file']['location'] = 'CARBONPORTAL'
+            ymlContents['observations'][tracer]['file']['location'] = 'CARBONPORTAL'
         else:
-            ymlContents['observations']['file']['location'] = 'LOCAL'
+            ymlContents['observations'][tracer]['file']['location'] = 'LOCAL'
             # TODO: get the file name
             
         # Emissions data (a prioris)
@@ -961,7 +965,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                     ymlContents, ymlFile,tracer, pdTimeStart, pdTimeEnd, timeStep, sDataType=None,  iVerbosityLv=1) 
         # root.wait_window(guiPage1)
         guiPage1.show()
-        #cpDir=ymlContents['observations']['file']['cpDir']
+        #cpDir=ymlContents['observations'][tracer]['file']['cpDir']
         sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
         (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer,   
                             pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
@@ -1204,7 +1208,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ObservationsFileLocation
         self.iObservationsFileLocation= tk.IntVar(value=1)
         #iObservationsFileLocation.set(1) # Read observations from local file
-        if ('CARBONPORTAL' in ymlContents['observations']['file']['location']):
+        if ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
             self.iObservationsFileLocation.set(2)
         self.RankingLabel = ctk.CTkLabel(rootFrame,
                                    text="Obsdata Ranking", font=("Georgia",  fsNORMAL))
@@ -1213,7 +1217,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                                   sticky="nw")
 
         # Ranking for Observation Files
-        rankingList=ymlContents['observations']['file']['ranking']
+        rankingList=ymlContents['observations'][tracer]['file']['ranking']
         self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
         self.ObsFileRankingBox = ctk.CTkTextbox(rootFrame,
                                          width=colWidth,
@@ -1429,17 +1433,17 @@ class RefineObsSelectionGUI(ctk.CTk):
                 dfq.drop(columns='includeStation',inplace=True)
                 dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
                 sLogCfgPath=""
-                if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
+                if ((ymlContents['run'][tracer]['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
                     sLogCfgPath="./"
                 else:
                     sLogCfgPath=ymlContents['run']['paths']['output']+"/"
-                ymlContents['observations']['file']['selectedObsData']=sLogCfgPath+"Lumia-"+sNow+"-selected-ObsData-"+tracer+".csv"
-                dfq.to_csv(ymlContents['observations']['file']['selectedObsData'], mode='w', sep=',')
+                ymlContents['observations'][tracer]['file']['selectedObsData']=sLogCfgPath+"Lumia-"+sNow+"-selected-ObsData-"+tracer+".csv"
+                dfq.to_csv(ymlContents['observations'][tracer]['file']['selectedObsData'], mode='w', sep=',')
                 dfPids=dfq['pid']
-                ymlContents['observations']['file']['selectedPIDs']=sLogCfgPath+"Lumia-"+sNow+"-selected-PIDs-"+tracer+".csv"
+                ymlContents['observations'][tracer]['file']['selectedPIDs']=sLogCfgPath+"Lumia-"+sNow+"-selected-PIDs-"+tracer+".csv"
                 selectedPidLst = dfPids.iloc[1:].tolist()
-                sFOut=ymlContents['observations']['file']['selectedPIDs']
-                # dfPids.to_csv(ymlContents['observations']['file']['selectedPIDs'], mode='w', sep=',')
+                sFOut=ymlContents['observations'][tracer]['file']['selectedPIDs']
+                # dfPids.to_csv(ymlContents['observations'][tracer]['file']['selectedPIDs'], mode='w', sep=',')
                 with open( sFOut, 'w') as fp:
                     for item in selectedPidLst:
                         fp.write("%s\n" % item)
@@ -1474,7 +1478,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'ICOSonly'],   
                                                                         value=ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
             sLogCfgFile=sLogCfgPath+"Lumia-"+sNow+"-runlog-config.yml"  
-            ymlContents['observations']['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
+            ymlContents['observations'][tracer]['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
             try:
                 with open(ymlFile, 'w') as outFile:
                     yaml.dump(ymlContents, outFile)
@@ -1949,9 +1953,9 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         # ObservationsFileLocation
         #if (self.iObservationsFileLocation.get()==2):
-        #    ymlContents['observations']['file']['location'] = 'CARBONPORTAL'
+        #    ymlContents['observations'][tracer]['file']['location'] = 'CARBONPORTAL'
         #else:
-        #    ymlContents['observations']['file']['location'] = 'LOCAL'
+        #    ymlContents['observations'][tracer]['file']['location'] = 'LOCAL'
             # TODO: get the file name
             
 
@@ -2166,7 +2170,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     guiPage2.run(root,  sLogCfgPath, ymlContents, ymlFile, widgetsLst, pdTimeStart, pdTimeEnd, timeStep, tracer) 
     print('left guiPage2')
     root.mainloop()
-    return(ymlContents['observations']['file']['selectedObsData']) 
+    return(ymlContents['observations'][tracer]['file']['selectedObsData']) 
 
     
      

@@ -19,7 +19,15 @@ def Forward(rcf, verbosity='INFO'):
     end = datetime(*rcf.rcfGet('time.end'))
 
     # Read observations
-    obsfile = rcf.rcfGet('observations.filename')
+    tracers = rcf.rcfGet('run.tracers',  default=['co2'])
+    tracer=tracers[0]
+    if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
+        trac=rcf['observations'][tracer]['file']['tracer']
+        tracer=trac[0]
+    else:
+        tracer=rcf['observations'][tracer]['file']['tracer']        
+    #obsfile = rcf.rcfGet('observations.filename')
+    obsfile = rcf.rcfGet(f'observations.{tracer}.file.path')
     db = obsdb(filename=obsfile)
     db.setupFootprints(path=rcf.rcfGet('footprints.path'), cache=rcf.rcfGet('footprints.cache'))
 

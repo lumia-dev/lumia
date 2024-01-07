@@ -168,7 +168,7 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
         sdlon=str(int(grid.dlon*1000))
     
     # Do we have to shift the time axis or not? 
-    # read the first value from the time dimension and see if it is zero.
+    # TODO: read only the header and the first value from the time dimension and see if it is zero - don't read the whole dataset...
     xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
     dTime=xrExisting.time.data
     t1 = pd.Timestamp(dTime[0])

@@ -16,9 +16,10 @@ class transport(object):
     def __init__(self, rcf, obs=None, formatter=None):
         self.rcf = rcf
 
-        # Set paths :
+        # Set paths :S
         self.outputdir = self.rcf.rcfGet('model.path.output')
-        self.tempdir = self.rcf.rcfGet('model.path.temp', self.outputdir)
+        logger.debug(f'self.outputdir = self.rcf.rcfGet(model.path.output) = {self.outputdir}')
+        self.tempdir = self.rcf.rcfGet('model.path.temp', default=self.outputdir)
         self.executable = self.rcf.rcfGet("model.exec")
         self.serial = self.rcf.rcfGet("model.options.serial", default=False) # self.serial = self.rcf.getAlt("model","options","serial", default=False)
         self.footprint_path = self.rcf.rcfGet('model.path.footprints')

@@ -49,8 +49,15 @@ class obsdb(obsdb):
             - filekey (optional): name of the section containing the file path and relevant keys
 
         """
+        tracers = rcf.rcfGet('run.tracers',  default=['co2'])
+        tracer=tracers[0]
+        if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
+            trac=rcf['observations'][tracer]['file']['tracer']
+            tracer=trac[0]
+        else:
+            tracer=rcf['observations'][tracer]['file']['tracer']        
         db = cls(
-            rcf['observations'][filekey]['path'], 
+            rcf['observations'][ tracer][filekey]['path'], 
             start=rcf['observations'].get('start', None), 
             end=rcf['observations'].get('end', None), 
             rcFile=rcf,  useGui=useGui,  ymlFile=ymlFile)
@@ -113,7 +120,14 @@ class obsdb(obsdb):
         self.rcf = rcf
         CrudeErrorEstimate="1.5" # 1.5 ppm
         timeStep=self.rcf['run']['timestep']
-        # sLocation=rcf['observations']['file']['location']
+        tracers = rcf.rcfGet('run.tracers',  default=['co2'])
+        tracer=tracers[0]
+        if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
+            trac=rcf['observations'][tracer]['file']['tracer']
+            tracer=trac[0]
+        else:
+            tracer=rcf['observations'][tracer]['file']['tracer']        
+        # sLocation=rcf['observations'][tracer]['file']['location']
         # if ('CARBONPORTAL' in sLocation):
         # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is (always) empty - thus unimportant - and so is the data frame resulting from it.
         # bFromCarbonportal=True
@@ -122,8 +136,8 @@ class obsdb(obsdb):
         # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
         # discoverObservationsOnCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
         # cpDir=/data/dataAppStorage/asciiAtcProductTimeSer/
-        # cpDir=rcf['observations']['file']['cpDir']
-        #remapObsDict=rcf['observations']['file']['renameCpObs']
+        # cpDir=rcf['observations'][tracer]['file']['cpDir']
+        #remapObsDict=rcf['observations'][tracer]['file']['renameCpObs']
         #if self.start is None:
         sStart=self.rcf['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
         sEnd=self.rcf['observations']['end']
@@ -138,15 +152,15 @@ class obsdb(obsdb):
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
         sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
-        selectedObsFile=self.rcf['observations']['file']['selectedObsData']
-        if(self.rcf['observations']['file']['discoverData']):
+        selectedObsFile=self.rcf['observations'][tracer]['file']['selectedObsData']
+        if(self.rcf['observations'][tracer]['file']['discoverData']):
             (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer='CO2',  
                         pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
             (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
                                                                 ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, selectedObsFile=selectedObsFile,  iVerbosityLv=1)
-            self.rcf['observations']['file']['selectedPIDs'] = selectedDobjLst    
+            self.rcf['observations'][tracer]['file']['selectedPIDs'] = selectedDobjLst    
         else:
-            dobjLstFile=self.rcf['observations']['file']['selectedPIDs']
+            dobjLstFile=self.rcf['observations'][tracer]['file']['selectedPIDs']
             with open(dobjLstFile) as file:
                selectedDobjLst = [line.rstrip() for line in file]
         # read the observational data from all the files in the dobjLst. These are of type ICOS ATC time series
