@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-07, 02:37:27"
+    "saved": "2024-01-07, 11:47:43"
   },
   "MultiProject": "",
   "Project": "",
@@ -14,8 +14,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
-        58,
-        29
+        298,
+        129
       ],
       "Folds": [],
       "Zoom": 0,
@@ -26,7 +26,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        137,
+        178,
         0
       ],
       "Folds": [],
@@ -194,8 +194,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
       "Cursor": [
-        18,
-        22
+        87,
+        129
       ],
       "Folds": [],
       "Zoom": 0,
@@ -226,12 +226,24 @@
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 17
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      "Cursor": [
+        160,
+        125
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 18
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
     "Cursor": [
-      146,
+      178,
       0
     ]
   },
@@ -638,7 +650,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      142,
+      139,
       "",
       false,
       true,
@@ -968,6 +980,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py@@105",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/utils.py@@21",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
         "/home/arndt/dev/lumia/lumiaDA/lumia/gridtools.py"
       ]
     }

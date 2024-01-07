@@ -136,11 +136,6 @@ if not os.path.exists(f'{sOut}/{sNow}-runlog-config.yml'):
         sys.exit(-1)
         
         
-# Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
-# sKeyword='LPJGUESS'
-emis = xr.Data.from_rc(rcf, start, end)
-emis.print_summary()
-
 # Load observations
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
@@ -181,11 +176,11 @@ else :
     # if we just want to write the emissions ...
     db = None
 
-# TODO: Done. I have moved " Load the pre-processed emissions" to after Load observations block again - just for testing so we can 
-# work on reading co2 emissions via DA before being bugged down by reading observations in the debugger....
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
-#emis = xr.Data.from_rc(rcf, start, end)
-#emis.print_summary()
+# sKeyword='LPJGUESS'
+emis = xr.Data.from_rc(rcf, start, end)
+emis.print_summary()
+
 
 # Create model instance
 model = lumia.transport(rcf, obs=db, formatter=xr)
