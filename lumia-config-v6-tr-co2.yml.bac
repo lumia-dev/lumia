@@ -14,31 +14,31 @@ correlation:
   inputdir: /data/corr
 emissions:
   '*':
+    error_structure : linear
     archive: rclone:lumia:fluxes/nc/
-    error_structure: linear
     path: /data/fluxes/nc
   co2:
     categories:
       biosphere:
-        error_min: 0
-        is_ocean: false
         origin: VPRM
-        tcorr: ${optimize.emissions.co2.biosphere.temporal_correlation}
-        unit: PgC
-      fossil:
-        error_min: 0
         is_ocean: false
-        optimize: false
-        origin: EDGARv4_LATEST
-        tcorr: ${optimize.emissions.co2.fossil.temporal_correlation}
         unit: PgC
-      ocean:
         error_min: 0
-        is_ocean: true
+        tcorr: ${optimize.emissions.co2.biosphere.temporal_correlation}
+      fossil:
+        origin: EDGARv4_LATEST
         optimize: false
-        origin: mikaloff01
-        tcorr: ${optimize.emissions.co2.ocean.temporal_correlation}
+        is_ocean: false
         unit: PgC
+        error_min: 0
+        tcorr: ${optimize.emissions.co2.fossil.temporal_correlation}
+      ocean:
+        origin: mikaloff01
+        optimize: false
+        is_ocean: true
+        unit: PgC
+        error_min: 0
+        tcorr: ${optimize.emissions.co2.ocean.temporal_correlation}
     interval: ${run.timestep}
     location:
       biosphere: CARBONPORTAL
@@ -82,20 +82,19 @@ observations:
       - NRT
       - AnyOther
       rename: background:mix_background
-      selectedObsData: ./output/Lumia-2024-01-08T10:00:16-selected-ObsData-co2.csv
-      selectedPIDs: ./output/Lumia-2024-01-08T10:00:16-selected-PIDs-co2.csv
+      selectedObsData: ./output/Lumia-2023-12-08T22:14:54-selected-ObsData-CO2.csv
+      selectedPIDs: ./output/Lumia-2023-12-08T22:14:54-selected-PIDs-CO2.csv
       tracer: co2
     units: ppm
   end: '2018-03-03 23:59:59'
   filters:
     CountriesExcluded: []
     ICOSonly: false
-    StationsExcluded:
-    - PRS
+    StationsExcluded: []
     bSamplingHeight: false
     bStationAltitude: false
-    inletMaxHeight: 800
-    inletMinHeight: 20
+    inletMaxHeight: 700
+    inletMinHeight: 0
     stationMaxAlt: 6500
     stationMinAlt: 30
   start: '2018-01-01 00:00:00'
@@ -133,9 +132,7 @@ path:
   data: /data
 region: ${run.region}
 run:
-  grid: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25000, dlat:0.25000}}
-  griddy2: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25000,
-    dlat:0.25000}}
+  grid: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25, dlat:0.25}}
   gridname: eurocom025x025
   paths:
     data: .
@@ -154,7 +151,7 @@ run:
     hostName: tux.nateko.lu.se
     platformCore: Linux-5.15.0-91-generic-x86_64-with-glibc2.35
     platformFlavour: 01-Ubuntu SMP Tue Nov 14 13:30:08 UTC 202
-    uniqueIdentifierDateTime: '2024-01-08T10:00:16'
+    uniqueIdentifierDateTime: '2023-12-20T02:02:38'
     username: cec-ami
   timestep: 1h
   tracers:

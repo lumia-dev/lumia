@@ -22,7 +22,7 @@ emissions:
       biosphere:
         error_min: 0
         is_ocean: false
-        origin: VPRM
+        origin: LPJ-GUESS
         tcorr: ${optimize.emissions.co2.biosphere.temporal_correlation}
         unit: PgC
       fossil:
@@ -82,20 +82,19 @@ observations:
       - NRT
       - AnyOther
       rename: background:mix_background
-      selectedObsData: ./output/Lumia-2024-01-08T10:00:16-selected-ObsData-co2.csv
-      selectedPIDs: ./output/Lumia-2024-01-08T10:00:16-selected-PIDs-co2.csv
+      selectedObsData: ./output/Lumia-2023-12-08T22:14:54-selected-ObsData-CO2.csv
+      selectedPIDs: ./output/Lumia-2023-12-08T22:14:54-selected-PIDs-CO2.csv
       tracer: co2
     units: ppm
   end: '2018-03-03 23:59:59'
   filters:
     CountriesExcluded: []
     ICOSonly: false
-    StationsExcluded:
-    - PRS
+    StationsExcluded: []
     bSamplingHeight: false
     bStationAltitude: false
-    inletMaxHeight: 800
-    inletMinHeight: 20
+    inletMaxHeight: 700
+    inletMinHeight: 0
     stationMaxAlt: 6500
     stationMinAlt: 30
   start: '2018-01-01 00:00:00'
@@ -133,9 +132,7 @@ path:
   data: /data
 region: ${run.region}
 run:
-  grid: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25000, dlat:0.25000}}
-  griddy2: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25000,
-    dlat:0.25000}}
+  grid: ${Grid:{lon0:5.000,lat0:45.000,lon1:15.000,lat1:55.000,dlon:0.25, dlat:0.25}}
   gridname: eurocom025x025
   paths:
     data: .
@@ -145,16 +142,16 @@ run:
   region:
     dlat: 0.25
     dlon: 0.25
-    lat0: 33.0
-    lat1: 73.0
-    lon0: -15.0
-    lon1: 35.0
+    lat0: 45.0
+    lat1: 55.0
+    lon0: 5.0
+    lon1: 15.0
   thisRun:
     PythonVersion: Python environment version is Python 3.10.10
     hostName: tux.nateko.lu.se
     platformCore: Linux-5.15.0-91-generic-x86_64-with-glibc2.35
     platformFlavour: 01-Ubuntu SMP Tue Nov 14 13:30:08 UTC 202
-    uniqueIdentifierDateTime: '2024-01-08T10:00:16'
+    uniqueIdentifierDateTime: '2024-01-08T00:30:37'
     username: cec-ami
   timestep: 1h
   tracers:

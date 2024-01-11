@@ -298,7 +298,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     The function relies on a sparql query and tries to read the requested cpb files from the carbon portal using the icoscp package. 
     Returns (...-dataset) if successful; (None) if unsuccessful.
     """
-    if(tracer=='CO2'):
+    if((tracer=='CO2') or (tracer=='co2')):
         dobj=getCo2DryMolFractionObjectsFromSparql(pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd,  timeStep=timeStep, iVerbosityLv=iVerbosityLv)
     else:        
         dobj=getDobjFromSparql(tracer=tracer, pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  sDataType=sDataType,  iVerbosityLv=iVerbosityLv)
@@ -358,6 +358,9 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     bSelected=True
     nObj=len(finalDobjLst)
     step=int(0.5+(nObj/50.0))
+    if (step<1):
+        step=1
+        logger.error('finalDobjLst is empty.')
     #print('|_________________________________________________|')
     printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     for n, pid in enumerate(finalDobjLst):
@@ -428,7 +431,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
     df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
     df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
-    df.to_csv('dfValidObsUnsorted.csv', mode='w', sep=',')
+    df.to_csv('Lumia-'+sNow+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
 
     dfCountStations=df.drop_duplicates(['stationID'], keep='first') 
     nObsDataRecords = len(df)
@@ -456,7 +459,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     logger.info(f"{nTotalStations2} observation sites remaining. {nObsDataRecords2} valid observational data records remaining.")
 
     dfq.sort_values(by = ['country','stationID', 'dClass', 'samplingHeight', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
-    dfq.to_csv('dfValidObs.csv', mode='w', sep=',')
+    dfq.to_csv('Lumia-'+sNow+'_dbg_dfValidObs.csv', mode='w', sep=',')
     dfqdd=dfq.drop_duplicates(['stationID', 'dClass', 'samplingHeight'], keep='first')  # discards older  'productionTime' datasets
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     # But we are still keeping all sampling heights.

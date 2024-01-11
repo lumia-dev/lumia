@@ -64,7 +64,7 @@ class obsdb:
                 self=self.load_fromCPortal(rcFile, useGui, ymlFile)
             else:
                 self.load_tar(filename)
-            # self.observations.to_csv('obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
+            # self.observations.to_csv('Lumia-'+sNow+'_dbg_obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
             self.filename = filename
             try:
                 if self.start is None:
@@ -278,6 +278,7 @@ class obsdb:
 
     def to_hdf(self, filename: str) -> str:
         df = self.to_dataframe()
+        logger.debug(f'df.to_hdf (writes ./tmp/observations.hdf) df columns={df.columns}')
         # TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
         for col in df.columns:
             if df.loc[:, col].dtype == 'O' and isinstance(df.loc[:, col].iloc[0], bool):

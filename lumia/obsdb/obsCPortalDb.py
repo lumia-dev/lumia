@@ -102,7 +102,8 @@ class obsdb(obsdb):
         bgFname=self.rcf['background']['concentrations']['co2']['backgroundCo2File']
         (bgDf, bInterpolationRequired)=self.load_background(bgFname)
         # Now we have to merge the background CO2 concentrations into the observational data...
-        (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf, bInterpolationRequired)
+        sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
+        (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf, sNow,  bInterpolationRequired)
         setattr(self,'observations', mergedDf)
         # filename="observations.tar.gz"
         self.filename = bgFname # filename
@@ -181,9 +182,21 @@ class obsdb(obsdb):
             logger.info(f"pidUrl={pidUrl}")
             try:
                 dob = Dobj(pidUrl)
-                # logger.info(f"dobj: {dob}")
                 logger.info(f"Reading observed co2 data from: PID={pid} station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
+                # logger.debug(f"dobj: {dob}")
                 obsData1site = dob.get()
+                # obsData1site.iloc[:100, :].to_csv('Lumia-'+sNow+'_dbg_'+pid+'-obsData1site-obsPortalDbL188.csv', mode='w', sep=',')  
+
+                # sCols=obsData1site.columns
+                # logger.debug(f'{sCols}')
+                # logger.debug('default obtained with obsData1site = dob.get():')
+                # logger.debug(f'{obsData1site}')
+                try:
+                    dftest = dob.meta()
+                    logger.debug('default obtained with dob.meta():')
+                    logger.debug(f'{dftest}')
+                except:
+                    pass
                 if('PXBNgmAH-PG5_AYXDl4fu2se'in pid):
                     print('.')
                 # logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
@@ -216,12 +229,20 @@ class obsdb(obsdb):
                     else:
                         ds = xr.open_dataset(fn)
                         df = ds.to_dataframe()
+                        availColNames = list(df.columns.values)
+                        if ('Site' not in availColNames):
+                            df.loc[:,'Site'] = dob.station['id'].lower()
+                        # df.iloc[:100, :].to_csv('Lumia-'+sNow+'_dbg_df-'+pid+'-obsPortalDbL262.csv', mode='w', sep=',')  
                         df = df.reset_index()
-                        #if(bWriteCsv==True):
-                        #    obsData1site.to_csv('obsData1site.csv',index=True, header=True)
-                        #    bWriteCsv=False
+                        # df.iloc[:100, :].to_csv('Lumia-'+sNow+'_dbg_df-'+pid+'-obsPortalDbL264.csv', mode='w', sep=',')  
+                        if((any('start_time' in entry for entry in availColNames)) and (any('time' in entry for entry in availColNames))):
+                            df.drop(columns=['time'], inplace=True)   #  rename(columns={'time':'halftime'}, inplace=True)
+                        if(any('start_time' in entry for entry in availColNames)):
+                            if(any('TIMESTAMP' in entry for entry in availColNames)):
+                                df.drop(columns=['TIMESTAMP'], inplace=True) # rename(columns={'TIMESTAMP':'timeStmp'}, inplace=True)
+                            df.rename(columns={'start_time':'time'}, inplace=True)
+                        df.rename(columns={'value':'obs','value_std_dev':'stddev', 'nvalue':'NbPoints'}, inplace=True)
                         obsData1site=df
-                        obsData1site.rename(columns={'value':'obs','value_std_dev':'stddev', 'nvalue':'NbPoints'}, inplace=True)
                         if(is_float_dtype(obsData1site['obs'])==False):
                             obsData1site['obs']=obsData1site['obs'].astype(float)
                         if(is_float_dtype(obsData1site['stddev'])==False):
@@ -234,11 +255,8 @@ class obsdb(obsdb):
                         else:
                             obsData1site['icos_flag']= 'O'
                         bAllImportantColsArePresent=True
-                #elif ( ('TIMESTAMP' not in entry for entry in availColNames)  or ('co2' not in entry for entry in availColNames) or ('Stdev' not in entry for entry in availColNames) or ('Flag' not in entry for entry in availColNames)):
-                elif ( (any('TIMESTAMP' in entry for entry in availColNames))  and (any('co2' in entry for entry in availColNames)) and (any('Stdev' in entry for entry in availColNames))   and (any('Flag' in entry for entry in availColNames))):
-                    # We rename first and then replace the values AFTER extracting the time slice - should be faster. Often the object is much smaller
-                    obsData1site.rename(columns={'TIMESTAMP':'time','Site':'code','co2':'obs','Stdev':'stddev','Flag':'icos_flag'}, inplace=True)
-                    bAllImportantColsArePresent=True
+                elif (any('TIMESTAMP' in entry for entry in availColNames)) :
+                        obsData1site.rename(columns={'TIMESTAMP':'time'}, inplace=True)
                 else:
                     logger.warning(f"Suspicious data object {pidUrl}  :")
                     logger.warning("This data set is missing at least one of the expected columns >> time/TIMESTAMP, obs/co2/value, stdev/value_std_dev or Flag <<. This data object will be ignored.")
@@ -246,6 +264,18 @@ class obsdb(obsdb):
                     selectedDobjLst[:] = [x for x in selectedDobjLst if pid not in x]
                     # TODO should also remove entry from dataframe dfObsDataInfo and write an updated copy to csv file.
                     nBadies+=1  # Have: icos_LTR, icos_SMR, icos_STTB, icos_datalevel, qc_flag, time, value, value_std_dev, Site
+                if (any('Flag' in entry for entry in availColNames)):
+                    obsData1site.rename(columns={'Flag':'icos_flag'}, inplace=True)
+                if (any('Stdev' in entry for entry in availColNames)):
+                    obsData1site.rename(columns={'Stdev':'stddev'}, inplace=True)
+                if (any('co2' in entry for entry in availColNames)):
+                    obsData1site.rename(columns={'co2':'obs'}, inplace=True)
+                availColNames = list(obsData1site.columns.values)    
+                if ( (any('time' in entry for entry in availColNames))  and (any('obs' in entry for entry in availColNames)) and (any('stddev' in entry for entry in availColNames))   and (any('icos_flag' in entry for entry in availColNames))):
+                    bAllImportantColsArePresent=True
+                    for col in ['calendar_components','dim_concerns','datetime','time_components','solartime_components','instrument','icos_datalevel','obs_flag','assimilation_concerns']:
+                       if (any(col in entry for entry in availColNames)): 
+                            obsData1site.drop(columns=[col], inplace=True)
                 if(bAllImportantColsArePresent==True):
                     # grab only the time interval needed. This reduces the amount of data drastically if it is an obspack.
                     obsData1siteTimed = obsData1site.loc[(
@@ -253,6 +283,7 @@ class obsdb(obsdb):
                         (obsData1site.time <= pdSliceEndTime) &
                         (obsData1site['NbPoints'] > 0)
                     )]  
+                    obsData1siteTimed.to_csv('Lumia-'+sNow+'_dbg_obsData1siteTimed-obsPortalDbL310.csv', mode='w', sep=',')  
                     # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
                     # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
                     # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
@@ -376,15 +407,15 @@ class obsdb(obsdb):
         # TODO: add ample background error for crude estimates.
         # setattr(self, 'observations', allObsDfs)
         setattr(self, 'sites', allSitesDfs)
-        allObsDfs.to_csv('obsData-NoBkgnd.csv', encoding='utf-8', mode='w', sep=',')
-        allSitesDfs.to_csv('mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
+        allObsDfs.to_csv('Lumia-'+sNow+'_obsData-NoBkgnd.csv', encoding='utf-8', mode='w', sep=',')
+        allSitesDfs.to_csv('Lumia-'+sNow+'_dbg_mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
         # self.load_tar(filename)
         # logger.info(f"{allObsDfs.shape[0]} observation read from {filename}")
-        return(self,  allObsDfs,  'obsData-NoBkgnd.csv')
+        return(self,  allObsDfs,  'Lumia-'+sNow+'_obsData-NoBkgnd.csv')
     
    
     
-    def  combineObsAndBgnd(self, obsDf, bgDf, bInterpolationRequired=False) -> "obsdb":
+    def  combineObsAndBgnd(self, obsDf, bgDf, sNow='', bInterpolationRequired=False) -> "obsdb":
         """
         Function combineObsAndBgnd  Merges the background CO2 concentrations into the obsDf
     
@@ -423,7 +454,7 @@ class obsdb(obsdb):
         obsDf.info() # is a timezone-naive datetime[64] data type
 
         xBgDf = bgDf[['code', 'time', 'background']].copy()  # turns time into an integer it seems....
-        xBgDf.to_csv('xBgDf.csv', encoding='utf-8', mode='w', sep=',')
+        xBgDf.to_csv('Lumia-'+sNow+'_dbg_xBgDf.csv', encoding='utf-8', mode='w', sep=',')
         # # obsDf['time'] = to_datetime(obsDf['time'], format='%Y%m%d%H%M%S', utc = True)  # confirmed: 'time' is Timestamp type after this operation
         # obsDf['time'] = to_datetime(obsDf['time'], yearfirst=True, utc = True)  # confirmed: 'time' is Timestamp type after this operation
         # xBgDf['time'] = to_datetime(xBgDf['time'], yearfirst=True, utc = True)  # confirmed: 'time' is Timestamp type after this operation
@@ -440,14 +471,14 @@ class obsdb(obsdb):
         obsDf['time'] = obsDf['time'].astype("datetime64[ns, UTC]")
         xBgDf.info()
         obsDf.info()
-        xBgDf.to_csv('./xBgDf_utc.csv', encoding='utf-8', mode='w', sep=',')
-        obsDf.to_csv('./obsDf_utc.csv', encoding='utf-8', mode='w', sep=',')
+        xBgDf.to_csv('Lumia-'+sNow+'_xBgDf_utc.csv', encoding='utf-8', mode='w', sep=',')
+        obsDf.to_csv('Lumia-'+sNow+'_obsDf_utc.csv', encoding='utf-8', mode='w', sep=',')
 
 
         # Merging only seems to work if background concentrations are provided at the same times as the observations. 
         obsDfWthBg = obsDf.merge(xBgDf,  how='left', on=['code','time'], indicator=True)
         # obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
-        obsDfWthBg.to_csv('./obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
         # This has merged the 'background' column from the external file into the obsDf that holds all the observations from the carbon portal
         # However, we may not have background values for all sites and date-times....hence we interpolate in the background column 
         # linearly to cope with this in a reasonable way
@@ -455,7 +486,7 @@ class obsdb(obsdb):
         # The following trick was taken from here: https://stackoverflow.com/questions/39384749/groupby-pandas-incompatible-index-of-inserted-column-with-frame-index
         # limit : int, optional: Maximum number of consecutive NaNs to fill. Must be greater than 0. 7 days would be 7*24=168
         obsDfWthBg["intpBackground"]=obsDfWthBg[['code','background']].groupby(['code']).apply(lambda group: group.interpolate(method='linear', limit=168, limit_direction='both'))["background"].reset_index().set_index('level_1').drop('code',axis=1)   
-        obsDfWthBg.to_csv('obsDfLinGrpInterpolatedBg.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_obsDfLinGrpInterpolatedBg.csv', encoding='utf-8', mode='w', sep=',')
         
         # Trying to interpolate over the actual corresponding date-time values results in some strange interpolation results
         # with resulting background values well below any supporting values...
@@ -466,7 +497,7 @@ class obsdb(obsdb):
         # df2.to_csv('/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/newDfinterpolatedBg-time.csv', encoding='utf-8', mode='w', sep=',')
         obsDfWthBg.drop(columns=['background','_merge'], inplace=True)
         obsDfWthBg.rename(columns={'intpBackground':'background'}, inplace=True)
-        obsDfWthBg.to_csv('ObsDfLinGrpInterpolatedBgShort.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_ObsDfLinGrpInterpolatedBgShort.csv', encoding='utf-8', mode='w', sep=',')
 
         nTotal=len(obsDfWthBg)
         obsDfWthBg.dropna(subset=['obs'], inplace=True)
@@ -474,7 +505,7 @@ class obsdb(obsdb):
         nRemaining=len(obsDfWthBg)
         if(nDroppedObsRows>0):
             logger.info(f"Dropped {nDroppedObsRows} rows with no valid co2 observations. {nRemaining} good rows are remaining")
-        obsDfWthBg.to_csv('ObsDfWthBg-dropnaObs.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_ObsDfWthBg-dropnaObs.csv', encoding='utf-8', mode='w', sep=',')
 
         #  How do we handle any missing information on background concentrations where interpolation was not a sensible option:
         #  background :
@@ -491,7 +522,7 @@ class obsdb(obsdb):
             if(whatToDo=='DAILYMEAN'):
                 dfDailyMeans = dfGoodBgValuesOnly[['time','background']].resample('D', on='time').mean()
                 # dfDailyMeans.rename(columns={'background':'dMeanBackground'}, inplace=True)
-                dfDailyMeans.to_csv('./dMeans.csv', encoding='utf-8', mode='w', sep=',')
+                dfDailyMeans.to_csv('Lumia-'+sNow+'_dMeans.csv', encoding='utf-8', mode='w', sep=',')
                 # dfDailyMeans contains one mean background concentration across all good background values per day.
                 dfDailyMeans['time2'] = to_datetime(dfDailyMeans.index)
                 dfDailyMeans['date'] = to_datetime(dfDailyMeans['time2']).dt.date
@@ -526,7 +557,7 @@ class obsdb(obsdb):
         if 'date' in obsDfWthBg.columns:
             obsDfWthBg.drop(columns=['date'], inplace=True)
         # obsDfWthBg.to_csv('finalObsDfWthBgUnformatted.csv', encoding='utf-8', mode='w', sep=',')
-        obsDfWthBg.to_csv('./finalObsDfWthBgBeforeCleaning.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_finalObsDfWthBgBeforeCleaning.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         column_names = obsDfWthBg.columns
         print(column_names,  flush=True)
         # obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)
@@ -542,7 +573,7 @@ class obsdb(obsdb):
         obsDfWthBg['lon'] = obsDfWthBg['lon'].map(lambda x: '%8.4f' % x)
         obsDfWthBg['alt'] = obsDfWthBg['alt'].map(lambda x: '%6.1f' % x)
         obsDfWthBg['height'] = obsDfWthBg['height'].map(lambda x: '%6.1f' % x)
-        obsDfWthBg.to_csv('./finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         # setattr('observations', newDf)
         return(obsDfWthBg)
     """
@@ -602,16 +633,16 @@ class obsdb(obsdb):
                         bInterpolationRequired=True
                 ds = xr.open_mfdataset(bgFnames)
                 bgDf = ds.to_dataframe()
-                print("bgDf.columns=",  flush=True)
-                print(bgDf.columns,  flush=True)
-                print("bgDf.index=",  flush=True)
-                print(bgDf.index,  flush=True)
+                # print("bgDf.columns=",  flush=True)
+                # print(bgDf.columns,  flush=True)
+                # print("bgDf.index=",  flush=True)
+                # print(bgDf.index,  flush=True)
                 bgDf = bgDf.reset_index()
-                print("bgDf.columns=",  flush=True)
-                print(bgDf.columns,  flush=True)
-                print("bgDf.index=",  flush=True)
-                print(bgDf.index,  flush=True)
-                # Guillaume's files are organised completely differently. The table needs to be transposed in a somewhat
+                # print("bgDf.columns=",  flush=True)
+                # print(bgDf.columns,  flush=True)
+                # print("bgDf.index=",  flush=True)
+                # print(bgDf.index,  flush=True)
+                # Guillaume's files are organised completely different. The table needs to be transposed in a somewhat
                 # complicated manner. We do need a column for mix_background and the station codes also in a single 
                 # column after the time column. Presently the netcdf file is organised as:
                 # 	time	                            field	                    bik	            bir	            bsd	            cbw	            cgr	            cmn	            dec	            dig	gat	hei	hel	hpb	htm	hun	ipr	jfj	kas	kit	kre	lin	lmp	lmp_wdcgg	lmu	lut	nor	ope	oxk	pal	prs	puy	rgl	sac	smr	snb	ssl	ste	svb	tac	toh	trn	uto	wao	zsf

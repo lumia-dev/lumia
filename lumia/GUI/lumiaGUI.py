@@ -19,7 +19,9 @@ import tkinter.font as tkFont
 
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
 #from queryCarbonPortal import chooseAmongDiscoveredObservations
+import warnings
 
+warnings.simplefilter("ignore", FutureWarning)
 
 def grabFirstEntryFromList(myList):
   try:
@@ -282,10 +284,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # min
         # gridString=ymlContents['run']['grid']  # '${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}'
 
-        try:
-            Lat0=ymlContents['run']['region']['lat0']  # 33.0
-        except:
-            Lat0=33.0
+        Lat0=ymlContents['run']['region']['lat0']  # 33.0
         Lat1=ymlContents['run']['region']['lat1']   #73.0
         Lon0=ymlContents['run']['region']['lon0']  # -15.0
         Lon1=ymlContents['run']['region']['lon1']   #35.0
@@ -437,13 +436,12 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
 
         # Land/Vegetation Net Exchange combo box
-        tracers = ymlContents['run'][tracer]['tracers']
+        tracers = ymlContents['run']['tracers']
         if (isinstance(tracers, list)):
-            trac=ymlContents['observations'][tracer]['file']['tracer']
-            tracer=trac[0]
+            tracer=tracers[0]
         else:
-            tracer=ymlContents['observations'][tracer]['file']['tracer']        
-        self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere'])
+            tracer=ymlContents['run']['tracers']
+        self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere']['origin'])
         self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.LandNetExchangeModelCkbVar)
@@ -490,7 +488,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
         # Fossil emissions combo box
         # Latest is presently https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3
-        self.FossilEmisCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['fossil']) #"EDGARv4_LATEST"
+        self.FossilEmisCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['fossil']['origin']) #"EDGARv4_LATEST"
         self.FossilEmisOptionMenu = ctk.CTkOptionMenu(self, dropdown_font=("Georgia",  fsNORMAL), 
                                         values=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"], 
                                         variable=self.FossilEmisCkbVar)
@@ -513,7 +511,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         # Ocean Net Exchange combo box
-        self.OceanNetExchangeCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['ocean'])  # "mikaloff01"
+        self.OceanNetExchangeCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['ocean']['origin'])  # "mikaloff01"
         self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["mikaloff01"], dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.OceanNetExchangeCkbVar)
@@ -794,13 +792,13 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
             dLat=ymlContents['run']['region']['dlat']   # 0.25
             dLon=ymlContents['run']['region']['dlon']  # 0.25
            # run:  grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
-            ymlContents['run']['grid'] = '${Grid:{lon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f}}' % (Lon0,Lon1, Lat0, Lat1, dLon, dLat)
+            ymlContents['run']['grid'] = '${Grid:{lon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f}}' % (Lon0, Lat0,Lon1, Lat1, dLon, dLat)
             dollar='$'
             lBrac='{'
             rBrac='}'
-            griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f%s%s' % (dollar, lBrac,lBrac, Lon0,Lon1, Lat0, Lat1, dLon, dLat, rBrac, rBrac))
+            griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f%s%s' % (dollar, lBrac,lBrac, Lon0, Lat0,Lon1, Lat1, dLon, dLat, rBrac, rBrac))
             logger.debug(f'griddy2={griddy2}')
-            ymlContents['run']['griddy2']=griddy2
+            # ymlContents['run']['griddy2']=griddy2
             setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'griddy2'],   value=griddy2, bNewValue=True)
 
         # ObservationsFileLocation
@@ -813,13 +811,13 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # Emissions data (a prioris)
         # Land/Vegetation Net Exchange combo box
         sLandVegModel=self.LandNetExchangeOptionMenu.get()  # 'VPRM', 'LPJ-GUESS'
-        ymlContents['emissions'][tracer]['categories']['biosphere']=sLandVegModel
+        ymlContents['emissions'][tracer]['categories']['biosphere']['origin']=sLandVegModel
         # Fossil emissions combo box
         sFossilEmisDataset = self.FossilEmisOptionMenu.get()  # "EDGARv4_LATEST")
-        ymlContents['emissions'][tracer]['categories']['fossil']=sFossilEmisDataset
+        ymlContents['emissions'][tracer]['categories']['fossil']['origin']=sFossilEmisDataset
         # Ocean Net Exchange combo box
         sOceanNetExchangeDataset = self.OceanNetExchangeCkbVar.get()  # "mikaloff01"
-        ymlContents['emissions'][tracer]['categories']['ocean']=sOceanNetExchangeDataset
+        ymlContents['emissions'][tracer]['categories']['ocean']['origin']=sOceanNetExchangeDataset
 
         # Station Filters if any
         bStationFilterError=False
@@ -930,7 +928,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
         screenWidth = root.winfo_screenwidth()
         screenHeight = root.winfo_screenheight()
-        print(f'screenWidth={screenWidth},  screenHeight={screenHeight}', flush=True)
+        # print(f'screenWidth={screenWidth},  screenHeight={screenHeight}', flush=True)
         if(screenWidth<100):
             print('Oooops')
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
@@ -1045,9 +1043,9 @@ class RefineObsSelectionGUI(ctk.CTk):
                 
         if(not isDifferent):
             newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row 
-        newDf.to_csv('newDfObs.csv', mode='w', sep=',')  
+        newDf.to_csv('Lumia-'+sNow+'_dbg_newDfObs.csv', mode='w', sep=',')  
         nObs=len(newDf)
-        filtered = ((newDf['selected'] == True))
+        #filtered = ((newDf['selected'] == True))
         #dfq= newDf[filtered]
         #nSelected=len(dfq)
         logger.info(f"There are {nObs} valid data sets in the selected geographical region ingoring multiple sampling heights.")
@@ -1063,7 +1061,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             if(isSameStation):
                 newDf.at[(nRows) ,  ('selected')] = False
             nRows+=1
-        newDf.to_csv('selectedObs.csv', mode='w', sep=',')  
+        newDf.to_csv('Lumia-'+sNow+'_dbg_selectedObs.csv', mode='w', sep=',')  
             
 
         
@@ -1420,7 +1418,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             except:
                 pass
             try:
-                newDf.to_csv('allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
+                newDf.to_csv('Lumia-'+sNow+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
                 dfq['pid2'] = dfq['pid'].apply(grabFirstEntryFromList)
                 dfq['samplingHeight2'] = dfq['samplingHeight'].apply(grabFirstEntryFromList)
                 #,selected,country,stationID,altOk,altitude,HghtOk,samplingHeight[Lst],isICOS,latitude,longitude,dClass,dataSetLabel,includeCountry,includeStation,pid[Lst],pid2,samplingHeight2
@@ -1433,7 +1431,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                 dfq.drop(columns='includeStation',inplace=True)
                 dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
                 sLogCfgPath=""
-                if ((ymlContents['run'][tracer]['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
+                if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
                     sLogCfgPath="./"
                 else:
                     sLogCfgPath=ymlContents['run']['paths']['output']+"/"
@@ -2141,7 +2139,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     except:
         tracer='co2'
         
-    tracer=tracer.upper()    
+    #tracer=tracer.upper()    
     
     sStart=ymlContents['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
     sEnd=ymlContents['observations']['end']
@@ -2166,11 +2164,11 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     widgetsLst = []
     guiPage2=RefineObsSelectionGUI(root,  sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, 
                         widgetsLst=widgetsLst) 
-    print('gui2object created')
+    #print('gui2object created')
     guiPage2.run(root,  sLogCfgPath, ymlContents, ymlFile, widgetsLst, pdTimeStart, pdTimeEnd, timeStep, tracer) 
-    print('left guiPage2')
+    logger.debug('left guiPage2')
     root.mainloop()
-    return(ymlContents['observations'][tracer]['file']['selectedObsData']) 
+    return
 
     
      

@@ -66,14 +66,14 @@ class transport(object):
         db.save_tar(os.path.join(self.outputdir, f'observations.{step}.tar.gz'))
 
     def calcDepartures(self, struct, step=None, serial=False):
-        logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}")
+        logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
         self.db.observations.to_csv('obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         emf, dbf = self.runForward(struct, step, serial)
         logger.info(f'in calcDepartures() reading db from file dbf={dbf}')
         db = obsdb.from_hdf(dbf)
         print(db)
-        #logger.info("db.columns=")
-        #print(db.columns)
+        logger.info("db.columns=")
+        print(db.columns)
         logger.info(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
         self.db.observations.to_csv('obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         logger.info(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")

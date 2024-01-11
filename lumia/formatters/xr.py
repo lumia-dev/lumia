@@ -25,6 +25,7 @@ from lumia.formatters import cdoWrapper
 from archive import Rclone
 from typing import Iterator
 from icoscp.cpb.dobj import Dobj
+import pickle
 
 
 @dataclass
@@ -846,6 +847,8 @@ class Data:
                 logger.debug(f"Emissions data read for category {cat}")
                 emDataShape=em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
                 logger.debug(f"Emissions data for category {cat} added to em.xr data structure.")
+        with open('xr_em.pickle', 'w') as handle:
+            pickle.dump(em, handle, protocol=pickle.HIGHEST_PROTOCOL)
         return em
 
     

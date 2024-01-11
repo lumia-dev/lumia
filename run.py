@@ -126,8 +126,8 @@ logger.info(f"Temporary files will be stored in {rcf.rcfGet('run.paths.temp')}")
 
 sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
 sOut=rcf.rcfGet('run.paths.output')
-if not os.path.exists(f'{sOut}/{sNow}-runlog-config.yml'):
-    sCmd=f'cp {ymlFile} {sOut}/{sNow}-runlog-config.yml'
+if not os.path.exists(f'{sOut}/Lumia-{sNow}-runlog-config.yml'):
+    sCmd=f'cp {ymlFile} {sOut}/Lumia-{sNow}-runlog-config.yml'
     try:
         os.system(sCmd)
     except:
@@ -179,6 +179,7 @@ else :
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
 # sKeyword='LPJGUESS'
 emis = xr.Data.from_rc(rcf, start, end)
+logger.info('emis data read.')
 emis.print_summary()
 
 
