@@ -65,6 +65,7 @@ dconf.run.end = str(Timestamp(dconf.run.end) + spindown)
 
 # Setup the observations
 obs = lumia.Observations.from_tar(dconf.observations.file)
+obs.settings.update(**dconf.observations.get("uncertainties", {}))
 
 
 # Setup the emissions

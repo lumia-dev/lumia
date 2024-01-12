@@ -89,7 +89,7 @@ opt = lumia.optimizer.optim_cg_scipy(
 )
 
 
-apos = mapping.vec_to_struct(opt.xc_to_x(x.x))
+apos = mapping.vec_to_struct(opt.xc_to_x(opt.x))
 opt.vectors.loc[:, 'state_preco_apos'] = opt.solve()
 opt.vectors.loc[:, 'state_apos'] = opt.xc_to_x(opt.vectors.state_preco_apos.values)
 opt.vectors.to_xarray().to_netcdf(Path(dconf.run.paths.output) / 'states.nc')

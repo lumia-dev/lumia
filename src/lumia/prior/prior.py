@@ -59,12 +59,12 @@ class PriorConstraints:
 
             # Calculate the current total uncertainty for the category:
             errtot = calc_total_uncertainty(errvec, corr_t[cat].B, corr_h[cat].B, cat.unit_optim, cat.total_uncertainty.units)
-            logger.debug(f"Original uncertainty for category {cat.name}: {errtot:.3f} {cat.total_uncertainty.units}")
+            logger.info(f"Original uncertainty for category {cat.name}: {errtot:.3f} {cat.total_uncertainty.units}")
 
             # Deduce a scaling factor for the prior_uncertainty column:
             # Scale also by the simulation length, as uncertainty is provided in units/year
             nsec = errvec.loc[:, ['itime', 'dt']].drop_duplicates().dt.sum().total_seconds()
-            scalef = (cat.total_uncertainty / errtot) * (nsec / (365.25 * 86400))
+            scalef = (cat.total_uncertainty.m / errtot) * (nsec / (365.25 * 86400))
 
             errvec.loc[:, 'prior_uncertainty'] *= scalef
             logger.info(

@@ -13,6 +13,7 @@ from typing import Tuple
 from pathlib import Path
 from h5py import File
 import hashlib
+from functools import cache
 
 
 _common = {}   # common for multiprocessing
@@ -50,6 +51,7 @@ def calc_dist_vector(iloc, stretch_ratio = 1., debug: bool = False):
     return V
 
 
+@cache
 def calc_dist_matrix(lats, lons, stretch_ratio=1.):
     M = zeros((len(lats), len(lons)))
     _common['lons'] = lons
@@ -208,18 +210,19 @@ class TemporalCorrelation:
         return self.eigen_vectors @ self.eigen_values
 
 
-@debug.timer
-def aggregate_uncertainty(it1: int) -> float:
-    itimes = _common['itimes']
-    sig1 = _common['sigmas'][itimes == it1]
-    Ct = _common['Ct']
-    Ch = _common['Ch']
-    nt = len(unique(itimes))
-    err = 0
-    for it2 in range(nt):
-        sig2 = _common['sigmas'][itimes == it2]
-        err += (Ct[it1, it2] * Ch * sig1[None, :] * sig2[:, None]).sum()
-    return err
+# #@debug.timer
+# def aggregate_uncertainty(it1: int) -> float:
+#     itimes = _common['itimes']
+#     sig1 = _common['sigmas'][itimes == it1]
+#     Ct = _common['Ct']
+#     Ch = _common['Ch']
+#     nt = len(unique(itimes))
+#     err = 0
+#     for it2 in range(nt):
+#         sig2 = _common['sigmas'][itimes == it2]
+#         err += Ct[it1, it2] * sig1.T @ Ch @ sig2
+#         # err += (Ct[it1, it2] * Ch * sig1[None, :] * sig2[:, None]).sum()
+#     return err
 
 
 @debug.timer
@@ -273,7 +276,7 @@ def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFr
 def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame, cache_dir : Path = None) -> SpatialCorrelation:
     corlen, cortype = corstring.split('-')
     corlen = int(corlen)
-    logger.warning("poor implementation. fix might be needed ...")
+    logger.warning("Fix might be needed if two categories from two different tracers have the same name")
     # Two categories with the same name can exist, in different tracers ...
     # It would be better to have unique categories that have cat name and cat tracer as properties
     vec = sigmas.loc[(sigmas.category == catname)]

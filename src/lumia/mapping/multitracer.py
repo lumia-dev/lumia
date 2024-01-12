@@ -375,8 +375,8 @@ class Mapping:
             dims = ['points_model', f'points_optim_{cat.name}'],
             coords={'points_model': grid.indices, f'points_optim_{cat.name}': range(nv)}
         )
-        mapping[f'lat'] = DataArray(lons, dims=[f'points_optim_{cat.name}'])
-        mapping[f'lon'] = DataArray(lats, dims=[f'points_optim_{cat.name}'])
+        mapping[f'lat'] = DataArray(lats, dims=[f'points_optim_{cat.name}'])
+        mapping[f'lon'] = DataArray(lons, dims=[f'points_optim_{cat.name}'])
         mapping[f'area'] = DataArray(areas, dims=[f'points_optim_{cat.name}'])
         mapping[f'landfraction'] = DataArray(land_fractions, dims=[f'points_optim_{cat.name}'])
         
