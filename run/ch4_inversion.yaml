@@ -2,12 +2,12 @@
 # "machine"-dependent settings (paths, etc.)
 cosmos :
   emissions: ${oc.env:SNIC_TMP}/emissions
-  temp: /dev/shm/lumia
-  footprints_cache : /dev/shm/footprints 
-  footprints : /home/gmonteil/data/LUMIA/footprints/footprints_coco2_wp4_ch4
+  temp: ${oc.env:SNIC_TMP}
+  footprints_cache : ${oc.env:SNIC_TMP}
+  footprints : /lunarc/nobackup/projects/ghg_inv/guillaume/LUMIA/footprints/footprints_coco2_wp4_ch4
   congrad: /home/gmonteil/lumia/src/congrad/congrad.exe
-  output: /home/gmonteil/data/CoCO2_WP5/lumia/${run.tag}
-  correlations : /home/gmonteil/data/LUMIA/correlations
+  output: output/${run.tag}
+  correlations : correlations
   cache_dir : ${.correlations}
   ncores : ${oc.env:SLURM_TASKS_PER_NODE}
   observations : .
@@ -42,7 +42,7 @@ laptop :
 # General run settings
 run:
   start: 2018-01-01
-  end: 2019-01-01
+  end: 2018-02-01
   paths: ${machine}
   domain: eurocom025x025
   optimizer : ${cg_scipy}

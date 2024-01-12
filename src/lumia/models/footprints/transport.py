@@ -130,6 +130,7 @@ class Transport:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
         compression = step in self.output_steps
+        emissions.print_summary()
         emf = emissions.to_netcdf(self.emissions_file, zlib=compression, only_transported=True)
 
         # Write the observations:

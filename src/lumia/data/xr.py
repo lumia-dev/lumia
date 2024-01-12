@@ -231,18 +231,21 @@ class TracerEmis(xr.Dataset):
         original_unit = self.units
         self.convert(units)
 
+        tot = 0
         for cat in self.categories:
             monthly_emis = self[cat].resample(time='MS', closed='left').sum(['lat', 'lon', 'time'])
             logger.info("===============================")
             logger.info(f"{cat}:")
             for year in unique(monthly_emis.time.dt.year):
                 logger.info(f'{year}:')
-                monthly_emis_year = monthly_emis.sel(time=slice(Timestamp(year, 1, 1), Timestamp(year, 12,
-                                                                                                 31)))  # where(monthly_emis.time.dt.year == year)
+                monthly_emis_year = monthly_emis.sel(time=slice(Timestamp(year, 1, 1), Timestamp(year, 12, 31)))  # where(monthly_emis.time.dt.year == year)
                 for em in monthly_emis_year:
                     logger.info(f'  {em.time.dt.strftime("%B").data}: {em.data:7.2f} {units}')
                 logger.info("    --------------------------")
                 logger.info(f"   Total : {monthly_emis_year.sum().data:7.2f} {units}")
+                tot += monthly_emis_year.sum().data
+        logger.info("    --------------------------")
+        logger.info(f"   Total : {tot:7.2f} {units}")
         self.convert(original_unit)
 
     def to_extensive(self):

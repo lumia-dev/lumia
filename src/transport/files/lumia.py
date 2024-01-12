@@ -81,6 +81,10 @@ class LumiaFootprintFile(h5py.File):
         if self[obsid]['sensi'].attrs.get('units') == 's m3 kg-1':
             sensi *= 0.0002897
 
+        #Convert to s/m
+        if self[obsid]['sensi'].attrs.get('units') == 's':
+            sensi /= 100
+
         #if Timestamp(self[obsid]['sensi'].attrs.get('runflex_version', '2000.1.1')) < Timestamp(2022, 9, 1):
         #    sensi *= 0.0002897
 

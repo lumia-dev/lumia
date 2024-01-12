@@ -120,7 +120,7 @@ class Var4D:
             # Diagnostics and saving in the prior and posterior steps:
             if self.step in ['apri', 'apos']:
                 self.diagnostics(cost_func)
-#                self.model.save(self.step)
+                #self.model.save(self.step)
 
             # Determine next step or just store the final gradient
             if not self.minimizer.converged:

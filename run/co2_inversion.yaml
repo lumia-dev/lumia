@@ -10,13 +10,13 @@ donkey :
 
 
 cosmos :
-  temp : ??? 
-  footprints : ??? 
+  temp : ${oc.env:SNIC_TMP}
+  footprints : /lunarc/nobackup/projects/ghg_inv/guillaume/LUMIA/footprints/footprints_coco2_v2
   footprints_scratch :  ${oc.env:SNIC_TMP}
-  emissions : ??? 
+  emissions :  emissions
   congrad : ${lumia:src/congrad/congrad.exe}
-  output : ??? 
-  backgrounds : ??? 
+  output : output 
+  backgrounds : 
   correlations : correlations
   ncores : ${oc.env:SLURM_TASKS_PER_NODE}
 
@@ -32,8 +32,7 @@ laptop :
 
 
 observations :
-  file :
-    path : /home/guillaume/Projects/CoCO2_WP4/lumia/co2/obspack_co2_466_GLOBALVIEWplus_v8.0_2023-03-30.2018.flexpart_20230627.tar.gz
+  file : /lunarc/nobackup/projects/ghg_inv/guillaume/JACOBIAN/obspack_co2_466_GLOBALVIEWplus_v8.0_2023-03-30.2018.flexpart_20230627.tar.gz
 
 
 run :
@@ -50,7 +49,7 @@ run :
   optimizer : ${cg_scipy}
   tag : fossil+biosphere_v3
   interval : H
-  footprints_archive : ???
+  footprints_archive : 
   spinup : 1MS
   spindown : 1MS
   ncores : ${machine.ncores}
@@ -76,9 +75,9 @@ emissions :
       anthropogenic :
         origin : tno
         field : flux_co2
-      # lateral :
-      #   origin : lateral_flux.lsce.coco2
-      #   resample_from : Y
+     # lateral :
+     #   origin : lateral_flux.lsce.coco2
+     #   resample_from : Y
     metacategories :
       biosphere : GPP + respiration
     archive : rclone:lumia:fluxes/nc/${run.domain}
@@ -89,7 +88,7 @@ model :
   executable : ${lumia:transport/multitracer.py}
   path_footprints : ${run.paths.footprints}
   split_categories : yes
-  output_steps : [apri, apos]
+  output_steps : ['apri', 'apos']
   extra_arguments :
     apri : --check-footprints --copy-footprints ${run.paths.footprints_scratch}
     "*" : -n ${run.ncores}
@@ -123,8 +122,8 @@ congrad:
 
 
 cg_scipy:
-  gradient_norm_reduction: ${lanczos.gradient_norm_reduction}
-  number_of_iterations: ${lanczos.number_of_iterations}
-  output_path: ${lanczos.output_path}
+  gradient_norm_reduction: ${congrad.gradient_norm_reduction}
+  number_of_iterations: ${congrad.number_of_iterations}
+  output_path: ${congrad.output_path}
   # gtol : 0.005
   

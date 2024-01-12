@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from dataclasses import dataclass, field
 from loguru import logger
 from pandas import Timedelta, Timestamp, DataFrame, concat
-from numpy import float32, zeros, average, meshgrid, array, eye
+from numpy import float32, zeros, average, meshgrid, array, eye, ones
 from tqdm import tqdm
 from collections.abc import Iterable
 from numpy.typing import NDArray
@@ -350,9 +350,13 @@ class Mapping:
     def optimize_at_native_spatial_resolution(self, cat, lsm: None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
+        #In order for lsm = none to work as intended
+        if lsm is None:
+            lsm = ones((grid.nlat, grid.nlon))
+
         # Select only the pixels where lsm is > 0:
         sel = lsm.reshape(-1) > 0
-        
+            
         # Calculate the transition matrix itself
         nm = grid.nlat * grid.nlon
         nv = (lsm > 0).sum()

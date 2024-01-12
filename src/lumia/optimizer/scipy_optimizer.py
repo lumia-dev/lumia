@@ -180,7 +180,7 @@ class Optimizer:
     
     @debug.timer
     def forward_step(self, state_preco: NDArray) -> protocols.Departures:
-        if array_equal(self.cached_results.get('state_preco', None), state_preco):
+        if array_equal(self.cached_results.get('state_preco', None), state_preco) and self.step != 'apos':
             return self.cached_results['departures']
         
         state = self.xc_to_x(state_preco)

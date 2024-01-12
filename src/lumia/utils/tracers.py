@@ -32,10 +32,10 @@ CH4 = Specie(
 )
 
 BC = Specie(
-    unit_emis=units('umol/m**2/s').units,
-    unit_mix=units('ppt').units,
-    unit_budget=units('GgC').units,
-    unit_optim=units('umol').units
+    unit_emis=units('ug/m**2/s').units,
+    unit_mix=units('ug/m**3').units,
+    unit_budget=units('Gg').units,
+    unit_optim=units('ug').units
 )
 
 
