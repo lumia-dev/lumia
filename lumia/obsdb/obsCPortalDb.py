@@ -283,7 +283,7 @@ class obsdb(obsdb):
                         (obsData1site.time <= pdSliceEndTime) &
                         (obsData1site['NbPoints'] > 0)
                     )]  
-                    obsData1siteTimed.to_csv('Lumia-'+sNow+'_dbg_obsData1siteTimed-obsPortalDbL310.csv', mode='w', sep=',')  
+                    # obsData1siteTimed.to_csv('Lumia-'+sNow+'_dbg_obsData1siteTimed-obsPortalDbL310.csv', mode='w', sep=',')  
                     # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
                     # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
                     # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
@@ -471,14 +471,14 @@ class obsdb(obsdb):
         obsDf['time'] = obsDf['time'].astype("datetime64[ns, UTC]")
         xBgDf.info()
         obsDf.info()
-        xBgDf.to_csv('Lumia-'+sNow+'_xBgDf_utc.csv', encoding='utf-8', mode='w', sep=',')
-        obsDf.to_csv('Lumia-'+sNow+'_obsDf_utc.csv', encoding='utf-8', mode='w', sep=',')
+        xBgDf.to_csv('Lumia-'+sNow+'_dbg_xBgDf_utc.csv', encoding='utf-8', mode='w', sep=',')
+        obsDf.to_csv('Lumia-'+sNow+'_dbg_obsDf_utc.csv', encoding='utf-8', mode='w', sep=',')
 
 
         # Merging only seems to work if background concentrations are provided at the same times as the observations. 
         obsDfWthBg = obsDf.merge(xBgDf,  how='left', on=['code','time'], indicator=True)
         # obsDfWthBg['time'] = to_datetime(obsDfWthBg['time'], utc = True)  # confirmed: 'time' is Timestamp type after this operation
-        obsDfWthBg.to_csv('Lumia-'+sNow+'_obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_dbg_obsDfWthBgContainingNaNs.csv', encoding='utf-8', mode='w', sep=',')
         # This has merged the 'background' column from the external file into the obsDf that holds all the observations from the carbon portal
         # However, we may not have background values for all sites and date-times....hence we interpolate in the background column 
         # linearly to cope with this in a reasonable way
@@ -486,7 +486,7 @@ class obsdb(obsdb):
         # The following trick was taken from here: https://stackoverflow.com/questions/39384749/groupby-pandas-incompatible-index-of-inserted-column-with-frame-index
         # limit : int, optional: Maximum number of consecutive NaNs to fill. Must be greater than 0. 7 days would be 7*24=168
         obsDfWthBg["intpBackground"]=obsDfWthBg[['code','background']].groupby(['code']).apply(lambda group: group.interpolate(method='linear', limit=168, limit_direction='both'))["background"].reset_index().set_index('level_1').drop('code',axis=1)   
-        obsDfWthBg.to_csv('Lumia-'+sNow+'_obsDfLinGrpInterpolatedBg.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_dbg_obsDfLinGrpInterpolatedBg.csv', encoding='utf-8', mode='w', sep=',')
         
         # Trying to interpolate over the actual corresponding date-time values results in some strange interpolation results
         # with resulting background values well below any supporting values...
@@ -497,7 +497,7 @@ class obsdb(obsdb):
         # df2.to_csv('/home/cec-ami/nateko/data/icos/DICE/mergeBackgroundCO2Test/newDfinterpolatedBg-time.csv', encoding='utf-8', mode='w', sep=',')
         obsDfWthBg.drop(columns=['background','_merge'], inplace=True)
         obsDfWthBg.rename(columns={'intpBackground':'background'}, inplace=True)
-        obsDfWthBg.to_csv('Lumia-'+sNow+'_ObsDfLinGrpInterpolatedBgShort.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_dbg_obsDfLinGrpInterpolatedBgShort.csv', encoding='utf-8', mode='w', sep=',')
 
         nTotal=len(obsDfWthBg)
         obsDfWthBg.dropna(subset=['obs'], inplace=True)
@@ -505,7 +505,7 @@ class obsdb(obsdb):
         nRemaining=len(obsDfWthBg)
         if(nDroppedObsRows>0):
             logger.info(f"Dropped {nDroppedObsRows} rows with no valid co2 observations. {nRemaining} good rows are remaining")
-        obsDfWthBg.to_csv('Lumia-'+sNow+'_ObsDfWthBg-dropnaObs.csv', encoding='utf-8', mode='w', sep=',')
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_dbg_obsDfWthBg-dropnaObs.csv', encoding='utf-8', mode='w', sep=',')
 
         #  How do we handle any missing information on background concentrations where interpolation was not a sensible option:
         #  background :
@@ -522,7 +522,7 @@ class obsdb(obsdb):
             if(whatToDo=='DAILYMEAN'):
                 dfDailyMeans = dfGoodBgValuesOnly[['time','background']].resample('D', on='time').mean()
                 # dfDailyMeans.rename(columns={'background':'dMeanBackground'}, inplace=True)
-                dfDailyMeans.to_csv('Lumia-'+sNow+'_dMeans.csv', encoding='utf-8', mode='w', sep=',')
+                dfDailyMeans.to_csv('Lumia-'+sNow+'_dbg_dMeans.csv', encoding='utf-8', mode='w', sep=',')
                 # dfDailyMeans contains one mean background concentration across all good background values per day.
                 dfDailyMeans['time2'] = to_datetime(dfDailyMeans.index)
                 dfDailyMeans['date'] = to_datetime(dfDailyMeans['time2']).dt.date
@@ -557,7 +557,7 @@ class obsdb(obsdb):
         if 'date' in obsDfWthBg.columns:
             obsDfWthBg.drop(columns=['date'], inplace=True)
         # obsDfWthBg.to_csv('finalObsDfWthBgUnformatted.csv', encoding='utf-8', mode='w', sep=',')
-        obsDfWthBg.to_csv('Lumia-'+sNow+'_finalObsDfWthBgBeforeCleaning.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+        obsDfWthBg.to_csv('Lumia-'+sNow+'_dbg_finalObsDfWthBgBeforeCleaning.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         column_names = obsDfWthBg.columns
         print(column_names,  flush=True)
         # obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)

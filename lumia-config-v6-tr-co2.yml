@@ -19,18 +19,18 @@ emissions:
     path: /data/fluxes/nc
   co2:
     categories:
-      biosphere:
-        error_min: 0
-        is_ocean: false
-        origin: VPRM
-        tcorr: ${optimize.emissions.co2.biosphere.temporal_correlation}
-        unit: PgC
       fossil:
         error_min: 0
         is_ocean: false
         optimize: false
         origin: EDGARv4_LATEST
         tcorr: ${optimize.emissions.co2.fossil.temporal_correlation}
+        unit: PgC
+      biosphere:
+        error_min: 0
+        is_ocean: false
+        origin: VPRM
+        tcorr: ${optimize.emissions.co2.biosphere.temporal_correlation}
         unit: PgC
       ocean:
         error_min: 0
@@ -41,8 +41,8 @@ emissions:
         unit: PgC
     interval: ${run.timestep}
     location:
-      biosphere: CARBONPORTAL
       fossil: CARBONPORTAL
+      biosphere: CARBONPORTAL
       ocean: LOCAL
     path: ${run.paths.data}/fluxes/nc/
     prefix: flux_co2.
@@ -113,6 +113,8 @@ observations:
 optimize:
   emissions:
     co2:
+      fossil:
+        adjust: false
       biosphere:
         adjust: true
         annual_uncertainty: 0.47 PgC
@@ -120,8 +122,6 @@ optimize:
         optimization_interval: 7d
         spatial_correlation: 500-g
         temporal_correlation: 30D
-      fossil:
-        adjust: false
       ocean:
         adjust: false
       resample: false

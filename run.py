@@ -184,6 +184,7 @@ emis.print_summary()
 
 
 # Create model instance
+# model.db.observations needs to marry up the co2 observational data (inclduing the backgroundCO2) with the emissions for biosphere, fossil, ocean 
 model = lumia.transport(rcf, obs=db, formatter=xr)
 
 # Do a model run (or something else ...).

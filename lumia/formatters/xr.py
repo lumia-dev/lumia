@@ -759,7 +759,11 @@ class Data:
                                      timestep=freq))  # .seconds * ur('s')))
 
             # Import emissions for each category of that tracer
-            for cat in list(rcf['emissions'][tr]['categories']):
+            ll=rcf['emissions'][tr]['categories']  # Why is the list order changed to alphabetical?
+            logger.debug(f'Emission categories are: {ll}')
+            emissionCategories=list(ll)
+            logger.debug(f'List of emission categories are: {emissionCategories}')
+            for cat in emissionCategories: # list(rcf['emissions'][tr]['categories']):
                 
                 # Get the frequency of the emissions and, optionally, of the files they should be upscalled from (temporally):
                 # By order of priority:
@@ -847,8 +851,8 @@ class Data:
                 logger.debug(f"Emissions data read for category {cat}")
                 emDataShape=em[tr].add_cat(cat, emis)  # collects the individual emis objects for biosphere, fossil, ocean into one data structure 'em'
                 logger.debug(f"Emissions data for category {cat} added to em.xr data structure.")
-        with open('xr_em.pickle', 'w') as handle:
-            pickle.dump(em, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        #with open('xr_em.pickle', 'w') as handle:
+        #    pickle.dump(em, handle, protocol=pickle.HIGHEST_PROTOCOL)
         return em
 
     

@@ -66,29 +66,30 @@ class transport(object):
         db.save_tar(os.path.join(self.outputdir, f'observations.{step}.tar.gz'))
 
     def calcDepartures(self, struct, step=None, serial=False):
+        # self.db.observations should contain both the co2 observational data as well as the emissions for biosphere, fossil, ocean and the backgroundCO2.
         logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
         self.db.observations.to_csv('obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         emf, dbf = self.runForward(struct, step, serial)
         logger.info(f'in calcDepartures() reading db from file dbf={dbf}')
         db = obsdb.from_hdf(dbf)
-        print(db)
-        logger.info("db.columns=")
-        print(db.columns)
-        logger.info(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
+        logger.debug(f'{db}')
+        logger.debug("db.columns=")
+        logger.debug(f'{db.columns}')
+        logger.debug(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
         self.db.observations.to_csv('obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
-        logger.info(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
+        logger.debug(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
         self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         # db = db.reset_index(drop=True)
-        logger.info('in calcDepartures() db=')
-        print(db)
-        logger.info(f'in calcDepartures() emf={emf}')
-        logger.info('in calcDepartures() self.db.observations=')
-        print(self.db.observations)
+        logger.debug('in calcDepartures() db=')
+        logger.debug(f'{db}')
+        logger.debug(f'in calcDepartures() emf={emf}')
+        logger.debug('in calcDepartures() self.db.observations=')
+        logger.debug(f'{self.db.observations}')
         #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
         knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
         for col in knownColumns:
             if col in db.sites.columns: # db.columns:
-                logger.info(f'in calcDepartures() db.sites.col={col}')
+                logger.debug(f'in calcDepartures() db.sites.col={col}')
                 if(is_float_dtype(db.sites[col])==False):
                     db.sites[col]=db.sites[col].astype(float)
         logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
@@ -96,12 +97,10 @@ class transport(object):
         if self.rcf.rcfGet('model.split_categories', default=True): # if self.rcf.getAlt('model','split_categories', default=True):
             import time
             time.sleep(5)
-            logger.info("obsoperator._init_.calcDepartures() L74 self=")
-            print(self)
-            logger.info("obsoperator._init_.calcDepartures() L74 self.db.observations=")
-            print(self.db.observations)
-            logger.info("obsoperator._init_.calcDepartures() L74 self.db.observations.columns=")
-            print(self.db.observations.columns)
+            logger.debug("obsoperator._init_.calcDepartures() self=")
+            self.db.observations(f'{self}')
+            logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations={self.db.observations}')
+            logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations.columns={self.db.observations.columns}')
             for cat in struct.transported_categories:
                 self.db.observations.loc[:, f'mix_{cat.name}'] = db.observations.loc[:, f'mix_{cat.name}'].values
 
