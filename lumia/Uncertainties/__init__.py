@@ -96,6 +96,7 @@ class Uncertainties:
             logger.info("Correlation file <p:%s> not found. Computing it",fname)
             hc = horcor(corlen, cortype, data)
             hc.calc_latlon_covariance()
+            logger.debug(f'lumia.uncertainties.checkCorFile_vres.write(fname={fname})')
             hc.write(fname)
             del hc
         return fname

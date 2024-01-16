@@ -103,7 +103,8 @@ class transport(object):
         runcmd(cmd)
 
         # Import the adjoint emissions
-        adjstruct = self.readAdjEmis(os.path.join(tmpdir, 'adj_emissions.nc4'))
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        adjstruct = self.readAdjEmis(sTmpPrfx+'adj_emissions.nc4')
         adjstruct.to_extensive()
         logger.info(f"tm5.runAdjoint() return adjstruct={adjstruct}")
         return adjstruct

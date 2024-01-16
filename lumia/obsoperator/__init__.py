@@ -49,9 +49,9 @@ class transport(object):
         if path is None :
             path = self.outputdir
         checkDir(path)
-
-        rcfile = self.rcf.write(os.path.join(path, f'transport.{tag}rc'))
-        obsfile = self.db.save_tar(os.path.join(path, f'observations.{tag}tar.gz'))
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        rcfile = self.rcf.write(f'{sOutputPrfx}transport.{tag}rc')
+        obsfile = self.db.save_tar(f'{sOutputPrfx}observations.{tag}tar.gz')
         if structf is not None :
             try :
                 shutil.copy(structf, path)
@@ -68,10 +68,11 @@ class transport(object):
     def calcDepartures(self, struct, step=None, serial=False):
         # self.db.observations should contain both the co2 observational data as well as the emissions for biosphere, fossil, ocean and the backgroundCO2.
         logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
-        self.db.observations.to_csv('obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        self.db.observations.to_csv(sOutputPrfx+'_dbg_obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         emf, dbf = self.runForward(struct, step, serial)
         logger.info(f'in calcDepartures() reading db from file dbf={dbf}')
-        db = obsdb.from_hdf(dbf)
+        db = obsdb.from_hdf(dbf, rcFile=self.rcf)
         logger.debug(f'{db}')
         logger.debug("db.columns=")
         logger.debug(f'{db.columns}')
@@ -81,9 +82,9 @@ class transport(object):
             logger.info('mix_fossil column NOT present in self.db.observations.columns. That is very bad and something goofed up. It is meaningless to proceed until this error is fixed.')
             # sys.exit(-13)
         logger.debug(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
-        self.db.observations.to_csv('obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        self.db.observations.to_csv(sOutputPrfx+'_dbg_obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         logger.debug(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
-        self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        self.db.observations.to_csv(sOutputPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         # db = db.reset_index(drop=True)
         logger.debug('in calcDepartures() db=')
         logger.debug(f'{db}')
@@ -99,7 +100,7 @@ class transport(object):
                 if(is_float_dtype(db.sites[col])==False):
                     db.sites[col]=db.sites[col].astype(float)
         logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
-        # if DEBUG: self.db.observations.to_csv('obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
+        # if DEBUG: self.db.observations.to_csv(sOutputPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
         if self.rcf.rcfGet('model.split_categories', default=True): # if self.rcf.getAlt('model','split_categories', default=True):
             import time
             time.sleep(5)
@@ -150,14 +151,16 @@ class transport(object):
             logger.info('obsoperator.init.runForward(): observations set to self.db')
 
         compression = step in self.rcf.rcfGet('model.output.steps', default=[]) # Do not compress during 4DVAR loop, for better speed.
-        emf = self.writeStruct(struct, path=os.path.join(self.tempdir, 'emissions.nc'), zlib=compression, only_transported=True)
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        emf = self.writeStruct(struct, path=sTmpPrfx+'emissions.nc', zlib=compression, only_transported=True)
         del struct
-        dbf = observations.to_hdf(os.path.join(self.tempdir, 'observations.hdf'))
+        dbf = observations.to_hdf('observations.hdf')
         
-        logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
+#        logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
 
         # Run the model
-        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
+        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
 
         if self.serial or serial:
             cmd.append('--serial')
@@ -194,12 +197,13 @@ class transport(object):
         """
         
         self.db.observations.loc[:, 'dy'] = departures
-        depout=os.path.join(self.tempdir, 'departures.hdf')
-        logger.info(f"Writing departures to {depout}")
-        dpf = self.db.to_hdf(os.path.join(self.tempdir, 'departures.hdf'))
+        #depout=os.path.join(self.tempdir, 'departures.hdf')
+        #logger.info(f"Writing departures to {depout}")
+        dpf = self.db.to_hdf('departures.hdf')
         
         # Name of the adjoint output file
-        adjf = os.path.join(self.tempdir, 'emissions.nc')
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        adjf = sTmpPrfx+'emissions.nc'
 
         # Run the adjoint transport:
         cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
@@ -214,10 +218,11 @@ class transport(object):
 
     def calcSensitivityMap(self, struct):
         departures = ones(self.db.observations.shape[0])
-#        try :
-#            adjfield = self.readStruct(self.tempdir, 'adjoint')
-#        except :
-        self.writeStruct(struct, os.path.join(self.tempdir, 'emissions.nc'), zlib=True)
+        #        try :
+        #            adjfield = self.readStruct(self.tempdir, 'adjoint')
+        #        except :
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        self.writeStruct(struct, sTmpPrfx+'emissions.nc', zlib=True)
         adjfield = self.runAdjoint(departures)
 
         sensi = {}

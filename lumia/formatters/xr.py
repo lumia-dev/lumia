@@ -805,7 +805,7 @@ class Data:
                     else:
                         logger.error(f'Abort. My guess of eurocom025x025 was not a very good guess. Please provide a emissions.{tr}.regionName key in your yml configuration file and try again.', flush=True)
                         sys.exit(1)
-                if(myPath2FluxData1[-1]!=os.path.sep):
+                if ((len(myPath2FluxData1)>0) and (myPath2FluxData1[-1]!=os.path.sep)):
                     myPath2FluxData1=myPath2FluxData1+os.path.sep
                 myPath2FluxData=myPath2FluxData1+myPath2FluxData2+os.path.sep+myPath2FluxData3
                 if (os.path.sep!=myPath2FluxData[-1]):     # Does the path end in a directory separator (forward or back-slash depending on OS)?

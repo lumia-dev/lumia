@@ -105,6 +105,7 @@ class Emissions(dict):
 
     def write(self, fname: str) -> None:
         for trname, tracer in self.items() :
+            logger.debug(f'lumia.transport.emis._init_.write(fname={fname}) for trname={trname}, tracer={tracer} using h5netcdf engine.')
             tracer.to_netcdf(fname, group=trname, engine='h5netcdf')
 
     def asvec(self) -> ndarray:

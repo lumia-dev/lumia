@@ -43,10 +43,17 @@ class Interface:
         label = f'_{label}' if label is not None else ''
         units = self.model_data.units
         self.model_data.to_intensive()
-        self.model_data.to_netcdf(os.path.join(path, f'emissions{label}.nc'))
+        # TODO: check if this emissions.nc really goes into /output and not like some other emissions file thatis written to ./tmp with the same filename...
+        logger.debug(f'multitracer.save() path={path}')
+        sOutputPrfx=RcFile[ 'run']['thisRun']['uniqueOutputPrefix']
+        logger.debug(f'sOutputPrfx={sOutputPrfx}')
+        #self.model_data.to_netcdf(os.path.join(path, f'emissions{label}.nc'))
+        self.model_data.to_netcdf(f'{sOutputPrfx}emissions{label}.nc')
         self.model_data.convert(units)
-        # Note: optim_data should contain all the optimization data (mapping, correlation matrices, uncertainties, state vectors, etc.). But in the current implementation, it contains only a very minimal set of vectors, which are not too useful. So for now, save the control vector instead.
-#        self.optim_data.to_hdf(os.path.join(path, 'control.hdf'), 'vectors')
+        # Note: optim_data should contain all the optimization data (mapping, correlation matrices, uncertainties, state vectors, etc.). But in the 
+        # current implementation, it contains only a very minimal set of vectors, which are not too useful. So for now, save the control vector 
+        # instead.
+        #        self.optim_data.to_hdf(os.path.join(path, 'control.hdf'), 'vectors')
 
     def save_step(self, vector: ndarray, step: str) -> None:
         emis = self.VecToStruct(vector)

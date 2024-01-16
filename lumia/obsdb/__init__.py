@@ -246,7 +246,7 @@ class obsdb:
             self.observations.loc[:, dest] = self.observations.loc[:, source]
 
     @classmethod
-    def from_dataframe(cls, df: DataFrame) -> "obsdb":
+    def from_dataframe(cls, df: DataFrame, rcFile=None) -> "obsdb":
         '''
         Class method  from_dataframe()
 
@@ -276,18 +276,25 @@ class obsdb:
 
         print('obs.sites=',  flush=True) 
         print(obs.sites,  flush=True)
-        obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
         # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondence
         obs.observations = df.loc[:, ['site'] + list(set(df.columns) - set(obs.sites.columns))]
-        obs.sites.to_csv('./obsSites2.csv',  encoding='utf-8', sep=',',  mode='w')
-        print('obsSites=',  flush=True) # obs.to_csv('./obs1.csv',  encoding='utf-8', sep=',',  mode='w')
-        print(obs,  flush=True)
-
+        if(rcFile is None):
+            obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
+        else:
+            sOutputPrfx=rcFile[ 'run']['thisRun']['uniqueOutputPrefix']
+            obs.sites.to_csv(sOutputPrfx+'obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
         return obs
 
     def to_hdf(self, filename: str) -> str:
         df = self.to_dataframe()
-        logger.debug(f'df.to_hdf (writes ./tmp/observations.hdf) df columns={df.columns}')
+        fname = os.path.basename(filename)
+        if('control.hdf' in fname):
+            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+            filename=sOutputPrfx+'control.hdf'
+        else:            
+            sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+            filename=sTmpPrfx+fname
+        logger.debug(f'df.to_hdf (writes {filename}) df columns={df.columns}')
         # TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
         logger.debug(f'Columns read from hdf file: {df.columns}')
         for col in df.columns:
@@ -300,11 +307,11 @@ class obsdb:
         # map directly to c-types [inferred_type->mixed,key->block3_values] [items->Index(['icos_flag', 'site', 'code', 'tracer', 'sitecode_CSR', 'fnameUrl',
         #        'file', 'name', 'fnameCpb'],
         #       dtype='object')]
-        df.to_hdf(filename, key='observations')
+        df.to_hdf(filename, key='observations')  # this is the pandas dataframe .to_hdf() method being called
         return filename
 
     @classmethod
-    def from_hdf(cls, filename: str) -> "obsdb":
+    def from_hdf(cls, filename: str, rcFile=None) -> "obsdb":
         df = read_hdf(filename, key='observations')
         #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
         knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
@@ -312,9 +319,9 @@ class obsdb:
             if col in df.columns:
                 if(is_float_dtype(df[col])==False):
                     df[col]=df[col].astype(float)
-        clsdf= cls.from_dataframe(df)
+        clsdf= cls.from_dataframe(df, rcFile=rcFile)
         print(clsdf, flush=True)
-        return cls.from_dataframe(df)
+        return cls.from_dataframe(df, rcFile=rcFile)
 
     def checkIndex(self, reindex=False):
         if True in self.observations.index.duplicated():

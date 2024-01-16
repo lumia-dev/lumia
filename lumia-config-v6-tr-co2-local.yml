@@ -82,8 +82,8 @@ observations:
       - NRT
       - AnyOther
       rename: background:mix_background
-      selectedObsData: ./output/Lumia-2024-01-08T10:00:16-selected-ObsData-co2.csv
-      selectedPIDs: ./output/Lumia-2024-01-08T10:00:16-selected-PIDs-co2.csv
+      selectedObsData: ./output/Lumia-2024-01-08T10_00-selected-ObsData-co2.csv
+      selectedPIDs: ./output/Lumia-2024-01-08T10_00-selected-PIDs-co2.csv
       tracer: co2
     units: ppm
   end: '2018-02-01 23:59:59'
@@ -155,11 +155,13 @@ run:
     lon1: 35.0
   thisRun:
     PythonVersion: Python environment version is Python 3.10.10
-    hostName: tux.nateko.lu.se
-    platformCore: Linux-5.15.0-91-generic-x86_64-with-glibc2.35
-    platformFlavour: 01-Ubuntu SMP Tue Nov 14 13:30:08 UTC 202
-    uniqueIdentifierDateTime: '2024-01-15T16:51:33'
-    username: cec-ami
+    hostName: skuggfaxe
+    platformCore: Linux-5.15.0-71-generic-x86_64-with-glibc2.35
+    platformFlavour: 8-Ubuntu SMP Tue Apr 18 09:00:29 UTC 202
+    uniqueIdentifierDateTime: 2024-01-16T22_25
+    uniqueOutputPrefix: ./output/LumiaDA-2024-01-16T22_25/LumiaDA-2024-01-16T22_25-
+    uniqueTmpPrefix: /home/arndt/nateko/data/icos/DICE/tmp/LumiaDA-2024-01-16T22_25/LumiaDA-2024-01-16T22_25-
+    username: arndt
   timestep: 1h
   tracers:
   - co2

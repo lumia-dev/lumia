@@ -150,6 +150,7 @@ if __name__ == '__main__':
 
     elif args.adjoint :
         adj = model.runAdjoint()
+        logger.debug(f'lumia.transport.default.write(model.emfile={model.emfile})')
         adj.write(model.emfile)
 
     elif args.adjtest :

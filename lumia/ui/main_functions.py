@@ -266,7 +266,8 @@ def optimize(rcf: RcFile) -> SimpleNamespace:
 def validate(rcf: RcFile) -> SimpleNamespace:
     obs = obsdb.from_rc(rcf, filekey='validation', setup_uncertainties=False)
     model = lumia.transport(rcf, obs=obs, formatter=xr)
-    emis = xr.Data.from_file(Path(rcf.rcfGet('path.output')) / 'emissions_apos.nc')
+    sOutputPrfx=rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+    emis = xr.Data.from_file(sOutputPrfx+'emissions_apos.nc')
     model.run_forward(emis, obs, step='validation')
     return SimpleNamespace(obs=obs, model=model, emis=emis)
 

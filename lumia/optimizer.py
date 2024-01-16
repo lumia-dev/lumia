@@ -106,7 +106,8 @@ class Optimizer(object):
         Perform a chi2 goodness of fit test for the inversion result.
         """
         ndof = nobs - self.iteration
-        with open(os.path.join(self.paths.output, 'chi2.txt'), 'w') as fid:
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        with open(sOutputPrfx+'chi2.txt', 'w') as fid:
             fid.write(f'Inversion performed with {nobs = } observations and niter = {self.iteration} iterations\n')
             fid.write(f'Prior cost function (chi2) value: {self.J_pri.tot}\n')
             fid.write(f'      Reduced chi2 (chi2 / ndof): {self.J_pri.tot / ndof :.2f}\n')
@@ -205,12 +206,12 @@ class Optimizer(object):
         """
         #step = '' if step is None else step+'.'
         path = self.paths.output
-
-        self.rcf.write(os.path.join(path, f'lumia.rc'))
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        self.rcf.write(f'{sOutputPrfx}lumia.rc')
         self.model.save(path, step)
         self.interface.save(path, step)
         self.minimizer.save(path)
-        self.control.save(os.path.join(path, 'control.hdf'))
+        self.control.save(sOutputPrfx+'control.hdf')
 
         # Copy to archive
         if self.paths.archive:

@@ -36,6 +36,12 @@ class Observations(DataFrame):
         return Observations
 
     def write(self, filename: str) -> None:
+        logger.debug(f'observations.write filename={filename} via self.to_hdf(filename, key=observations)')
+        try:
+            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+            print(sOutputPrfx)
+        except:
+            pass
         self.to_hdf(filename, key='observations')
 
     def gen_filenames(self) -> None:
@@ -65,7 +71,7 @@ class Observations(DataFrame):
         #exists = array([os.path.exists(f) for f in fnames])
         self.loc[~exists, 'footprint'] = nan
 
-    def gen_obsid(self) -> None:
+    def gen_obsid(self, sOutpPrfx) -> None:
         # Construct the obs ids:
         # TODO: obsids are no longer unique if footprints from multiple(!) heights are available for the same site.
         # assuming all traditional obsids are <=999,999.0, we could make them unique by replacing that 
@@ -75,7 +81,7 @@ class Observations(DataFrame):
         # obsids = valid.code + h.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
         obsids = valid.code + valid.height.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
         # logger.info(f"Dbg: obsids=\n{obsids}")
-        obsids.to_csv('obsids.csv', encoding='utf-8', sep=',', mode='w')
+        obsids.to_csv(sOutpPrfx+'obsids.csv', encoding='utf-8', sep=',', mode='w')
         self.loc[~isnull(self.footprint), 'obsid'] = obsids
 
     def check_footprint_files(self, cls: Type[FootprintFile]) -> None:
@@ -88,12 +94,12 @@ class Observations(DataFrame):
         self.loc[~self.obsid.isin(footprints), 'footprint'] = nan
 
 
-    def check_footprints(self, archive: str, cls: Type[FootprintFile], local: str=None) -> None:
+    def check_footprints(self, archive: str, cls: Type[FootprintFile], local: str=None,  sOutpPrfx='') -> None:
         """
         Search for/lumia/transport/multitracer.py the footprint corresponding to the observations
         """
         # 1) Create the footprint file names
         self.gen_filenames()
         self.find_footprint_files(archive, local)
-        self.gen_obsid()
+        self.gen_obsid(sOutpPrfx)
         self.check_footprint_files(cls)

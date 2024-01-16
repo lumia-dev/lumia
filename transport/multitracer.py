@@ -149,6 +149,7 @@ if __name__ == '__main__':
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
+    p.add_argument('--outpPathPrfx', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=True)
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
@@ -165,17 +166,19 @@ if __name__ == '__main__':
                 obs[col]=obs[col].astype(float)
                 # cf=obs[col]
                 # print(cf)
-
+        
+    
     # Set the max time limit for footprints:
     LumiaFootprintFile.maxlength = args.max_footprint_length
 
     if args.check_footprints or 'footprint' not in obs.columns:
-        obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints)
+        obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints,  sOutpPrfx=args.outpPathPrfx)
 
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
-    emis = Emissions.read(args.emis)  # goes to lumia.transport.emis.init_.read() and reads ./tmp/emissions.nc
+    emis = Emissions.read(args.emis)  # goes to lumia.transport.emis.init_.read() and reads  self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']+emissions.nc
     if args.forward:
         obs = model.run_forward(obs, emis)  # goes to lumiatransport.core.model.run_forward() -> run() -> run_tracer() 
+        logger.debug(f'lumia.transport.multitracer.main writing obs = model.run_forward(obs, emis) via obs.write({args.obs}) ')
         obs.write(args.obs)
 
     elif args.adjoint :

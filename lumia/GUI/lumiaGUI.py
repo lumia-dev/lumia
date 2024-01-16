@@ -793,13 +793,13 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
             dLon=ymlContents['run']['region']['dlon']  # 0.25
            # run:  grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
             ymlContents['run']['grid'] = '${Grid:{lon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f}}' % (Lon0, Lat0,Lon1, Lat1, dLon, dLat)
-            dollar='$'
-            lBrac='{'
-            rBrac='}'
-            griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f%s%s' % (dollar, lBrac,lBrac, Lon0, Lat0,Lon1, Lat1, dLon, dLat, rBrac, rBrac))
-            logger.debug(f'griddy2={griddy2}')
+            # dollar='$'
+            # lBrac='{'
+            # rBrac='}'
+            # griddy2 = str('%s%sGrid:%slon0:%.3f,lat0:%.3f,lon1:%.3f,lat1:%.3f,dlon:%.5f, dlat:%.5f%s%s' % (dollar, lBrac,lBrac, Lon0, Lat0,Lon1, Lat1, dLon, dLat, rBrac, rBrac))
+            # logger.debug(f'griddy2={griddy2}')
             # ymlContents['run']['griddy2']=griddy2
-            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'griddy2'],   value=griddy2, bNewValue=True)
+            # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'griddy2'],   value=griddy2, bNewValue=True)
 
         # ObservationsFileLocation
         if (self.iObservationsFileLocation.get()==2):
@@ -1475,6 +1475,9 @@ class RefineObsSelectionGUI(ctk.CTk):
             # Save  all details of the configuration and the version of the software used:
             setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  'filters',  'ICOSonly'],   
                                                                         value=ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
+            
+            # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
+            # sLogCfgFile=sOutputPrfx+"runlog-config.yml"  
             sLogCfgFile=sLogCfgPath+"Lumia-"+sNow+"-runlog-config.yml"  
             ymlContents['observations'][tracer]['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
             try:
@@ -2093,7 +2096,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     #if(not nestedKeyExists(ymlContents, 'run',  'paths',  'output')):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output'],   value=os.path.join('/output', args.tag), bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=False)
-    s=ymlContents['run']['paths']['temp']+'/congrad.nc'    
+    s=ymlContents['run']['thisRun']['uniqueTmpPrefix']+'congrad.nc'    
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s, bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)

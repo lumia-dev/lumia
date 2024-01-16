@@ -21,7 +21,7 @@ p.add_argument('--optimize', default=False, action='store_true')
 p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
 p.add_argument('--start', default=None, help="Start of the simulation. Overwrites the value in the rc-file")
 p.add_argument('--end', default=None, help="End of the simulation. Overwrites the value in the rc-file")
-p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
+# p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
 p.add_argument('--setkey', action='append', help="use to override some rc-keys (ignored by the GUI)")
 p.add_argument('--tag', default='')
 p.add_argument('--rcf')   # what used to be the resource file (now yaml file) - only yaml format is supported
@@ -54,16 +54,16 @@ sCmd=hk.documentThisRun(ymlFile, args)
 # Now the config.yml file has all the details for this particular run
 
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
-if args.gui:
-    try:
-        returnValue=os.system(sCmd)
-    except:
-        logger.error(f"Calling LumiaGUI failed. {returnValue} Execution stopped.")
-        sys.exit(42)
-    logger.info("LumiaGUI window closed")
-    if(os.path.isfile("LumiaGui.stop")):
-        logger.error("The user canceled the call of Lumia or something went wrong in the GUI. Execution aborted. Lumia was not called.")
-        sys.exit(42)
+# if args.gui:
+#     try:
+#         returnValue=os.system(sCmd)
+#     except:
+#         logger.error(f"Calling LumiaGUI failed. {returnValue} Execution stopped.")
+#         sys.exit(42)
+#     logger.info("LumiaGUI window closed")
+#     if(os.path.isfile("LumiaGui.stop")):
+#         logger.error("The user canceled the call of Lumia or something went wrong in the GUI. Execution aborted. Lumia was not called.")
+#         sys.exit(42)
 
 # Now read the yaml configuration file - whether altered by the GUI or not
 try:
@@ -78,6 +78,7 @@ if args.setkey :
         rcf.setkey(k, v)
 
 # Default paths, common to all runs within this container, normally
+sTmpPrfx=rcf[ 'run']['thisRun']['uniqueTmpPrefix']
 defaults = {
     # Global paths
     'path.data': '/data',
@@ -88,7 +89,7 @@ defaults = {
     # Run-dependent paths
     'tag': args.tag,
     'run.paths.output': os.path.join('/output', args.tag),
-    'var4d.communication.file': '${run.paths.temp}/congrad.nc',
+    'var4d.communication.file': sTmpPrfx+'congrad.nc',
     'emissions.*.archive': 'rclone:lumia:fluxes/nc/',
     'emissions.*.path': '/data/fluxes/nc',
     'model.transport.exec': '/lumia/transport/multitracer.py',
@@ -126,8 +127,9 @@ logger.info(f"Temporary files will be stored in {rcf.rcfGet('run.paths.temp')}")
 
 sNow=rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
 sOut=rcf.rcfGet('run.paths.output')
-if not os.path.exists(f'{sOut}/Lumia-{sNow}-runlog-config.yml'):
-    sCmd=f'cp {ymlFile} {sOut}/Lumia-{sNow}-runlog-config.yml'
+sOutputPrfx=rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+if not os.path.exists(f'{sOutputPrfx}config.yml'):
+    sCmd=f'cp {ymlFile} {sOutputPrfx}config.yml'
     try:
         os.system(sCmd)
     except:
@@ -156,15 +158,14 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
     sLocation=rcf['observations'][tracer]['file']['location']
     # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
     try:
-        # TODO: this need to be generalised, so we can read obsData for multiple tracers.
         sLogCfgPath=""
         if ((rcf['run']['paths']['output'] is None) or len(rcf['run']['paths']['output']))<1:
             sLogCfgPath="./"
         else:
             sLogCfgPath=rcf['run']['paths']['output']+"/"
-        sOut=sLogCfgPath+"Lumia-"+sNow+"-AllObsData-withBg-"+tracer+".csv"
+        sOut=sOutputPrfx+"_dbg_AllObsData-withBg-"+tracer+".csv"
     except:
-        sOut='obsDataAll3.csv'
+        sOut='_dbg_obsDataAll3.csv'
     if ('CARBONPORTAL' in sLocation):
         from lumia.obsdb.obsCPortalDb import obsdb
         db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile)

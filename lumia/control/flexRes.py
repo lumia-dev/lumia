@@ -80,7 +80,7 @@ class Control:
             os.makedirs(savedir)
         elif os.path.exists(filename):
             os.remove(filename)
-        logger.info(f"Write control savefile to {filename}")
+        logger.info(f"Write control savefile to {filename}") # ./output/control.hdf
         
         # Vectors
         self.vectors.to_hdf(filename, 'vectors')

@@ -63,7 +63,8 @@ class Minimizer:
         
     def save(self, path: str) -> None :
         copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
-        copy_file(os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out'), path)
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        copy_file(sOutputPrfx+'congrad_debug.out', path)
 
     def iter_states(self):
         traject = self.commfile.read_traject()
