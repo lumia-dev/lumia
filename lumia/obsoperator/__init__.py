@@ -167,9 +167,11 @@ class transport(object):
         
         cmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default=[])) # cmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
         # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
-        # TODO: testing with old multitracer.py from 2023-09-02:
-        cmd='/opt/conda/envs/flex/bin/python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
-        runcmd(cmd)
+        #   TODO: testing with old multitracer.py from 2023-09-02:
+        #   cmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
+        # creates normally: cmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
+        
+        runcmd(cmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
 
         logger.info('obsoperator.init.runForward(): emf2=')
         if(emf is None):
