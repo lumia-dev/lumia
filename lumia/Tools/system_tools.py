@@ -23,7 +23,8 @@ def runcmd(cmd):
     logger.info(colorize(' '.join([str(x) for x in cmd]), 'g'))
     try :
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    except subprocess.CalledProcessError :
+    except subprocess.CalledProcessError as e:
+        logger.error(f'{e.output}')
         logger.error("external command failed, exiting ...")
         raise subprocess.CalledProcessError
     for line in p.stdout:

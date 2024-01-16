@@ -173,6 +173,7 @@ class Rclone:
         try :
             _ = subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
+            logger.error(f'{e.output}')
             logger.exception(f"File {remotepath} not found on archive {self.protocol}:{self.remote}", traceback=False)
 
     def get(self, filepath: str) -> bool:

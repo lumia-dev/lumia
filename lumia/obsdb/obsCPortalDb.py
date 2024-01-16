@@ -49,17 +49,19 @@ class obsdb(obsdb):
             - filekey (optional): name of the section containing the file path and relevant keys
 
         """
-        tracers = rcf.rcfGet('run.tracers',  default=['co2'])
-        tracer=tracers[0]
-        if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
-            trac=rcf['observations'][tracer]['file']['tracer']
-            tracer=trac[0]
-        else:
-            tracer=rcf['observations'][tracer]['file']['tracer']        
+        tracer='co2'
+        try:
+            if (isinstance(rcf['run']['tracers'], str)):
+                tracer=rcf['run']['tracers']
+            else:
+                trac=rcf['run']['tracers']
+                tracer=trac[0]
+        except:
+            tracer='co2'
         db = cls(
             rcf['observations'][ tracer][filekey]['path'], 
-            start=rcf['observations'].get('start', None), 
-            end=rcf['observations'].get('end', None), 
+            start=rcf['observations'].getRcf('start', None), 
+            end=rcf['observations'].getRcf('end', None), 
             rcFile=rcf,  useGui=useGui,  ymlFile=ymlFile)
         # db.rcf = rcf
 
@@ -121,13 +123,15 @@ class obsdb(obsdb):
         self.rcf = rcf
         CrudeErrorEstimate="1.5" # 1.5 ppm
         timeStep=self.rcf['run']['timestep']
-        tracers = rcf.rcfGet('run.tracers',  default=['co2'])
-        tracer=tracers[0]
-        if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
-            trac=rcf['observations'][tracer]['file']['tracer']
-            tracer=trac[0]
-        else:
-            tracer=rcf['observations'][tracer]['file']['tracer']        
+        tracer='co2'
+        try:
+            if (isinstance(rcf['run']['tracers'], str)):
+                tracer=rcf['run']['tracers']
+            else:
+                trac=rcf['run']['tracers']
+                tracer=trac[0]
+        except:
+            tracer='co2'
         # sLocation=rcf['observations'][tracer]['file']['location']
         # if ('CARBONPORTAL' in sLocation):
         # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is (always) empty - thus unimportant - and so is the data frame resulting from it.

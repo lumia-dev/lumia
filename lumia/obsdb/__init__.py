@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 import shutil
 import tarfile
 import tempfile
@@ -50,14 +51,21 @@ class obsdb:
             self.extraFields = {}
         if filename is not None:
             bFromCPortal=False
-            tracers = rcFile.rcfGet('run.tracers',  default=['co2'])
-            tracer=tracers[0]
-            if (isinstance(rcFile['observations'][tracer]['file']['tracer'], list)):
-                trac=rcFile['observations'][tracer]['file']['tracer']
-                tracer=trac[0]
-            else:
-                tracer=rcFile['observations'][tracer]['file']['tracer']        
-            if('CARBONPORTAL' in rcFile['observations'][tracer]['file'].get('location', None)):
+            tracer='co2'
+            try:
+                if (isinstance(rcFile['run']['tracers'], str)):
+                    tracer=rcFile['run']['tracers']
+                else:
+                    trac=rcFile['run']['tracers']
+                    tracer=trac[0]
+            except:
+                tracer='co2'
+            try:
+                sLocation=rcFile.rcfGet(f'observations.{tracer}.file.location', default='LOCAL')
+            except:
+                logger.error(f'Either you have not specified the key observations.{tracer}.file.location in your yml config file or due to some bug a obsdb data object has been tried to create without providing a reference to valid rcFile object.')
+                sys.exit(-17)
+            if('CARBONPORTAL' in sLocation):
                 bFromCPortal=True
 
             if (bFromCPortal):
@@ -231,8 +239,9 @@ class obsdb:
         """
 
         if isinstance(mapping, list):
+            logger.debug(f'mapping={mapping}')
             mapping = {field.split(':')[0]: field.split(':')[1] for field in mapping}
-
+            
         for source, dest in mapping.items():
             self.observations.loc[:, dest] = self.observations.loc[:, source]
 
@@ -280,6 +289,7 @@ class obsdb:
         df = self.to_dataframe()
         logger.debug(f'df.to_hdf (writes ./tmp/observations.hdf) df columns={df.columns}')
         # TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
+        logger.debug(f'Columns read from hdf file: {df.columns}')
         for col in df.columns:
             if df.loc[:, col].dtype == 'O' and isinstance(df.loc[:, col].iloc[0], bool):
                 logger.warning(f"Converting column {col} from {df.loc[:, col].dtype} to {bool}")

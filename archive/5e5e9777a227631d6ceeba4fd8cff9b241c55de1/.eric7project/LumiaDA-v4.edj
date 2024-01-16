@@ -1,0 +1,24 @@
+{
+  "header": {
+    "comment": "eric debugger properties file for project LumiaDA-v4",
+    "warning": "This file was generated automatically, do not edit.",
+    "saved": "2024-01-14, 19:21:05"
+  },
+  "debug_properties": {
+    "VIRTUALENV": "<default>",
+    "DEBUGCLIENT": "/opt/conda/envs/flex/lib/python3.10/site-packages/eric7/DebugClients/Python/DebugClient.py",
+    "ENVIRONMENTOVERRIDE": false,
+    "ENVIRONMENTSTRING": "",
+    "REMOTEDEBUGGER": true,
+    "REMOTEHOST": "skuggfaxe",
+    "REMOTECOMMAND": "ssh",
+    "REMOTEDEBUGCLIENT": "",
+    "PATHTRANSLATION": false,
+    "REMOTEPATH": "",
+    "LOCALPATH": "",
+    "CONSOLEDEBUGGER": false,
+    "CONSOLECOMMAND": "",
+    "REDIRECT": false,
+    "NOENCODING": false
+  }
+}

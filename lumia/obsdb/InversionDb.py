@@ -37,21 +37,31 @@ class obsdb(obsdb):
             - filekey (optional): name of the section containing the file path and relevant keys
 
         """
+        tracer='co2'
+        try:
+            if (isinstance(rcf['run']['tracers'], str)):
+                tracer=rcf['run']['tracers']
+            else:
+                trac=rcf['run']['tracers']
+                tracer=trac[0]
+        except:
+            tracer='co2'
         db = cls(
-            rcf['observations'][filekey]['path'],
-            start=rcf['observations'].get('start', None),
-            end=rcf['observations'].get('end', None))
+            rcf['observations'][tracer][filekey]['path'],
+            start=rcf.rcfGet('observations.start', default=None),
+            end=rcf.rcfGet('observations.end', default=None), 
+            rcFile=rcf)
         db.rcf = rcf
 
         # Rename fields, if required by the config file or dict:
         # the config file can have a key "observations.file.rename: col1:col2". In this case, the column "col1" will be renamed in "col2".
         # this can also be a list of columns: "observations.file.rename: [col1:col2, colX:colY]"
         renameLst=[] # lumia/obsdb/_init_.py expects a List/Dict in map_fields(), not a string
-        renameLst.append(rcf['observations'][filekey].get('rename', []))
+        renameLst.append(rcf.rcfGet(f'observations.{tracer}.{filekey}.rename', default=[]))
         logger.info('Renaming the following columns in the observations data:')
         logger.info(renameLst)
         db.map_fields(renameLst)
-        #db.map_fields(rcf['observations'][filekey].get('rename', []))
+        #db.map_fields(rcfrcfGet('['observations'][{tracer}.{filekey}.rename', default=[]))
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         # TODO: thew whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble

@@ -75,6 +75,11 @@ class transport(object):
         logger.debug(f'{db}')
         logger.debug("db.columns=")
         logger.debug(f'{db.columns}')
+        if('mix_fossil' in self.db.observations.columns):
+            logger.info('mix_fossil column present in self.db.observations.columns. That is good.')
+        else:
+            logger.info('mix_fossil column NOT present in self.db.observations.columns. That is very bad and something goofed up. It is meaningless to proceed until this error is fixed.')
+            # sys.exit(-13)
         logger.debug(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
         self.db.observations.to_csv('obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         logger.debug(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
@@ -85,6 +90,7 @@ class transport(object):
         logger.debug(f'in calcDepartures() emf={emf}')
         logger.debug('in calcDepartures() self.db.observations=')
         logger.debug(f'{self.db.observations}')
+        logger.debug(f'Columns present in db.sites.columns: {db.sites.columns}')
         #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
         knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
         for col in knownColumns:
@@ -98,7 +104,7 @@ class transport(object):
             import time
             time.sleep(5)
             logger.debug("obsoperator._init_.calcDepartures() self=")
-            self.db.observations(f'{self}')
+            # self.db.observations(f'{self}')
             logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations={self.db.observations}')
             logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations.columns={self.db.observations.columns}')
             for cat in struct.transported_categories:
@@ -125,7 +131,7 @@ class transport(object):
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
 
         # Output if needed:
-        if step not in self.rcf.rcfGet('model.no_output', ['var4d']):
+        if step not in self.rcf.rcfGet('model.no_output', default=['var4d']):
             self.save(tag=step, structf=emf)
 
         # Return model-data mismatches
@@ -161,6 +167,8 @@ class transport(object):
         
         cmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default=[])) # cmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
         # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
+        # TODO: testing with old multitracer.py from 2023-09-02:
+        cmd='/opt/conda/envs/flex/bin/python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
         runcmd(cmd)
 
         logger.info('obsoperator.init.runForward(): emf2=')

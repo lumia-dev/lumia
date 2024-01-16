@@ -55,7 +55,7 @@ def documentThisRun(ymlFile, args):
     #    sLogCfgFile="./Lumia-runlog-"+sNow[:-3]+"config.yml"
     #else:
     #    sLogCfgFile=rcf['run']['paths']['output']+"/Lumia-runlog-"+sNow+"-config.yml"
-
+    myCom=""
     # Get the local git hash so we have some clue of what version of LUMIA we may be using...
     try:
         # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404

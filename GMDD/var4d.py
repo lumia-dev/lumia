@@ -19,13 +19,15 @@ def optimize(rcfile, setuponly=False, verbosity='INFO'):
 
     # Create basic objects
     rcf = lumia.rc(rcfile)
-    tracers = rcf.rcfGet('run.tracers',  default=['co2'])
-    tracer=tracers[0]
-    if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
-        trac=rcf['observations'][tracer]['file']['tracer']
-        tracer=trac[0]
-    else:
-        tracer=rcf['observations'][tracer]['file']['tracer']        
+    tracer='co2'
+    try:
+        if (isinstance(rcf['run']['tracers'], str)):
+            tracer=rcf['run']['tracers']
+        else:
+            trac=rcf['run']['tracers']
+            tracer=trac[0]
+    except:
+        tracer='co2'
     #obsfile = rcf.rcfGet('observations.filename')
     obsfile = rcf.rcfGet(f'observations.{tracer}.file.path')
 

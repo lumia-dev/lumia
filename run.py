@@ -142,14 +142,15 @@ if args.noobs :
     db = obsdb(rcf.rcfGet('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
     try:
-        tracers = rcf.rcfGet('run.tracers',  default=['co2'])
-        tracer=tracers[0]
-        if (isinstance(rcf['observations'][tracer]['file']['tracer'], list)):
-            trac=rcf['observations'][tracer]['file']['tracer']
-            tracer=trac[0]
-        else:
-            tracer=rcf['observations'][tracer]['file']['tracer']
-        tracer=tracer.lower()    
+        tracer='co2'
+        try:
+            if (isinstance(rcf['run']['tracers'], str)):
+                tracer=rcf['run']['tracers']
+            else:
+                trac=rcf['run']['tracers']
+                tracer=trac[0]
+        except:
+            tracer='co2'
     except:
         logger.error('Key run.tracers not retrievable from stated yaml config file')
     sLocation=rcf['observations'][tracer]['file']['location']

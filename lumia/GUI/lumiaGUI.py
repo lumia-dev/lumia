@@ -2131,11 +2131,11 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     # root = ctk.CTk()
     tracer='co2'
     try:
-        if (isinstance(ymlContents['run']['tracers'], list)):
+        if (isinstance(ymlContents['run']['tracers'], str)):
+            tracer=ymlContents['run']['tracers']
+        else:
             trac=ymlContents['run']['tracers']
             tracer=trac[0]
-        else:
-            tracer=ymlContents['run']['tracers']
     except:
         tracer='co2'
         

@@ -56,7 +56,7 @@ lumiacode:
 model:
   exec: ${lumiacode.homedir}/transport/multitracer.py
   options:
-    serial: false
+    serial: true
   output:
     steps:
     - apri
@@ -155,11 +155,11 @@ run:
     lon1: 35.0
   thisRun:
     PythonVersion: Python environment version is Python 3.10.10
-    hostName: skuggfaxe
-    platformCore: Linux-5.15.0-71-generic-x86_64-with-glibc2.35
-    platformFlavour: 8-Ubuntu SMP Tue Apr 18 09:00:29 UTC 202
-    uniqueIdentifierDateTime: '2024-01-13T18:38:12'
-    username: arndt
+    hostName: tux.nateko.lu.se
+    platformCore: Linux-5.15.0-91-generic-x86_64-with-glibc2.35
+    platformFlavour: 01-Ubuntu SMP Tue Nov 14 13:30:08 UTC 202
+    uniqueIdentifierDateTime: '2024-01-15T16:51:33'
+    username: cec-ami
   timestep: 1h
   tracers:
   - co2

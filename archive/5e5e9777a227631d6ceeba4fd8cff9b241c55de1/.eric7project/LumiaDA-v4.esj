@@ -1,0 +1,604 @@
+{
+  "header": {
+    "comment": "eric session file for project LumiaDA-v4",
+    "warning": "This file was generated automatically, do not edit.",
+    "saved": "2024-01-15, 15:06:38"
+  },
+  "MultiProject": "",
+  "Project": "",
+  "ViewManagerSplits": {
+    "Count": 1,
+    "Orientation": 2
+  },
+  "Editors": [
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/run.py",
+      "Cursor": [
+        134,
+        29
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 0
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/__init__.py",
+      "Cursor": [
+        268,
+        76
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 1
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      "Cursor": [
+        775,
+        37
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 2
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      "Cursor": [
+        172,
+        12
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 3
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py",
+      "Cursor": [
+        170,
+        113
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 4
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      "Cursor": [
+        159,
+        43
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 5
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      "Cursor": [
+        84,
+        13
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 6
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/observations.py",
+      "Cursor": [
+        52,
+        93
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 7
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/Tools/system_tools.py",
+      "Cursor": [
+        32,
+        12
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 8
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/singularity/run.py",
+      "Cursor": [
+        102,
+        80
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 9
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/ui/main_functions.py",
+      "Cursor": [
+        245,
+        78
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 10
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/optimizer.py",
+      "Cursor": [
+        145,
+        80
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 11
+    },
+    {
+      "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/main_functions/objects.py",
+      "Cursor": [
+        121,
+        37
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 12
+    }
+  ],
+  "ActiveWindow": {
+    "Filename": "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+    "Cursor": [
+      172,
+      12
+    ]
+  },
+  "Breakpoints": [
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/run.py",
+      123,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/run.py",
+      135,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/run.py",
+      69,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/run.py",
+      119,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/run.py",
+      7,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      142,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      147,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      155,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      158,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      163,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/__init__.py",
+      268,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      41,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      136,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      147,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      155,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      239,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      273,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      282,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+      291,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/__init__.py",
+      16,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      14,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+      19,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      48,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      82,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      304,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      422,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      569,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      725,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      740,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      760,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+      778,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      91,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      110,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      137,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      145,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      155,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      319,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      323,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      117,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      124,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      130,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+      162,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/observations.py",
+      55,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py",
+      167,
+      "",
+      false,
+      true,
+      0
+    ]
+  ],
+  "Watchpoints": [],
+  "DebugInfo": {
+    "VirtualEnv": "",
+    "ScriptName": "",
+    "CommandLine": "",
+    "WorkingDirectory": "",
+    "Environment": "",
+    "Exceptions": [],
+    "IgnoredExceptions": [],
+    "AutoClearShell": true,
+    "TracePython": false,
+    "AutoContinue": true,
+    "ReportAllExceptions": false,
+    "EnableMultiprocess": true,
+    "MultiprocessNoDebug": "",
+    "GlobalConfigOverride": {
+      "enable": false,
+      "redirect": true
+    }
+  },
+  "Bookmarks": [],
+  "ProjectBrowserStates": [
+    {
+      "Name": "sources",
+      "ExpandedItems": [
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/archive",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/archive/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/archive/__init__.py@@157",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/archive/__init__.py@@7",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/Tools",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/Tools/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/Tools/system_tools.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/formatters/xr.py@@99",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/main_functions",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/main_functions/objects.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/__init__.py@@14",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsdb/obsCPortalDb.py@@30",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/obsoperator/__init__.py@@13",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/ui",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/ui/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/ui/main_functions.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/optimizer.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/lumia/optimizer.py@@13",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/singularity",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py@@85",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/core/model.py@@312",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/emis",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/emis/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/__init__.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py@@18",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py@@129",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/observations.py",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/observations.py@@22",
+        "/home/cec-ami/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/__init__.py"
+      ]
+    }
+  ]
+}
