@@ -43,18 +43,18 @@ class transport(object):
 
     def save(self, path=None, tag=None, structf=None):
         """
-        This copies the last model I/O to "path", with an optional tag to identify it
+        This copies the last model I/O (e.g. ./tmp/IDENTF/IDENTF-emissions.nc) to "path" from sOutputPrfx, with an optional tag to identify it
         """
         tag = '' if tag is None else tag.strip('.')+'.'
-        if path is None :
-            path = self.outputdir
-        checkDir(path)
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        #if path is None : #    path = self.outputdir
+        outPath=os.path.dirname(sOutputPrfx) 
+        checkDir(outPath)
         rcfile = self.rcf.write(f'{sOutputPrfx}transport.{tag}rc')
         obsfile = self.db.save_tar(f'{sOutputPrfx}observations.{tag}tar.gz')
         if structf is not None :
-            try :
-                shutil.copy(structf, path)
+            try : 
+                shutil.copy(structf, outPath)
             except shutil.SameFileError :
                 pass
         return rcfile, obsfile
@@ -69,7 +69,8 @@ class transport(object):
         # self.db.observations should contain both the co2 observational data as well as the emissions for biosphere, fossil, ocean and the backgroundCO2.
         logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-        self.db.observations.to_csv(sOutputPrfx+'_dbg_obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         emf, dbf = self.runForward(struct, step, serial)
         logger.info(f'in calcDepartures() reading db from file dbf={dbf}')
         db = obsdb.from_hdf(dbf, rcFile=self.rcf)
@@ -82,9 +83,9 @@ class transport(object):
             logger.info('mix_fossil column NOT present in self.db.observations.columns. That is very bad and something goofed up. It is meaningless to proceed until this error is fixed.')
             # sys.exit(-13)
         logger.debug(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
-        self.db.observations.to_csv(sOutputPrfx+'_dbg_obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        self.db.observations.to_csv(sTmpPrfx+'_dbg_obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         logger.debug(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
-        self.db.observations.to_csv(sOutputPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+        self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         # db = db.reset_index(drop=True)
         logger.debug('in calcDepartures() db=')
         logger.debug(f'{db}')
@@ -100,7 +101,7 @@ class transport(object):
                 if(is_float_dtype(db.sites[col])==False):
                     db.sites[col]=db.sites[col].astype(float)
         logger.debug(f"Dbg: self.db.observations: {self.db.observations}")
-        # if DEBUG: self.db.observations.to_csv(sOutputPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
+        # if DEBUG: self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
         if self.rcf.rcfGet('model.split_categories', default=True): # if self.rcf.getAlt('model','split_categories', default=True):
             import time
             time.sleep(5)
@@ -202,6 +203,7 @@ class transport(object):
         dpf = self.db.to_hdf('departures.hdf')
         
         # Name of the adjoint output file
+        # adjf = os.path.join(self.tempdir, 'emissions.nc')
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         adjf = sTmpPrfx+'emissions.nc'
 
@@ -211,8 +213,8 @@ class transport(object):
         if self.serial :
             cmd.append('--serial')
         cmd.extend(list(self.rcf.rcfGet('model.transport.extra_arguments', default=''))) #cmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
-        runcmd(cmd)
-
+        # runcmd(cmd)
+        print('wait until separate thread has finished.')
         # Collect the results :
         return self.readStruct(path=adjf)
 
@@ -223,6 +225,7 @@ class transport(object):
         #        except :
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         self.writeStruct(struct, sTmpPrfx+'emissions.nc', zlib=True)
+        # self.writeStruct(struct, os.path.join(self.tempdir, 'emissions.nc'), zlib=True)
         adjfield = self.runAdjoint(departures)
 
         sensi = {}

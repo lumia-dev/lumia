@@ -62,9 +62,33 @@ class Minimizer:
         self.commfile.update(gradient, J_tot)
         
     def save(self, path: str) -> None :
-        copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-        copy_file(sOutputPrfx+'congrad_debug.out', path)
+        # copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
+        # copy_file(os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out'), path)
+        logger.debug(f'congrad.save(): path={path}')
+        logger.debug(f'congrad.save(): self.commfile.filepath={self.commfile.filepath}')
+        outPath=os.path.dirname(sOutputPrfx)
+        fName=os.path.basename(self.commfile.filepath)
+        logger.debug(f'congrad.save(): copy_file({self.commfile.filepath}, {outPath}/{fName})')
+        #srcFile=os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out')
+        outFile=os.path.join({outPath},{fName})
+        logger.debug(f'copy_file({self.commfile.filepath}, {outFile})')
+        srcFile=self.commfile.filepath
+        copy_file(srcFile,  outFile)
+        bCopied=True
+        try:
+            (dest_name, bCopied)=copy_file(srcFile[:-3]+'.out', outFile[:-3]+'.out')
+        except:
+            try:
+                srcFile=os.path.dirname(self.commfile.filepath)+'congrad_debug.out'
+                (dest_name,bCopied)=copy_file(srcFile, outFile[:-3]+'.out')
+            except:
+                logger.error(f'Failed to copy {srcFile} to {outFile[:-3]}.out')
+        if(not bCopied):
+            srcFile=os.path.dirname(self.commfile.filepath)+'congrad_debug.out'
+            (dest_name, bCopied)=copy_file(srcFile, outFile[:-3]+'.out')
+        if(not bCopied):
+            logger.error(f'Failed to copy {srcFile} to {outFile[:-3]}.out')
 
     def iter_states(self):
         traject = self.commfile.read_traject()

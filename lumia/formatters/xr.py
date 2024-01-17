@@ -369,7 +369,8 @@ class TracerEmis(xr.Dataset):
         self.attrs['units'] = dest
 
     def to_netcdf(self, filename, group=None, only_transported=False, **kwargs):
-
+        print(f'filename={filename}',  flush=True) # e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
+        logger.debug(f'xr.to_netcdf() L372 writing data to filename={filename}')
         # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
         with Dataset(filename, 'w') as nc:
             if group is not None :
@@ -415,6 +416,9 @@ class TracerEmis(xr.Dataset):
                     nc.categories = [c.name for c in self.transported_categories]
 
         if self.temporal_mapping:
+            print(f'filename={filename}',  flush=True)
+            logger.debug(f'xr.to_netcdf() L418: writing data to filename={filename}')
+            logger.debug(f'xr.to_netcdf() L419: self.temporal_mapping.to_netcdf({filename}, group={group}/temporal_mapping, mode=a)')
             self.temporal_mapping.to_netcdf(filename, group=f'{group}/temporal_mapping', mode='a')
             self.spatial_mapping.to_netcdf(filename, group=f'{group}/spatial_mapping', mode='a')
 
@@ -579,10 +583,12 @@ class Data:
         return new
 
     def to_netcdf(self, filename, zlib=True, complevel=1, **kwargs):
+        logger.debug(f'xr.to_netcdf() L581 writing data to filename={filename}')
         if not zlib :
             complevel = 0.
         encoding = dict(zlib=zlib, complevel=complevel)
         for tracer in self._tracers :
+            print(f'filename={filename}',  flush=True)  # e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
             self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars}, engine='h5netcdf', **kwargs)
 
     @property
@@ -991,17 +997,21 @@ def load_preprocessed(
 # Interfaces:
 def WriteStruct(data: Data, path: str, prefix=None, zlib=False, complevel=1, only_transported=False):
     if prefix is None :
+        # writes *-emissions.nc files
         filename, path = path, os.path.dirname(path)
+        #logger.debug(f'xr.WriteStruct() L997 prefix is None,  filename={filename},  path={path}')
     else :
         filename = os.path.join(path, f'{prefix}.nc')
+    #logger.debug(f'xr.WriteStruct() L1002 filename={filename}')
     Path(path).mkdir(exist_ok=True, parents=True)
+    print(f'filename={filename}',  flush=True)
     data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported)
     return filename
 
 
 def ReadStruct(path, prefix=None, categories=None):
     if categories is not None :
-        logger.warning(f"categories argument ignored (not implemented yet)")
+        logger.warning("categories argument ignored (not implemented yet)")
     filename = path
     if prefix is not None :
         filename = os.path.join(path, f'{prefix}.nc')

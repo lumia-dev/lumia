@@ -4,6 +4,7 @@ from lumia.formatters.lagrange import Struct, ReadStruct
 from lumia.obsdb import obsdb
 import xarray as xr
 import os
+from loguru import logger
 from numpy import array_equal, linspace, float64, zeros, diff, pi, sin, array, issubdtype, datetime64, int64
 from pandas import Timestamp, ExcelWriter
 from lumia.obsdb import obsdb
@@ -121,6 +122,7 @@ class Struct(Struct):
         return ds
     
     def to_netCDF(self, ncfile):
+        logger.debug(f'lumia_tools.formatters.to_netcdf() L124: writing data to ncfile={ncfile}')
         self.to_xarray().to_netcdf(ncfile)
 
 

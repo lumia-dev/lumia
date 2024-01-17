@@ -1,5 +1,5 @@
 import os
-
+import sys
 from netCDF4 import Dataset
 from numpy import array, zeros, arange, array_equal
 from datetime import datetime
@@ -233,7 +233,7 @@ def WriteStruct(data, path, prefix=None, zlib=False, complevel=1):
     else :
         filename = os.path.join(path, '%s.nc' % prefix)
     checkDir(path)
-
+    logger.debug(f'writing the model input control parameters to file {filename}')
     # Write to a netCDF format
     with Dataset(filename, 'w') as ds:
         if zlib:
@@ -344,7 +344,11 @@ def ReadArchive(prefix, start, end, freq=None, **kwargs):
             try:
                 ds.append(xr.load_dataarray(os.path.join(dirname, fname), engine="netcdf4", decode_times=True)) 
             except:
-                ds.append(xr.load_dataarray(os.path.join(dirname, fname)))  # apparently older pynetcdf versions did not requirte engine="netcdf4", decode_times=True 
+                try:
+                    ds.append(xr.load_dataarray(os.path.join(dirname, fname)))  # apparently older pynetcdf versions did not requirte engine="netcdf4", decode_times=True 
+                except:
+                    logger.error(f'Abort. Reading of emissions file {dirname}/{fname} for category {cat} and year={year} failed.')
+                    sys.exit(-71)
         ds = xr.concat(ds, dim='time').sel(time=slice(start, end))
 
         # Resample to a higher frequency?

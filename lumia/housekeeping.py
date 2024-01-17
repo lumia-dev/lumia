@@ -34,6 +34,15 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
 
 script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))   
 
+def runSysCmd(sCmd,  ignoreError=False):
+    try:
+        os.system(sCmd)
+    except:
+        if(ignoreError==False):
+            sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
+            logger.warning(sTxt)
+            # self.CancelAndQuit(sTxt)
+
 
 from datetime import datetime
 current_date = datetime.now()
@@ -166,10 +175,57 @@ def documentThisRun(ymlFile, args):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedObsData'],   value='None', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedPIDs'],   value='None', bNewValue=False)
     
+    # We also need to copy the 2 files from LumiaGUI that give us the list of input PIDs, so they have the same unique identifier
+    #  as this run and end up in the correct folder.
+    tracer='co2'
+    try:
+        if (isinstance(rcf['run']['tracers'], str)):
+            tracer=rcf['run']['tracers']
+        else:
+            trac=rcf['run']['tracers']
+            tracer=trac[0]
+    except:
+        tracer='co2'
+    try:
+        selectedObsData=rcf['observations'][tracer]['file']['selectedObsData']
+    except:
+        logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+    fname = os.path.basename(selectedObsData)
+    if (len(fname)>23):
+        fname=fname[23:]
+    newFnameselectedObsData=sOutputPrfx+fname
+    sCmd=f'cp {selectedObsData} {newFnameselectedObsData}'
+    runSysCmd(sCmd)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameselectedObsData, bNewValue=True)
+
+    try:
+        selectedPIDs=rcf['observations'][tracer]['file']['selectedPIDs']
+    except:
+        logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+    # the value is something like ./output/Lumia-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
+    fname = os.path.basename(selectedPIDs)
+    if (len(fname)>23):
+        fname=fname[23:]
+    newFnameSelectedPIDs=sOutputPrfx+fname
+    sCmd=f'cp {selectedPIDs} {newFnameSelectedPIDs}'
+    runSysCmd(sCmd)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)
+
+    # Make explicitly stated communication and temporal files use the unique identifier for file names and directory locations:
+    #congrad:
+    #  communication_file: ${run.paths.temp}/congrad.nc
+    # var4d:
+    #  file: /home/arndt/nateko/data/icos/DICE/tmp/congrad.nc
+    # These 2 keys always point to the same file, only that the var4d one is calculated later using the ${run.paths.temp} placeholder's value
+    congradFile=sTmpPrfx+'congrad.nc'
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d', 'communication', 'file'],   value=congradFile, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'congrad', 'communication_file'],   value=congradFile, bNewValue=True)
+
+    
+    # Now update the configuration file writing everything out and hand control back to the main program....
     try:
         with open(ymlFile, 'w') as outFile:  # we are updating/replacing the configuration file
-            yaml.dump(ymlContents, outFile)
-    
+            yaml.dump(ymlContents, outFile)    
     except:
         logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
         sys.exit(-19)

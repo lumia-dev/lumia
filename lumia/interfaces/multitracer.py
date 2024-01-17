@@ -43,11 +43,14 @@ class Interface:
         label = f'_{label}' if label is not None else ''
         units = self.model_data.units
         self.model_data.to_intensive()
-        # TODO: check if this emissions.nc really goes into /output and not like some other emissions file thatis written to ./tmp with the same filename...
+        # TODO: check if this emissions.nc really goes into /output and not like some other emissions file that is written to ./tmp with the same filename...
+        # Note: it seems this code here is not executed until congrad has converged, thus it could be the final result and therefore go into the output instead of the tmp directory
         logger.debug(f'multitracer.save() path={path}')
         sOutputPrfx=RcFile[ 'run']['thisRun']['uniqueOutputPrefix']
-        logger.debug(f'sOutputPrfx={sOutputPrfx}')
+        logger.debug(f'multitracer.save() label={label},  sOutputPrfx={sOutputPrfx}')
+        logger.debug(f'multitracer.save() self.model_data.to_netcdf({sOutputPrfx}emissions{label}.nc)')
         #self.model_data.to_netcdf(os.path.join(path, f'emissions{label}.nc'))
+        print(f'filename={sOutputPrfx}emissions{label}.nc',  flush=True)        
         self.model_data.to_netcdf(f'{sOutputPrfx}emissions{label}.nc')
         self.model_data.convert(units)
         # Note: optim_data should contain all the optimization data (mapping, correlation matrices, uncertainties, state vectors, etc.). But in the 

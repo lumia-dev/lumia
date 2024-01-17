@@ -140,6 +140,7 @@ class horcor:
         self.P_diag = P_diag
 
     def write(self, filename):
+        logger.debug(f'writing file {filename}')
         ds = Dataset(filename, 'w')
         ds.corlen = self.corlen
         ds.corchoice = self.cortype

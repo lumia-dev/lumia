@@ -278,7 +278,7 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
 
 # ***********************************************************************************************
 def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None, pdTimeEnd: datetime=None, 
-                                                                            timeStep=None,  ymlContents=None,  sDataType=None, sNow='',   iVerbosityLv=1):
+                                            timeStep=None,  ymlContents=None,  sDataType=None, printProgress=False,  iVerbosityLv=1):
     """
     Function discoverObservationsOnCarbonPortal
     
@@ -362,7 +362,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
         step=1
         logger.error('finalDobjLst is empty.')
     #print('|_________________________________________________|')
-    printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
+    if(printProgress):
+        printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     for n, pid in enumerate(finalDobjLst):
         pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
         if pidMetadata is not None:
@@ -423,7 +424,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                     logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
                 
             i+=1
-        if(n % step ==0):
+        if((printProgress) and (n % step ==0)):
             printProgressBar(n, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     
     df['dClass'] = int(0) # initialise unknown data quality
@@ -431,7 +432,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
     df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
     df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
-    df.to_csv('Lumia-'+sNow+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
+    sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
+    df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
 
     dfCountStations=df.drop_duplicates(['stationID'], keep='first') 
     nObsDataRecords = len(df)
@@ -459,16 +461,12 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     logger.info(f"{nTotalStations2} observation sites remaining. {nObsDataRecords2} valid observational data records remaining.")
 
     dfq.sort_values(by = ['country','stationID', 'dClass', 'samplingHeight', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
-    dfq.to_csv('Lumia-'+sNow+'_dbg_dfValidObs.csv', mode='w', sep=',')
+    dfq.to_csv(sTmpPrfx+'_dbg_dfValidObs.csv', mode='w', sep=',')
     dfqdd=dfq.drop_duplicates(['stationID', 'dClass', 'samplingHeight'], keep='first')  # discards older  'productionTime' datasets
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     # But we are still keeping all sampling heights.
-    sLogCfgPath=""
-    if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
-        sLogCfgPath="./"
-    else:
-        sLogCfgPath=ymlContents['run']['paths']['output']+"/"
-    fDiscoveredObservations=sLogCfgPath+"Lumia-"+sNow+"-DiscoveredObservations.csv"
+    sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
+    fDiscoveredObservations=sOutputPrfx+"-DiscoveredObservations.csv"
     nObsDataRecords2 = len(dfqdd)
     logger.info(f"{nObsDataRecords2} valid observational data records remaining from {nTotalStations2} stations across Europe.")
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')

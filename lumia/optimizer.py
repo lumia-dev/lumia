@@ -163,7 +163,8 @@ class Optimizer(object):
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
         mode = 'w' if self.iteration == 0 else 'a'
-        with open(os.path.join(self.paths.output, 'costFunction.txt'), mode=mode) as fid :
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        with open(sOutputPrfx+'costFunction.txt', mode=mode) as fid :
             fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)} \n")
         return gradient_preco
 

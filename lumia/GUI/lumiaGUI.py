@@ -964,9 +964,10 @@ class RefineObsSelectionGUI(ctk.CTk):
         # root.wait_window(guiPage1)
         guiPage1.show()
         #cpDir=ymlContents['observations'][tracer]['file']['cpDir']
-        sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
+        sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
+        sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
         (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer,   
-                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
+                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sOutputPrfx=sOutputPrfx,  sTmpPrfx=sTmpPrfx, printProgress=True,    iVerbosityLv=1)
 
         nCols=12 # sum of labels and entry fields per row
         nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
@@ -1043,7 +1044,8 @@ class RefineObsSelectionGUI(ctk.CTk):
                 
         if(not isDifferent):
             newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row 
-        newDf.to_csv('Lumia-'+sNow+'_dbg_newDfObs.csv', mode='w', sep=',')  
+        sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
+        newDf.to_csv(sTmpPrfx+'_dbg_newDfObs.csv', mode='w', sep=',')  
         nObs=len(newDf)
         #filtered = ((newDf['selected'] == True))
         #dfq= newDf[filtered]
@@ -1061,7 +1063,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             if(isSameStation):
                 newDf.at[(nRows) ,  ('selected')] = False
             nRows+=1
-        newDf.to_csv('Lumia-'+sNow+'_dbg_selectedObs.csv', mode='w', sep=',')  
+        newDf.to_csv(sTmpPrfx+'_dbg_selectedObs.csv', mode='w', sep=',')  
             
 
         
@@ -1407,7 +1409,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         #Col 10:  RUN Button
         def GoBtnHit(ymlFile,  ymlContents):
-            sNow=ymlContents[ 'run']['thisRun']['uniqueIdentifierDateTime']
+            sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
             try:
                 nObs=len(newDf)
                 filtered = ((newDf['selected'] == True))
@@ -1418,7 +1420,11 @@ class RefineObsSelectionGUI(ctk.CTk):
             except:
                 pass
             try:
-                newDf.to_csv('Lumia-'+sNow+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
+                newDf.to_csv(sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
+            except:
+                sTxt=f"Fatal Error: Failed to write to file {sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc."
+                CancelAndQuit(sTxt)
+            try:
                 dfq['pid2'] = dfq['pid'].apply(grabFirstEntryFromList)
                 dfq['samplingHeight2'] = dfq['samplingHeight'].apply(grabFirstEntryFromList)
                 #,selected,country,stationID,altOk,altitude,HghtOk,samplingHeight[Lst],isICOS,latitude,longitude,dClass,dataSetLabel,includeCountry,includeStation,pid[Lst],pid2,samplingHeight2
@@ -1435,10 +1441,10 @@ class RefineObsSelectionGUI(ctk.CTk):
                     sLogCfgPath="./"
                 else:
                     sLogCfgPath=ymlContents['run']['paths']['output']+"/"
-                ymlContents['observations'][tracer]['file']['selectedObsData']=sLogCfgPath+"Lumia-"+sNow+"-selected-ObsData-"+tracer+".csv"
+                ymlContents['observations'][tracer]['file']['selectedObsData']=sOutputPrfx+"selected-ObsData-"+tracer+".csv"
                 dfq.to_csv(ymlContents['observations'][tracer]['file']['selectedObsData'], mode='w', sep=',')
                 dfPids=dfq['pid']
-                ymlContents['observations'][tracer]['file']['selectedPIDs']=sLogCfgPath+"Lumia-"+sNow+"-selected-PIDs-"+tracer+".csv"
+                ymlContents['observations'][tracer]['file']['selectedPIDs']=sOutputPrfx+"selected-PIDs-"+tracer+".csv"
                 selectedPidLst = dfPids.iloc[1:].tolist()
                 sFOut=ymlContents['observations'][tracer]['file']['selectedPIDs']
                 # dfPids.to_csv(ymlContents['observations'][tracer]['file']['selectedPIDs'], mode='w', sep=',')
@@ -1447,7 +1453,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                         fp.write("%s\n" % item)
                 
             except:
-                sTxt=f"Fatal Error: Failed to write to text the file allObsInTimeSpaceSlab.csv or Lumia-ObsData-{sNow}.csv in the local run directory. Please check your write permissions and possibly disk space etc."
+                sTxt=f"Fatal Error: Failed to write to file {sOutputPrfx}-selected-ObsData-{tracer}.csv. Please check your write permissions and possibly disk space etc."
                 CancelAndQuit(sTxt)
             try:
                 nC=len(excludedCountriesList)
@@ -1477,8 +1483,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                                                                         value=ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
             
             # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-            # sLogCfgFile=sOutputPrfx+"runlog-config.yml"  
-            sLogCfgFile=sLogCfgPath+"Lumia-"+sNow+"-runlog-config.yml"  
+            sLogCfgFile=sOutputPrfx+"-config.yml"  
             ymlContents['observations'][tracer]['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
             try:
                 with open(ymlFile, 'w') as outFile:
@@ -2041,7 +2046,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     @type string (file name)
     @type string
     '''
-    bPage2Done=False
+    #bPage2Done=False
     ymlContents=None
     # Read the yaml configuration file
     tryAgain=False
@@ -2067,10 +2072,57 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
         
     current_date = datetime.now()
     sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
-    # value= end.strftime('%Y,%m,%d')
+    # colons from the time are not without problems in directory and file names. Better to play it safe and replace them with uynderscores
+    sNow=re.sub(':', '_', sNow)
+    sNow=sNow[:-3] # minutes is good enough....don't need seconds if a run takes hours...
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run',  'thisRun', 'uniqueIdentifierDateTime'],  value=sNow, bNewValue=True)
-    
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=True)
+
+    # All output is written into  subdirectories named after the run.thisRun.uniqueIdentifierDateTime key
+    # Create these subdirectories. This also ensures early on that we can write to the intended locations
+    try:
+        sOutpDir=ymlContents['run']['paths']['output']
+    except:
+        sOutpDir="./output"
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output' ],   value=sOutpDir, bNewValue=True)
+    if(len(sOutpDir)>0):
+        sCmd=("mkdir -p "+sOutpDir)
+    try:
+        os.system(sCmd)
+    except:
+        sys.exit(f'Abort. Failed to create user-requested output directory {sOutpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
+    sOutputPrfx='LumiaGUI-'+sNow+os.path.sep+'LumiaGUI-'+sNow+'-'
+    sTmpPrfx=sOutputPrfx # same structure below the Temp and Output directories
+    if ((len(sOutpDir)>0) and (sOutpDir[-1]!=os.path.sep)):
+        sOutpDir=sOutpDir+os.path.sep
+    sCmd=("mkdir -p "+sOutpDir+'LumiaGUI-'+sNow)
+    try:
+        os.system(sCmd)
+    except:
+        sys.exit(f'Abort. Failed to create user-requested output sub-directory {sOutpDir}LumiaGUI-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
+    sOutputPrfx=sOutpDir+sOutputPrfx
+    try:
+        sTmpDir=ymlContents['run']['paths']['temp']
+    except:
+        sTmpDir="./tmp"
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'temp' ],   value=sTmpDir, bNewValue=True)
+    if(len(sOutpDir)>0):
+        sCmd=("mkdir -p "+sTmpDir)
+    try:
+        os.system(sCmd)
+    except:
+        sys.exit(f'Abort. Failed to create user-requested temp directory {sTmpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
+    if ((len(sTmpDir)>0) and (sTmpDir[-1]!=os.path.sep)):
+        sTmpDir=sTmpDir+os.path.sep
+    sCmd=("mkdir -p "+sTmpDir+'LumiaGUI-'+sNow)
+    try:
+        os.system(sCmd)
+    except:
+        sys.exit(f'Abort. Failed to create user-requested temp sub-directory {sTmpDir}LumiaGUI-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
+    sTmpPrfx=sTmpDir+sTmpPrfx
+
+    # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueIdentifierDateTime'],   value=sNow, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueOutputPrefix'],   value=sOutputPrfx, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueTmpPrefix'],   value=sTmpPrfx, bNewValue=True)
     # Read simulation time
     if tStart is None :
         start=pd.Timestamp(ymlContents['observations']['start'])
@@ -2095,9 +2147,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     # Run-dependent paths
     #if(not nestedKeyExists(ymlContents, 'run',  'paths',  'output')):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output'],   value=os.path.join('/output', args.tag), bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication'],   value=None, bNewValue=False)
-    s=ymlContents['run']['thisRun']['uniqueTmpPrefix']+'congrad.nc'    
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'file'],   value=s, bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication',  'file'],   value='congrad.nc', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)

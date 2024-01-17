@@ -72,7 +72,7 @@ class obsdb:
                 self=self.load_fromCPortal(rcFile, useGui, ymlFile)
             else:
                 self.load_tar(filename)
-            # self.observations.to_csv('Lumia-'+sNow+'_dbg_obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
+            # self.observations.to_csv(sTmpPrfx+'_dbg_obsDataAll-ini48.csv', encoding='utf-8', mode='w', sep=',')
             self.filename = filename
             try:
                 if self.start is None:
