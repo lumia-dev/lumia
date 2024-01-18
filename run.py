@@ -5,9 +5,9 @@ import sys
 from pandas import Timestamp
 from argparse import ArgumentParser
 import lumia
+import lumia.GUI.housekeeping as hk
 from rctools import RcFile as rc
 from loguru import logger
-import housekeeping.housekeeping as hk
 from lumia.formatters import xr
 
 p = ArgumentParser()

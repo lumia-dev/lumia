@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2024 , ",
-    "saved": "2024-01-18, 12:31:43"
+    "saved": "2024-01-18, 13:44:14"
   },
   "project": {
     "AUTHOR": "",
@@ -76,8 +76,8 @@
       "GMDD/var4d.py",
       "archive/__init__.py",
       "gridtools.py",
-      "housekeepimg/housekeeping.py",
       "icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "lumia/GUI/housekeeping.py",
       "lumia/GUI/lumiaGUI.py",
       "lumia/GUI/queryCarbonPortal.py",
       "lumia/Tools/__init__.py",

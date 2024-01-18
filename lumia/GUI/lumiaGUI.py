@@ -2,7 +2,7 @@
 
 import os
 import sys
-from housekeeping.housekeeping import documentThisRun
+import housekeeping as hk
 import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
@@ -2292,7 +2292,7 @@ if(bError):
 
 # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
 thisScript='LumiaGUI'
-sCmd=documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+sCmd=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
 # Now the config.yml file has all the details for this particular run
     
     

@@ -8,9 +8,7 @@ import sys
 import platform
 import re
 import git
-# from pandas import Timestamp
 import yaml
-#import lumia
 # from rctools import RcFile as rc
 from loguru import logger
 
@@ -121,19 +119,21 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     nVers=0
     nSubVers=0
     try:
-        nVers=int(ymlContents['thisConfigFile',  'dataformat', 'version'])
+        print(ymlContents['thisConfigFile']['dataformat']['version'])
+        nVers=int(ymlContents['thisConfigFile']['dataformat']['version'])
     except:
         wrongOrMissingVersion=True
     if not (nVers==6):
         wrongOrMissingVersion=True
     try:
-        nVers=int(ymlContents[ 'thisConfigFile',  'dataformat', 'subversion'])
+        nSubVers=int(ymlContents[ 'thisConfigFile']['dataformat']['subversion'])
     except:
         wrongOrMissingVersion=True
     if (nSubVers<1):
         wrongOrMissingVersion=True
     if(wrongOrMissingVersion):    
         logger.error('Wrong format of input Lumia config yml file. Your configuration file needs to be of major version==6 and sub-version>0.')
+        sys.exit(-3)
     # Document what kind of system the run was carried out on
     sUsername=os.getlogin()  # The user's login name
     # sysName=platform.system() # Linux
