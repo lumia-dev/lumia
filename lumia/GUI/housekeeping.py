@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='5ee874f0d27dcd0f24f7686e9461b163c3c2a2cd' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
+LATESTGITCOMMIT_LumiaDA='efd93052743312d74bc3b5d6d258d07ae2015af0' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -39,7 +39,8 @@ def runSysCmd(sCmd,  ignoreError=False):
         if(ignoreError==False):
             sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
             logger.warning(sTxt)
-            # self.CancelAndQuit(sTxt)
+        return False
+    return True
 
 
 from datetime import datetime
@@ -266,14 +267,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     except:
         logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
         sys.exit(-19)
-    # prepare the call of LumiaGUI
-    # TODO: this shall become obsolete. LumiaGUI is to be called stand-alone before running LumiaDA
-    # sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py '
-    # for entry in sys.argv[1:]:
-    #     if (len(entry)>0):
-    #         sCmd+=' '+entry
-    # sCmd+=' --sNow='+sNow
-    # return(sCmd)
+    sCmd=f'cp {ymlFile} {sOutputPrfx}v{nVers}.{nSubVers}-{tracer}-config.yml'
+    runSysCmd(sCmd)
 
 
 

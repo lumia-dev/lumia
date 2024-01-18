@@ -10,17 +10,13 @@ import yaml
 import time
 import _thread
 import re
-#from housekeeping import documentThisRun
 from loguru import logger
 from pandas import to_datetime
 import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
-# lumia/icosPortalAccess/readObservationsFromCarbonPortal.py
-#from lumia import icosPortalAccess
-
+#import threading
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
-#from queryCarbonPortal import chooseAmongDiscoveredObservations
 import warnings
 
 warnings.simplefilter("ignore", FutureWarning)
@@ -156,6 +152,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         dobjLst=[]
         selectedDobjLst=[]
         dfObsDataInfo=None
+        # self.deiconify()
         screenWidth = self.winfo_screenwidth()
         screenHeight = self.winfo_screenheight()
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
@@ -588,16 +585,19 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
             if(bAskUser):  # only happens if the GUI window was closed brutally
                 if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
                     if(bWriteStop):
+                        #self.iconify()
                         logger.info("LumiaGUI was canceled.")
                         sCmd="touch LumiaGui.stop"
                         runSysCmd(sCmd)
             else:  # the user clicked Cancel or Go
                 if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+                    #self.iconify()
                     logger.info("LumiaGUI was canceled.")
                     sCmd="touch LumiaGui.stop"
                     runSysCmd(sCmd)
                 global LOOP_ACTIVE
                 LOOP_ACTIVE = False
+                # self.iconify()
                 logger.info("Closing the GUI...")
                 try:
                     self.after(100, self.event_generate("<Destroy>"))
@@ -693,7 +693,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         return(dobjLst, selectedDobjLst, dfObsDataInfo)
         
     def show(self):
-        self.deiconify()
+        # self.deiconify()
         self.wm_protocol("WM_DELETE_WINDOW", self.destroy)
         self.wait_window(self)
         return 
@@ -939,7 +939,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.maxH = int(0.92*screenHeight)
         # Dimensions of the window
         self.appWidth, self.appHeight = self.maxW, self.maxH
-        
         root.title("LUMIA: Refine the selection of observations to be used")  
         # Sets the dimensions of the window to something reasonable with respect to the user's screren properties
         root.geometry(f"{self.appWidth}x{self.appHeight}")   
@@ -965,12 +964,25 @@ class RefineObsSelectionGUI(ctk.CTk):
                     ymlContents, ymlFile,tracer, pdTimeStart, pdTimeEnd, timeStep, sDataType=None,  iVerbosityLv=1) 
         # root.wait_window(guiPage1)
         guiPage1.show()
+        #guiPage1.iconify()
         #cpDir=ymlContents['observations'][tracer]['file']['cpDir']
-        sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
+        # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
         sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
-        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer,   
-                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, sOutputPrfx=sOutputPrfx,  sTmpPrfx=sTmpPrfx, printProgress=True,    iVerbosityLv=1)
-
+        #bThreading=True
+        #if(bThreading):  # Not worth it....
+        #    thread1 = threading.Thread(target=discoverObservationsOnCarbonPortal, args=[tracer,   
+        #                        pdTimeStart, pdTimeEnd, timeStep,  ymlContents])
+        #    thread1.start()
+        #else:
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
+                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
+        if (len(badPidsLst) > 0):
+            sFOut=ymlContents['observations'][tracer]['file']['selectedPIDs']
+            sFOut=sFOut[:-21]+'bad-PIDs.csv'
+            with open( sFOut, 'w') as fp:
+                for item in badPidsLst:
+                    fp.write("%s\n" % item)
+        #self.deiconify()
         nCols=12 # sum of labels and entry fields per row
         nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
         xPadding=int(0.008*self.maxW)
@@ -998,7 +1010,6 @@ class RefineObsSelectionGUI(ctk.CTk):
         #    of samplingHeight + PID pairs for an otherwise single entry.
         #
         #        #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
-        dfAllObs = pd.read_csv (fDiscoveredObservations)
         nRows=int(0)
         bCreateDf=True
         bTrue=True
@@ -1013,6 +1024,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
         #inletMinHght = 20  # TODO remove this line. for testing only
         newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+        dfAllObs = pd.read_csv (fDiscoveredObservations)
         for index, row in dfAllObs.iterrows():
             hLst=[row['samplingHeight'] ]
             pidLst=[ row['pid']]
@@ -1065,7 +1077,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 newDf.at[(nRows) ,  ('selected')] = False
             nRows+=1
         newDf.to_csv(sTmpPrfx+'_dbg_selectedObs.csv', mode='w', sep=',')  
-            
 
         
         # Now we venture to make the root scrollable....
@@ -1479,7 +1490,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                                                                         value=ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
             
             # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-            sLogCfgFile=sOutputPrfx+"-config.yml"  
             ymlContents['observations'][tracer]['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
             try:
                 with open(ymlFile, 'w') as outFile:
@@ -1489,8 +1499,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 CancelAndQuit(sTxt)
                 return
             
-            sCmd="cp "+ymlFile+" "+sLogCfgFile
-            runSysCmd(sCmd)
             sCmd="touch LumiaGui.go"
             runSysCmd(sCmd)
             logger.info("Done. LumiaGui completed successfully. Config and Log file written.")
@@ -1606,7 +1614,7 @@ class RefineObsSelectionGUI(ctk.CTk):
             global LOOP2_ACTIVE
             LOOP2_ACTIVE = True
             while LOOP2_ACTIVE:
-                time.sleep(3)
+                time.sleep(1)
             logger.info("Closing the GUI...")
             try:
                 root.after(1000, root.event_generate("<Destroy>"))  # Wait 1 sec so the the main thread can meanwhile be exited before the GUI is destroyed
@@ -2211,8 +2219,10 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
         os.environ.__setitem__('DISPLAY', ':0.0')
     root=ctk.CTk()
     widgetsLst = []
+    # root.iconify()
     guiPage2=RefineObsSelectionGUI(root,  sLogCfgPath=sLogCfgPath, ymlContents=ymlContents, ymlFile=ymlFile, 
                         widgetsLst=widgetsLst) 
+    guiPage2.iconify
     #print('gui2object created')
     guiPage2.run(root,  sLogCfgPath, ymlContents, ymlFile, widgetsLst, pdTimeStart, pdTimeEnd, timeStep, tracer) 
     logger.debug('left guiPage2')

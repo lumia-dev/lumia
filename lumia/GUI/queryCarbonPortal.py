@@ -364,9 +364,12 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     #print('|_________________________________________________|')
     if(printProgress):
         printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
+    nBadDataSets=0
+    badPids=[]
     for n, pid in enumerate(finalDobjLst):
         pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
         if pidMetadata is not None:
+            bDataSuccessfullyRead=True
             isICOS=False
             if(pidMetadata['specification'].get('keywords', None) is not None):
                 isICOS = any('ICOS' in sKwrd for sKwrd in pidMetadata['specification'].get('keywords', None))
@@ -375,55 +378,62 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                     isICOS = any('ICOS' in sKwrd for sKwrd in pidMetadata['references'].get('keywords', None))
             if(isICOS==False):
                 logger.debug(f"This pidMetadata does not say that it is ICOS: {pid}")
-            data=[pid, bSelected,  pidMetadata['specificInfo']['acquisition']['station']['id'], 
-                        pidMetadata['specificInfo']['acquisition']['station']['countryCode'],
-                        isICOS, 
-                        pidMetadata['coverageGeo']['geometry']['coordinates'][1], 
-                        pidMetadata['coverageGeo']['geometry']['coordinates'][0], 
-                        pidMetadata['coverageGeo']['geometry']['coordinates'][2],
-                        pidMetadata['specificInfo']['acquisition']['samplingHeight'], 
-                        pidMetadata['size'], 
-                        pidMetadata['specificInfo']['nRows'], 
-                        pidMetadata['specification']['dataLevel'], 
-                        pidMetadata['specificInfo']['acquisition']['interval']['start'],
-                        pidMetadata['specificInfo']['acquisition']['interval']['stop'],
-                        pidMetadata['specificInfo']['productionInfo']['dateTime'], 
-                        pidMetadata['accessUrl'],
-                        pidMetadata['fileName'], int(0), 
-                        pidMetadata['specification']['self']['label']]
-            if(i==0):
-                '''
-                stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
-                country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
-                isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
-                # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
-                lon=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
-                lat=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
-                alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
-                samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
-                size=pidMetadata['size']   
-                nRows=pidMetadata['specificInfo']['nRows']
-                dataLevel=pidMetadata['specification']['dataLevel']
-                obsStart=pidMetadata['specificInfo']['acquisition']['interval']['start']
-                obsStop=pidMetadata['specificInfo']['acquisition']['interval']['stop']
-                  #tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
-                productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
-                sUrl=pidMetadata['accessUrl']
-                fileName=pidMetadata['fileName']
-                dataSetLabel=pidMetadata['specification']['self']['label']  
-                '''
-                columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
-                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
-                #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
-                df=DataFrame(data=[data], columns=columnNames)
-            else:
-                #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
-                if(len(df.columns)==len(data)):
-                    df.loc[len(df)] = data
+            try:
+                data=[pid, bSelected,  pidMetadata['specificInfo']['acquisition']['station']['id'], 
+                            pidMetadata['specificInfo']['acquisition']['station']['countryCode'],
+                            isICOS, 
+                            pidMetadata['coverageGeo']['geometry']['coordinates'][1], 
+                            pidMetadata['coverageGeo']['geometry']['coordinates'][0], 
+                            pidMetadata['coverageGeo']['geometry']['coordinates'][2],
+                            pidMetadata['specificInfo']['acquisition']['samplingHeight'], 
+                            pidMetadata['size'], 
+                            pidMetadata['specificInfo']['nRows'], 
+                            pidMetadata['specification']['dataLevel'], 
+                            pidMetadata['specificInfo']['acquisition']['interval']['start'],
+                            pidMetadata['specificInfo']['acquisition']['interval']['stop'],
+                            pidMetadata['specificInfo']['productionInfo']['dateTime'], 
+                            pidMetadata['accessUrl'],
+                            pidMetadata['fileName'], int(0), 
+                            pidMetadata['specification']['self']['label']]
+            except:
+                bDataSuccessfullyRead=False
+                badPids.append(pid)
+                nBadDataSets+=1
+                logger.error(f'ERROR: pid={pid} failed to read correctly,  most likely due to issues in the metadata.')
+            if(bDataSuccessfullyRead):
+                if(i==0):
+                    '''
+                    stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
+                    country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
+                    isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
+                    # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
+                    lon=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
+                    lat=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
+                    alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
+                    samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
+                    size=pidMetadata['size']   
+                    nRows=pidMetadata['specificInfo']['nRows']
+                    dataLevel=pidMetadata['specification']['dataLevel']
+                    obsStart=pidMetadata['specificInfo']['acquisition']['interval']['start']
+                    obsStop=pidMetadata['specificInfo']['acquisition']['interval']['stop']
+                      #tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
+                    productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
+                    sUrl=pidMetadata['accessUrl']
+                    fileName=pidMetadata['fileName']
+                    dataSetLabel=pidMetadata['specification']['self']['label']  
+                    '''
+                    columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                    #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
+                    df=DataFrame(data=[data], columns=columnNames)
                 else:
-                    logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
-                
-            i+=1
+                    #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+                    if(len(df.columns)==len(data)):
+                        df.loc[len(df)] = data
+                    else:
+                        badPids.append(pid)
+                        logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
+                i+=1
         if((printProgress) and (n % step ==0)):
             printProgressBar(n, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     
@@ -434,6 +444,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
     sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
     df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
+    if(nBadDataSets > 0):
+        logger.warning(f'{nBadDataSets} of {i} data records failed to read correctly and had to be discarded.')
 
     dfCountStations=df.drop_duplicates(['stationID'], keep='first') 
     nObsDataRecords = len(df)
@@ -466,13 +478,14 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     # But we are still keeping all sampling heights.
     sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-    fDiscoveredObservations=sOutputPrfx+"-DiscoveredObservations.csv"
+    fDiscoveredObservations=sOutputPrfx+"DiscoveredObservations.csv"
     nObsDataRecords2 = len(dfqdd)
     logger.info(f"{nObsDataRecords2} valid observational data records remaining from {nTotalStations2} stations across Europe.")
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')
     selectedDobjCol=dfqdd['pid']
     selectedDobjLst = selectedDobjCol.iloc[1:].tolist()
-    return(finalDobjLst, selectedDobjLst, dfqdd, fDiscoveredObservations)
+    logger.warning(f'badPIDs= {badPids}')
+    return(finalDobjLst, selectedDobjLst, dfqdd, fDiscoveredObservations, badPids)
 
 
 

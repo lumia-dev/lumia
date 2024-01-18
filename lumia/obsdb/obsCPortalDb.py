@@ -163,7 +163,7 @@ class obsdb(obsdb):
         selectedObsFile=self.rcf['observations'][tracer]['file']['selectedObsData']
         if(self.rcf['observations'][tracer]['file']['discoverData']):
             # Only if LumiaGUI was not run beforehand should Lumia go and hunt itself for the data on the carbon portal
-            (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer='CO2',  
+            (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer='CO2',  
                         pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
             (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
                                                                 ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, selectedObsFile=selectedObsFile,  iVerbosityLv=1)
