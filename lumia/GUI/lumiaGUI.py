@@ -2,6 +2,7 @@
 
 import os
 import sys
+from housekeeping.housekeeping import documentThisRun
 import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
@@ -9,7 +10,7 @@ import yaml
 import time
 import _thread
 import re
-from housekeeping import documentThisRun
+#from housekeeping import documentThisRun
 from loguru import logger
 from pandas import to_datetime
 import customtkinter as ctk
