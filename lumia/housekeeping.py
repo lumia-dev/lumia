@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='bc5734ed71b77746d625bcf50b7ad994cd4ad0e5' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
+LATESTGITCOMMIT_LumiaDA='aceb799383f23e866896148e64615350ab9c029e' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -96,6 +96,23 @@ def documentThisRun(ymlFile, args):
         logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
         sys.exit(1)
 
+    wrongOrMissingVersion=False
+    nVers=0
+    nSubVers=0
+    try:
+        nVers=int(rcf[ 'thisConfigFile',  'dataformat', 'version'])
+    except:
+        wrongOrMissingVersion=True
+    if not (nVers==6):
+        wrongOrMissingVersion=True
+    try:
+        nVers=int(rcf[ 'thisConfigFile',  'dataformat', 'subversion'])
+    except:
+        wrongOrMissingVersion=True
+    if (nSubVers<1):
+        wrongOrMissingVersion=True
+    if(wrongOrMissingVersion):    
+        logger.error('Wrong format of input Lumia config yml file. Your configuration file needs to be of major version==6 and sub-version>0.')
     # Document what kind of system the run was carried out on
     sUsername=os.getlogin()  # The user's login name
     # sysName=platform.system() # Linux
@@ -144,6 +161,17 @@ def documentThisRun(ymlFile, args):
     except:
         sys.exit(f'Abort. Failed to create user-requested temp sub-directory {sTmpDir}LumiaDA-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     sTmpPrfx=sTmpDir+sTmpPrfx
+
+    # Find out the first (only) tracer being used
+    tracer='co2'
+    try:
+        if (isinstance(rcf['run']['tracers'], str)):
+            tracer=rcf['run']['tracers']
+        else:
+            trac=rcf['run']['tracers']
+            tracer=trac[0]
+    except:
+        tracer='co2'
     
     myMachine=platform.node()
     pyVers= 'Python 3.10.10' # sys.version()
@@ -169,44 +197,32 @@ def documentThisRun(ymlFile, args):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
 
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'version'],   value=int(6), bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'subversion'],   value=int(1), bNewValue=True)
     # If LumiaGUI was run beforehand, than input files are known and specified in the config file and ['observations'][tracer]['file']['discoverData'] is set to False
     # else, LumiaDA has to go and hunt for ObsData on the carbon portal the old fashioned way ('discoverData'==True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'file', 'discoverData'],   value=True, bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'file', tracer, 'discoverData'],   value=True, bNewValue=False) # only create if not exist.
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedObsData'],   value='None', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedPIDs'],   value='None', bNewValue=False)
     
     # We also need to copy the 2 files from LumiaGUI that give us the list of input PIDs, so they have the same unique identifier
     #  as this run and end up in the correct folder.
-    tracer='co2'
-    try:
-        if (isinstance(rcf['run']['tracers'], str)):
-            tracer=rcf['run']['tracers']
-        else:
-            trac=rcf['run']['tracers']
-            tracer=trac[0]
-    except:
-        tracer='co2'
     try:
         selectedObsData=rcf['observations'][tracer]['file']['selectedObsData']
     except:
         logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
-    fname = os.path.basename(selectedObsData)
-    if (len(fname)>23):
-        fname=fname[23:]
-    newFnameselectedObsData=sOutputPrfx+fname
-    sCmd=f'cp {selectedObsData} {newFnameselectedObsData}'
+    keepThis=f'selected-ObsData-{tracer}.csv'
+    newFnameSelectedObsData=sOutputPrfx+keepThis
+    sCmd=f'cp {selectedObsData} {newFnameSelectedObsData}'
     runSysCmd(sCmd)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameselectedObsData, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
 
     try:
         selectedPIDs=rcf['observations'][tracer]['file']['selectedPIDs']
     except:
         logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
-    # the value is something like ./output/Lumia-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
-    fname = os.path.basename(selectedPIDs)
-    if (len(fname)>23):
-        fname=fname[23:]
-    newFnameSelectedPIDs=sOutputPrfx+fname
+    # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
+    keepThis=f'selected-PIDs-{tracer}.csv'
+    newFnameSelectedPIDs=sOutputPrfx+keepThis
     sCmd=f'cp {selectedPIDs} {newFnameSelectedPIDs}'
     runSysCmd(sCmd)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)

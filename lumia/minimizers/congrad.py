@@ -216,6 +216,7 @@ class CommFile(object):
                     )
                 )
             if len_g != self.len_g and not ds.congrad_finished :
+                logger.error(f'The number of gradients should have remained unchanged at {self.len_g}, instead it is {len_g}') # in practice Raise did not replace the variable names with their values
                 raise RuntimeError(f'The number of gradients should have remained unchanged at {self.len_g}, instead it is {len_g}')
             else :
                 self.len_x = len_x

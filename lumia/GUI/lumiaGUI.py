@@ -1436,11 +1436,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 dfq.drop(columns='includeCountry',inplace=True)
                 dfq.drop(columns='includeStation',inplace=True)
                 dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
-                sLogCfgPath=""
-                if ((ymlContents['run']['paths']['output'] is None) or len(ymlContents['run']['paths']['output']))<1:
-                    sLogCfgPath="./"
-                else:
-                    sLogCfgPath=ymlContents['run']['paths']['output']+"/"
                 ymlContents['observations'][tracer]['file']['selectedObsData']=sOutputPrfx+"selected-ObsData-"+tracer+".csv"
                 dfq.to_csv(ymlContents['observations'][tracer]['file']['selectedObsData'], mode='w', sep=',')
                 dfPids=dfq['pid']
@@ -2138,7 +2133,7 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
         end= pd.Timestamp(tEnd)
     ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'), bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='/data', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='./data', bNewValue=False) # for runflex ./data/meteo/ea.eurocom025x025/
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr', bNewValue=False )

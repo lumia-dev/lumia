@@ -158,15 +158,18 @@ class obsdb(obsdb):
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
         sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         selectedObsFile=self.rcf['observations'][tracer]['file']['selectedObsData']
         if(self.rcf['observations'][tracer]['file']['discoverData']):
+            # Only if LumiaGUI was not run beforehand should Lumia go and hunt itself for the data on the carbon portal
             (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations)=discoverObservationsOnCarbonPortal(tracer='CO2',  
                         pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
             (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
                                                                 ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, selectedObsFile=selectedObsFile,  iVerbosityLv=1)
             self.rcf['observations'][tracer]['file']['selectedPIDs'] = selectedDobjLst    
         else:
+            # use what LumiaGUI has prepared for us
             dobjLstFile=self.rcf['observations'][tracer]['file']['selectedPIDs']
             with open(dobjLstFile) as file:
                selectedDobjLst = [line.rstrip() for line in file]

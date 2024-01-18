@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-17, 23:21:08"
+    "saved": "2024-01-18, 00:48:37"
   },
   "MultiProject": "",
   "Project": "",
@@ -26,8 +26,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        6,
-        0
+        91,
+        49
       ],
       "Folds": [],
       "Zoom": 0,
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/housekeeping.py",
       "Cursor": [
-        41,
-        100
+        2,
+        65
       ],
       "Folds": [],
       "Zoom": 0,
@@ -86,8 +86,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        2152,
-        81
+        2149,
+        102
       ],
       "Folds": [],
       "Zoom": 0,
@@ -110,8 +110,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/optimizer.py",
       "Cursor": [
-        110,
-        21
+        190,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -254,11 +254,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py",
       "Cursor": [
-        182,
-        13
+        0,
+        0
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 1,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 20
@@ -434,8 +434,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/calc_posterior_err.py",
       "Cursor": [
-        75,
-        13
+        89,
+        38
       ],
       "Folds": [],
       "Zoom": 0,
@@ -493,10 +493,10 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/housekeeping.py",
     "Cursor": [
-      177,
-      8
+      2,
+      65
     ]
   },
   "Breakpoints": [
@@ -702,7 +702,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py",
-      184,
+      192,
       "",
       false,
       true,
@@ -710,7 +710,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py",
-      186,
+      194,
       "",
       false,
       true,
@@ -882,7 +882,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@91",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@99",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",

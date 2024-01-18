@@ -137,7 +137,7 @@ if not os.path.exists(f'{sOutputPrfx}config.yml'):
         logger.error(sCmd)
         sys.exit(-1)
         
-        
+
 # Load observations
 if args.noobs :
     from lumia.obsdb.runflex import obsdb
