@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='aceb799383f23e866896148e64615350ab9c029e' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
+LATESTGITCOMMIT_LumiaDA='5ee874f0d27dcd0f24f7686e9461b163c3c2a2cd' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -11,7 +11,7 @@ import git
 # from pandas import Timestamp
 import yaml
 #import lumia
-from rctools import RcFile as rc
+# from rctools import RcFile as rc
 from loguru import logger
 
 
@@ -51,19 +51,40 @@ sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log 
 sNow=re.sub(':', '_', sNow)
 sNow=sNow[:-3] # minutes is good enough....don't need seconds if a run takes hours...
 
-def documentThisRun(ymlFile, args):
+def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     # Now read the yaml configuration file - whether altered by the GUI or not
+    if (args is None):
+        logger.error('You need to provide some arguments')
+        sys.exit(-3)
+    ymlContents=None
     try:
-        rcf=rc(ymlFile)
+        #rcf=rc(ymlFile)
+        # Read the yaml configuration file
+        tryAgain=False
+        try:
+            with open(ymlFile, 'r') as file:
+                ymlContents = yaml.safe_load(file)
+            sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
+            os.system(sCmd)
+        except:
+            tryAgain=True
+        if(tryAgain==True):
+            sCmd="cp "+ymlFile+'.bac '+ymlFile # recover from most recent backup file.
+            os.system(sCmd)
+            try:
+                with open(ymlFile, 'r') as file:
+                    ymlContents = yaml.safe_load(file)
+                sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
+                os.system(sCmd)
+            except:
+                tryAgain=True
+                logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
+                sys.exit(1)
     except:
         logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
         sys.exit(-2)
     # Save  all details of the configuration and the version of the software used:
  
-    #if len(rcf['run']['paths']['output'])<1:
-    #    sLogCfgFile="./Lumia-runlog-"+sNow[:-3]+"config.yml"
-    #else:
-    #    sLogCfgFile=rcf['run']['paths']['output']+"/Lumia-runlog-"+sNow+"-config.yml"
     myCom=""
     # Get the local git hash so we have some clue of what version of LUMIA we may be using...
     try:
@@ -100,13 +121,13 @@ def documentThisRun(ymlFile, args):
     nVers=0
     nSubVers=0
     try:
-        nVers=int(rcf[ 'thisConfigFile',  'dataformat', 'version'])
+        nVers=int(ymlContents['thisConfigFile',  'dataformat', 'version'])
     except:
         wrongOrMissingVersion=True
     if not (nVers==6):
         wrongOrMissingVersion=True
     try:
-        nVers=int(rcf[ 'thisConfigFile',  'dataformat', 'subversion'])
+        nVers=int(ymlContents[ 'thisConfigFile',  'dataformat', 'subversion'])
     except:
         wrongOrMissingVersion=True
     if (nSubVers<1):
@@ -122,7 +143,7 @@ def documentThisRun(ymlFile, args):
     # All output is written into  subdirectories named after the run.thisRun.uniqueIdentifierDateTime key
     # Create these subdirectories. This also ensures early on that we can write to the intended locations
     try:
-        sOutpDir=rcf['run']['paths']['output']
+        sOutpDir=ymlContents['run']['paths']['output']
     except:
         sOutpDir="./output"
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output' ],   value=sOutpDir, bNewValue=True)
@@ -132,18 +153,18 @@ def documentThisRun(ymlFile, args):
         os.system(sCmd)
     except:
         sys.exit(f'Abort. Failed to create user-requested output directory {sOutpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
-    sOutputPrfx='LumiaDA-'+sNow+os.path.sep+'LumiaDA-'+sNow+'-'
+    sOutputPrfx=parentScript+'-'+sNow+os.path.sep+parentScript+'-'+sNow+'-'
     sTmpPrfx=sOutputPrfx # same structure below the Temp and Output directories
     if ((len(sOutpDir)>0) and (sOutpDir[-1]!=os.path.sep)):
         sOutpDir=sOutpDir+os.path.sep
-    sCmd=("mkdir -p "+sOutpDir+'LumiaDA-'+sNow)
+    sCmd=("mkdir -p "+sOutpDir+parentScript+'-'+sNow)
     try:
         os.system(sCmd)
     except:
         sys.exit(f'Abort. Failed to create user-requested output sub-directory {sOutpDir}LumiaDA-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     sOutputPrfx=sOutpDir+sOutputPrfx
     try:
-        sTmpDir=rcf['run']['paths']['temp']
+        sTmpDir=ymlContents['run']['paths']['temp']
     except:
         sTmpDir="./tmp"
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'temp' ],   value=sTmpDir, bNewValue=True)
@@ -155,7 +176,7 @@ def documentThisRun(ymlFile, args):
         sys.exit(f'Abort. Failed to create user-requested temp directory {sTmpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     if ((len(sTmpDir)>0) and (sTmpDir[-1]!=os.path.sep)):
         sTmpDir=sTmpDir+os.path.sep
-    sCmd=("mkdir -p "+sTmpDir+'LumiaDA-'+sNow)
+    sCmd=("mkdir -p "+sTmpDir+parentScript+'-'+sNow)
     try:
         os.system(sCmd)
     except:
@@ -165,10 +186,10 @@ def documentThisRun(ymlFile, args):
     # Find out the first (only) tracer being used
     tracer='co2'
     try:
-        if (isinstance(rcf['run']['tracers'], str)):
-            tracer=rcf['run']['tracers']
+        if (isinstance(ymlContents['run']['tracers'], str)):
+            tracer=ymlContents['run']['tracers']
         else:
-            trac=rcf['run']['tracers']
+            trac=ymlContents['run']['tracers']
             tracer=trac[0]
     except:
         tracer='co2'
@@ -186,7 +207,7 @@ def documentThisRun(ymlFile, args):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'PythonVersion' ],   value=pyVersion, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'hostName' ],   value=myMachine, bNewValue=True)
     # Lumia version
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value='LumiaDA', bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value=parentScript, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'url'],   value='git@github.com:lumia-dev/lumia.git', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'commit'],   value=LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'location'],   value='git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA, bNewValue=True)
@@ -207,7 +228,7 @@ def documentThisRun(ymlFile, args):
     # We also need to copy the 2 files from LumiaGUI that give us the list of input PIDs, so they have the same unique identifier
     #  as this run and end up in the correct folder.
     try:
-        selectedObsData=rcf['observations'][tracer]['file']['selectedObsData']
+        selectedObsData=ymlContents['observations'][tracer]['file']['selectedObsData']
     except:
         logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
     keepThis=f'selected-ObsData-{tracer}.csv'
@@ -217,7 +238,7 @@ def documentThisRun(ymlFile, args):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
 
     try:
-        selectedPIDs=rcf['observations'][tracer]['file']['selectedPIDs']
+        selectedPIDs=ymlContents['observations'][tracer]['file']['selectedPIDs']
     except:
         logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
     # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it

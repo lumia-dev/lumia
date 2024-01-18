@@ -9,6 +9,7 @@ import yaml
 import time
 import _thread
 import re
+from housekeeping import documentThisRun
 from loguru import logger
 from pandas import to_datetime
 import customtkinter as ctk
@@ -1044,7 +1045,6 @@ class RefineObsSelectionGUI(ctk.CTk):
                 
         if(not isDifferent):
             newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row 
-        sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
         newDf.to_csv(sTmpPrfx+'_dbg_newDfObs.csv', mode='w', sep=',')  
         nObs=len(newDf)
         #filtered = ((newDf['selected'] == True))
@@ -2288,6 +2288,11 @@ if(bError):
         sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
         logger.warning(sTxt)
     sys.exit(-4)
+
+# Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
+thisScript='LumiaGUI'
+sCmd=documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+# Now the config.yml file has all the details for this particular run
     
     
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?

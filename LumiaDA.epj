@@ -1,8 +1,8 @@
 {
   "header": {
     "comment": "eric project file for project LumiaDA",
-    "copyright": "Copyright (C) 2023 , ",
-    "saved": "2023-12-11, 12:15:22"
+    "copyright": "Copyright (C) 2024 , ",
+    "saved": "2024-01-18, 12:31:43"
   },
   "project": {
     "AUTHOR": "",
@@ -76,6 +76,7 @@
       "GMDD/var4d.py",
       "archive/__init__.py",
       "gridtools.py",
+      "housekeepimg/housekeeping.py",
       "icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "lumia/GUI/lumiaGUI.py",
       "lumia/GUI/queryCarbonPortal.py",
@@ -98,7 +99,6 @@
       "lumia/formatters/cdoWrapper.py",
       "lumia/formatters/lagrange.py",
       "lumia/formatters/xr.py",
-      "lumia/housekeeping.py",
       "lumia/interfaces/__init__.py",
       "lumia/interfaces/footprint_flexRes.py",
       "lumia/interfaces/footprint_monthlytot.py",

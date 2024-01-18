@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import lumia
 from rctools import RcFile as rc
 from loguru import logger
-import lumia.housekeeping as hk
+from housekeeping import documentThisRun
 from lumia.formatters import xr
 
 p = ArgumentParser()
@@ -50,7 +50,8 @@ if (not os.path.isfile(ymlFile)):
        
 
 # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
-sCmd=hk.documentThisRun(ymlFile, args)
+thisScript='LumiaDA'
+sCmd=documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
 # Now the config.yml file has all the details for this particular run
 
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
