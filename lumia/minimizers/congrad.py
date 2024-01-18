@@ -77,7 +77,7 @@ class Minimizer:
         copy_file(srcFile,  outFile)
         bCopied=True
         try:
-            (dest_name, bCopied)=copy_file(srcFile[:-3]+'.out', outFile[:-3]+'.out')
+            (dest_name, bCopied)=copy_file(srcFile[:-3]+'.out', outFile[:-3]+'_debug.out')
         except:
             try:
                 srcFile=os.path.dirname(self.commfile.filepath)+'congrad_debug.out'
@@ -86,9 +86,9 @@ class Minimizer:
                 logger.error(f'Failed to copy {srcFile} to {outFile[:-3]}.out')
         if(not bCopied):
             srcFile=os.path.dirname(self.commfile.filepath)+'congrad_debug.out'
-            (dest_name, bCopied)=copy_file(srcFile, outFile[:-3]+'.out')
+            (dest_name, bCopied)=copy_file(srcFile, outFile[:-3]+'_debug.out')
         if(not bCopied):
-            logger.error(f'Failed to copy {srcFile} to {outFile[:-3]}.out')
+            logger.error(f'Failed to copy {srcFile} to {outFile[:-3]}_debug.out')
 
     def iter_states(self):
         traject = self.commfile.read_traject()

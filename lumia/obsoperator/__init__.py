@@ -161,30 +161,30 @@ class transport(object):
 #        logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
 
         # Run the model
-        cmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
+        sCmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
 
         if self.serial or serial:
-            cmd.append('--serial')
+            sCmd.append('--serial')
             
         logger.info('obsoperator.init.runForward(): cmd=')
-        print(cmd)
         
-        cmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default=[])) # cmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
-        # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
+        sCmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default=[])) # sCmd.extend(self.rcf.getAlt('model','transport','extra_arguments', default=[]))
         #   TODO: testing with old multitracer.py from 2023-09-02:
-        #   cmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
-        # creates normally: cmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
+        #   sCmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
+        # creates normally: sCmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
+        logger.debug(f'Starting ForwardRun in subprocess with cmd={sCmd}')
         
-        runcmd(cmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
-
+        # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
+        runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        
         logger.info('obsoperator.init.runForward(): emf2=')
         if(emf is None):
-            logger.info('Error: obsoperator.init.runForward(): emf is None. That is a problem...')
+            logger.warning('Warning: obsoperator.init.runForward(): emf is None. That is a problem unless perhaps it is the first call or an evaluation of uncertainties...')
         else:
             print(emf)
         logger.info('obsoperator.init.runForward(): dbf2=')
         if(dbf is None):
-            logger.info('Error: obsoperator.init.runForward(): dbf is None. That is a problem...')
+            logger.info('Error: obsoperator.init.runForward(): dbf is None. That is hinting at a possible problem...')
         else:
             print(dbf)
 
@@ -208,12 +208,12 @@ class transport(object):
         adjf = sTmpPrfx+'emissions.nc'
 
         # Run the adjoint transport:
-        cmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
+        sCmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
 
         if self.serial :
-            cmd.append('--serial')
-        cmd.extend(list(self.rcf.rcfGet('model.transport.extra_arguments', default=''))) #cmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
-        # runcmd(cmd)
+            sCmd.append('--serial')
+        sCmd.extend(list(self.rcf.rcfGet('model.transport.extra_arguments', default=''))) #sCmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
+        # runcmd(sCmd)
         print('wait until separate thread has finished.')
         # Collect the results :
         return self.readStruct(path=adjf)
@@ -240,11 +240,11 @@ class transport(object):
     #     rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.adjtest.rc'))
     #
     #     # Run the model
-    #     cmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--adjtest', '--emis', emf, '--db', dbf]
+    #     sCmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--adjtest', '--emis', emf, '--db', dbf]
     #     if self.serial :
-    #         cmd.append('--serial')
-    #     cmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default='').split(','))
-    #     runcmd(cmd)
+    #         sCmd.append('--serial')
+    #     sCmd.extend(self.rcf.rcfGet('model.transport.extra_arguments', default='').split(','))
+    #     runcmd(sCmd)
 
     def adjoint_test(self, struct):
         from numpy import dot, random

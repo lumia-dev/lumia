@@ -133,7 +133,8 @@ if __name__ == '__main__':
     import sys
 
     from argparse import ArgumentParser, REMAINDER
-
+    print(sys.argv[1:])
+    print(sys.argv[4:])
     p = ArgumentParser()
     p.add_argument('--setup', action='store_true', default=False, help="Setup the transport model (copy footprints to local directory, check the footprint files, ...)")
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
@@ -151,7 +152,19 @@ if __name__ == '__main__':
     p.add_argument('--emis')#, required=True)
     p.add_argument('--outpPathPrfx', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=True)
     p.add_argument('args', nargs=REMAINDER)
-    args = p.parse_args(sys.argv[1:])
+    bTryagain=True
+    
+    # I have seen this goofing up without producing a proper error - better safe than sorry....
+    iSkip=1
+    while((bTryagain) and (iSkip<5)):
+        try:
+            args = p.parse_args(sys.argv[iSkip:])
+            bTryagain=False
+        except:
+            iSkip=iSkip+1
+    if((bTryagain) or (iSkip>4)):
+        logger.error('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst model was NOT run.')
+        raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst model was NOT run.')
 
     # Set the verbosity in the logger (loguru quirks ...)
     logger.remove()
@@ -180,10 +193,13 @@ if __name__ == '__main__':
         obs = model.run_forward(obs, emis)  # goes to lumiatransport.core.model.run_forward() -> run() -> run_tracer() 
         logger.debug(f'lumia.transport.multitracer.main writing obs = model.run_forward(obs, emis) via obs.write({args.obs}) ')
         obs.write(args.obs)
+        logger.info('transport.multitracer (subprocess): Forward run completed successfully.')
 
     elif args.adjoint :
         adj = model.run_adjoint(obs, emis)
         adj.write(args.emis)
+        logger.info('transport.multitracer (subprocess): Adjoint run completed successfully.')
 
     elif args.adjtest :
         model.adjoint_test(obs, emis)
+        logger.info('transport.multitracer (subprocess): Adjtest run completed successfully.')
