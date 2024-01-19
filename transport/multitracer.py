@@ -133,7 +133,7 @@ if __name__ == '__main__':
     import sys
 
     from argparse import ArgumentParser, REMAINDER
-    print(sys.argv[1:])
+    logger.debug(f'My execution has been requested: {sys.argv}')
     
     p = ArgumentParser()
     p.add_argument('--setup', action='store_true', default=False, help="Setup the transport model (copy footprints to local directory, check the footprint files, ...)")

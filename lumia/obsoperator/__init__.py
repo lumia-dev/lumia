@@ -209,7 +209,7 @@ class transport(object):
         adjf = sTmpPrfx+'emissions.nc'
 
         # Run the adjoint transport:
-        sCmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx,  '--sTmpPrfx',  sTmpPrfx ]
+        sCmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
 
         if self.serial :
             sCmd.append('--serial')
@@ -217,7 +217,8 @@ class transport(object):
 
         logger.debug(f'Starting AdjointRun in subprocess with cmd={sCmd}')        
         # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
-        runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')
 
         # print('wait until separate thread runAdjoint has finished.')
         # Collect the results :
