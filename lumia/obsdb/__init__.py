@@ -276,24 +276,34 @@ class obsdb:
 
         print('obs.sites=',  flush=True) 
         print(obs.sites,  flush=True)
+        obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
         # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondence
         obs.observations = df.loc[:, ['site'] + list(set(df.columns) - set(obs.sites.columns))]
-        if(rcFile is None):
-            obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
-        else:
-            sOutputPrfx=rcFile[ 'run']['thisRun']['uniqueOutputPrefix']
-            obs.sites.to_csv(sOutputPrfx+'obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
+        sOutputPrfx=rcFile[ 'run']['thisRun']['uniqueOutputPrefix']
+        obs.sites.to_csv(sOutputPrfx+'obsSites2.csv',  encoding='utf-8', sep=',',  mode='w')
+        print('obsSites=',  flush=True) # obs.to_csv('./obs1.csv',  encoding='utf-8', sep=',',  mode='w')
+        print(obs,  flush=True)
+
+        # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondence
+        # obs.observations = df.loc[:, ['site'] + list(set(df.columns) - set(obs.sites.columns))]
+        # if(rcFile is None):
+        #     obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
+        # else:
+        #     obs.sites.to_csv(sOutputPrfx+'obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
         return obs
 
     def to_hdf(self, filename: str) -> str:
         df = self.to_dataframe()
         fname = os.path.basename(filename)
-        if('control.hdf' in fname):
-            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-            filename=sOutputPrfx+'control.hdf'
-        else:            
-            sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
-            filename=sTmpPrfx+fname
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        if(('departures.hdf' in filename) and (len(filename)>24)):
+            print('ok')
+        else:
+            filename=sTmpPrfx+fname  
+        # dirname=os.path.dirname(sTmpPrfx)
+        #if('control.hdf' in fname):
+        #    sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        #    filename=sOutputPrfx+'control.hdf'
         logger.debug(f'df.to_hdf (writes {filename}) df columns={df.columns}')
         # TODO: ad-hoc fix to convert "object" bool to standard bool. Need to make sure these don't be created in the 1st place
         logger.debug(f'Columns read from hdf file: {df.columns}')
@@ -313,6 +323,7 @@ class obsdb:
     @classmethod
     def from_hdf(cls, filename: str, rcFile=None) -> "obsdb":
         df = read_hdf(filename, key='observations')
+        logger.debug(f'Columns read from hdf file: {df.columns}')        
         #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
         knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
         for col in knownColumns:

@@ -59,7 +59,7 @@ class LumiaFootprintFile(h5py.File):
             assert Grid(latc=grid.latc, lonc=grid.lonc) == self.grid, f"Can't align the footprint file grid ({self.grid}) to the requested grid ({Grid(**asdict(grid))})"
         except:
             logger.error("ABORT: error in multitracer.py, assert(grid==self.grid) failed.")
-            sys.exit(-1)
+            raise Exception("ABORT: error in multitracer.py, assert(grid==self.grid) failed.")
         try:
             assert timestep == self.timestep, "Temporal grid mismatch"
             shift_t = (self.origin - origin)/timestep
@@ -67,7 +67,7 @@ class LumiaFootprintFile(h5py.File):
             self.shift_t = int(shift_t)
         except:
             logger.error("ABORT: error in multitracer.py, assert(timestep==self.timestep) failed.")
-            sys.exit(-1)
+            raise Exception("ABORT: error in multitracer.py, assert(timestep==self.timestep) failed.")
 
     def get(self, obsid) -> SimpleNamespace :
         itims = self[obsid]['itims'][:] 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     from argparse import ArgumentParser, REMAINDER
     print(sys.argv[1:])
-    print(sys.argv[4:])
+    
     p = ArgumentParser()
     p.add_argument('--setup', action='store_true', default=False, help="Setup the transport model (copy footprints to local directory, check the footprint files, ...)")
     p.add_argument('--forward', '-f', action='store_true', default=False, help="Do a forward run")
@@ -150,12 +150,13 @@ if __name__ == '__main__':
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
-    p.add_argument('--outpPathPrfx', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=True)
+    p.add_argument('--outpPathPrfx', '-o', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=False)
     p.add_argument('args', nargs=REMAINDER)
     bTryagain=True
-    
+
+   
     # I have seen this goofing up without producing a proper error - better safe than sorry....
-    iSkip=1
+    iSkip=0
     while((bTryagain) and (iSkip<5)):
         try:
             args = p.parse_args(sys.argv[iSkip:])
@@ -163,13 +164,45 @@ if __name__ == '__main__':
         except:
             iSkip=iSkip+1
     if((bTryagain) or (iSkip>4)):
-        logger.error('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst model was NOT run.')
+        logger.error('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjtest transport model was NOT run.')
         raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst model was NOT run.')
 
     # Set the verbosity in the logger (loguru quirks ...)
     logger.remove()
     logger.add(sys.stderr, level=args.verbosity)
 
+    mmode='notSpecified'
+    if args.forward:
+        mmode='ForwardRun'
+    elif args.adjoint :
+        mmode='AdjointRun'
+    elif args.adjtest :
+        mmode='AdjTestRun'
+    if('notSpecified' in mmode):
+        logger.error('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() Operation mode (Forward/Adjoint/Adjtest) not specified. The transport model was NOT run.')
+        raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() Operation mode (Forward/Adjoint/Adjtest) not specified. The transport model was NOT run.')
+
+    if((args.obs is None) or (len(args.obs)<6)):
+        logger.error(f'CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() Option --obs not provided. The {mmode} transport model was NOT run.')
+        raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() Option --obs not provided. The {mmode} transport model was NOT run.')
+
+    outpPathPrfx=None
+    if not(args.outpPathPrfx is None):
+        outpPathPrfx=args.outpPathPrfx
+    if((args.outpPathPrfx is None) or (len(args.outpPathPrfx)<6)):
+        outpPathPrfx=''
+        # try to derive it from the obs argument --obs ./tmp/LumiaDA-2024-01-19T01_40/LumiaDA-2024-01-19T01_40-departures.hdf
+        if (len(args.obs) > 16):
+            sDir=os.path.dirname(args.obs)
+            c=os.path.sep
+            if len(sDir.split(os.path.sep)) > 1:             
+                sp=sDir.split(os.path.sep)
+                uniqid=sp[-1]  # should now hold the name of the lowest subdirectory, e.g. LumiaDA-2024-01-19T01_40
+                outpPathPrfx=sDir+os.path.sep+uniqid+'-'
+    if((outpPathPrfx is None) or (len(outpPathPrfx)<6)):
+        logger.error(f'CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() --outpPathPrfx not provided nor could it be derived from the --obs argument. The {mmode} transport model was NOT run.')
+        raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst transport model was NOT run.')
+        
     obs = Observations.read(args.obs)
     #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
     knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
@@ -179,7 +212,6 @@ if __name__ == '__main__':
                 obs[col]=obs[col].astype(float)
                 # cf=obs[col]
                 # print(cf)
-        
     
     # Set the max time limit for footprints:
     LumiaFootprintFile.maxlength = args.max_footprint_length
@@ -202,4 +234,4 @@ if __name__ == '__main__':
 
     elif args.adjtest :
         model.adjoint_test(obs, emis)
-        logger.info('transport.multitracer (subprocess): Adjtest run completed successfully.')
+        logger.info('transport.multitracer (subprocess): Adjtest run completed successfully!')

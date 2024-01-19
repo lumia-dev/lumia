@@ -85,6 +85,7 @@ class obsdb(obsdb):
             tracer = tracers[0]
             logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
+        logger.debug(f'from_CPortal() completed successfully. Return value is db={db}')
         return db
  
  
@@ -112,6 +113,7 @@ class obsdb(obsdb):
         self.filename = bgFname # filename
         logger.info("Observed and background concentrations of CO2 have been read and merged successfully.")
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
+        logger.debug(f'load_fromCPortal() completed successfully.')
         return(self)
         
     def gatherObs_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None,  errorEstimate=None) -> "obsdb":
@@ -420,6 +422,7 @@ class obsdb(obsdb):
         allSitesDfs.to_csv(sTmpPrfx+'_dbg_mySitesAll.csv', encoding='utf-8', sep=',', mode='w')
         # self.load_tar(filename)
         # logger.info(f"{allObsDfs.shape[0]} observation read from {filename}")
+        logger.debug(f'gatherObs_fromCPortal() completed successfully. Returning allObsDfs and {sTmpPrfx}_dbg_obsData-NoBkgnd.csv')
         return(self,  allObsDfs,  sTmpPrfx+'_dbg_obsData-NoBkgnd.csv')
     
    
@@ -586,6 +589,7 @@ class obsdb(obsdb):
         obsDfWthBg['height'] = obsDfWthBg['height'].map(lambda x: '%6.1f' % x)
         obsDfWthBg.to_csv(sOutputPrfx+'_finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         # setattr('observations', newDf)
+        logger.debug('combineObsAndBgnd() completed successfully. Returning finalObsDfWthBg.csv')
         return(obsDfWthBg)
     """
         #  How do we handle any missing information on background concentrations where interpolation was not a sensible option:

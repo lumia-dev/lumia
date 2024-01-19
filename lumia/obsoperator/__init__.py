@@ -156,9 +156,9 @@ class transport(object):
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
         emf = self.writeStruct(struct, path=sTmpPrfx+'emissions.nc', zlib=compression, only_transported=True)
         del struct
-        dbf = observations.to_hdf('observations.hdf')
+        dbf = observations.to_hdf(sTmpPrfx+'observations.hdf')
         
-#        logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
+        logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
 
         # Run the model
         sCmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
@@ -175,13 +175,13 @@ class transport(object):
         logger.debug(f'Starting ForwardRun in subprocess with cmd={sCmd}')
         
         # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
-        runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')
         
-        logger.info('obsoperator.init.runForward(): emf2=')
         if(emf is None):
             logger.warning('Warning: obsoperator.init.runForward(): emf is None. That is a problem unless perhaps it is the first call or an evaluation of uncertainties...')
         else:
-            print(emf)
+            logger.info(f'obsoperator.init.runForward(): emf2={emf}')
         logger.info('obsoperator.init.runForward(): dbf2=')
         if(dbf is None):
             logger.info('Error: obsoperator.init.runForward(): dbf is None. That is hinting at a possible problem...')
@@ -200,15 +200,16 @@ class transport(object):
         self.db.observations.loc[:, 'dy'] = departures
         #depout=os.path.join(self.tempdir, 'departures.hdf')
         #logger.info(f"Writing departures to {depout}")
-        dpf = self.db.to_hdf('departures.hdf')
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
+        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        dpf = self.db.to_hdf(sTmpPrfx+'departures.hdf')
         
         # Name of the adjoint output file
         # adjf = os.path.join(self.tempdir, 'emissions.nc')
-        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         adjf = sTmpPrfx+'emissions.nc'
 
         # Run the adjoint transport:
-        sCmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir]
+        sCmd = [sys.executable, '-u', self.executable, '--adjoint', '--obs', dpf, '--emis', adjf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx,  '--sTmpPrfx',  sTmpPrfx ]
 
         if self.serial :
             sCmd.append('--serial')

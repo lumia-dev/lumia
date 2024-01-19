@@ -588,7 +588,7 @@ class Data:
             complevel = 0.
         encoding = dict(zlib=zlib, complevel=complevel)
         for tracer in self._tracers :
-            print(f'filename={filename}',  flush=True)  # e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
+            logger.debug(f'filename={filename}, tracer={tracer}')  # e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
             self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars}, engine='h5netcdf', **kwargs)
 
     @property
@@ -804,7 +804,7 @@ class Data:
                 try:
                     myPath2FluxData2=rcf.rcfGet(f'emissions.{tr}.regionName')
                 except:
-                    logger.warning(f'Warning: No key emissions.{tr}.regionName found in user defined resource file (used in pathnames). I shall try to guess it...',  flush=True)
+                    logger.warning(f'Warning: No key emissions.{tr}.regionName found in user defined resource file (used in pathnames). I shall try to guess it...')
                     mygrid=rcf.rcfGet(f'emissions.{tr}.region')
                     if((250==int(mygrid.dlat*1000)) and (250==int(mygrid.dlon*1000)) and (abs((0.5*(mygrid.lat0+mygrid.lat1))-53)<mygrid.dlat)and (abs((0.5*(mygrid.lon0+mygrid.lon1))-10)<mygrid.dlon)):
                         myPath2FluxData2='eurocom025x025' # It is highly likely that the region is centered in Europe and has a lat/lon grid of a quarter degree
