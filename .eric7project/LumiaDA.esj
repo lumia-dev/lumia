@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-19, 00:05:35"
+    "saved": "2024-01-19, 01:38:03"
   },
   "MultiProject": "",
   "Project": "",
@@ -15,7 +15,7 @@
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
       "Cursor": [
         296,
-        41
+        40
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,14 +62,26 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
       "Cursor": [
-        160,
-        65
+        220,
+        10
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
+      "Cursor": [
+        169,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 5
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/queryCarbonPortal.py",
@@ -81,25 +93,13 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 5
+      "Editorindex": 6
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
         23,
         74
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 6
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
-      "Cursor": [
-        157,
-        11
       ],
       "Folds": [],
       "Zoom": 0,
@@ -180,11 +180,17 @@
       "Editorindex": 13
     }
   ],
-  "ActiveWindow": {},
+  "ActiveWindow": {
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
+    "Cursor": [
+      220,
+      10
+    ]
+  },
   "Breakpoints": [
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
-      217,
+      221,
       "",
       false,
       true,
@@ -336,7 +342,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
-      227,
+      231,
       "",
       false,
       true,
@@ -525,10 +531,15 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/var4d.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@923",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/queryCarbonPortal.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/optimization_tools.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/optimization_tools.py@@10",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/system_tools.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py@@20",
@@ -537,12 +548,17 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@99",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/minimizers/congrad.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py@@15",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py@@36",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py@@15",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",

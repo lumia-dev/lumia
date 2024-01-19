@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-19, 00:19:56"
+    "saved": "2024-01-19, 01:38:04"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -792,9 +792,9 @@
       "priority": 1,
       "lineno": 70,
       "completed": false,
-      "created": 1705619993.2879682,
+      "created": 1705624649.8270435,
       "type": 1,
-      "uid": "{c3fc8fc7-e8ae-4cf2-96d7-fe1486e11b2a}",
+      "uid": "{b44057f7-5215-4337-b378-4b826054d436}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py"
@@ -805,9 +805,9 @@
       "priority": 1,
       "lineno": 172,
       "completed": false,
-      "created": 1705619993.2945762,
+      "created": 1705624649.830993,
       "type": 1,
-      "uid": "{e5f73dac-50cf-49ec-b778-d4f72548d563}",
+      "uid": "{19f18757-af66-4f1e-82c9-3d28ea901f37}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py"
@@ -818,9 +818,22 @@
       "priority": 1,
       "lineno": 177,
       "completed": false,
-      "created": 1705619993.3015642,
+      "created": 1705624649.8344603,
       "type": 1,
-      "uid": "{0c978d67-71c9-4d68-8dc0-892d54c4df9d}",
+      "uid": "{4cc0ab68-46d3-4d19-bcd4-ed3d208ddcf7}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py"
+    },
+    {
+      "summary": "TODO: uncomment the next line  (runcmd multitracer.py) when done debugging",
+      "description": "",
+      "priority": 1,
+      "lineno": 218,
+      "completed": false,
+      "created": 1705624649.838196,
+      "type": 1,
+      "uid": "{18690510-4f7e-4f86-ba86-7a25cf6335fa}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py"
