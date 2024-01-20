@@ -46,11 +46,12 @@ class Interface:
         # TODO: check if this emissions.nc really goes into /output and not like some other emissions file that is written to ./tmp with the same filename...
         # Note: it seems this code here is not executed until congrad has converged, thus it could be the final result and therefore go into the output instead of the tmp directory
         logger.debug(f'multitracer.save() path={path}')
-        sTmpPrfx=RcFile[ 'run']['thisRun']['uniqueTmpPrefix']
+        #sTmpPrfx=RcFile[ 'run']['thisRun']['uniqueTmpPrefix']
+        sTmpPrfx=self.rcf.rcfGet('run.thisRun.uniqueTmpPrefix')
         logger.debug(f'multitracer.save() label={label},  sTmpPrfx={sTmpPrfx}')
         logger.debug(f'multitracer.save() self.model_data.to_netcdf({sTmpPrfx}emissions{label}.nc)')
         #self.model_data.to_netcdf(os.path.join(path, f'emissions{label}.nc'))
-        print(f'filename={sTmpPrfx}emissions{label}.nc',  flush=True)        
+        logger.debug(f'filename={sTmpPrfx}emissions{label}.nc')        
         self.model_data.to_netcdf(f'{sTmpPrfx}emissions{label}.nc')
         self.model_data.convert(units)
         # Note: optim_data should contain all the optimization data (mapping, correlation matrices, uncertainties, state vectors, etc.). But in the 

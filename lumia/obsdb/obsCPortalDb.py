@@ -106,8 +106,8 @@ class obsdb(obsdb):
         bgFname=self.rcf['background']['concentrations']['co2']['backgroundCo2File']
         (bgDf, bInterpolationRequired)=self.load_background(bgFname)
         # Now we have to merge the background CO2 concentrations into the observational data...
-        sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
-        (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf, sNow,  bInterpolationRequired)
+        # sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
+        (mergedDf)=self.combineObsAndBgnd(obsDf,  bgDf,  bInterpolationRequired)
         setattr(self,'observations', mergedDf)
         # filename="observations.tar.gz"
         self.filename = bgFname # filename
@@ -166,7 +166,7 @@ class obsdb(obsdb):
         if(self.rcf['observations'][tracer]['file']['discoverData']):
             # Only if LumiaGUI was not run beforehand should Lumia go and hunt itself for the data on the carbon portal
             (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer='CO2',  
-                        pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, sNow=sNow,  iVerbosityLv=1)
+                        pdTimeStart=pdTimeStart, pdTimeEnd=pdTimeEnd, timeStep=timeStep,  ymlContents=rcf,  sDataType=None, iVerbosityLv=1)
             (selectedDobjLst, dfObsDataInfo)=chooseAmongDiscoveredObservations(bWithGui=useGui, tracer='CO2', ValidObs=dfObsDataInfo, 
                                                                 ymlFile=ymlFile, fDiscoveredObservations=fDiscoveredObservations, sNow=sNow, selectedObsFile=selectedObsFile,  iVerbosityLv=1)
             self.rcf['observations'][tracer]['file']['selectedPIDs'] = selectedDobjLst    
@@ -427,7 +427,7 @@ class obsdb(obsdb):
     
    
     
-    def  combineObsAndBgnd(self, obsDf, bgDf, sNow='', bInterpolationRequired=False) -> "obsdb":
+    def  combineObsAndBgnd(self, obsDf, bgDf, bInterpolationRequired=False) -> "obsdb":
         """
         Function combineObsAndBgnd  Merges the background CO2 concentrations into the obsDf
     

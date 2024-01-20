@@ -500,6 +500,8 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
         # callLumiaGUI(rcf, args.start,  args.end )
         script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
         sCmd ='python3 '+script_directory+'/lumia/GUI/lumiaGUI.py --step2 --DiscoveredObs='+fDiscoveredObservations
+        if (len(sNow)>16):  # LumiaDA-2024-01-20T00_52
+            sNow=sNow[:16]
         sCmd+=' --sNow='+sNow
         for entry in sys.argv[1:]:
             if (len(entry)>0):

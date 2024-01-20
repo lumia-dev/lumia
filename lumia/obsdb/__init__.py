@@ -276,11 +276,12 @@ class obsdb:
 
         print('obs.sites=',  flush=True) 
         print(obs.sites,  flush=True)
-        obs.sites.to_csv('./obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
+        sTmpPrfx=rcFile[ 'run']['thisRun']['uniqueOutputPrefix']
+        obs.sites.to_csv(sTmpPrfx+'obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
         # Remove columns that have been transferred to "sites", except for the "site" column, which is used for establishing correspondence
         obs.observations = df.loc[:, ['site'] + list(set(df.columns) - set(obs.sites.columns))]
         sOutputPrfx=rcFile[ 'run']['thisRun']['uniqueOutputPrefix']
-        obs.sites.to_csv(sOutputPrfx+'obsSites2.csv',  encoding='utf-8', sep=',',  mode='w')
+        obs.sites.to_csv(sOutputPrfx+'obsSites.csv',  encoding='utf-8', sep=',',  mode='w')
         print('obsSites=',  flush=True) # obs.to_csv('./obs1.csv',  encoding='utf-8', sep=',',  mode='w')
         print(obs,  flush=True)
 
