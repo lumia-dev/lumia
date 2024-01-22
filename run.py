@@ -106,15 +106,70 @@ for tr in LLst:
 
 # Read simulation time
 if args.start is None :
-    start = Timestamp(rcf.rcfGet('time.start'))
+    start = Timestamp(rcf.rcfGet('run.time.start'))
 else :
     start = Timestamp(args.start)
-    rcf.setkey('time.start', start.strftime('%Y,%m,%d'))
+    sstart= start.strftime('%Y,%m,%d')
+    rcf.setkey('run.time.start', start+' 00:00:00.000Z')  # start.strftime('%Y,%m,%d')
 if args.end is None :
-    end = Timestamp(rcf.rcfGet('time.end'))
+    end = Timestamp(rcf.rcfGet('run.time.end'))
 else :
     end = Timestamp(args.end)
-    rcf.setkey('time.end', end.strftime('%Y,%m,%d'))
+    send= end.strftime('%Y,%m,%d')
+    rcf.setkey('run.time.end', end+' 23:59:59.000Z')  #end.strftime('%Y,%m,%d'))
+
+if (0>1): # for testing - moving away from mixtures of start/end date representations 
+    from pandas import date_range
+    from datetime import datetime
+    from pandas import to_datetime
+    freq='H'
+    tracer='co2'
+    freq = rcf.rcfGet(f'emissions.{tracer}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
+    times_dest = date_range(start, end, freq=freq, inclusive='left') # the time interval requested in the rc file
+    logger.info(f'times_dest={times_dest}')
+    years = [int(2018)]
+    logger.debug(f'Time span: start={start},  end={end},  freq={ freq} years={years}')
+    print(Timestamp(datetime(2012, 5, 1)))
+    print(Timestamp("2012-05-01"))
+    print(Timestamp(2012, 5, 1))
+    try:
+        startdt1 = datetime(2018, 1, 2)
+    except:
+        pass
+    try:
+        mtt=rcf.rcfGet('run.time.start')
+        print(f'mtt={mtt}')
+    except:
+        pass
+    try:
+        xt=to_datetime(rcf.rcfGet('run.time.start'))
+        print(f'xt={xt}')
+    except:
+        pass
+    try:
+        timestamp_string = rcf.rcfGet('run.time.start') #"2023-07-21 15:30:45"
+        format_string = "%Y-%m-%d %H:%M:%S"
+        startdt_datetime_object = datetime.strptime(timestamp_string, format_string)
+        print(startdt_datetime_object)    
+        timestamp_string = rcf.rcfGet('run.time.end') #"2023-07-21 15:30:45"
+        enddt_datetime_object = datetime.strptime(timestamp_string, format_string)
+        #enddt = datetime(*rcf.rcfGet('run.time.end'))
+        print(f'startdt={startdt_datetime_object},  enddt={enddt_datetime_object}')
+    except:
+        pass
+    try:
+        startdt = Timestamp(rcf.rcfGet('run.time.start'))
+        enddt = Timestamp(rcf.rcfGet('run.time.end'))
+        print(f'startdt={startdt},  enddt={enddt}')
+    except:
+        pass
+    mystart3 = rcf.rcfGet('run.time.oldstart', todate=True, fmt='%Y,%m,%d', tolist=False)
+    myend2 = rcf.rcfGet('run.time.end', todate=True, fmt='%Y,%m,%d', tolist=False)
+    try:
+        mystart2 = rcf.rcfGet(['2018', '1', '3'], todate=True, fmt='%Y,%m,%d', tolist=False)
+    except:
+        pass
+    print(f'mystart2={mystart2},  myend2={myend2},  mystart3={mystart3}')
 
 
 # Create subfolder based on the inversion time:
@@ -181,6 +236,7 @@ else :
 
 # Load the pre-processed emissions like fossil/EDGAR, marine, vegetation, ...:
 # sKeyword='LPJGUESS'
+logger.debug(f'xr.Data.from_rc(rcf, start, end): start={start},  end={end}')
 emis = xr.Data.from_rc(rcf, start, end)
 logger.info('emis data read.')
 emis.print_summary()

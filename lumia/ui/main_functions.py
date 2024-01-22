@@ -106,8 +106,8 @@ def parse_args(args: List) -> Namespace:
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('action', choices=['forward', 'optim', 'adjtest', 'gradtest', 'emis', 'adjtestmod', 'validate'], help='What to do')
     p.add_argument('--fakeobs', action='store_true', help='Run the model at the time of existing footprints instead of on the basis of an observation file')
-    p.add_argument('--start', help='Start of the simulation (overwrites the "time.start" rc-key')
-    p.add_argument('--end', help='End of the simulation (overwrites the "time.end" rc-key')
+    p.add_argument('--start', help='YYYY-mm-dd Start date of the simulation at 00:00Z (overwrites the "run.time.start" rc-key')
+    p.add_argument('--end', help='YYYY-mm-dd End date of the simulation at 23:59:59Z (overwrites the "run.time.end" rc-key')
     p.add_argument('--tag', default='', help='suffix appended to the output path (default is based on the start and end time of the simulation')
     p.add_argument('--setkey', action='append', help='Overwrites the value of one rc-key. This can be used multiple times. For instance, "lumia forward --rcf config.rcf --setkey obs.file:file.tar.gz --setkey --setkey emissions.co2.interval:1H" will set the "obs.file" key to "file.tar.gz", and "emissions.*.interval" to "1H" (regardless of whatever settings were given before)')
 
@@ -123,8 +123,9 @@ def parse_config(args: Namespace) -> RcFile:
     # - the deprecated key is set to point to the new one, with a deprecation warning (${oc.deprecated} resolver), so accessing the old key in the code will raise a deprecation warning
     # - If both the deprecated key and its replacement are found, an exception is raised.
     deprecated_keys = {
-        'time.start': 'run.start',
-        'time.end': 'run.end',
+        'run.time.start': 'run.start',
+        'run.time.end': 'run.end',
+        'run.time.timestep': 'run.timestep',
         'path.footprints': 'model.footprints',
         'model.transport.exec': 'model.exec',
         'model.transport.serial': 'model.options.serial'
@@ -148,16 +149,16 @@ def parse_config(args: Namespace) -> RcFile:
 
     # handle the --start and --end options
     if args.start is None:
-        start = Timestamp(rcf.rcfGet('run.start'))
+        start = Timestamp(rcf.rcfGet('run.time.start'))
     else:
         start = Timestamp(args.start)
-        rcf.setkey('run.start', start.strftime('%Y-%m-%d'))
+        rcf.setkey('run.time.start', start.strftime('%Y-%m-%d'))
 
     if args.end is None:
-        end = Timestamp(rcf.rcfGet('run.end'))
+        end = Timestamp(rcf.rcfGet('run.time.end'))
     else:
         end = Timestamp(args.end)
-        rcf.setkey('run.end', end.strftime('%Y-%m-%d'))
+        rcf.setkey('run.time.end', end.strftime('%Y-%m-%d'))
 
     # handle the --fakeobs option
     if args.fakeobs:
@@ -188,7 +189,7 @@ def load_observations(rcf: RcFile) -> obsdb:
     """
     if rcf.rcfGet('observations.make_from_footprints', default=False):
         from lumia.obsdb.runflex import obsdb
-        db = obsdb(rcf['observations.footprints'], rcf['run.start'], rcf['run.end'], tracers=list(rcf['run.tracers']))
+        db = obsdb(rcf['observations.footprints'], rcf['run.time.start'], rcf['run.time.end'], tracers=list(rcf['run.tracers']))
     else:
         from lumia.obsdb.InversionDb import obsdb
         db = obsdb.from_rc(rcf)
@@ -306,6 +307,6 @@ def prepare_emis(rcf: RcFile) -> xr.Data:
     """
     Construct an emission file for the simulation based on pre-processed, annual, category-specific emission files.
     """
-    emis = xr.Data.from_rc(rcf, rcf.rcfGet('run.start'), rcf.rcfGet('run.end'))
+    emis = xr.Data.from_rc(rcf, rcf.rcfGet('run.time.start'), rcf.rcfGet('run.time.end'))
     emis.print_summary()
     return emis

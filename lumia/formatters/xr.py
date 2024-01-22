@@ -752,7 +752,8 @@ class Data:
 
             # Create temporal grid:
             freq = rcf.rcfGet(f'emissions.{tr}.interval')  # get the time resolution requested in the rc file, key emissions.co2.interval, e.g. 1h
-            time = date_range(start, end, freq=freq, inclusive='left') # the time interval requested in the rc file
+            timeRange = date_range(start, end, freq=freq, inclusive='left') # the time interval requested in the rc file
+            logger.debug(f'TimeRange: start={start},  end={end},  freq={ freq},  timeRange={timeRange}')
 
             # Get tracer characteristics
             unit_emis = species[tr].unit_emis  # what units are the emissions data in? e.g. 'micromole / meter ** 2 / second'
@@ -760,7 +761,7 @@ class Data:
             # Add new tracer to the emission object
             em.add_tracer(TracerEmis(tracer_name=tr,
                                      grid=grid,
-                                     time=time,
+                                     time=timeRange,
                                      units=unit_emis,
                                      timestep=freq))  # .seconds * ur('s')))
 
@@ -827,6 +828,7 @@ class Data:
                 # if origin.startswith('@'): is now obsolete, because it is incompatible with the yaml naming rules
                 sLocation=rcf.rcfGet(f'emissions.{tr}.location.{cat}')
                 catDatasetName=rcf.rcfGet(f'emissions.{tr}.categories.{cat}.origin')
+                logger.debug(f'Time span: start={start},  end={end},  freq={ freq} ')
                 if ('CARBONPORTAL' in sLocation):
                     # we attempt to locate and read that flux information directly from the carbon portal - given that this code is executed on the carbon portal itself
                     if((origin is None)or(origin == '') or ('None' == origin)):
@@ -903,6 +905,7 @@ def load_preprocessed(
     
     # Import a file for each year at least partially covered:
     years = unique(date_range(start, end, freq='MS', inclusive='left').year)
+    logger.debug(f'Time span: start={start},  end={end},  freq={ freq} years={years}')
     emData = []
     for year in years :
         if(bFromPortal):
@@ -930,6 +933,7 @@ def load_preprocessed(
             if((fname is None) or (len(fname)<10)):
                 logger.error(f"Abort in lumia/formatter/xr.py: No valid data object was found for sKeyWord={sKeyWord}, year={year} and sScndKeyWord={sScndKeyWord} on the carbon portal (derived from sFileName={sFileName})")
                 sys.exit(1)
+            logger.debug(f'building emData: fname={fname} cat={cat} sKeyWord={sKeyWord} sScndKeyWord={sScndKeyWord}')
         else:
             #dob = Dobj(pidUrl)
             fname = f'{prefix}{year}.nc'
@@ -939,15 +943,15 @@ def load_preprocessed(
             except:
                 logger.error(f"Abort in lumia/formatters/xr.py: Unable to read pidUrl={fname} into a data frame.")
                 sys.exit(1)
+            logger.debug(f'building emData: fname={fname} cat={cat} (local file)')
         # It is helpful to know how the data is organised. 
         # Downloaded files are already sliced to the area needed at a quarter degree resolution: 
         # Grid(lon0=-15, lon1=35, lat0=33, lat1=73, dlon=0.25, dlat=0.25, nlon=200, nlat=160)
         # but the carbon portal files are different: npts\(time:8760 (1yr hourly), lat:480 , lon:400) and need to be mapped correctly.
         # The ranges and step sizes of the dimensions time, lat, lon are NOT contained in the netcdf header (as perhaps they should be).
         # Looking at the 16 Gbyte  ncdump of the VPRM data set I can see that the same lat/lon area is stored within, but with a stepsize 
-        # of 1/8 of a degree (as opposed to a 1/4 degree). So we need to interpolate and reduce the number of data points.
+        # of 1/8 of a degree (as opposed to a 1/4 degree). So we may need to interpolate and reduce the number of data points for some files.
         tim0=None
-        logger.debug(f'building emData: fname={fname} cat={cat} sKeyWord={sKeyWord} sScndKeyWord={sScndKeyWord}')
         (fname, tim0)=cdoWrapper.ensureCorrectGrid(fname, grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         # TODO: Issue: files on the carbon portal may have their time axis apparently shifted by one time step, because I found netcdf
         # co2 flux files that use the END of the time interval for the observation times reported: time:long_name = "time at end of interval" ;
@@ -973,20 +977,21 @@ def load_preprocessed(
         except:
             logger.error(f"Abort in lumia/formatters/xr.py: Unable to xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
             sys.exit(1)
+    timeSel=slice(start, end)
+    logger.debug(f'slice(start={slice}(start, end),  end={end}) = {timeSel}')
     emData = xr.concat(emData, dim='time').sel(time=slice(start, end))
     
     # Resample if needed
     if freq is not None :
         times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
-        logger.info('times_dest=')
-        logger.info(times_dest)
+        logger.info(f'times_dest={times_dest}')
         logger.debug(f'emData={emData}')
         try:
-            logger.debug(f'emData.columns={emData.columns}')
+            logger.debug(f'emData.columns={emData.columns}')  # fails
         except:
             pass
         try:
-            logger.debug(f'emData.time={emData.time}')
+            logger.debug(f'emData.time={emData.time}')  # bug: contains only one time value!!
         except:
             pass
         try:

@@ -210,7 +210,7 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
                 # we are good. No need to shift. Time dimension starts at zero.
                 return(sExistingFile[:-3]+'_0hours.nc',  True)
         except:
-            logger.debug(f'The background concentration file {sExistingFile} needs to point to start of measurment interval. If cdo fails,  use ncdump/ncgen.')
+            logger.debug(f'The background concentration file {sExistingFile} needs to point to start of measurment interval. If cdo fails, do not panic - we have a slower but pretty reliable fallback using ncdump/ncgen.')
     #tStep=dTime[1] - dTime[0]
     tStep=dt1 - dt0
     # print(f' tStep={ tStep}')

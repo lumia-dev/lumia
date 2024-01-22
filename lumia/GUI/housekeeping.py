@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='b92a160e12b6533350cb5dfed1a08bccad9c8c8c' 
+LATESTGITCOMMIT_LumiaDA='e8e5d4a35f6ecedd7697032b67428a08bc906d82' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -9,6 +9,8 @@ import platform
 import re
 import git
 import yaml
+from datetime import datetime
+from pandas import to_datetime,  Timestamp
 # from rctools import RcFile as rc
 from loguru import logger
 
@@ -43,7 +45,7 @@ def runSysCmd(sCmd,  ignoreError=False):
     return True
 
 
-from datetime import datetime
+
 current_date = datetime.now()
 sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
 # colons from the time are not without problems in directory and file names. Better to play it safe and replace them with uynderscores
@@ -51,6 +53,9 @@ sNow=re.sub(':', '_', sNow)
 sNow=sNow[:-3] # minutes is good enough....don't need seconds if a run takes hours...
 
 def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
+    # current version of the yml config files:
+    nThisConfigFileVersion= int(6)
+    nThisConfigFileSubVersion=int(2)
     # Now read the yaml configuration file - whether altered by the GUI or not
     if (args is None):
         logger.error('You need to provide some arguments')
@@ -83,6 +88,44 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         logger.error(f"Unable to read user provided configuration file {ymlFile}. Please check file existance and its data format. Abort")
         sys.exit(-2)
     # Save  all details of the configuration and the version of the software used:
+
+    # Determine start/end times
+    if args.start is None :
+        try:            
+            start=Timestamp(ymlContents['run']['time']['start'])
+            #ymlContents['observations']['start']=ymlContents['run']['time']['start']
+        except:
+            try:
+                start=Timestamp(ymlContents['observations']['start'])
+                #ymlContents['run']['time']['start']=ymlContents['observations']['start']
+            except:
+                logger.error(f'No valid start time found in the keys run.time.start nor observations.start of your yml file {ymlFile}. Please fix or use the commandline option --start.')
+    else:
+        start= Timestamp(args.start)
+    sStart= start.strftime('%Y,%m,%d')+' 00:00:00.000Z'
+    #ymlContents['run']['time']['start']= sStart+' 00:00:00.000Z'
+    #ymlContents['observations']['start']= sStart+' 00:00:00.000Z'
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'start'],   value= str(sStart), bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'start'],   value= str(sStart), bNewValue=True)
+        
+    if args.end is None :
+        try:            
+            end=Timestamp(ymlContents['run']['time']['end'])
+            # ymlContents['observations']['end']=ymlContents['run']['time']['end']
+        except:
+            try:
+                end=Timestamp(ymlContents['observations']['end'])
+                #ymlContents['run']['time']['end']=ymlContents['observations']['end']
+            except:
+                logger.error(f'No valid end time found in the keys run.time.end nor observations.end of your yml file {ymlFile}. Please fix or use the commandline option --end.')
+    else:
+        end= Timestamp(args.end)
+    sEnd= end.strftime('%Y,%m,%d')+'%Y-%m-%d 23:59:59Z'
+    #ymlContents['observations']['end'] = sEnd+'%Y-%m-%d 23:59:59Z'
+    #ymlContents['run']['time']['end'] = sEnd+'%Y-%m-%d 23:59:59Z'
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'end'],   value= str(sEnd), bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'end'],   value= str(sEnd), bNewValue=True)
+    
  
     myCom=""
     # Get the local git hash so we have some clue of what version of LUMIA we may be using...
@@ -124,16 +167,16 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         nVers=int(ymlContents['thisConfigFile']['dataformat']['version'])
     except:
         wrongOrMissingVersion=True
-    if not (nVers==6):
+    if not (nVers==nThisConfigFileVersion):
         wrongOrMissingVersion=True
     try:
         nSubVers=int(ymlContents[ 'thisConfigFile']['dataformat']['subversion'])
     except:
         wrongOrMissingVersion=True
-    if (nSubVers<1):
+    if (nSubVers<1)or(nSubVers>nThisConfigFileSubVersion):
         wrongOrMissingVersion=True
     if(wrongOrMissingVersion):    
-        logger.error('Wrong format of input Lumia config yml file. Your configuration file needs to be of major version==6 and sub-version>0.')
+        logger.error(f'Wrong format of input Lumia config yml file. Your configuration file needs to be of major version=={nThisConfigFileVersion} and sub-version>0.')
         sys.exit(-3)
     # Document what kind of system the run was carried out on
     sUsername=os.getlogin()  # The user's login name
@@ -218,8 +261,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'commit'],   value=LATESTGITCOMMIT_Runflex, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
 
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'version'],   value=int(6), bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'subversion'],   value=int(1), bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'version'],   value=nThisConfigFileVersion, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'subversion'],   value=nThisConfigFileSubVersion, bNewValue=True)
     # If LumiaGUI was run beforehand, than input files are known and specified in the config file and ['observations'][tracer]['file']['discoverData'] is set to False
     # else, LumiaDA has to go and hunt for ObsData on the carbon portal the old fashioned way ('discoverData'==True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'file', tracer, 'discoverData'],   value=True, bNewValue=False) # only create if not exist.
@@ -293,8 +336,10 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     except:
         logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
         sys.exit(-19)
-    sCmd=f'cp {ymlFile} {sOutputPrfx}v{nVers}.{nSubVers}-{tracer}-config.yml'
+    sNewYmlFileName=f'{sOutputPrfx}v{nVers}.{nSubVers}-{tracer}-config.yml'
+    sCmd=f'cp {ymlFile} {sNewYmlFileName}'
     runSysCmd(sCmd)
+    return(sNewYmlFileName)
 
 
 

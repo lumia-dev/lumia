@@ -207,8 +207,16 @@ class Lagrange:
         tracers = self.rcf.rcfGet('run.tracers',  default=['CO2'])
         #categories = [c for c in self.rcf.rcfGet('emissions.categories') if self.rcf.getAlt('emissions', c,'optimize', default=0) == 1]
         categories = [c for c in self.rcf.rcfGet('emissions.{tracers[0]}.categories') if self.rcf.rcfGet(f'emissions.{tracers[0]}.{c}.optimize', default=0) == 1]
-        start = datetime(*self.rcf.rcfGet('time.start'))
-        end = datetime(*self.rcf.rcfGet('time.end'))
+        #start = datetime(*self.rcf.rcfGet('run.time.start'))
+        #end = datetime(*self.rcf.rcfGet('run.time.end'))
+        # essentially this meant in older versions of the yml config file:  start=(datetime(2012, 5, 1))) with start being a datetime object
+        # now with run.time.start being a Timestamp string this needs to be changed to:
+        timestamp_string = self.rcf.rcfGet('run.time.start') #"2018-01-01 00:00:00"
+        format_string = "%Y-%m-%d %H:%M:%S"
+        start = datetime.strptime(timestamp_string, format_string)
+        timestamp_string = self.rcf.rcfGet('run.time.end') #"2018-12-31 23:59:59"
+        end = datetime.strptime(timestamp_string, format_string)
+        logger.debug(f'start={start},  end={end} from run.time.end={timestamp_string}')
         dt = time_interval(self.rcf.rcfGet('emissions.interval'))
         adj = CreateStruct(categories, region, start, end, dt)
 

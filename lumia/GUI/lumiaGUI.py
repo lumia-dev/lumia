@@ -224,22 +224,22 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # Time Entry Fields
         # Get the current values from the yamlFile or previous user entry:
         
-        startDate=ymlContents['observations']['start'][:10]  # e.g. '2018-01-01 00:00:00'
-        endDate=ymlContents['observations']['end'][:10]   # e.g. '2018-02-01 23:59:59'
+        startDate=str(ymlContents['run']['time']['start'])[:10]  # e.g. '2018-01-01 00:00:00'
+        endDate=str(ymlContents['run']['time']['end'])[:10]   # e.g. '2018-02-01 23:59:59'
         self.sStartDate=tk.StringVar(value=startDate)
         self.sEndDate=tk.StringVar(value=endDate)
 
-        s=self.sStartDate.get()
+        #s=self.sStartDate.get()
         # prep the StartDate field  
         self.TimeStartEntry = ctk.CTkEntry(self,textvariable=self.sStartDate,  
-                          placeholder_text=ymlContents['observations']['start'][:10], width=colWidth)
+                          placeholder_text=str(ymlContents['run']['time']['start'])[:10], width=colWidth)
         self.TimeStartEntry.grid(row=2, column=1,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
                             
         # prep the EndDate field
         self.TimeEndEntry = ctk.CTkEntry(self,textvariable=self.sEndDate, 
-                          placeholder_text=ymlContents['observations']['end'][:10], width=colWidth)
+                          placeholder_text=str(ymlContents['run']['time']['end'])[:10], width=colWidth)
         self.TimeEndEntry.grid(row=2, column=3,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
@@ -756,8 +756,8 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         if(bTimeError):
             bErrors=True
         else:    
-            ymlContents['observations']['start'] = tStart.strftime('%Y-%m-%d %H:%M:%S')
-            ymlContents['observations']['end'] = tEnd.strftime('%Y-%m-%d %H:%M:%S')
+            ymlContents['run']['time']['start'] = tStart.strftime('%Y-%m-%d %H:%M:%S')
+            ymlContents['run']['time']['end'] = tEnd.strftime('%Y-%m-%d %H:%M:%S')
             
         # Get the latitudes & langitudes of the selected region and do some sanity checks 
         bLatLonError=False
@@ -2031,7 +2031,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         
     
 
-def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True): 
+def callLumiaGUI(ymlFile,  scriptDirectory,  bStartup=True): 
     '''
     Function 
     callLumiaGUI exposes some paramters of the LUMIA config file (in yaml dta format) to a user
@@ -2128,20 +2128,12 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueOutputPrefix'],   value=sOutputPrfx, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueTmpPrefix'],   value=sTmpPrfx, bNewValue=True)
     # Read simulation time
-    if tStart is None :
-        start=pd.Timestamp(ymlContents['observations']['start'])
+    tracers = ymlContents['run']['tracers']
+    if (isinstance(tracers, list)):
+        tracer=tracers[0]
     else:
-        start= pd.Timestamp(tStart)
-    # start: '2018-01-01 00:00:00'    
-    ymlContents['observations']['start'] = start.strftime('%Y-%m-%d 00:00:00')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'time',  'start'],   value=start.strftime('%Y,%m,%d'), bNewValue=True)
-        
-    if tEnd is None :
-        end=pd.Timestamp(ymlContents['observations']['end'])
-    else:
-        end= pd.Timestamp(tEnd)
-    ymlContents['observations']['end'] = end.strftime('%Y-%m-%d 23:59:59')
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['time',  'end'],   value= end.strftime('%Y,%m,%d'), bNewValue=True)
+        tracer=ymlContents['run']['tracers']
+    
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='./data', bNewValue=False) # for runflex ./data/meteo/ea.eurocom025x025/
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints', bNewValue=False)
@@ -2198,13 +2190,13 @@ def callLumiaGUI(ymlFile, tStart,  tEnd,  scriptDirectory,  bStartup=True):
         
     #tracer=tracer.upper()    
     
-    sStart=ymlContents['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
-    sEnd=ymlContents['observations']['end']
+    sStart=ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
+    sEnd=ymlContents['run']['time']['end']
     pdTimeStart = to_datetime(sStart, format="%Y-%m-%d %H:%M:%S")
     pdTimeStart=pdTimeStart.tz_localize('UTC')
     pdTimeEnd = to_datetime(sEnd, format="%Y-%m-%d %H:%M:%S")
     pdTimeEnd=pdTimeEnd.tz_localize('UTC')
-    timeStep=ymlContents['run']['timestep']
+    timeStep=ymlContents['run']['time']['timestep']
     if(bStartup):
         bStartup=False
         if(os.path.isfile("LumiaGui.stop")):
@@ -2288,6 +2280,7 @@ fDiscoveredObservations=None
 
 
 bError=False
+
 #if(os.path.exists(fDiscoveredObservations)==False):
 #    logger.error(f"LumiaGUI called for refinement of the observations presumably found, but the file name provided for the list of observations ({fDiscoveredObservations}) cannot be found or read. If you are not using the default file, you can provide your own with the --fDiscoveredObs switch.")
 #    bError=True
@@ -2302,12 +2295,19 @@ if(bError):
 
 # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
 thisScript='LumiaGUI'
-sCmd=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+ymlFile=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
 # Now the config.yml file has all the details for this particular run
     
     
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?
+# no need to pass args.start or args.end because hk.documentThisRun() already took care of these.
 scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-callLumiaGUI(ymlFile, args.start,  args.end,  scriptDirectory)
+callLumiaGUI(ymlFile,  scriptDirectory)
+
 logger.info("LumiaGUI window closed")
+logger.info('LumiaGUI completed successfully. The updayed Lumia config file has been written to:')
+logger.info(ymlFile)
+
+print('LumiaGUI completed successfully. The updayed Lumia config file has been written to:')
+print(ymlFile)
 

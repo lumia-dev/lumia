@@ -49,8 +49,16 @@ class Control:
         self.rcf = rcf
         self.categories = Categories(rcf)
         self.region = Region(self.rcf)
-        self.start = datetime(*self.rcf.rcfGet('time.start'))
-        self.end = datetime(*self.rcf.rcfGet('time.end'))
+        # self.start = datetime(*self.rcf.rcfGet('run.time.start'))
+        # self.end = datetime(*self.rcf.rcfGet('run.time.end'))
+        # essentially this meant in older versions of the yml config file:  start=(datetime(2012, 5, 1))) with start being a datetime object
+        # now with run.time.start being a Timestamp string this needs to be changed to:
+        timestamp_string = self.rcf.rcfGet('run.time.start') #"2018-01-01 00:00:00"
+        format_string = "%Y-%m-%d %H:%M:%S"
+        self.start = datetime.strptime(timestamp_string, format_string)
+        timestamp_string = self.rcf.rcfGet('run.time.end') #"2018-12-31 23:59:59"
+        self.end = datetime.strptime(timestamp_string, format_string)
+        logger.debug(f'self.start={self.start},  self.end={self.end} from run.time.end={timestamp_string}')
 
     def setupPrior(self, prior):
         self.vectors.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['category', 'time', 'lat', 'lon', 'land_fraction']]

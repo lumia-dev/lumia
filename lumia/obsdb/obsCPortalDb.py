@@ -126,7 +126,7 @@ class obsdb(obsdb):
        # from the observations themselves (it accounts for model uncertainty as well, to a degree), so it's more of a user settings. 
         self.rcf = rcf
         CrudeErrorEstimate="1.5" # 1.5 ppm
-        timeStep=self.rcf['run']['timestep']
+        timeStep=self.rcf['run']['time']['timestep']
         tracer='co2'
         try:
             if (isinstance(rcf['run']['tracers'], str)):

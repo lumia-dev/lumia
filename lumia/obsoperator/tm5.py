@@ -21,8 +21,16 @@ class transport(object):
         self.rcf = rcf
         self.tm5rc = RcFile(self.rcf.rcfGet('model.tm5.rcfile'))
         self.struct = Struct()
-        self.start = self.rcf.rcfGet('time.start', todate=True, fmt='%Y,%m,%d', tolist=False)
-        self.end = self.rcf.rcfGet('time.end', todate=True, fmt='%Y,%m,%d', tolist=False)
+        # self.start = self.rcf.rcfGet('run.time.start', todate=True, fmt='%Y,%m,%d', tolist=False)
+        # self.end = self.rcf.rcfGet('run.time.end', todate=True, fmt='%Y,%m,%d', tolist=False)
+        # essentially this meant in older versions of the yml config file:  start=(datetime(2012, 5, 1))) with start being a datetime object
+        # now with run.time.start being a Timestamp string this needs to be changed to:
+        timestamp_string = self.rcf.rcfGet('run.time.start') #"2018-01-01 00:00:00"
+        format_string = "%Y-%m-%d %H:%M:%S"
+        self.start = datetime.strptime(timestamp_string, format_string)
+        timestamp_string = self.rcf.rcfGet('run.time.end') #"2018-12-31 23:59:59"
+        self.end = datetime.strptime(timestamp_string, format_string)
+        logger.debug(f'self.start={self.start},  self.end={self.end} from run.time.end={timestamp_string}')
 
         if obs is not None :
             self.setupObs(obs)
