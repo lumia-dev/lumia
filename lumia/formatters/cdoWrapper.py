@@ -170,28 +170,50 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
     # Do we have to shift the time axis or not? 
     # TODO: read only the header and the first value from the time dimension and see if it is zero - don't read the whole dataset...
     xrExisting = xr.open_dataset(sExistingFile, drop_variables='NEE') # only read the dimensions
-    dTime=xrExisting.time.data
+    header=xrExisting.head() 
+    logger.debug(f'Header of file {sExistingFile} is:\n{header}')
+    shap=dict(xrExisting.dims) # contains the shape of the existing file as {'lat':480, 'lon':400, 'time':8760}
+    logger.debug(f'Shape={shap}')
+    #tim0=0
+    #tim0m=0
+    #dt1=1
+    dTime=header.time.data
     t1 = pd.Timestamp(dTime[0])
     tim0=t1.hour
     tim0m=t1.minute
+    dt1=dTime[1]
+    dt0=dTime[0]
+    xrExisting.close()
     # print('tim0=%d'%tim0, flush=True)
     if((tim0==0) and (tim0m==0)):
             # we are good. No need to shift. Time dimension starts at zero.
             return(sExistingFile,  True)
     if(os.path.exists(sExistingFile[:-3]+'_0hours.nc')): # Perhaps we already have a fixed file?
+            fSize = os.path.getsize(sExistingFile[:-3]+'_0hours.nc')
+            if(fSize<1000000): # this small a file must be junk. Delete it so a fresh one can be created on the fly
+                sCmd=f'rm {sExistingFile[:-3]}_0hours.nc'
+                os.system(sCmd)
+    if(os.path.exists(sExistingFile[:-3]+'_0hours.nc')): # Perhaps we already have a fixed file?
         try:
             xrExisting = xr.open_dataset(sExistingFile[:-3]+'_0hours.nc', drop_variables='NEE') # only read the dimensions
             dTime=xrExisting.time.data
+            header=xrExisting.head() 
             t1 = pd.Timestamp(dTime[0])
             tim0=t1.hour
             tim0m=t1.minute
-            # print('tim0=%d'%tim0, flush=True)
+            dt1=dTime[1]
+            dt0=dTime[0]
+            logger.debug(f'Header of file {sExistingFile[:-3]}_0hours.nc is:\n{header}')
+            logger.debug(f'tim0={tim0}, tim0m={tim0m}, dTime[0]={dTime[0]} dTime[1]={dTime[1]}  ')
+            xrExisting.close()
             if((tim0==0) and (tim0m==0)):
-                    # we are good. No need to shift. Time dimension starts at zero.
-                    return(sExistingFile[:-3]+'_0hours.nc',  True)
+                # we are good. No need to shift. Time dimension starts at zero.
+                return(sExistingFile[:-3]+'_0hours.nc',  True)
         except:
-            print("No worries")
-    tStep=dTime[1] - dTime[0]
+            logger.debug(f'The background concentration file {sExistingFile} needs to point to start of measurment interval. If cdo fails,  use ncdump/ncgen.')
+    #tStep=dTime[1] - dTime[0]
+    tStep=dt1 - dt0
+    # print(f' tStep={ tStep}')
     tStep*=1e-9  # from nanoseconds to seconds - we expect 3600s=1h
     timeStep=int(tStep/60) # time step in minutes
     # print('time step= %dh'%timeStep, flush=True)
@@ -215,22 +237,32 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
     rvalue=os.system(cdoCmd)
     if(rvalue!=0):
         if (checkGrid):
-            logger.error(f"The call to cdo to fix the lat/lon grid failed ({cdoCmd}). Abort.")
+            logger.error(f"The call to cdo for fixing the grid failed: ({cdoCmd})")
         else:
+            logger.error(f"The call to cdo from ensureReportedTimeIsStartOfMeasurmentInterval() failed: ({cdoCmd})")
+            sCmd=f'rm {fnameOutput}'
+            os.system(sCmd) # clean out the junk
             # cdo has issues with the netcdf co2 background concentration files that Guillaume created. Try one last alternative approach:
             # dump the netcdf file to a text file and modify the start time, then use ncgen to reassemble.
-            os.system("rm "+fnameOutput)
+            # os.system("rm "+fnameOutput)
             sCmd='ncdump '+sExistingFile+' >'+sExistingFile+'.dump'
             rvalue=os.system(sCmd)
             with open(sExistingFile+'.dump') as f:
                 lines = f.readlines()
         f.close()
-        # outLines=[]
         with open(sExistingFile+'.dump2', 'w') as file:
+            bSetFillValue=True
             for line in lines:
                 newline=''
                 bReplaceLine=False
+                #if 'time:_FillValue =' in line:  # Fill value not required.
+                bSetFillValue=False
                 if 'time:units = \"hours since ' in line:
+                    ptr=line.find(':')
+                    if(ptr>0):
+                        sFillValueLine=line[:ptr]+':_FillValue = NaN ;\r\n'
+                    else:
+                        sFillValueLine='		time:_FillValue = NaN ;\r\n'
                     # time:units = "hours since 2018-01-01 00:30:00" ;  => time:units = "hours since 2018-01-01 00:00:00" ;
                     bNextChunkIsHours=False
                     chunks=line.split(' ')
@@ -243,16 +275,21 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
                             bReplaceLine=True
                             break
                 if(bReplaceLine==True):
-                    # outLines.append(newline)
                     file.write(newline)
+                    if(bSetFillValue):
+                        file.write(sFillValueLine)                    
                 else:
-                    # outLines.append(line)
                     file.write(line)
                 bReplaceLine=False
         file.close()
         # Now outLines should have all the data as before, but with the start time set to 00:00:00 as expected by Lumia
-        sCmd='ncgen -o '+sExistingFile[:-3]+'_0hours.nc '+sExistingFile+'.dump2 '
+        # ncgen Note: note the -4 flag to create netcdf4 output format 
+        sCmd='ncgen -4 -o '+sExistingFile[:-3]+'_0hours.nc '+sExistingFile+'.dump2 '
+        logger.debug(f'Executing: {sCmd}')
         rvalue=os.system(sCmd)
+        if(rvalue!=0):
+            logger.error(f'Unable to adjust the time axis of the background concentration file {sExistingFile} to start of measurment and to a full hour. Please try to fix this file before attempting to run Lumia again.')
+            sys.exit(-23)
         sCmd='rm '+sExistingFile+'.dump2'
         os.system(sCmd)
         sCmd='rm '+sExistingFile+'.dump'

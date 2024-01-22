@@ -61,8 +61,8 @@ class obsdb(obsdb):
             tracer='co2'
         db = cls(
             rcf['observations'][ tracer][filekey]['path'], 
-            start=rcf['observations'].getRcf('start', None), 
-            end=rcf['observations'].getRcf('end', None), 
+            start=rcf.rcfGet('observations.start', default=None), 
+            end=rcf.rcfGet('observations.end', default=None), 
             rcFile=rcf,  useGui=useGui,  ymlFile=ymlFile)
         # db.rcf = rcf
 
@@ -103,6 +103,7 @@ class obsdb(obsdb):
         # all matching data was written to the obsFile
         
         # Read the file that has the background co2 concentrations
+        # TODO: This needs to be changed to file name pattern and YEAR
         bgFname=self.rcf['background']['concentrations']['co2']['backgroundCo2File']
         (bgDf, bInterpolationRequired)=self.load_background(bgFname)
         # Now we have to merge the background CO2 concentrations into the observational data...
@@ -113,7 +114,7 @@ class obsdb(obsdb):
         self.filename = bgFname # filename
         logger.info("Observed and background concentrations of CO2 have been read and merged successfully.")
         # Then we should be able to continue as usual...i.e. like in the case of reading a prepared local obs+background data set.
-        logger.debug(f'load_fromCPortal() completed successfully.')
+        logger.debug('load_fromCPortal() completed successfully.')
         return(self)
         
     def gatherObs_fromCPortal(self, rcf=None, useGui: bool = False, ymlFile: str=None,  errorEstimate=None) -> "obsdb":
@@ -160,7 +161,7 @@ class obsdb(obsdb):
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
         sNow=self.rcf[ 'run']['thisRun']['uniqueIdentifierDateTime']
-        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        # sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         selectedObsFile=self.rcf['observations'][tracer]['file']['selectedObsData']
         if(self.rcf['observations'][tracer]['file']['discoverData']):
@@ -215,7 +216,7 @@ class obsdb(obsdb):
                 if ('Site' not in availColNames):
                     obsData1site.loc[:,'Site'] = dob.station['id'].lower()
                 if ( (any('value' in entry for entry in availColNames))  and (any('value_std_dev' in entry for entry in availColNames)) and (any('time' in entry for entry in availColNames)) ):
-                    # There is an issue with the icoscp package when reading ObsPack data. Although the netcdf files stores seconds since 1970-01-01T00:00:00, 
+                    # There is an issue with the icoscp package when reading ObsPack data. Although the netcdf files store seconds since 1970-01-01T00:00:00, 
                     # what ends up in the pandas dataframe is only the hour of the day without date....
                     # Let's read the netcdf file ourselves then... for each PID there are 2 files, one without extension (the netcdf file) and one with .cpb extension
                     # example for an ObsPack Lv 2 data set: fn='/data/dataAppStorage/netcdfTimeSeries/bALaWpparMpY6_N-zW2Cia9a'
@@ -536,7 +537,7 @@ class obsdb(obsdb):
             if(whatToDo=='DAILYMEAN'):
                 dfDailyMeans = dfGoodBgValuesOnly[['time','background']].resample('D', on='time').mean()
                 # dfDailyMeans.rename(columns={'background':'dMeanBackground'}, inplace=True)
-                dfDailyMeans.to_csv(sTmpPrfxs+'_dbg_dMeans.csv', encoding='utf-8', mode='w', sep=',')
+                dfDailyMeans.to_csv(sTmpPrfx+'_dbg_dMeans.csv', encoding='utf-8', mode='w', sep=',')
                 # dfDailyMeans contains one mean background concentration across all good background values per day.
                 dfDailyMeans['time2'] = to_datetime(dfDailyMeans.index)
                 dfDailyMeans['date'] = to_datetime(dfDailyMeans['time2']).dt.date

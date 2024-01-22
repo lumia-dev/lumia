@@ -947,6 +947,7 @@ def load_preprocessed(
         # Looking at the 16 Gbyte  ncdump of the VPRM data set I can see that the same lat/lon area is stored within, but with a stepsize 
         # of 1/8 of a degree (as opposed to a 1/4 degree). So we need to interpolate and reduce the number of data points.
         tim0=None
+        logger.debug(f'building emData: fname={fname} cat={cat} sKeyWord={sKeyWord} sScndKeyWord={sScndKeyWord}')
         (fname, tim0)=cdoWrapper.ensureCorrectGrid(fname, grid)  # interpolate if necessary and return the name of the file with the user requested lat/lon grid resolution  
         # TODO: Issue: files on the carbon portal may have their time axis apparently shifted by one time step, because I found netcdf
         # co2 flux files that use the END of the time interval for the observation times reported: time:long_name = "time at end of interval" ;
@@ -965,6 +966,8 @@ def load_preprocessed(
             em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
             logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
             logger.debug(em1Data)
+            df = em1Data.to_dataframe()
+            df.to_csv('em1Data.csv')
             emData.append(em1Data)
             # data.append(xr.load_dataarray(fname, engine="netcdf4", decode_times=True))
         except:
@@ -977,6 +980,26 @@ def load_preprocessed(
         times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
         logger.info('times_dest=')
         logger.info(times_dest)
+        logger.debug(f'emData={emData}')
+        try:
+            logger.debug(f'emData.columns={emData.columns}')
+        except:
+            pass
+        try:
+            logger.debug(f'emData.time={emData.time}')
+        except:
+            pass
+        try:
+            logger.debug(f'emData.time.data={emData.time.data}')
+        except:
+            pass
+        df = emData.to_dataframe()
+        df.to_csv('emData.csv')
+        try:
+            df = emData.time.to_dataframe()
+            df.to_csv('emData.time.csv')
+        except:
+            pass
         tres1 = Timestamp(emData.time.data[1])-Timestamp(emData.time.data[0])
         tres2 = times_dest[1]-times_dest[0]
         if tres1 != tres2 :

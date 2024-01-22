@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='b0c6d796b354aabd3cb3afad0fbf4f7aea5149aa' #'c7b8a69cf88c0b44a41d632f57c4cdcdd6d6efe9' # 
+LATESTGITCOMMIT_LumiaDA='b92a160e12b6533350cb5dfed1a08bccad9c8c8c' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -223,32 +223,58 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     # If LumiaGUI was run beforehand, than input files are known and specified in the config file and ['observations'][tracer]['file']['discoverData'] is set to False
     # else, LumiaDA has to go and hunt for ObsData on the carbon portal the old fashioned way ('discoverData'==True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'file', tracer, 'discoverData'],   value=True, bNewValue=False) # only create if not exist.
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedObsData'],   value='None', bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', 'selectedPIDs'],   value='None', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', tracer, 'selectedObsData'],   value='None', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', 'file', tracer,'selectedPIDs'],   value='None', bNewValue=False)
     
     # We also need to copy the 2 files from LumiaGUI that give us the list of input PIDs, so they have the same unique identifier
     #  as this run and end up in the correct folder.
+    bDiscoverData=ymlContents['observations'][tracer]['file']['discoverData']
+    stopExecution=False
+    bErr=False
     try:
         selectedObsData=ymlContents['observations'][tracer]['file']['selectedObsData']
     except:
-        logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
-    keepThis=f'selected-ObsData-{tracer}.csv'
-    newFnameSelectedObsData=sOutputPrfx+keepThis
-    sCmd=f'cp {selectedObsData} {newFnameSelectedObsData}'
-    runSysCmd(sCmd)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
+        if('LumiaGUI' in parentScript):
+            pass
+        else:
+            logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+            bErr=True
+    if((bErr==False) and ((selectedObsData is None) or (len(selectedObsData)<3))):
+        logger.warning(f'Key observations.{tracer}.file.selectedObsData: No meaningful file name provided for this key in your yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+        bErr=True
+    if((bErr) and (bDiscoverData==False)):
+        stopExecution=True
+    else:
+        keepThis=f'selected-ObsData-{tracer}.csv'
+        newFnameSelectedObsData=sOutputPrfx+keepThis
+        sCmd=f'cp {selectedObsData} {newFnameSelectedObsData}'
+        runSysCmd(sCmd)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
 
     try:
         selectedPIDs=ymlContents['observations'][tracer]['file']['selectedPIDs']
     except:
-        logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
-    # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
-    keepThis=f'selected-PIDs-{tracer}.csv'
-    newFnameSelectedPIDs=sOutputPrfx+keepThis
-    sCmd=f'cp {selectedPIDs} {newFnameSelectedPIDs}'
-    runSysCmd(sCmd)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)
+        if('LumiaGUI' in parentScript):
+            pass
+        else:
+            logger.error(f'Key observations.{tracer}.file.selectedPIDs not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+            bErr=True
+    if((bErr==False) and ((selectedPIDs is None) or (len(selectedPIDs)<3))):
+        logger.warning(f'Key observations.{tracer}.file.selectedPIDs: No meaningful file name provided for this key in your yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+        bErr=True
+    if((bErr) and (bDiscoverData==False)):
+        stopExecution=True
+    else:
+        # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
+        keepThis=f'selected-PIDs-{tracer}.csv'
+        newFnameSelectedPIDs=sOutputPrfx+keepThis
+        sCmd=f'cp {selectedPIDs} {newFnameSelectedPIDs}'
+        runSysCmd(sCmd)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)
 
+    if(stopExecution):
+        sys.exit(-1) # you cannot call LumiaDA telling it to use a list of PIDs that you have not provided in the yml file.
+    
     # Make explicitly stated communication and temporal files use the unique identifier for file names and directory locations:
     #congrad:
     #  communication_file: ${run.paths.temp}/congrad.nc

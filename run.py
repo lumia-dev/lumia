@@ -169,7 +169,7 @@ elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjt
         sOut='_dbg_obsDataAll3.csv'
     if ('CARBONPORTAL' in sLocation):
         from lumia.obsdb.obsCPortalDb import obsdb
-        db = obsdb.from_CPortal(rcf=rcf, useGui=args.gui, ymlFile=ymlFile)
+        db = obsdb.from_CPortal(rcf=rcf, useGui=False, ymlFile=ymlFile)
         db.observations.to_csv( sOut, encoding='utf-8', mode='w', sep=',')
     else:
         from lumia.obsdb.InversionDb import obsdb
