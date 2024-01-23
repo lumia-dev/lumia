@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-01-22, 14:00:10"
+    "saved": "2024-01-23, 15:36:25"
   },
   "MultiProject": "",
   "Project": "",
@@ -26,8 +26,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
       "Cursor": [
-        102,
-        16
+        87,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
       "Cursor": [
-        57,
-        0
+        199,
+        15
       ],
       "Folds": [],
       "Zoom": 0,
@@ -50,7 +50,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        13,
+        978,
         0
       ],
       "Folds": [],
@@ -72,10 +72,10 @@
       "Editorindex": 4
     },
     {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/queryCarbonPortal.py",
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/testPID.py",
       "Cursor": [
-        537,
-        0
+        79,
+        26
       ],
       "Folds": [],
       "Zoom": 0,
@@ -84,28 +84,40 @@
       "Editorindex": 5
     },
     {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/queryCarbonPortal.py",
       "Cursor": [
-        128,
-        38
-      ],
-      "Folds": [],
-      "Zoom": 1,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 6
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      "Cursor": [
-        197,
-        46
+        381,
+        20
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
+      "Editorindex": 6
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      "Cursor": [
+        425,
+        98
+      ],
+      "Folds": [],
+      "Zoom": 1,
+      "Clone": false,
+      "Splitindex": 0,
       "Editorindex": 7
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
+      "Cursor": [
+        974,
+        31
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 8
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/cdoWrapper.py",
@@ -117,7 +129,7 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 8
+      "Editorindex": 9
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis/__init__.py",
@@ -129,19 +141,19 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 9
+      "Editorindex": 10
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py",
       "Cursor": [
-        209,
-        47
+        213,
+        59
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 10
+      "Editorindex": 11
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/interfaces/multitracer.py",
@@ -153,25 +165,13 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 11
+      "Editorindex": 12
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
       "Cursor": [
-        379,
-        45
-      ],
-      "Folds": [],
-      "Zoom": 0,
-      "Clone": false,
-      "Splitindex": 0,
-      "Editorindex": 12
-    },
-    {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/var4d.py",
-      "Cursor": [
-        35,
-        36
+        412,
+        26
       ],
       "Folds": [],
       "Zoom": 0,
@@ -180,16 +180,28 @@
       "Editorindex": 13
     },
     {
-      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/monthlyFlux.py",
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/var4d.py",
       "Cursor": [
-        52,
-        50
+        34,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 14
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/monthlyFlux.py",
+      "Cursor": [
+        61,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 15
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/tm5.py",
@@ -201,19 +213,19 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 15
+      "Editorindex": 16
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py",
       "Cursor": [
-        109,
-        84
+        309,
+        83
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 16
+      "Editorindex": 17
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
@@ -225,19 +237,19 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 17
+      "Editorindex": 18
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
       "Cursor": [
-        72,
-        45
+        273,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 18
+      "Editorindex": 19
     },
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py",
@@ -249,14 +261,62 @@
       "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
-      "Editorindex": 19
+      "Editorindex": 20
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
+      "Cursor": [
+        174,
+        0
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 21
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/gridtools.py",
+      "Cursor": [
+        413,
+        67
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 22
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py",
+      "Cursor": [
+        81,
+        36
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 23
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia_tools/formatters.py",
+      "Cursor": [
+        107,
+        104
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 24
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/testPID.py",
     "Cursor": [
-      102,
-      16
+      79,
+      26
     ]
   },
   "Breakpoints": [
@@ -390,7 +450,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      2311,
+      2305,
       "",
       false,
       true,
@@ -414,7 +474,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      2305,
+      2298,
       "",
       false,
       true,
@@ -470,7 +530,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py",
-      258,
+      266,
       "",
       false,
       true,
@@ -534,7 +594,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      963,
+      964,
       "",
       false,
       true,
@@ -542,7 +602,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      984,
+      985,
       "",
       false,
       true,
@@ -558,7 +618,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      395,
+      399,
       "",
       false,
       true,
@@ -566,7 +626,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
-      427,
+      431,
       "",
       false,
       true,
@@ -606,7 +666,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
-      985,
+      986,
       "",
       false,
       true,
@@ -615,14 +675,6 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters/xr.py",
       907,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      121,
       "",
       false,
       true,
@@ -654,7 +706,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
-      384,
+      392,
       "",
       false,
       true,
@@ -662,7 +714,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
-      230,
+      240,
       "",
       false,
       true,
@@ -677,8 +729,88 @@
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/GMDD/var4d.py",
-      36,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      166,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      2136,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      2136,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      2193,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/run.py",
+      120,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
+      93,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      227,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
+      339,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      213,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/testPID.py",
+      18,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/testPID.py",
+      120,
       "",
       false,
       true,
@@ -723,6 +855,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@136",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@151",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@923",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@949",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/queryCarbonPortal.py",
@@ -733,7 +866,11 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/rctools_old.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/rctools_old.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools/system_tools.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Uncertainties/__init__.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/monthlyFlux.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/control/monthlyFlux.py@@16",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/formatters",
@@ -769,6 +906,10 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/config.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/uncertainties.py@@275",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia_tools",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia_tools/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia_tools/formatters.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia_tools/formatters.py@@95",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/rctools/config.py",
@@ -782,15 +923,22 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis/__init__.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/emis/__init__.py@@43",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/__init__.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/default.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@207",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py@@286",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py@@27",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/lagrange_mp.py@@125",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py@@18",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py@@124",
         "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py@@22"
+        "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py@@22",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/gridtools.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/gridtools.py@@263",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/testPID.py"
       ]
     }
   ]

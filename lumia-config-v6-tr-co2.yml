@@ -6,17 +6,16 @@ background:
       stationWithoutBackgroundConcentration: DAILYMEAN
       userProvidedBackgroundConcentration: 410
 congrad:
-  communication_file: ${run.paths.temp}/congrad.nc
+  communication_file: ./tmp/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-congrad.nc
   executable: ${lumiacode.homedir}/src/congrad/congrad.exe
   gradient_norm_reduction: 1.e12
-  max_number_of_iterations: 60
+  max_number_of_iterations: 128
 correlation:
-  inputdir: /data/corr
+  inputdir: ./data/corr
 emissions:
   '*':
     archive: rclone:lumia:fluxes/nc/
     error_structure: linear
-    path: /data/fluxes/nc
   co2:
     categories:
       biosphere:
@@ -29,7 +28,7 @@ emissions:
         error_min: 0
         is_ocean: false
         optimize: false
-        origin: EDGARv4.3_BP2019
+        origin: EDGARv4_LATEST
         tcorr: ${optimize.emissions.co2.fossil.temporal_correlation}
         unit: PgC
       ocean:
@@ -39,10 +38,10 @@ emissions:
         origin: mikaloff01
         tcorr: ${optimize.emissions.co2.ocean.temporal_correlation}
         unit: PgC
-    interval: ${run.timestep}
+    interval: ${run.time.timestep}
     location:
-      biosphere: LOCAL
-      fossil: LOCAL
+      biosphere: CARBONPORTAL
+      fossil: CARBONPORTAL
       ocean: LOCAL
     path: ${run.paths.data}/fluxes/nc/
     prefix: flux_co2.
@@ -73,7 +72,7 @@ observations:
   co2:
     file:
       discoverData: false
-      location: LOCAL
+      location: CARBONPORTAL
       path: observations.tar.gz
       ranking:
       - ObsPack
@@ -82,15 +81,16 @@ observations:
       - NRT
       - AnyOther
       rename: background:mix_background
-      selectedObsData: ./output/Lumia-2024-01-08T10:00:16-selected-ObsData-co2.csv
-      selectedPIDs: ./output/Lumia-2024-01-08T10:00:16-selected-PIDs-co2.csv
+      selectedObsData: ./output/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-selected-ObsData-co2.csv
+      selectedPIDs: ./output/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-selected-PIDs-co2.csv
       tracer: co2
     units: ppm
-  end: '2018-02-01 23:59:59'
+  end: ${run.time.end}
   file:
-    discoverData: true
-    selectedObsData: None
-    selectedPIDs: None
+    co2:
+      discoverData: true
+      selectedObsData: None
+      selectedPIDs: None
   filters:
     CountriesExcluded: []
     ICOSonly: false
@@ -102,7 +102,7 @@ observations:
     inletMinHeight: 20
     stationMaxAlt: 6500
     stationMinAlt: 30
-  start: '2018-01-01 00:00:00'
+  start: ${run.time.start}
   uncertainty:
     background: 1.822
     default_weekly_error: 1.5
@@ -138,14 +138,12 @@ path:
 region: ${run.region}
 run:
   grid: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25000, dlat:0.25000}}
-  griddy2: ${Grid:{lon0:-15.000,lat0:33.000,lon1:35.000,lat1:73.000,dlon:0.25000,
-    dlat:0.25000}}
   gridname: eurocom025x025
   paths:
     data: .
     footprints: /home/arndt/nateko/data/icos/DICE/footprints
     output: ./output
-    temp: /home/arndt/nateko/data/icos/DICE/tmp
+    temp: ./tmp
   region:
     dlat: 0.25
     dlon: 0.25
@@ -158,9 +156,14 @@ run:
     hostName: skuggfaxe
     platformCore: Linux-5.15.0-71-generic-x86_64-with-glibc2.35
     platformFlavour: 8-Ubuntu SMP Tue Apr 18 09:00:29 UTC 202
-    uniqueIdentifierDateTime: '2024-01-13T18:38:12'
+    uniqueIdentifierDateTime: 2024-01-22T20_39
+    uniqueOutputPrefix: ./output/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-
+    uniqueTmpPrefix: ./tmp/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-
     username: arndt
-  timestep: 1h
+  time:
+    end: 2018-02-01 23:59:59
+    start: 2018-01-01 00:00:00
+    timestep: 1h
   tracers:
   - co2
 softwareUsed:
@@ -169,8 +172,8 @@ softwareUsed:
     commit: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git
     git:
       branch: LumiaDA
-      commit: bc5734ed71b77746d625bcf50b7ad994cd4ad0e5
-      location: git@github.com:lumia-dev/lumia/commit/bc5734ed71b77746d625bcf50b7ad994cd4ad0e5
+      commit: e8e5d4a35f6ecedd7697032b67428a08bc906d82
+      location: git@github.com:lumia-dev/lumia/commit/e8e5d4a35f6ecedd7697032b67428a08bc906d82
       url: git@github.com:lumia-dev/lumia.git
   runflex:
     branch: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
@@ -183,13 +186,12 @@ softwareUsed:
 tag: ''
 thisConfigFile:
   dataformat:
+    subversion: 2
     version: 6
-time:
-  end: 2018,03,03
-  start: 2018,01,01
 transport:
   output: T
   steps: forward
 var4d:
-  communication: null
-  file: /home/arndt/nateko/data/icos/DICE/tmp/congrad.nc
+  communication:
+    file: ./tmp/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-congrad.nc
+  max_iter: 333

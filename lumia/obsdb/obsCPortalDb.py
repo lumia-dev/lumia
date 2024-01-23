@@ -232,6 +232,10 @@ class obsdb(obsdb):
                             fn='/data/dataAppStorage/asciiAtcTimeSer/'+pid
                             if(os.path.exists(fn)):
                                 datafileFound=True
+                            #else:
+                            #    fn='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
+                            #    if(os.path.exists(fn)):
+                            #        datafileFound=True
                     if(datafileFound==False):
                         logger.warning(f"Suspicious data object {pidUrl}  :")
                         logger.warning("This data set might be an ObsPack, but I cannot locate the file on the server.")
