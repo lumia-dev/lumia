@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='65e5900fdf773d4187f3d2aafc1c2cadb142b2df' 
+LATESTGITCOMMIT_LumiaDA='8cec68060279fec2d2b039eb70953d4d0441db60' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -48,7 +48,7 @@ def runSysCmd(sCmd,  ignoreError=False):
 
 current_date = datetime.now()
 sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
-# colons from the time are not without problems in directory and file names. Better to play it safe and replace them with uynderscores
+# colons from the time are not without problems in directory and file names. Better to play it safe and replace them with underscores
 sNow=re.sub(':', '_', sNow)
 sNow=sNow[:-3] # minutes is good enough....don't need seconds if a run takes hours...
 
@@ -338,7 +338,28 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         sys.exit(-19)
     sNewYmlFileName=f'{sOutputPrfx}v{nVers}.{nSubVers}-{tracer}-config.yml'
     sCmd=f'cp {ymlFile} {sNewYmlFileName}'
-    runSysCmd(sCmd)
+    rValue=0
+    try:
+        rValue=os.system(sCmd)
+    except:
+        sys.exit(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
+        sys.exit(-7)
+    if(rValue!=0):
+        sys.exit(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
+        sys.exit(-7)
+
+    # Document the Python environment
+    sCmd=(f'pip list > {sOutputPrfx}-python-environment-pipLst.txt')
+    rValue=0
+    try:
+        rValue=os.system(sCmd)
+    except:
+        sys.exit(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Python environment you are using.')
+        sys.exit(-7)
+    if(rValue!=0):
+        sys.exit(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Python environment you are using.')
+        sys.exit(-7)
+    
     return(sNewYmlFileName)
 
 
