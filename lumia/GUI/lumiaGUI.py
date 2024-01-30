@@ -124,11 +124,12 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     if(h>colH):
         logger.debug("We may need a vertical scrollbar...")
     fsNORMAL=FontSize # 12
-    fsTINY=int((9*FontSize/fsNORMAL)+0.5)  # 9
-    fsSMALL=int((10*FontSize/fsNORMAL)+0.5)  # 10
-    fsLARGE=int((15*FontSize/fsNORMAL)+0.5)  # 15
-    fsHUGE=int((19*FontSize/fsNORMAL)+0.5)  # 19
-    fsGIGANTIC=int((24*FontSize/fsNORMAL)+0.5)  # 24
+    fsTINY=int((0.75*FontSize)+0.5)  # 9/12=0.75
+    fsSMALL=int((0.833333*FontSize)+0.5)  # 10/12=0.833333
+    fsLARGE=int((1.25*FontSize)+0.5)  # 15
+    fsHUGE=int((1.5833333*FontSize)+0.5)  # 19
+    fsGIGANTIC=int(2*FontSize)  # 24
+    logger.debug(f"fsSMALL={fsSMALL},fsNORMAL={fsNORMAL},fsLARGEL={fsLARGE},fsHUGE={fsHUGE}")
     return(fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStack)
 
 
@@ -155,13 +156,19 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # self.deiconify()
         screenWidth = self.winfo_screenwidth()
         screenHeight = self.winfo_screenheight()
+        logger.debug(f'self.winfo_screenwidth()={screenWidth},   self.winfo_screenheight()={screenHeight}')
         if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
             screenWidth=int(screenHeight*(1920/1080.0))
+            logger.debug(f'self.winfo_screenwidth()={screenWidth},   self.winfo_screenheight()={screenHeight},  multiple screen correction')
         maxW = int(0.92*screenWidth)
-        maxW = 1650 # TODO: remove
+        # maxW = 1650 # TODO: remove
         maxH = int(0.92*screenHeight)
-        nCols=8 # sum of labels and entry fields per row
-        nRows=12 # number of rows in the GUI
+        logger.debug(f'maxW={maxW},  maxH={maxH}')
+        if(maxW > 1.2*maxH):
+            maxW = int((1.2*maxH)+0.5)
+            logger.debug(f'maxW={maxW},  maxH={maxH},  max aspect ratio fix.')
+        nCols=5 # sum of labels and entry fields per row
+        nRows=13 # number of rows in the GUI
         xPadding=int(0.008*maxW)
         wSpacer=int(2*0.008*maxW)
         yPadding=int(0.008*maxH)
@@ -183,7 +190,93 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         self.lonMax = tk.DoubleVar(value=45.0)
         self.latMin = tk.DoubleVar(value=23.0)
         self.latMax = tk.DoubleVar(value=83.0)
- 
+
+        # Actions
+        # ################################################################
+        # 
+        def CloseTheGUI(bAskUser=True,  bWriteStop=True):
+            if(bAskUser):  # only happens if the GUI window was closed brutally
+                if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
+                    if(bWriteStop):
+                        #self.iconify()
+                        logger.info("LumiaGUI was canceled.")
+                        sCmd="touch LumiaGui.stop"
+                        runSysCmd(sCmd)
+            else:  # the user clicked Cancel or Go
+                if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+                    #self.iconify()
+                    logger.info("LumiaGUI was canceled.")
+                    sCmd="touch LumiaGui.stop"
+                    runSysCmd(sCmd)
+                global LOOP_ACTIVE
+                LOOP_ACTIVE = False
+                # self.iconify()
+                logger.info("Closing the GUI...")
+                try:
+                    self.after(100, self.event_generate("<Destroy>"))
+                except:
+                    pass
+        self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
+        
+        def CancelAndQuit(): 
+            #logger.info("LumiaGUI was canceled.")
+            #sCmd="touch LumiaGui.stop"
+            #runSysCmd(sCmd)
+            CloseTheGUI(bAskUser=False,  bWriteStop=True)
+            #global LOOP_ACTIVE
+            #LOOP_ACTIVE = False
+
+
+        def GoButtonHit():
+            # def generateResults(self):
+            bGo=False
+            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents, tracer=tracer)
+            self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
+            self.displayBox.delete("0.0", "end")  # delete all text
+            if((bErrors) and (bWarnings)):
+                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
+            elif(bErrors):
+                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg)
+            elif(bWarnings):
+                self.displayBox.insert("0.0", "You chose to ignore the following warnings:\n"+sWarningsMsg)
+                if(self.bIgnoreWarningsCkbVar.get()):
+                    bGo=True
+                self.ignoreWarningsCkb.configure(state=tk.NORMAL)
+            else:
+                bGo=True
+            self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+    
+            if(bGo):
+                # Save  all details of the configuration and the version of the software used:
+                #current_date = datetime.now()
+                try:
+                    with open(ymlFile, 'w') as outFile:
+                        yaml.dump(ymlContents, outFile)
+                except:
+                    sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+                    logger.error(sTxt)
+                    CancelAndQuit()
+
+                sCmd="touch LumiaGui.go"
+                runSysCmd(sCmd)
+                logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
+                # self.bPleaseCloseTheGui.set(True)
+                CloseTheGUI(bAskUser=False,  bWriteStop=False)
+                #global LOOP_ACTIVE
+                #LOOP_ACTIVE = False
+
+        def setTracer():
+            # "TracerRadioButton, iTracerRbVal"
+            if (self.iTracerRbVal.get()==1):
+               ymlContents['run']['tracers'] = 'co2'
+            else:
+                ymlContents['run']['tracers'] = 'ch4'
+            # applyRules()
+
+        # GUI Layout
+        # ################################################################
+        #
+        
         # Sets the title of the window to "LumiaGui"
         self.title("LUMIA run configuration")  
         # Sets the dimensions of the window to 800x900
@@ -198,7 +291,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             columnspan=8,padx=xPadding, pady=yPadding,
                             sticky="ew")
 
-        # Row 1:  Headings left/right column
+        # Row 1:  Time interval
         # ################################################################
 
         self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
@@ -243,39 +336,41 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         self.TimeEndEntry.grid(row=2, column=3,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
+                            
+        # Row 3:  Geograph Region Title
+        # ################################################################
+
         # Lat/Lon
         self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
                                 text="Geographical extent of the area modelled (in deg. North/East)",  font=("Georgia",  fsLARGE))
-        self.LatitudesLabel.grid(row=2, column=4,
+        self.LatitudesLabel.grid(row=3, column=0,
                             columnspan=4,padx=xPadding, pady=yPadding,
                             sticky="ew")
 
-                            
-        # Row 3: 
+
         # ################################################################
+        # 
+        # Text Box
+        self.displayBox = ctk.CTkTextbox(self, width=200,
+                                        text_color="red", font=("Georgia",  fsSMALL),  height=100)
+        self.displayBox.grid(row=3, column=4, columnspan=1,rowspan=6, 
+                             padx=20, pady=20, sticky="nsew")
+                             
+        #self.displayBox.delete("0.0", "end")  # delete all text
+        self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
 
-        # ObservationsFileLocation
-        self.iObservationsFileLocation= tk.IntVar(value=1)
-        #iObservationsFileLocation.set(1) # Read observations from local file
-        if ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
-            self.iObservationsFileLocation.set(2)
-        self.ObsFileLocationLocalRadioButton = ctk.CTkRadioButton(self,
-                                   text="Observational CO2 data from local file", font=("Georgia",  fsNORMAL),
-                                   variable=self.iObservationsFileLocation,  value=1)
-        self.ObsFileLocationLocalRadioButton.grid(row=3, column=0,
-                                  columnspan=3, padx=xPadding, pady=yPadding,
-                                  sticky="ew")
-
-        # row 3: Latitudes Label
+        # Row 4: 
+        # ################################################################
+        # Latitudes Label
         txt=f"Latitude (≥{self.latMin.get()}°N):" # "Latitude (≥33°N):"
         self.LatitudeMinLabel = ctk.CTkLabel(self,anchor="w",
                                 text=txt, width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.LatitudeMinLabel.grid(row=3, column=4,
+        self.LatitudeMinLabel.grid(row=4, column=0,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         self.LatitudeMaxLabel = ctk.CTkLabel(self,
                                 text="max (≤73°N):", width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.LatitudeMaxLabel.grid(row=3, column=6,
+        self.LatitudeMaxLabel.grid(row=4, column=2,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
  
@@ -285,204 +380,122 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         Lat0=ymlContents['run']['region']['lat0']  # 33.0
         Lat1=ymlContents['run']['region']['lat1']   #73.0
-        Lon0=ymlContents['run']['region']['lon0']  # -15.0
-        Lon1=ymlContents['run']['region']['lon1']   #35.0
         self.sLat0=tk.StringVar(value=f'{Lat0:.3f}')
         self.sLat1=tk.StringVar(value=f'{Lat1:.3f}')
-        self.sLon0=tk.StringVar(value=f'{Lon0:.3f}')
-        self.sLon1=tk.StringVar(value=f'{Lon1:.3f}')
-        
         # grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
         # sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
 
         self.Latitude0Entry = ctk.CTkEntry(self,textvariable=self.sLat0,
                           placeholder_text=self.sLat0, width=colWidth)
-        self.Latitude0Entry.grid(row=3, column=5,
+        self.Latitude0Entry.grid(row=4, column=1,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max
         self.Latitude1Entry = ctk.CTkEntry(self,textvariable=self.sLat1,
                           placeholder_text=self.sLat1, width=colWidth)
-        self.Latitude1Entry.grid(row=3, column=7,
+        self.Latitude1Entry.grid(row=4, column=3,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
                  
-        # Row 4
+
+        # Row 5: 
+        # Longitudes Entry Fields
         # ################################################################
-        # 
+        Lon0=ymlContents['run']['region']['lon0']  # -15.0
+        Lon1=ymlContents['run']['region']['lon1']   #35.0
+        self.sLon0=tk.StringVar(value=f'{Lon0:.3f}')
+        self.sLon1=tk.StringVar(value=f'{Lon1:.3f}')
 
-        #  Entry LocalFile
-        self.observationsFilePathLabel = ctk.CTkLabel(self,
-                                text="obs.file.path:", width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.observationsFilePathLabel.grid(row=4, column=0,
-                            columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
-        self.ObsFileLocationLocalEntry = ctk.CTkEntry(self,
-                          placeholder_text= ymlContents['observations'][tracer]['file']['path'], width=colWidth)
-        self.ObsFileLocationLocalEntry.grid(row=4, column=1,
-                            columnspan=3, padx=xPadding,
-                            pady=yPadding, sticky="ew")
-
-        # row 4 Longitudes  my_string = f'{my_float:.3f}'
+        # row 5 Longitudes  my_string = f'{my_float:.3f}'
         self.LongitudeMinLabel = ctk.CTkLabel(self, text="Longitude (≥-15°E):", anchor="w", font=("Georgia",  fsNORMAL), width=colWidth)
-        self.LongitudeMinLabel.grid(row=4, column=4,
+        self.LongitudeMinLabel.grid(row=5, column=0,
                            padx=xPadding, pady=yPadding,
                            sticky="ew")
         self.LongitudeMaxLabel = ctk.CTkLabel(self, text="max (≤35°E):",  font=("Georgia",  fsNORMAL), width=colWidth)
-        self.LongitudeMaxLabel.grid(row=4, column=6,
+        self.LongitudeMaxLabel.grid(row=5, column=2,
                            padx=xPadding, pady=yPadding,
                            sticky="ew")
         # Longitude0 Entry Field
         # min
         self.Longitude0Entry = ctk.CTkEntry(self, textvariable=self.sLon0, 
                             placeholder_text=self.sLon0, width=colWidth)
-        self.Longitude0Entry.grid(row=4, column=5,
+        self.Longitude0Entry.grid(row=5, column=1,
                            columnspan=1, padx=xPadding,
                            pady=yPadding, sticky="ew")
         # max
         self.Longitude1Entry = ctk.CTkEntry(self,textvariable=self.sLon1,
                             placeholder_text=self.sLon1, width=colWidth)
-        self.Longitude1Entry.grid(row=4, column=7,
+        self.Longitude1Entry.grid(row=5, column=3,
                            columnspan=1, padx=xPadding,
                            pady=yPadding, sticky="ew")
         
-        # Row 5
+
+        # Row 6:
+        #  Tracer
         # ################################################################
-        # 
-        self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(self,
-                                   text="Obsdata Ranking", font=("Georgia",  fsNORMAL), 
-                                   variable=self.iObservationsFileLocation,  value=2)
-        self.ObsFileLocationCPortalRadioButton.grid(row=5, column=0,
-                                  columnspan=2, padx=xPadding, pady=yPadding,
-                                  sticky="ew")
-
-        # Filter stations?
-        self.ActivateStationFiltersRbVar = tk.IntVar(value=1)
-        if ((ymlContents['observations']['filters']['bStationAltitude'])or(ymlContents['observations']['filters']['bSamplingHeight'])):
-            self.ActivateStationFiltersRbVar.set(2)
-        self.ActivateStationFiltersRadioButton = ctk.CTkRadioButton(self,
-                                   text="Filter stations", font=("Georgia",  18), 
-                                   variable=self.ActivateStationFiltersRbVar,  value=2)
-        self.ActivateStationFiltersRadioButton.grid(row=5, column=2,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky="ew")
-        self.useAllStationsRadioButton = ctk.CTkRadioButton(self,
-                                   text="Use all stations", font=("Georgia",  18), 
-                                   variable=self.ActivateStationFiltersRbVar,  value=1)
-        self.useAllStationsRadioButton.grid(row=5, column=3,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky="ew")
-                                
-        # Emissions data (a prioris)
-        self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
-                                text="Emissions data (a priori)",  font=("Georgia",  fsLARGE))
-        self.LatitudesLabel.grid(row=5, column=4,  
-                            columnspan=3, padx=xPadding, pady=yPadding,
-                            sticky="ew")
-
-        # Row 6
-        # ################################################################
-        # 
-        # ObservationsFileLocation
-        rankingList=ymlContents['observations'][tracer]['file']['ranking']
-        self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
-        self.ObsFileRankingBox = ctk.CTkTextbox(self,
-                                         width=colWidth,
-                                         height=(2*rowHeight+vSpacer))
-        self.ObsFileRankingBox.grid(row=6, column=0,
-                             columnspan=1, rowspan=3, padx=xPadding,
-                             pady=yPadding, sticky="nsew")
-        txt=""
-        rank=4
-        for sEntry in  rankingList:
-            txt+=str(rank)+': '+sEntry+'\n'
-            rank=rank-1
-        self.ObsFileRankingBox.insert('0.0', txt)  # insert at line 0 character 0
-
-        # Station altitude filter
-        # bTest=ymlContents['observations']['filters']['bStationAltitude']
-        self.bFilterStationAltitudeCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
-        self.filterStationAltitudeCkb = ctk.CTkCheckBox(self,
-                                text="Station altitudes:",  font=("Georgia",  18), 
-                                variable=self.bFilterStationAltitudeCkbVar,
-                                onvalue=True, offvalue=False)  
-        self.filterStationAltitudeCkb.grid(row=6, column=1,
-                            columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
-        stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
-        stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
-        self.stationMinAlt=tk.StringVar(value=f'{stationMinAlt}')
-        self.stationMaxAlt=tk.StringVar(value=f'{stationMaxAlt}')
-        # min Altitude Entry
-        self.stationMinAltEntry = ctk.CTkEntry(self,textvariable=self.stationMinAlt,
-                          placeholder_text=self.stationMinAlt, width=colWidth)
-        self.stationMinAltEntry.grid(row=6, column=2,
-                            columnspan=1, padx=xPadding,
-                            pady=yPadding, sticky="ew")
-        # max Altitude Entry
-        self.stationMaxAltEntry = ctk.CTkEntry(self,textvariable=self.stationMaxAlt,
-                          placeholder_text=self.stationMaxAlt, width=colWidth)
-        self.stationMaxAltEntry.grid(row=6, column=3,
-                            columnspan=1, padx=xPadding,
-                            pady=yPadding, sticky="ew")
-                             
-
-        # Emissions data (a prioris)
-        self.observationsFilePathLabel = ctk.CTkLabel(self,
-                                text="Land/Vegetation NEE:", width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.observationsFilePathLabel.grid(row=6, column=4,
-                            columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
-
-        # Land/Vegetation Net Exchange combo box
+         # Get the currently selected tracer from the yml config file
         tracers = ymlContents['run']['tracers']
         if (isinstance(tracers, list)):
             tracer=tracers[0]
         else:
             tracer=ymlContents['run']['tracers']
+        self.LatitudeMinLabel = ctk.CTkLabel(self,anchor="w",
+                                text="Tracer:", width=colWidth,  font=("Georgia",  fsNORMAL))
+        self.LatitudeMinLabel.grid(row=6, column=0,
+                            columnspan=1,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+
+        # Set the radiobutton initial status in accordance with the (first) tracer extracted from the yml config file
+        self.iTracerRbVal= tk.IntVar(value=1)
+        if(('ch4' in tracer) or ('CH4' in tracer)):
+            self.iTracerRbVal = tk.IntVar(value=2)
+        else:
+            self.iTracerRbVal = tk.IntVar(value=1)
+        self.TracerRadioButton = ctk.CTkRadioButton(self,
+                                   text="CO2", font=("Georgia",  fsNORMAL), 
+                                   variable=self.iTracerRbVal,  value=1, command=setTracer)
+        self.TracerRadioButton.grid(row=6, column=1, columnspan=1, 
+                                  padx=xPadding, pady=yPadding,sticky="ew")
+
+        self.TracerRadioButton = ctk.CTkRadioButton(self,
+                                   text="CH4", font=("Georgia",  fsNORMAL),
+                                   variable=self.iTracerRbVal,  value=2, command=setTracer)
+        self.TracerRadioButton.grid(row=6, column=2, columnspan=1, 
+                                  padx=xPadding, pady=yPadding,sticky="ew")
+            
+        # Row 7: 
+        # ################################################################
+        # Emissions data (a prioris)
+        self.LatitudesLabel = ctk.CTkLabel(self, anchor="w",
+                                text="Emissions data (a priori)",  font=("Georgia",  fsLARGE))
+        self.LatitudesLabel.grid(row=7, column=0,  
+                            columnspan=2, padx=xPadding, pady=yPadding,
+                            sticky="ew")
+
+        # Emissions data (a prioris) : dyn.vegetation net exchange model
+        self.observationsFilePathLabel = ctk.CTkLabel(self,
+                                text="Land/Vegetation NEE:", width=colWidth,  font=("Georgia",  fsNORMAL))
+        self.observationsFilePathLabel.grid(row=7, column=2,
+                            columnspan=1,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+
+        # Land/Vegetation Net Exchange combo box
         self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere']['origin'])
         self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.LandNetExchangeModelCkbVar)
-        self.LandNetExchangeOptionMenu.grid(row=6, column=5,
+        self.LandNetExchangeOptionMenu.grid(row=7, column=3,
                                         padx=xPadding, pady=yPadding,
-                                        columnspan=2, sticky="ew")
+                                        columnspan=1, sticky="ew")
 
-        # Row 7
+        # Row 8: 
+        # Emissions data (a prioris) continued: fossil+ocean
         # ################################################################
-        # 
 
-        # inlet height filter
-        self.bFilterSamplingHeightCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bSamplingHeight'])
-        self.filterSamplingHeightCkb = ctk.CTkCheckBox(self,
-                                text="Sampling height:",  font=("Georgia",  fsNORMAL), 
-                                variable=self.bFilterSamplingHeightCkbVar, 
-                                onvalue=True, offvalue=False)  
-        self.filterSamplingHeightCkb.grid(row=7, column=1,
-                            columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
-        inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
-        inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
-        self.inletMinHght=tk.StringVar(value=f'{inletMinHght}')
-        self.inletMaxHght=tk.StringVar(value=f'{inletMaxHght}')
-        # min inlet height
-        self.inletMinHghtEntry = ctk.CTkEntry(self,textvariable=self.inletMinHght,
-                          placeholder_text=self.inletMinHght, width=colWidth)
-        self.inletMinHghtEntry.grid(row=7, column=2,
-                            columnspan=1, padx=xPadding,
-                            pady=yPadding, sticky="ew")
-        # max inlet height
-        self.inletMaxHghtEntry = ctk.CTkEntry(self,textvariable=self.inletMaxHght,
-                          placeholder_text=self.inletMaxHght, width=colWidth)
-        self.inletMaxHghtEntry.grid(row=7, column=3,
-                            columnspan=1, padx=xPadding,
-                            pady=yPadding, sticky="ew")
-
-
-        # Emissions data (a prioris)
+        # Fossil Emissions data (a prioris)
         self.observationsFilePathLabel = ctk.CTkLabel(self,
                                 text="Fossil emissions:", width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.observationsFilePathLabel.grid(row=7, column=4,
+        self.observationsFilePathLabel.grid(row=8, column=0,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         # Fossil emissions combo box
@@ -495,18 +508,15 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                 # https://hdl.handle.net/11676/6i-nHIO0ynQARO3AIbnxa-83  EDGARv4.3_BP2021_CO2_EU2_2020.nc  
                 # https://hdl.handle.net/11676/ZU0G9vak8AOz-GprC0uY-HPM  EDGARv4.3_BP2021_CO2_EU2_2019.nc
                 # https://hdl.handle.net/11676/De0ogQ4l6hAsrgUwgjAoGDoy EDGARv4.3_BP2021_CO2_EU2_2018.nc
-        self.FossilEmisOptionMenu.grid(row=7, column=5,
+        self.FossilEmisOptionMenu.grid(row=8, column=1,
                                         padx=xPadding, pady=yPadding,
-                                        columnspan=2, sticky="ew")
+                                        columnspan=1, sticky="ew")
         
 
-        # Row 8
-        # ################################################################
-        # 
-        # Emissions data (a prioris)
+        # Ocean Emissions data (a prioris)
         self.observationsFilePathLabel = ctk.CTkLabel(self,
                                 text="Ocean net exchange:", width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.observationsFilePathLabel.grid(row=8, column=4,
+        self.observationsFilePathLabel.grid(row=8, column=2,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         # Ocean Net Exchange combo box
@@ -514,17 +524,97 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
                                         values=["mikaloff01"], dropdown_font=("Georgia",  fsNORMAL), 
                                         variable=self.OceanNetExchangeCkbVar)
-        self.OceanNetExchangeOptionMenu.grid(row=8, column=5,
+        self.OceanNetExchangeOptionMenu.grid(row=8, column=3,
                                         padx=xPadding, pady=yPadding,
-                                        columnspan=2, sticky="ew")
+                                        columnspan=1, sticky="ew")
  
 
-        # Row 9
+        # Row 9: 
+        # Obs data labels
+        # ################################################################
+        # ObservationsFileLocation
+        self.iObservationsFileLocation= tk.IntVar(value=1)
+        self.ObsFileLocationCPortalRadioButton = ctk.CTkRadioButton(self,
+                                   text="Ranking of Obsdata from CarbonPortal", font=("Georgia",  fsNORMAL), 
+                                   variable=self.iObservationsFileLocation,  value=2)
+        self.ObsFileLocationCPortalRadioButton.grid(row=9, column=0,
+                                  columnspan=2, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+
+        #iObservationsFileLocation.set(1) # Read observations from local file
+        if ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
+            self.iObservationsFileLocation.set(2)
+        self.ObsFileLocationLocalRadioButton = ctk.CTkRadioButton(self,
+                                   text="Observational CO2 data from local file", font=("Georgia",  fsNORMAL),
+                                   variable=self.iObservationsFileLocation,  value=1)
+        self.ObsFileLocationLocalRadioButton.grid(row=9, column=2,
+                                  columnspan=2, padx=xPadding, pady=yPadding,
+                                  sticky="ew")
+
+
+        # Row 10: 
+        # Obs data entries
+        # ################################################################
+
+        # Ranking of data records from CarbonPortal
+        rankingList=ymlContents['observations'][tracer]['file']['ranking']
+        self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
+        self.ObsFileRankingBox = ctk.CTkTextbox(self,
+                                         width=colWidth,
+                                         height=(2*rowHeight+vSpacer))
+        self.ObsFileRankingBox.grid(row=10, column=0,
+                             columnspan=1, rowspan=3, padx=xPadding,
+                             pady=yPadding, sticky="nsew")
+        txt=""
+        rank=4
+        for sEntry in  rankingList:
+            txt+=str(rank)+': '+sEntry+'\n'
+            rank=rank-1
+        self.ObsFileRankingBox.insert('0.0', txt)  # insert at line 0 character 0
+
+
+        # Row 11: 
+        # Obs data entries
+        # ################################################################
+        #  Entry LocalFile
+        self.observationsFilePathLabel = ctk.CTkLabel(self,
+                                text="Local.file.with.obs.data:", width=colWidth,  font=("Georgia",  fsNORMAL))
+        self.observationsFilePathLabel.grid(row=10, column=2,
+                            columnspan=2,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+        self.ObsFileLocationLocalEntry = ctk.CTkEntry(self,
+                          placeholder_text= ymlContents['observations'][tracer]['file']['path'], width=colWidth)
+        self.ObsFileLocationLocalEntry.grid(row=11, column=2,
+                            columnspan=2, padx=xPadding,
+                            pady=yPadding, sticky="ew")
+
+        # Ignore ChkBx
+        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
+        self.ignoreWarningsCkb = ctk.CTkCheckBox(self,state=tk.DISABLED, 
+                            text="Ignore Warnings", font=("Georgia",  fsNORMAL),
+                            variable=self.bIgnoreWarningsCkbVar, text_color='gray5',  text_color_disabled='gray70', 
+                             onvalue=True, offvalue=False)                            
+        self.ignoreWarningsCkb.grid(row=11,  column=4, 
+                          padx=xPadding, pady=yPadding,
+                          sticky="nw")
+
+        # Row 12
+        # ################################################################
+        # Cancel Button
+        self.CancelButton = ctk.CTkButton(master=self, font=("Georgia", 18), text="Cancel",
+            command=CancelAndQuit)
+        self.CancelButton.grid(row=12, column=4,
+                                        columnspan=1, padx=xPadding,
+                                        pady=yPadding, sticky="ew")
+
+
+
+        # Row 13
         # ################################################################
         # 
         self.TuningParamLabel = ctk.CTkLabel(self,
                                 text="LUMIA may adjust:", width=colWidth,  font=("Georgia",  fsNORMAL))
-        self.TuningParamLabel.grid(row=9, column=0,
+        self.TuningParamLabel.grid(row=13, column=0,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         #self.LandVegCkbVar = tk.StringVar(value="Vegetation")
@@ -537,7 +627,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                              text="Land/Vegetation", font=("Georgia",  fsNORMAL), 
                              variable=self.LandVegCkbVar,
                              onvalue=True, offvalue=False)
-        self.LandVegCkb.grid(row=9, column=1,
+        self.LandVegCkb.grid(row=13, column=1,
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
@@ -546,7 +636,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             text="Fossil (off)", font=("Georgia",  fsNORMAL),
                             variable=self.FossilCkbVar,
                              onvalue=True, offvalue=False)                             
-        self.FossilCkb.grid(row=9, column=2,
+        self.FossilCkb.grid(row=13, column=2,
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
@@ -555,125 +645,18 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             text="Ocean (off)", font=("Georgia",  fsNORMAL),
                             variable=self.OceanCkbVar,
                              onvalue=True, offvalue=False)                            
-        self.OceanCkb.grid(row=9, column=3,
+        self.OceanCkb.grid(row=13, column=3,
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-        #self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        #self.ignoreWarningsCkb = ctk.CTkCheckBox(self,state=tk.DISABLED, 
-        #                    text="Ignore Warnings", font=("Georgia",  fsNORMAL),
-        #                    text_color=inactiveTextColor, text_color_disabled=activeTextColor, 
-        #                    variable=self.bIgnoreWarningsCkbVar,
-        #                     onvalue=True, offvalue=False)                            
-        #self.ignoreWarningsCkb.grid(row=9, column=7,
-        #                  padx=xPadding, pady=yPadding,
-        #                  sticky="ew")
-
-       # Row 10
-        # ################################################################
-        # 
-        # Text Box
-        self.displayBox = ctk.CTkTextbox(self, width=200,
-                                        text_color="red", font=("Georgia",  fsSMALL),  height=100)
-        self.displayBox.grid(row=10, column=0, columnspan=6,rowspan=2, 
-                             padx=20, pady=20, sticky="nsew")
-                             
-        #self.displayBox.delete("0.0", "end")  # delete all text
-        self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
-
-        def CloseTheGUI(bAskUser=True,  bWriteStop=True):
-            if(bAskUser):  # only happens if the GUI window was closed brutally
-                if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
-                    if(bWriteStop):
-                        #self.iconify()
-                        logger.info("LumiaGUI was canceled.")
-                        sCmd="touch LumiaGui.stop"
-                        runSysCmd(sCmd)
-            else:  # the user clicked Cancel or Go
-                if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
-                    #self.iconify()
-                    logger.info("LumiaGUI was canceled.")
-                    sCmd="touch LumiaGui.stop"
-                    runSysCmd(sCmd)
-                global LOOP_ACTIVE
-                LOOP_ACTIVE = False
-                # self.iconify()
-                logger.info("Closing the GUI...")
-                try:
-                    self.after(100, self.event_generate("<Destroy>"))
-                except:
-                    pass
-        self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
-        
-        def CancelAndQuit(): 
-            #logger.info("LumiaGUI was canceled.")
-            #sCmd="touch LumiaGui.stop"
-            #runSysCmd(sCmd)
-            CloseTheGUI(bAskUser=False,  bWriteStop=True)
-            #global LOOP_ACTIVE
-            #LOOP_ACTIVE = False
-
-        # Cancel Button
-        self.CancelButton = ctk.CTkButton(master=self, font=("Georgia", 18), text="Cancel",
-            command=CancelAndQuit)
-        self.CancelButton.grid(row=10, column=7,
-                                        columnspan=1, padx=xPadding,
-                                        pady=yPadding, sticky="ew")
-
-        # Row 11  :  RUN Button
-        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
-        self.ignoreWarningsCkb = ctk.CTkCheckBox(self,state=tk.DISABLED, 
-                            text="Ignore Warnings", font=("Georgia",  fsNORMAL),
-                            variable=self.bIgnoreWarningsCkbVar, text_color='gray5',  text_color_disabled='gray70', 
-                             onvalue=True, offvalue=False)                            
-        self.ignoreWarningsCkb.grid(row=9,  column=7, 
-                          padx=xPadding, pady=yPadding,
-                          sticky="nw")
-
-        def GoButtonHit():
-            # def generateResults(self):
-            bGo=False
-            (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues(ymlContents=ymlContents, tracer=tracer)
-            self.displayBox.configure(state=tk.NORMAL)  # configure textbox to be read-only
-            self.displayBox.delete("0.0", "end")  # delete all text
-            if((bErrors) and (bWarnings)):
-                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
-            elif(bErrors):
-                self.displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg)
-            elif(bWarnings):
-                self.displayBox.insert("0.0", "You chose to ignore the following warnings:\n"+sWarningsMsg)
-                if(self.bIgnoreWarningsCkbVar.get()):
-                    bGo=True
-                self.ignoreWarningsCkb.configure(state=tk.NORMAL)
-            else:
-                bGo=True
-            self.displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
-    
-            if(bGo):
-                # Save  all details of the configuration and the version of the software used:
-                #current_date = datetime.now()
-                try:
-                    with open(ymlFile, 'w') as outFile:
-                        yaml.dump(ymlContents, outFile)
-                except:
-                    sTxt=f"Fatal Error: Failed to write to text file {ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
-                    logger.error(sTxt)
-                    CancelAndQuit()
-
-                sCmd="touch LumiaGui.go"
-                runSysCmd(sCmd)
-                logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
-                # self.bPleaseCloseTheGui.set(True)
-                CloseTheGUI(bAskUser=False,  bWriteStop=False)
-                #global LOOP_ACTIVE
-                #LOOP_ACTIVE = False
-                
         self.RunButton = ctk.CTkButton(self, font=("Georgia", fsNORMAL), 
                                          text="RUN",
                                          command=GoButtonHit)
-        self.RunButton.grid(row=11, column=7,
+        self.RunButton.grid(row=13, column=4,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="ew")
+
+                
                                         
         def loop_function():
             global LOOP_ACTIVE
@@ -821,56 +804,6 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         sOceanNetExchangeDataset = self.OceanNetExchangeCkbVar.get()  # "mikaloff01"
         ymlContents['emissions'][tracer]['categories']['ocean']['origin']=sOceanNetExchangeDataset
 
-        # Station Filters if any
-        bStationFilterError=False
-        stationMinAltCommonSense= -100 #m Dead Sea
-        stationMaxAltCommonSense= 9000 #m Himalaya
-        inletMinHeightCommonSense = 0    # in meters
-        inletMaxHeightCommonSense = 850 # in meters World's heighest buildings
-        intAllStations=self.ActivateStationFiltersRbVar.get()
-        if(intAllStations==2):
-            #if ((ymlContents['observations']['filters']['bStationAltitude'])or():
-            if(self.bFilterSamplingHeightCkbVar.get()):
-                ymlContents['observations']['filters']['bSamplingHeight']=True
-                mnh=int(self.inletMinHghtEntry.get())
-                mxh=int(self.inletMaxHghtEntry.get())
-                if(inletMinHeightCommonSense > mnh):
-                    bStationFilterError=True # ≥≤
-                    sErrorMsg+="I can't think of any ICOS station with an inlet height below ground....please fix the minimum inlet height to ≥0m. Thanks.\n"
-                if(inletMaxHeightCommonSense+1 < mxh):
-                    bStationFilterError=True
-                    sErrorMsg+=f"I can't think of any ICOS station with an inlet height higher than {inletMaxHeightCommonSense}m above ground. Please review your entry. Thanks.\n"
-                if(mnh > mxh):
-                    bStationFilterError=True
-                    sErrorMsg+="Error: You have entered a maximum inlet height that is below the lowest inlet height. This can only be attributed to human error.\n"
-            else:
-                ymlContents['observations']['filters']['bSamplingHeight']=False
-            if(ymlContents['observations']['filters']['bSamplingHeight']):
-                ymlContents['observations']['filters']['inletMaxHeight']=mxh
-                ymlContents['observations']['filters']['inletMinHeight']=mnh
-                
-            if(self.bFilterStationAltitudeCkbVar.get()):
-                ymlContents['observations']['filters']['bStationAltitude']=True
-                mnh=int(self.stationMinAltEntry.get())
-                mxh=int(self.stationMaxAltEntry.get())
-                if( stationMinAltCommonSense > mnh):
-                    bStationFilterError=True # ≥≤
-                    sErrorMsg+=f"I can't think of any ICOS station located at an altitude below the sea level of the Dead Sea....please fix the minimum station altitude to ≥ {stationMinAltCommonSense}m. Thanks.\n"
-                if(stationMaxAltCommonSense+1 < mxh):
-                    bStationFilterError=True
-                    sErrorMsg+=f"I can't think of any ICOS station located at an altitude higher than {stationMaxAltCommonSense}m above ground. Please review your entry. Thanks.\n"
-                if(mnh > mxh):
-                    bStationFilterError=True
-                    sErrorMsg+="Error: You have entered a maximum station altitude that is below the lowest station altitude. This can only be attributed to human error.\n"
-            else:
-                ymlContents['observations']['filters']['bStationAltitude']=False
-            if(ymlContents['observations']['filters']['bStationAltitude']):
-                ymlContents['observations']['filters']['stationMaxAlt']=mxh
-                ymlContents['observations']['filters']['stationMinAlt']=mnh
-                
-                
-        if(bStationFilterError):
-            bErrors=True
         # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
         if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):
             bErrors=True
@@ -974,6 +907,11 @@ class RefineObsSelectionGUI(ctk.CTk):
         #                        pdTimeStart, pdTimeEnd, timeStep,  ymlContents])
         #    thread1.start()
         #else:
+        if(os.path.isfile("LumiaGui.stop")):
+            sys.exit(-1)
+            #global LOOP2_ACTIVE
+            #LOOP2_ACTIVE = False
+            #return
         (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
                             pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
         if (len(badPidsLst) > 0):
@@ -1323,7 +1261,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.FilterSamplingHghtCkb = ctk.CTkCheckBox(rootFrame,
                             text="Filter sampling heights", font=("Georgia",  fsNORMAL),
                             variable=self.FilterSamplingHghtCkbVar,
-                             onvalue=True, offvalue=False, command=stationSamplingHghtAction)                             
+                            onvalue=True, offvalue=False, command=stationSamplingHghtAction)                             
         self.FilterSamplingHghtCkb.grid(row=1, column=5,columnspan=2, 
                           padx=xPadding, pady=yPadding,
                           sticky="nw")
@@ -1395,6 +1333,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                 global LOOP2_ACTIVE
                 LOOP2_ACTIVE = False
         root.protocol("WM_DELETE_WINDOW", CloseTheGUI)
+        
         def CancelAndQuit(): 
             logger.info("LumiaGUI was canceled.")
             sCmd="touch LumiaGui.stop"
@@ -1408,6 +1347,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         self.CancelButton.grid(row=2, column=11,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="nw")
+
 
         # Check choices
         # self.CheckButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), 
