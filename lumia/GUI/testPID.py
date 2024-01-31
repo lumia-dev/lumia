@@ -323,7 +323,10 @@ def testPID(pidLst, sOutputPrfx=''):
         datafileFound=False
         icosMetaOk=False
         url="https://meta.icos-cp.eu/objects/"+pid
-        (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icosCore(pid,  icosStationLut,  False)
+        bCoreLib=False # for testing choose one method to access the metadata. 
+        # This will be moved into myCarbonPortalTools() with the latter henceforth first trying coreMeta.get_dobj_meta(url)
+        # and using the metadata.get(url) from the high level icoscp libs as a fallback.
+        (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icosCore(pid,  icosStationLut,  bCoreLib)
         '''
         mdata consists of a list of values for ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight', 
                 'size','nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
