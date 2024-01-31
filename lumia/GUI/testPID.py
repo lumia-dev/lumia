@@ -335,23 +335,10 @@ def testPID(pidLst, sOutputPrfx=''):
         else:
             icoscpMetaOk='    no'
 
-        fNamePid='/data/dataAppStorage/netcdfTimeSeries/'+pid
-        if(os.path.exists(fNamePid)):
-            datafileFound=True
-        else:
-            fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-            if(os.path.exists(fNamePid)):
-                datafileFound=True
-            else:
-                fNamePid='/data/dataAppStorage/asciiAtcTimeSer/'+pid
-                if(os.path.exists(fNamePid)):
-                    datafileFound=True
-                else:
-                    fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-                    if(os.path.exists(fNamePid)):
-                        datafileFound=True
-        if(datafileFound):
-            fileOk='   yes'
+        fNamePid=myCarbonPortalTools.getPidFname(pid)
+        fileOk='   yes'
+        if(fNamePid is None):
+            fileOk='    no'
         data=[pid,icoscpMetaOk,  fileOk, fNamePid]+mdata
         if((datafileFound) and (metaDataRetrieved) and(icosMetaOk)):
             if(nGoodPIDs==0):

@@ -16,7 +16,7 @@ import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
 #import threading
-import carbonPortalTools
+# import myCarbonPortalTools
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
 import warnings
 
@@ -2130,12 +2130,11 @@ def callLumiaGUI(ymlFile,  scriptDirectory,  bStartup=True):
         tracer='co2'
         
     #tracer=tracer.upper()    
-    
     sStart=ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
     sEnd=ymlContents['run']['time']['end']
-    pdTimeStart = to_datetime(sStart, format="%Y-%m-%d %H:%M:%S")
+    pdTimeStart = to_datetime(sStart[:19], format="%Y-%m-%d %H:%M:%S")
     pdTimeStart=pdTimeStart.tz_localize('UTC')
-    pdTimeEnd = to_datetime(sEnd, format="%Y-%m-%d %H:%M:%S")
+    pdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
     pdTimeEnd=pdTimeEnd.tz_localize('UTC')
     timeStep=ymlContents['run']['time']['timestep']
     if(bStartup):

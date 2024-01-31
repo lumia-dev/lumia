@@ -1,5 +1,6 @@
 from loguru import logger
 import re
+import os
 from icoscp.cpb import metadata
 from icoscp_core.icos import meta as coreMeta
 
@@ -29,7 +30,7 @@ def createIcosStationLut():
     return(icosStationLut)
 
 
-def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut):
+def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut,  suppressHugeCompilations=True):
     '''
     Function getMetaDataFromPid_via_icoscp_core
 
@@ -37,6 +38,10 @@ def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut):
     @type string (fixed length)
     @param icosStationLut LookupTable of the level of certification as an ICOS station. Stations not listed are not affiliated with ICOS
     @type dictionary with the 3-letter station codes (Atmospheric stations only) as keys and the ICOS class as a one-letter string. 
+    @param suppressHugeCompilations if set to True (default) then the return value of bAcceptable is set to false for
+                any data records that represent a "European Obspack compilation" which is a collection over ALL ICOS stations
+                The intended use of this method is for obtaining metadata from data records from any particular ICOS site.
+    @type boolean
     @return a list of agreed values extracted from the metadata of the PID provided
                 values are returned for these keys: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
                                         'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
@@ -216,12 +221,53 @@ def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut):
         logger.debug('Failed to read data label from metadata')
     if(dL>d2):
         d2=dL  # dataLevel, if available, may be more reliable, but does not distinguish ObsPacks
+    if((suppressHugeCompilations) and (d2==4) and (re.search("European Obspack compilation", d,  re.IGNORECASE))):
+        bAcceptable=False
     mdata.append(d2)
     mdata.append(d)
 
     if(ndr>1):
         bAcceptable=False
     return (mdata, bAcceptable)
+
+
+
+def  getPidFname(pid):
+    '''
+    Function getPidFname(pid)
+    
+    The function searches through the most likely directories on the carbon portal itself in order to find a data record by its pid
+    The icoscp package get(pid) method to read a data record has proven to be unreliable, so I prefer to read the actual file myself, 
+    though the aforementioned is implemented as a falback method (in the parent method) in case the record is not found in 
+    the directories searched.
+    
+    @param pid persistent identifier of a data record held on the carbon portal 
+    @type string (fixed length)
+    @return path+fileName of the data record on the carbon portal with the pid as fileName
+    @rtype string
+    '''
+    if(pid is None):
+        return(None)
+    fNamePid='/data/dataAppStorage/netcdfTimeSeries/'+pid
+    if(os.path.exists(fNamePid)):
+        datafileFound=True
+    else:
+        fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
+        if(os.path.exists(fNamePid)):
+            datafileFound=True
+        else:
+            fNamePid='/data/dataAppStorage/asciiAtcTimeSer/'+pid
+            if(os.path.exists(fNamePid)):
+                datafileFound=True
+            else:
+                fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
+                if(os.path.exists(fNamePid)):
+                    datafileFound=True
+    if(datafileFound):
+        return(fNamePid)
+    return(None)
+    
+
 
 
 # Print iterations progress

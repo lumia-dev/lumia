@@ -69,7 +69,7 @@ def getTimeForSparqlQuery(pdTime,  startOrEndTime=None,  timeStep=None):
     
     @param pdTime pandas.timeStamp  date/time from/until when observations will be queried
     @returns a DateTimeStamp string of format 'YYYY-01-01T00:00:01.000Z'
-    @timeStep is the run.timestep defined in the user's rc configuration file'
+    @timeStep is the run.time.timestep defined in the user's rc configuration file'
   '''
     if((pdTime is None) or (startOrEndTime is None)):
         logger.error('Start date of observation interval or startOrEndTime operator not provided.')
@@ -229,7 +229,7 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
         },
     And we want to extract "LLz6BZr6LCt1Pt0w-U_DLxWZ"
     '''
-    sFileNameOnCarbonPortal=None
+    #sFileNameOnCarbonPortal=None
     sPID=''
     fNameLst=[]
     try:
@@ -322,32 +322,10 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
             if(pid in finalDobjLst):
                 logger.info(f"Removing collection {pid}")
                 finalDobjLst.remove(pid)
-    # TODO: for simplicity let's reject for now the huge 1972-2023 Obspack as it is an aggregate of dataframes that I need to deal with in a better fashion....
-    # Obspacks: https://data.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9 (1972-2023)  SQxOn3waZ55FjDKxcXI41xVD (1972-2022)
-    # if("SQxOn3waZ55FjDKxcXI41xVD" in finalDobjLst):
-    #    finalDobjLst.remove("SQxOn3waZ55FjDKxcXI41xVD")
-    # pid="UqPhG00TNqHmcRybZ1e43ZX9"
-    collpid="5-kp-zFm31bQs47leuuGCBTZ"
-    # if("European Obspack compilation of atmospheric carbon dioxide data" in meta['specificInfo']['title'])
-    while(1<0) :  # TODO wait fur bugfix in ocscp Lib     (len(pid)>10):
-        pidUrl="https://meta.icos-cp.eu/objects/"+collpid
-        if(collpid in finalDobjLst):
-            finalDobjLst.remove(collpid)
-            logger.info(f"Rejecting pidUrl: {pidUrl}    European_Obspack_compilation_of_atmospheric_carbon_dioxide_data in favour of its more up-to-date individual data records.")
-        dob = Dobj(pidUrl)  # TODO: crashes with pidUrl=https://meta.icos-cp.eu/objects/UqPhG00TNqHmcRybZ1e43ZX9     -- Why??
-        logger.debug(f"dobj: {dob}")
-        dobnext=dob.next
-        if(dobnext):
-            pidUrl=dob.next
-            pid=pidUrl.split('/')[-1]
-        else:
-            pid=""
-        
-    # 5-kp-zFm31bQs47leuuGCBTZ  same as https://doi.org/10.18160/PEKQ-M4T1 which is a newer version of the above package
-    # if("5-kp-zFm31bQs47leuuGCBTZ" in finalDobjLst):
-    #     finalDobjLst.remove("5-kp-zFm31bQs47leuuGCBTZ")
-    # if("UqPhG00TNqHmcRybZ1e43ZX9" in finalDobjLst):
-    #     finalDobjLst.remove("UqPhG00TNqHmcRybZ1e43ZX9")
+    # collpid="ZZwlNi4a8_AFsscsxp603t5t" # European Obspack compilation
+    # This  data package contains high accuracy CO2 dry air mole fractions  from 65 ICOS and non-ICOS European observatories 
+    # at in total 143 observation levels since 1972
+    # Collections are now rejected by default in myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core()
     lf=len(finalDobjLst)
     logger.info(f"Found {lf} valid data objects on the carbon portal (dry mole fraction observation files for chosen tracer).")
     
@@ -365,10 +343,19 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
         logger.error('finalDobjLst is empty.')
     #print('|_________________________________________________|')
     if(printProgress):
-        printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
+        myCarbonPortalTools.printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     nBadDataSets=0
     badPids=[]
+    icosStationLut=myCarbonPortalTools.createIcosStationLut()
     for n, pid in enumerate(finalDobjLst):
+        url="https://meta.icos-cp.eu/objects/"+pid
+        (mdata, bDataSuccessfullyRead)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid,  icosStationLut)
+        '''
+        returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+        '''
+        
+        '''
         pidMetadata = metadata.get("https://meta.icos-cp.eu/objects/"+pid)
         if pidMetadata is not None:
             bDataSuccessfullyRead=True
@@ -402,48 +389,58 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                 badPids.append(pid)
                 nBadDataSets+=1
                 logger.error(f'ERROR: pid={pid} failed to read correctly,  most likely due to issues in the metadata.')
-            if(bDataSuccessfullyRead):
-                if(i==0):
-                    '''
-                    stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
-                    country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
-                    isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
-                    # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
-                    lon=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
-                    lat=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
-                    alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
-                    samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
-                    size=pidMetadata['size']   
-                    nRows=pidMetadata['specificInfo']['nRows']
-                    dataLevel=pidMetadata['specification']['dataLevel']
-                    obsStart=pidMetadata['specificInfo']['acquisition']['interval']['start']
-                    obsStop=pidMetadata['specificInfo']['acquisition']['interval']['stop']
-                      #tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
-                    productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
-                    sUrl=pidMetadata['accessUrl']
-                    fileName=pidMetadata['fileName']
-                    dataSetLabel=pidMetadata['specification']['self']['label']  
-                    '''
-                    columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
-                            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
-                    #data=[[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]]
+            '''
+        if(bDataSuccessfullyRead):
+            data=[pid, bSelected]+mdata
+            if(i==0):
+                '''
+                stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
+                country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
+                isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
+                # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
+                lon=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
+                lat=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
+                alt=pidMetadata['coverageGeo']['geometry']['coordinates'][2]
+                samplingHeight = pidMetadata['specificInfo']['acquisition']['samplingHeight']
+                size=pidMetadata['size']   
+                nRows=pidMetadata['specificInfo']['nRows']
+                dataLevel=pidMetadata['specification']['dataLevel']
+                obsStart=pidMetadata['specificInfo']['acquisition']['interval']['start']
+                obsStop=pidMetadata['specificInfo']['acquisition']['interval']['stop']
+                  #tmporalCoverage=pidMetadata['references']['temporalCoverageDisplay']
+                productionTime=pidMetadata['specificInfo']['productionInfo']['dateTime']
+                sUrl=pidMetadata['accessUrl']
+                fileName=pidMetadata['fileName']
+                dataSetLabel=pidMetadata['specification']['self']['label']  
+                '''
+                columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                if(len(columnNames)==len(data)):
                     df=DataFrame(data=[data], columns=columnNames)
                 else:
-                    #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
-                    if(len(df.columns)==len(data)):
-                        df.loc[len(df)] = data
-                    else:
-                        badPids.append(pid)
-                        logger.error(f"corrupted data set: carbon portal data record with PID={pid}. Missing meta data. This data set will not be used in this run.")
-                i+=1
+                    logger.error(f'len(df.columns)={len(df.columns)} does not match len(data)={len(data)}')
+            else:
+                #data=[pid, pidMetadata['specificInfo']['acquisition']['station']['id'], pidMetadata['coverageGeo']['geometry']['coordinates'][0], pidMetadata['coverageGeo']['geometry']['coordinates'][1], pidMetadata['coverageGeo']['geometry']['coordinates'][2], pidMetadata['specificInfo']['acquisition']['samplingHeight'], pidMetadata['size'], pidMetadata['specification']['dataLevel'], pidMetadata['references']['temporalCoverageDisplay'], pidMetadata['specificInfo']['productionInfo']['dateTime'], pidMetadata['accessUrl'], pidMetadata['fileName'], int(0), pidMetadata['specification']['self']['label']]
+                if(len(df.columns)==len(data)):
+                    df.loc[len(df)] = data
+                else:
+                    badPids.append(pid)
+                    nBadDataSets+=1
+                    logger.error(f"Rejected: Corrupted data set: carbon portal data record {url} is missing critical meta data and cannot be used.")
+            i+=1
+        else:
+            badPids.append(pid)
+            nBadDataSets+=1
+            logger.error(f'Rejected: Obtaining the metadata for data object {url} was unsuccessful. Thus this data set cannot be used.')
+
         if((printProgress) and (n % step ==0)):
-            printProgressBar(n, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
+            myCarbonPortalTools.printProgressBar(n, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     
-    df['dClass'] = int(0) # initialise unknown data quality
-    df['dClass'] = np.where(df.dataSetLabel.str.contains("Obspack", flags=re.IGNORECASE), int(4), int(0))
-    df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
-    df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
-    df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
+    #df['dClass'] = int(0) # initialise unknown data quality
+    #df['dClass'] = np.where(df.dataSetLabel.str.contains("Obspack", flags=re.IGNORECASE), int(4), int(0))
+    #df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
+    #df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
+    #df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
     sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
     df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
     if(nBadDataSets > 0):
@@ -531,25 +528,3 @@ def chooseAmongDiscoveredObservations(bWithGui=True, tracer='CO2', ValidObs=None
     return(selectedDobjLst, chosenObs)
 
 
-# Print iterations progress
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
-    # Print New Line on Complete
-    if iteration == total: 
-        print()
-    

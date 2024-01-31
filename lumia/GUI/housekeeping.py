@@ -89,75 +89,99 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         sys.exit(-2)
     # Save  all details of the configuration and the version of the software used:
 
+
     # Determine start/end times
     if args.start is None :
         try:            
             start=Timestamp(ymlContents['run']['time']['start'])
-            #ymlContents['observations']['start']=ymlContents['run']['time']['start']
         except:
             try:
                 start=Timestamp(ymlContents['observations']['start'])
-                #ymlContents['run']['time']['start']=ymlContents['observations']['start']
             except:
-                logger.error(f'No valid start time found in the keys run.time.start nor observations.start of your yml file {ymlFile}. Please fix or use the commandline option --start.')
+                try:
+                    start=Timestamp(ymlContents['time']['start'])    # should be a string like start: '2018-01-01 00:00:00'
+                except:
+                    logger.error(f'missing key run.time.start in the user provided yaml file {ymlFile}.')
+                logger.error(f'No valid start time found in the keys run.time.start nor observations.start nor time.start of your yml file {ymlFile}. Please fix or use the commandline option --start.')
     else:
         start= Timestamp(args.start)
-    sStart= start.strftime('%Y,%m,%d')+' 00:00:00.000Z'
-    #ymlContents['run']['time']['start']= sStart+' 00:00:00.000Z'
-    #ymlContents['observations']['start']= sStart+' 00:00:00.000Z'
+    sStart= start.strftime('%Y-%m-%d')+' 00:00:00Z'
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'start'],   value= str(sStart), bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'start'],   value= str(sStart), bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'start'],   value='${run.time.start}', bNewValue=True)
         
     if args.end is None :
         try:            
             end=Timestamp(ymlContents['run']['time']['end'])
-            # ymlContents['observations']['end']=ymlContents['run']['time']['end']
         except:
             try:
                 end=Timestamp(ymlContents['observations']['end'])
-                #ymlContents['run']['time']['end']=ymlContents['observations']['end']
             except:
-                logger.error(f'No valid end time found in the keys run.time.end nor observations.end of your yml file {ymlFile}. Please fix or use the commandline option --end.')
+                try:
+                    end=Timestamp(ymlContents['time']['end'])    # should be a string like start: '2018-01-01 00:00:00'
+                except:
+                    logger.error(f'No valid end time found in the keys run.time.end nor observations.end nor time.end of your yml file {ymlFile}. Please fix or use the commandline option --end.')
     else:
         end= Timestamp(args.end)
-    sEnd= end.strftime('%Y,%m,%d')+'%Y-%m-%d 23:59:59Z'
+    sEnd= end.strftime('%Y-%m-%d')+' 23:59:59Z'
     #ymlContents['observations']['end'] = sEnd+'%Y-%m-%d 23:59:59Z'
     #ymlContents['run']['time']['end'] = sEnd+'%Y-%m-%d 23:59:59Z'
+    try:
+        timeStep=ymlContents['run']['time']['timestep']
+    except:
+        try:
+            timeStep=ymlContents['run']['timestep']
+            #This is the part of the code which filters out the undesired keys
+            #ymlContents = filter(lambda x: x['name']!='temp_key2', ymlContents) 
+        except:
+            logger.warning(f'Key run.time.timestep not found in your ymlFile {ymlFile}. Assuming it is 1h. This may be updated when reading observational or emission data.')
+            timeStep='1h'
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'end'],   value= str(sEnd), bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'end'],   value= str(sEnd), bNewValue=True)
-    
- 
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'end'],   value= '${run.time.end}', bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'timestep'],   value= str(timeStep), bNewValue=True)
+     
     myCom=""
     # Get the local git hash so we have some clue of what version of LUMIA we may be using...
+    localRepo='UKNOWN    '
+    sLocalGitRepos='UKNOWN    '
+    branch='UKNOWN    '
+    repoUrl='UKNOWN    '
+    myCom='UKNOWN    '
     try:
         # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
         localRepo = git.Repo(script_directory, search_parent_directories=True)
-        sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
-        print(f'Found local git repository info at : {sLocalGitRepos}')
-        branch=localRepo.head.ref # repo.head.ref=LumiaDA
-        print(f'Local git info suggests that the branch name is : {branch}')
-        repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
-        print(f'Local git info suggests that the remote github url is : {repoUrl}')
+        logger.debug(f'localRepo={localRepo}')
+        try:
+            sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
+            logger.debug(f'Found localRepo.working_tree_dir info at : {sLocalGitRepos}')
+        except:
+            logger.debug('Failed to find localRepo.working_tree_dir info')
+        try:
+            branch=localRepo.head.ref # repo.head.ref=LumiaDA
+            print(f'Local git info suggests that the branch name is : {branch}')
+        except:
+            logger.debug('Failed to find localRepo.working_tree_dir info')
+        try:
+            repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
+            logger.debug(f'Local git info suggests that the remote github url is : {repoUrl}')
         # repo.head.commit=6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        myCom=str(localRepo.head.commit)
-        #myComB=localRepo.head.commit(branch)
+        except:
+            logger.debug('Failed to find localRepo.remotes.origin.url info')
+        try:
+            myCom=str(localRepo.head.commit)
+            logger.debug(f'Local git info suggests that the latest commit is : {myCom}')
+            #myComB=localRepo.head.commit(branch)
+        except:
+            logger.debug('Failed to find localRepo.head.commit info')
         remoteCommitUrl=repoUrl[:-4]+'/commit/'+str(localRepo.head.commit)
-        print(f'Local git info suggests that the latest commit is : {myCom}')
+        logger.debug(f'Which you should also be able to get from : {remoteCommitUrl}')
         # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        print(f'Which you should also be able to get from : {remoteCommitUrl}')
     except:
+        remoteCommitUrl='UKNOWN    '
         logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
     
     if(LATESTGITCOMMIT_LumiaDA not in myCom):
         logger.error(f"\nError: There is a mismatch between the current local or remote git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this lumia.GUI.housekeeping.py file. \nPlease check if there is a newer version on github or whether you forgot to push your latest local commit to the remote github.\nPlease resolve the conflict before proceeding.")
         #sys.exit(-5)
-
-    try:
-        with open(ymlFile, 'r') as file:
-            ymlContents = yaml.safe_load(file)
-    except:
-        logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
-        sys.exit(1)
 
     wrongOrMissingVersion=False
     nVers=0
