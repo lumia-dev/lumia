@@ -16,6 +16,7 @@ import customtkinter as ctk
 import tkinter as tk
 import tkinter.font as tkFont
 #import threading
+import carbonPortalTools
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
 import warnings
 

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2024 , ",
-    "saved": "2024-01-23, 11:22:13"
+    "saved": "2024-01-30, 12:50:57"
   },
   "project": {
     "AUTHOR": "",
@@ -77,9 +77,11 @@
       "archive/__init__.py",
       "gridtools.py",
       "icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "lumia/GUI/myCarbonPortalTools.py",
       "lumia/GUI/housekeeping.py",
       "lumia/GUI/lumiaGUI.py",
       "lumia/GUI/queryCarbonPortal.py",
+      "lumia/GUI/testPID.py",
       "lumia/Tools/__init__.py",
       "lumia/Tools/geographical_tools.py",
       "lumia/Tools/logging_tools.py",
@@ -135,7 +137,6 @@
       "rctools/utils.py",
       "run.py",
       "setup.py",
-      "testPID.py",
       "transport/__init__.py",
       "transport/core/__init__.py",
       "transport/core/model.py",

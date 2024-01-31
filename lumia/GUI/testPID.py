@@ -8,6 +8,7 @@ from pandas import DataFrame,  read_csv  #, to_datetime, concat , read_csv, Time
 #from icoscp.cpb.dobj import Dobj
 from icoscp.cpb import metadata
 from icoscp_core.icos import meta as coreMeta
+import myCarbonPortalTools
 
 def runSysCmd(sCmd,  ignoreError=False):
     try:
@@ -18,7 +19,6 @@ def runSysCmd(sCmd,  ignoreError=False):
             logger.warning(sTxt)
         return False
     return True
-
 
 def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
     mdata=[]
@@ -156,7 +156,6 @@ def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
     if(ndr>1):
         bAcceptable=False
     return (mdata, bAcceptable)
-
 
 def  getMetaDataFromPid_via_icoscp(pid, icosStationLut):
     mdata=[]
@@ -304,48 +303,34 @@ def  getMetaDataFromPid_via_icoscp(pid, icosStationLut):
     return (mdata, bAcceptable)
 
 
+
 def testPID(pidLst, sOutputPrfx=''):
     nBadies=0
     nBadMeta=0
     nTotal=0
     nGoodPIDs=0
     nBadIcoscpMeta=0
-    # Make a lookup table to know which stations are considered ICOS stations:
-    from icoscp_core.icos import meta
-    from icoscp_core.sparql import as_string, as_uri
-    statClassQuery = 'select * where{?station <http://meta.icos-cp.eu/ontologies/cpmeta/hasStationClass> ?class}'
-    # The table lists the ICOS station classes as described here:
-    # https://www.icos-cp.eu/about/join-icos/process-stations#toc-station-classes-class-1-class-2-associated-stations
-    statClassLookup = {
-        as_uri('station', row): as_string('class', row)
-        for row in meta.sparql_select(statClassQuery).bindings            
-        # for row in meta.sparql_select(stat_class_query).bindings
-    }
-    # is the station an ICOS station? values are {'1','2','A','no'} class 1, 2, or A(ssociated) or else 'no' meaning it is not an ICOS station
-    icosStationLut={}
-    for key, value in  statClassLookup.items():
-        if('/resources/stations/AS_' in key):
-            mkey=key[-3:]
-            icosStationLut[mkey]= value[0]  # Associated becomes 'A' one-letter-code
-            
+    icosStationLut=myCarbonPortalTools.createIcosStationLut()
     
     #print(f'statClassLookup={statClassLookup}')
     #station_basic_meta_lookup = {s.uri: s for s in meta.list_stations()}
     #print(f'station_basic_meta_lookup={station_basic_meta_lookup}')
     
     for pid in pidLst:
-        metaOk='failed'
         fileOk='failed'
-        fName='data record not found'
-        metafName='no meta data'
+        fNamePid='data record not found'
         metaDataRetrieved=True
         datafileFound=False
         icosMetaOk=False
         url="https://meta.icos-cp.eu/objects/"+pid
-        (mdata, icosMetaOk)=getMetaDataFromPid_via_icosCore(pid,  icosStationLut)
+        (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icosCore(pid,  icosStationLut,  False)
+        '''
+        mdata consists of a list of values for ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight', 
+                'size','nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+        '''
         if(mdata is None):
             logger.error(f'Attempting fallback method for data object {url}. Fingers crossed...')
-            (mdata, icosMetaOk)=getMetaDataFromPid_via_icoscp(pid, icosStationLut)
+            (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp(pid, icosStationLut)
             if(mdata is None):
                 logger.error(f'Failed: Obtaining the metadata for data object {url} was unsuccessful. Thus this data set cannot be used.')
         if(mdata is None):
@@ -355,34 +340,42 @@ def testPID(pidLst, sOutputPrfx=''):
         else:
             icoscpMetaOk='    no'
 
-        fName='/data/dataAppStorage/netcdfTimeSeries/'+pid
-        if(os.path.exists(fName)):
+        fNamePid='/data/dataAppStorage/netcdfTimeSeries/'+pid
+        if(os.path.exists(fNamePid)):
             datafileFound=True
         else:
-            fn='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-            if(os.path.exists(fName)):
+            fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
+            if(os.path.exists(fNamePid)):
                 datafileFound=True
             else:
-                fName='/data/dataAppStorage/asciiAtcTimeSer/'+pid
-                if(os.path.exists(fn)):
+                fNamePid='/data/dataAppStorage/asciiAtcTimeSer/'+pid
+                if(os.path.exists(fNamePid)):
                     datafileFound=True
                 else:
-                    fName='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-                    if(os.path.exists(fName)):
+                    fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
+                    if(os.path.exists(fNamePid)):
                         datafileFound=True
         if(datafileFound):
             fileOk='   yes'
-        data=[pid,metaOk,  icoscpMetaOk,  fileOk, metafName, fName,  url]+mdata
+        data=[pid,icoscpMetaOk,  fileOk, fNamePid]+mdata
         if((datafileFound) and (metaDataRetrieved) and(icosMetaOk)):
             if(nGoodPIDs==0):
-                columnNames=['pid', 'dobjMeta.ok', 'icoscpMeta.ok', 'file.ok', 'metafName', 'fName','url', 'stationID', 'country', 'latitude','longitude','altitude','samplingHeight','is-ICOS','size', 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dataSetLabel'] 
+                '''
+                returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                '''
+                columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
+                    'country','is-ICOS', 'latitude','longitude','altitude','samplingHeight','size', 'nRows','dataLevel',\
+                    'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
                 dfgood=DataFrame(data=[data], columns=columnNames)
             else:
                 dfgood.loc[len(dfgood)] = data
             nGoodPIDs+=1
         else:
             if(nBadies==0):
-                columnNames=['pid', 'dobjMeta.ok', 'icoscpMeta.ok', 'file.ok', 'metafName', 'fName','url', 'stationID', 'country', 'latitude','longitude','altitude','samplingHeight','is-ICOS','size', 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dataSetLabel'] 
+                columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
+                    'country','is-ICOS', 'latitude','longitude','altitude','samplingHeight','size', 'nRows','dataLevel',\
+                    'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
                 dfbad=DataFrame(data=[data], columns=columnNames)
                 print(f'Data records with some issues:\r\n{columnNames}')
             else:

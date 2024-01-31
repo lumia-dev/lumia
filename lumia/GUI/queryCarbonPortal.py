@@ -9,12 +9,13 @@ import datetime
 from loguru import logger
 import numpy as np
 from pandas import DataFrame  #, concat
-#Import ICOS tools:
 # from icoscp.sparql import sparqls, runsparql
+import myCarbonPortalTools
 from icoscp.sparql.runsparql import RunSparql
 from icoscp.cpb.dobj import Dobj
 from icoscp.collection import collection
 from icoscp.cpb import metadata
+from icoscp_core.icos import meta as coreMeta
 
 bDEBUG =False
 
@@ -273,6 +274,7 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
         logger.error(f"{dobj}")
         return(None)
     return fNameLst
+
 
 
 

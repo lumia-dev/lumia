@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='c94b5d9c56037fb330d6ef759be930d8b2d85b6c' 
+LATESTGITCOMMIT_LumiaDA='4912f614396213478211c56f601d8dabeb796b8d' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -149,7 +149,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
     
     if(LATESTGITCOMMIT_LumiaDA not in myCom):
-        logger.error(f"Error: There is a mismatch between the current \nlocal git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this run.py file. \nPlease resolve the conflict before proceeding.")
+        logger.error(f"\nError: There is a mismatch between the current local or remote git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this lumia.GUI.housekeeping.py file. \nPlease check if there is a newer version on github or whether you forgot to push your latest local commit to the remote github.\nPlease resolve the conflict before proceeding.")
         #sys.exit(-5)
 
     try:
