@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='575badc3701fb2db1ecf98f33015fbfba9c4e9f3' 
+LATESTGITCOMMIT_LumiaDA='46e49e23fea8c4949008f8391d366aa2ff1613c2' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
 import sys
 import platform
+import pathlib
 import re
 import git
 import yaml
@@ -32,7 +33,7 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
         i+=1
         myDict = myDict[key]
 
-script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))   
+
 
 def runSysCmd(sCmd,  ignoreError=False):
     try:
@@ -146,9 +147,20 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     branch='UKNOWN    '
     repoUrl='UKNOWN    '
     myCom='UKNOWN    '
+    script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))   
     try:
         # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        localRepo = git.Repo(script_directory, search_parent_directories=True)
+        if('LumiaGUI' in parentScript):
+            # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here
+            lumiaGUIdir=pathlib.Path(script_directory)
+            oneLevelUp=lumiaGUIdir.parent
+            lumiaDA_directory=oneLevelUp.parent
+            try:
+                localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
+            except:
+                localRepo = git.Repo(script_directory, search_parent_directories=True)
+        else:        
+            localRepo = git.Repo(script_directory, search_parent_directories=True)
         logger.debug(f'localRepo={localRepo}')
         try:
             sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
