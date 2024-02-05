@@ -10,15 +10,6 @@ from icoscp.cpb import metadata
 from icoscp_core.icos import meta as coreMeta
 import myCarbonPortalTools
 
-def runSysCmd(sCmd,  ignoreError=False):
-    try:
-        os.system(sCmd)
-    except:
-        if(ignoreError==False):
-            sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
-            logger.warning(sTxt)
-        return False
-    return True
 
 def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
     mdata=[]

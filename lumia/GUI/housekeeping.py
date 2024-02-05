@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='46e49e23fea8c4949008f8391d366aa2ff1613c2' 
+LATESTGITCOMMIT_LumiaDA='e32f8ea7aca45c3ebda8de315709ef71a11a4a9e' 
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -8,11 +8,9 @@ import sys
 import platform
 import pathlib
 import re
-import git
 import yaml
 from datetime import datetime
-from pandas import to_datetime,  Timestamp
-# from rctools import RcFile as rc
+from pandas import  Timestamp  # , to_datetime
 from loguru import logger
 
 
@@ -40,8 +38,7 @@ def runSysCmd(sCmd,  ignoreError=False):
         os.system(sCmd)
     except:
         if(ignoreError==False):
-            sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
-            logger.warning(sTxt)
+            logger.error(f"Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc.")
         return False
     return True
 
@@ -147,49 +144,55 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     branch='UKNOWN    '
     repoUrl='UKNOWN    '
     myCom='UKNOWN    '
-    script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))   
-    try:
-        # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        if('LumiaGUI' in parentScript):
-            # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here
-            lumiaGUIdir=pathlib.Path(script_directory)
-            oneLevelUp=lumiaGUIdir.parent
-            lumiaDA_directory=oneLevelUp.parent
-            try:
-                localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
-            except:
+    scriptName=sys.argv[0]
+    script_directory = os.path.dirname(os.path.abspath(scriptName))
+    scriptTail=scriptName[-6:]
+    if('.ipynb' in scriptTail):
+        logger.info('Local git information is not available from this python notebook. This is not an issue.')
+    else: 
+        import git
+        try:
+            # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+            if('LumiaGUI' in parentScript):
+                # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here
+                lumiaGUIdir=pathlib.Path(script_directory)
+                oneLevelUp=lumiaGUIdir.parent
+                lumiaDA_directory=oneLevelUp.parent
+                try:
+                    localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
+                except:
+                    localRepo = git.Repo(script_directory, search_parent_directories=True)
+            else:        
                 localRepo = git.Repo(script_directory, search_parent_directories=True)
-        else:        
-            localRepo = git.Repo(script_directory, search_parent_directories=True)
-        logger.debug(f'localRepo={localRepo}')
-        try:
-            sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
-            logger.debug(f'Found localRepo.working_tree_dir info at : {sLocalGitRepos}')
+            logger.debug(f'localRepo={localRepo}')
+            try:
+                sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
+                logger.debug(f'Found localRepo.working_tree_dir info at : {sLocalGitRepos}')
+            except:
+                logger.debug('Failed to find localRepo.working_tree_dir info')
+            try:
+                branch=localRepo.head.ref # repo.head.ref=LumiaDA
+                print(f'Local git info suggests that the branch name is : {branch}')
+            except:
+                logger.debug('Failed to find localRepo.working_tree_dir info')
+            try:
+                repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
+                logger.debug(f'Local git info suggests that the remote github url is : {repoUrl}')
+            # repo.head.commit=6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+            except:
+                logger.debug('Failed to find localRepo.remotes.origin.url info')
+            try:
+                myCom=str(localRepo.head.commit)
+                logger.debug(f'Local git info suggests that the latest commit is : {myCom}')
+                #myComB=localRepo.head.commit(branch)
+            except:
+                logger.debug('Failed to find localRepo.head.commit info')
+            remoteCommitUrl=repoUrl[:-4]+'/commit/'+str(localRepo.head.commit)
+            logger.debug(f'Which you should also be able to get from : {remoteCommitUrl}')
+            # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
         except:
-            logger.debug('Failed to find localRepo.working_tree_dir info')
-        try:
-            branch=localRepo.head.ref # repo.head.ref=LumiaDA
-            print(f'Local git info suggests that the branch name is : {branch}')
-        except:
-            logger.debug('Failed to find localRepo.working_tree_dir info')
-        try:
-            repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
-            logger.debug(f'Local git info suggests that the remote github url is : {repoUrl}')
-        # repo.head.commit=6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        except:
-            logger.debug('Failed to find localRepo.remotes.origin.url info')
-        try:
-            myCom=str(localRepo.head.commit)
-            logger.debug(f'Local git info suggests that the latest commit is : {myCom}')
-            #myComB=localRepo.head.commit(branch)
-        except:
-            logger.debug('Failed to find localRepo.head.commit info')
-        remoteCommitUrl=repoUrl[:-4]+'/commit/'+str(localRepo.head.commit)
-        logger.debug(f'Which you should also be able to get from : {remoteCommitUrl}')
-        # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-    except:
-        remoteCommitUrl='UKNOWN    '
-        logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
+            remoteCommitUrl='UKNOWN    '
+            logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
     
     if(LATESTGITCOMMIT_LumiaDA not in myCom):
         logger.error(f"\nError: There is a mismatch between the current local or remote git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this lumia.GUI.housekeeping.py file. \nPlease check if there is a newer version on github or whether you forgot to push your latest local commit to the remote github.\nPlease resolve the conflict before proceeding.")
