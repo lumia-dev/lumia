@@ -3,12 +3,323 @@
 import os
 import sys
 import argparse
+import time
+import _thread
 from loguru import logger
 from pandas import DataFrame,  read_csv  #, to_datetime, concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
 #from icoscp.cpb.dobj import Dobj
 from icoscp.cpb import metadata
 from icoscp_core.icos import meta as coreMeta
 import myCarbonPortalTools
+import housekeeping as hk
+
+ISNOTEBOOK=False
+scriptName=sys.argv[0]
+if('.ipynb' in scriptName[-6:]):
+    ISNOTEBOOK=True
+if(ISNOTEBOOK):
+    import guiElementsIpWdg.py as ge
+else:
+    import guiElementsTk as ge
+    import tkinter as tk    
+    import customtkinter as ctk
+import boringStuff as bs
+
+def testGui():
+    scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
+    ctk.set_appearance_mode("System")  
+    # background color (R,G,B)=(13,57,64)  = #0D3940
+    # Sets the color of the widgets in the window
+    # Supported themes : green, dark-blue, blue   
+    # ctk.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
+    ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
+    # root = ctk.CTk()
+    if os.environ.get('DISPLAY','') == '':
+        print('no display found. Using :0.0')
+        os.environ.__setitem__('DISPLAY', ':0.0')
+    root=ctk.CTk()
+    widgetsLst = []
+    # root.iconify()
+    guiPage2=RefineObsSelectionGUI(root,  widgetsLst=widgetsLst) 
+    guiPage2.iconify
+    #print('gui2object created')
+    sLogCfgPath=""
+    guiPage2.run(root, sLogCfgPath) 
+    logger.debug('left guiPage2')
+    root.mainloop()
+    return
+
+# LumiaGui Class =============================================================
+class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
+    # =====================================================================
+    # The layout of the window will be written
+    # in the init function itself
+    def __init__(self, root,  sLogCfgPath):  # *args, **kwargs):
+        ctk.CTkToplevel.__init__(self, root)
+        self.parent = root
+        # Get the screen resolution to scale the GUI in the smartest way possible...
+        if(os.path.isfile("LumiaGui.stop")):
+            sCmd="rm LumiaGui.stop"
+            hk.runSysCmd(sCmd,  ignoreError=True)
+        if(os.path.isfile("LumiaGui.go")):
+            sCmd="rm LumiaGui.go"
+            hk.runSysCmd(sCmd,  ignoreError=True)
+
+    def run(self, root,  sLogCfgPath): 
+        # self.deiconify()
+        screenWidth = self.winfo_screenwidth()
+        screenHeight = self.winfo_screenheight()
+        logger.debug(f'self.winfo_screenwidth()={screenWidth},   self.winfo_screenheight()={screenHeight}')
+        if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
+            screenWidth=int(screenHeight*(1920/1080.0))
+            logger.debug(f'self.winfo_screenwidth()={screenWidth},   self.winfo_screenheight()={screenHeight},  multiple screen correction')
+        maxW = int(0.92*screenWidth)
+        # maxW = 1650 # TODO: remove
+        maxH = int(0.92*screenHeight)
+        logger.debug(f'maxW={maxW},  maxH={maxH}')
+        if(maxW > 1.2*maxH):
+            maxW = int((1.2*maxH)+0.5)
+            logger.debug(f'maxW={maxW},  maxH={maxH},  max aspect ratio fix.')
+        nCols=5 # sum of labels and entry fields per row
+        nRows=13 # number of rows in the GUI
+        xPadding=int(0.008*maxW)
+        wSpacer=int(2*0.008*maxW)
+        yPadding=int(0.008*maxH)
+        vSpacer=int(2*0.008*maxH)
+        myFontFamily="Georgia"
+        sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
+        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
+            bs.calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
+                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
+        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
+        vDeadSpace=2*yPadding #vSpacer+(nRows*yPadding*2)+vSpacer
+        colWidth=int((maxW - hDeadSpace)/(nCols*1.0))
+        rowHeight=int((maxH - vDeadSpace)/(nRows*1.0))
+        # Dimensions of the window
+        appWidth, appHeight = maxW, maxH
+        #activeTextColor='gray10'
+        #inactiveTextColor='gray50'
+        self.lonMin = ge.guiDoubleVar(value=-25.0)
+        self.lonMax = ge.guiDoubleVar(value=45.0)
+        self.latMin = ge.guiDoubleVar(value=23.0)
+        self.latMax = ge.guiDoubleVar(value=83.0)
+        
+        def CloseTheGUI(bAskUser=True,  bWriteStop=True):
+            if(bAskUser):  # only happens if the GUI window was closed brutally
+                if ge.guiAskOkCancel(title="Quit?",  message="Is it OK to abort your Lumia run?"):  # tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
+                    if(bWriteStop):
+                        #self.iconify()
+                        logger.info("LumiaGUI was canceled.")
+                        sCmd="touch LumiaGui.stop"
+                        hk.runSysCmd(sCmd)
+            else:  # the user clicked Cancel or Go
+                if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+                    #self.iconify()
+                    logger.info("LumiaGUI was canceled.")
+                    sCmd="touch LumiaGui.stop"
+                    hk.runSysCmd(sCmd)
+                global LOOP_ACTIVE
+                LOOP_ACTIVE = False
+                # self.iconify()
+                logger.info("Closing the GUI...")
+                try:
+                    self.after(100, self.event_generate("<Destroy>"))
+                except:
+                    pass
+        self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
+        
+        def CancelAndQuit(): 
+            #logger.info("LumiaGUI was canceled.")
+            #sCmd="touch LumiaGui.stop"
+            #hk.runSysCmd(sCmd)
+            CloseTheGUI(bAskUser=False,  bWriteStop=True)
+            #global LOOP_ACTIVE
+            #LOOP_ACTIVE = False
+
+        # Sets the title of the window to "LumiaGui"
+        self.title("LUMIA run configuration")  
+        # Sets the dimensions of the window to 800x900
+        self.geometry(f"{appWidth}x{appHeight}")   
+        # Row 12
+        # ################################################################
+        # Cancel Button
+        self.CancelButton = ctk.CTkButton(master=self, font=("Georgia", 18), text="Cancel",
+            command=CancelAndQuit)
+        self.CancelButton.grid(row=12, column=4,
+                                        columnspan=1, padx=xPadding,
+                                        pady=yPadding, sticky="ew")
+
+        # Row 0:  Title Label
+        # ################################################################
+
+        self.LatitudesLabel = ge.guiTxtLabel(self, "LUMIA  --  Configure your next LUMIA run",  
+                                                                    fontName="Arial MT Extra Bold", fontSize=fsGIGANTIC)
+        self.LatitudesLabel.grid(row=0, column=0,
+                            columnspan=8,padx=xPadding, pady=yPadding,
+                            sticky="ew")
+
+        def loop_function():
+            global LOOP_ACTIVE
+            LOOP_ACTIVE = True
+            while LOOP_ACTIVE:
+                time.sleep(3)
+            logger.info("Closing the GUI...")
+            try:
+                self.after(100, self.event_generate("<Destroy>"))
+            except:
+                pass
+                #logger.error('Failed to destroy the first page of the GUI for whatever reason...')
+
+        _thread.start_new_thread(loop_function, ())
+        #root.mainloop()     
+        return(True)
+
+    def show(self):
+        # self.deiconify()
+        self.wm_protocol("WM_DELETE_WINDOW", self.destroy)
+        self.wait_window(self)
+        return 
+
+# LumiaGui Class =============================================================
+class RefineObsSelectionGUI(ctk.CTk):
+    # =====================================================================
+    # The layout of the window is now written
+    # in the init function itself
+    def __init__(self, root,  widgetsLst):  # *args, **kwargs):
+        # Get the screen resolution to scale the GUI in the smartest way possible...
+        scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
+        ctk.set_appearance_mode("System")  
+        ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
+        screenWidth = root.winfo_screenwidth()
+        screenHeight = root.winfo_screenheight()
+        # print(f'screenWidth={screenWidth},  screenHeight={screenHeight}', flush=True)
+        if(screenWidth<100):
+            print('Oooops')
+        if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
+            screenWidth=int(screenHeight*(1920/1080.0))
+        self.maxW = int(0.92*screenWidth)
+        self.maxH = int(0.92*screenHeight)
+        # Dimensions of the window
+        self.appWidth, self.appHeight = self.maxW, self.maxH
+        root.title("LUMIA: Refine the selection of observations to be used")  
+        # Sets the dimensions of the window to something reasonable with respect to the user's screren properties
+        root.geometry(f"{self.appWidth}x{self.appHeight}")   
+        root.grid_rowconfigure(0, weight=1)
+        root.columnconfigure(0, weight=1)
+
+    def run(self, root,  sLogCfgPath):
+        nWidgetsPerRow=5
+        # run through the first page of the GUI so we select the right time interval, region, emissions files etc
+        guiPage1=LumiaGui(root,  sLogCfgPath) 
+        # query the CarbonPortal for suitable data sets that match the requests defined in the config.yml file and the latest GUI choices
+        #root.withdraw()
+        guiPage1.attributes('-topmost', 'true')
+        rVal=guiPage1.run(root, sLogCfgPath) 
+        # root.wait_window(guiPage1)
+        guiPage1.show()
+        #guiPage1.iconify()
+        #cpDir=ymlContents['observations'][tracer]['file']['cpDir']
+        # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
+        nCols=12 # sum of labels and entry fields per row
+        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
+        xPadding=int(0.008*self.maxW)
+        wSpacer=int(2*0.008*self.maxW)
+        yPadding=int(0.008*self.maxH)
+        vSpacer=int(2*0.008*self.maxH)
+        myFontFamily="Georgia"
+        sLongestTxt="Latitude NN :"
+        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
+            bs.calculateEstheticFontSizes(myFontFamily,  self.maxW,  self.maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
+                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
+        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
+        vDeadSpace=2*yPadding 
+        colWidth=int((self.maxW - hDeadSpace)/(nCols*1.0))
+        rowHeight=int((self.maxH - vDeadSpace)/(nRows*1.0))
+        activeTextColor='gray10'
+        inactiveTextColor='gray50'
+        nRows=int(0)
+        # Now we venture to make the root scrollable....
+        #main_frame = tk.Frame(root)
+        rootFrame = tk.Frame(root, bg="cadet blue")
+        rootFrame.grid(sticky='news')
+
+        # Create a scrollable frame onto which to place the many widgets that represent all valid observations found
+        #  ##################################################################
+        # Create a frame for the canvas with non-zero row&column weights
+        
+        #rootFrame.update() # above widgets are drawn and we can get column width measures
+        #x, y, width, height = rootFrame.grid_bbox()
+
+        rootFrameCanvas = tk.Frame(rootFrame)
+        rootFrameCanvas.grid(row=5, column=0,  columnspan=12,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
+        rootFrameCanvas.grid_rowconfigure(0, weight=8)
+        rootFrameCanvas.grid_columnconfigure(0, weight=8)
+        # Set grid_propagate to False to allow 5-by-5 buttons resizing later
+        #rootFrameCanvas.grid_propagate(False)
+        cWidth = self.appWidth - xPadding
+        cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
+        cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
+        
+        # Add a scrollableCanvas in that frame
+        scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="cadet blue", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+        scrollableCanvas.grid(row=0, column=0,  columnspan=12,  rowspan=10, sticky="news")
+        
+        # Link a scrollbar to the scrollableCanvas
+        vsb = tk.Scrollbar(rootFrameCanvas, orient="vertical", command=scrollableCanvas.yview)
+        vsb.grid(row=0, column=1, sticky='ns')
+        scrollableCanvas.configure(yscrollcommand=vsb.set)
+        
+        # Create a frame to contain the widgets for all obs data sets found following initial user criteria
+        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") #  slightly lighter than "cadet blue"
+        scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
+        # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
+
+        self.LatitudesLabel = ctk.CTkLabel(rootFrame,
+                                text="LUMIA  --  Refine the selection of observations to be used",  font=("Arial MT Extra Bold",  fsGIGANTIC))
+        self.LatitudesLabel.grid(row=0, column=0,
+                            columnspan=8,padx=xPadding, pady=yPadding,
+                            sticky="nw")
+        self.iObservationsFileLocation= ge.guiIntVar(value=1)
+        #iObservationsFileLocation.set(1) # Read observations from local file
+        self.RankingLabel = ge.guiTxtLabel(rootFrame,
+                                   text="Obsdata Ranking", fontName="Georgia",  fontSize=fsNORMAL)
+        self.RankingLabel.grid(row=1, column=0,
+                                  columnspan=1, padx=xPadding, pady=yPadding,
+                                  sticky="nw")
+        def CancelAndQuit(): 
+            logger.info("LumiaGUI was canceled.")
+            sCmd="touch LumiaGui.stop"
+            hk.runSysCmd(sCmd)
+            global LOOP2_ACTIVE
+            LOOP2_ACTIVE = False
+
+        # Cancel Button
+        self.CancelButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), text="Cancel",
+            fg_color='orange red', command=CancelAndQuit)
+        self.CancelButton.grid(row=2, column=11,
+                                        columnspan=1, padx=xPadding,
+                                        pady=yPadding, sticky="nw")
+
+        # Update buttons frames idle tasks to let tkinter calculate buttons sizes
+        scrollableFrame4Widgets.update_idletasks()
+              
+        # Set the scrollableCanvas scrolling region
+        scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
+
+            
+        def loop_function():
+            global LOOP2_ACTIVE
+            LOOP2_ACTIVE = True
+            while LOOP2_ACTIVE:
+                time.sleep(1)
+            logger.info("Closing the GUI...")
+            try:
+                root.after(1000, root.event_generate("<Destroy>"))  # Wait 1 sec so the the main thread can meanwhile be exited before the GUI is destroyed
+            except:
+                pass
+        _thread.start_new_thread(loop_function, ())
+        #root.mainloop()
+        return
 
 
 def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
@@ -409,6 +720,8 @@ args, unknown = p.parse_known_args(sys.argv[1:])
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
+testGui()
+sys.exit(0)
 
 if(args.pidLst is None):
     logger.error("LumiaGUI: Fatal error: no user configuration (yaml) file provided.")
