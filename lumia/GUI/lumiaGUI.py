@@ -32,7 +32,6 @@ else:
     import tkinter as tk    
     import customtkinter as ctk
 
-
 import boringStuff as bs
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
 import warnings
@@ -104,7 +103,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # 
         def CloseTheGUI(bAskUser=True,  bWriteStop=True):
             if(bAskUser):  # only happens if the GUI window was closed brutally
-                if tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
+                if ge.guiAskOkCancel(title="Quit?",  message="Is it OK to abort your Lumia run?"):  # tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
                     if(bWriteStop):
                         #self.iconify()
                         logger.info("LumiaGUI was canceled.")
@@ -211,7 +210,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         self.LatitudesLabel = ge.guiTxtLabel(self, text="Time interval",  fontName="Georgia",  fontSize=fsLARGE)
         self.LatitudesLabel.grid(row=1, column=0,  
-                            columnspan=2, padx=xPadding, pady=yPadding,
+                            columnspan=1, padx=xPadding, pady=yPadding,
                             sticky="ew")
  
         # Row 2: Time interval
@@ -233,19 +232,21 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         
         startDate=str(ymlContents['run']['time']['start'])[:10]  # e.g. '2018-01-01 00:00:00'
         endDate=str(ymlContents['run']['time']['end'])[:10]   # e.g. '2018-02-01 23:59:59'
-        self.sStartDate=tk.StringVar(value=startDate)
-        self.sEndDate=tk.StringVar(value=endDate)
+        self.sStartDate=ge.guiStringVar(value=startDate)
+        self.sEndDate=ge.guiStringVar(value=endDate)
 
         #s=self.sStartDate.get()
         # prep the StartDate field  
-        self.TimeStartEntry = ctk.CTkEntry(self,textvariable=self.sStartDate,  
+        self.TimeStartEntry = ge.guiDataEntry(self,textvariable=self.sStartDate,  
                           placeholder_text=str(ymlContents['run']['time']['start'])[:10], width=colWidth)
+        #self.TimeStartEntry = ctk.CTkEntry(self,textvariable=self.sStartDate,  
+        #                  placeholder_text=str(ymlContents['run']['time']['start'])[:10], width=colWidth)
         self.TimeStartEntry.grid(row=2, column=1,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
                             
         # prep the EndDate field
-        self.TimeEndEntry = ctk.CTkEntry(self,textvariable=self.sEndDate, 
+        self.TimeEndEntry = ge.guiDataEntry(self,textvariable=self.sEndDate, 
                           placeholder_text=str(ymlContents['run']['time']['end'])[:10], width=colWidth)
         self.TimeEndEntry.grid(row=2, column=3,
                             columnspan=1, padx=xPadding,
@@ -265,8 +266,9 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # ################################################################
         # 
         # Text Box
-        self.displayBox = ctk.CTkTextbox(self, width=200,
-                                        text_color="red", font=("Georgia",  fsSMALL),  height=100)
+        self.displayBox = ge.guiTextBox(self, width=200,  height=100,  fontName="Georgia",  fontSize=fsSMALL, text_color="red") 
+                                # ctk.CTkTextbox(self, width=200,
+                                #        text_color="red", font=("Georgia",  fsSMALL),  height=100)
         self.displayBox.grid(row=3, column=4, columnspan=1,rowspan=6, 
                              padx=20, pady=20, sticky="nsew")
                              
@@ -294,18 +296,18 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         Lat0=ymlContents['run']['region']['lat0']  # 33.0
         Lat1=ymlContents['run']['region']['lat1']   #73.0
-        self.sLat0=tk.StringVar(value=f'{Lat0:.3f}')
-        self.sLat1=tk.StringVar(value=f'{Lat1:.3f}')
+        self.sLat0=ge.guiStringVar(value=f'{Lat0:.3f}')
+        self.sLat1=ge.guiStringVar(value=f'{Lat1:.3f}')
         # grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
         # sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
 
-        self.Latitude0Entry = ctk.CTkEntry(self,textvariable=self.sLat0,
+        self.Latitude0Entry = ge.guiDataEntry(self,textvariable=self.sLat0,
                           placeholder_text=self.sLat0, width=colWidth)
         self.Latitude0Entry.grid(row=4, column=1,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="ew")
         # max
-        self.Latitude1Entry = ctk.CTkEntry(self,textvariable=self.sLat1,
+        self.Latitude1Entry = ge.guiDataEntry(self,textvariable=self.sLat1,
                           placeholder_text=self.sLat1, width=colWidth)
         self.Latitude1Entry.grid(row=4, column=3,
                             columnspan=1, padx=xPadding,
@@ -317,8 +319,8 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # ################################################################
         Lon0=ymlContents['run']['region']['lon0']  # -15.0
         Lon1=ymlContents['run']['region']['lon1']   #35.0
-        self.sLon0=tk.StringVar(value=f'{Lon0:.3f}')
-        self.sLon1=tk.StringVar(value=f'{Lon1:.3f}')
+        self.sLon0=ge.guiStringVar(value=f'{Lon0:.3f}')
+        self.sLon1=ge.guiStringVar(value=f'{Lon1:.3f}')
 
         # row 5 Longitudes  my_string = f'{my_float:.3f}'
         self.LongitudeMinLabel = ge.guiTxtLabel(self, text="Longitude (≥-15°E):", anchor="w", fontName="Georgia",  fontSize=fsNORMAL, width=colWidth)
@@ -331,13 +333,13 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                            sticky="ew")
         # Longitude0 Entry Field
         # min
-        self.Longitude0Entry = ctk.CTkEntry(self, textvariable=self.sLon0, 
+        self.Longitude0Entry = ge.guiDataEntry(self, textvariable=self.sLon0, 
                             placeholder_text=self.sLon0, width=colWidth)
         self.Longitude0Entry.grid(row=5, column=1,
                            columnspan=1, padx=xPadding,
                            pady=yPadding, sticky="ew")
         # max
-        self.Longitude1Entry = ctk.CTkEntry(self,textvariable=self.sLon1,
+        self.Longitude1Entry = ge.guiDataEntry(self,textvariable=self.sLon1,
                             placeholder_text=self.sLon1, width=colWidth)
         self.Longitude1Entry.grid(row=5, column=3,
                            columnspan=1, padx=xPadding,
@@ -360,11 +362,11 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
 
         # Set the radiobutton initial status in accordance with the (first) tracer extracted from the yml config file
-        self.iTracerRbVal= tk.IntVar(value=1)
+        self.iTracerRbVal= ge.guiIntVar(value=1)
         if(('ch4' in tracer) or ('CH4' in tracer)):
-            self.iTracerRbVal = tk.IntVar(value=2)
+            self.iTracerRbVal = ge.guiIntVar(value=2)
         else:
-            self.iTracerRbVal = tk.IntVar(value=1)
+            self.iTracerRbVal = ge.guiIntVar(value=1)
         self.TracerRadioButton = ge.guiRadioButton(self,
                                    text="CO2", fontName="Georgia",  fontSize=fsNORMAL, 
                                    variable=self.iTracerRbVal,  value=1, command=setTracer)
@@ -391,17 +393,15 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                                 text="Land/Vegetation NEE:", width=colWidth,  fontName="Georgia",  fontSize=fsNORMAL)
         self.observationsFilePathLabel.grid(row=7, column=2,
                             columnspan=1,padx=xPadding, pady=yPadding,
-                            sticky="ew")
+                            sticky="ew") 
 
         # Land/Vegetation Net Exchange combo box
-        self.LandNetExchangeModelCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere']['origin'])
-        self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
-                                        values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
-                                        variable=self.LandNetExchangeModelCkbVar)
-
+        self.LandNetExchangeModelCkbVar = ge.guiStringVar(value=ymlContents['emissions'][tracer]['categories']['biosphere']['origin'])
         #self.LandNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
-        #                                values=["LPJ-GUESS","VPRM"],  dropdown_fontName="Georgia",  fontSize=fsNORMAL, 
+        #                                values=["LPJ-GUESS","VPRM"],  dropdown_font=("Georgia",  fsNORMAL), 
         #                                variable=self.LandNetExchangeModelCkbVar)
+        self.LandNetExchangeOptionMenu = ge.guiOptionMenu(self,  values=["LPJ-GUESS","VPRM"], variable=self.LandNetExchangeModelCkbVar, 
+                                                                                                        dropdown_fontName="Georgia", dropdown_fontSize=fsNORMAL)
         self.LandNetExchangeOptionMenu.grid(row=7, column=3,
                                         padx=xPadding, pady=yPadding,
                                         columnspan=1, sticky="ew")
@@ -418,10 +418,10 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             sticky="ew")
         # Fossil emissions combo box
         # Latest is presently https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3
-        self.FossilEmisCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['fossil']['origin']) #"EDGARv4_LATEST"
-        self.FossilEmisOptionMenu = ctk.CTkOptionMenu(self, dropdown_font=("Georgia",  fsNORMAL), 
+        self.FossilEmisCkbVar = ge.guiStringVar(value=ymlContents['emissions'][tracer]['categories']['fossil']['origin']) #"EDGARv4_LATEST"
+        self.FossilEmisOptionMenu = ge.guiOptionMenu(self, 
                                         values=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"], 
-                                        variable=self.FossilEmisCkbVar)
+                                        variable=self.FossilEmisCkbVar, dropdown_fontName="Georgia", dropdown_fontSize=fsNORMAL)
 
         #self.FossilEmisOptionMenu = ctk.CTkOptionMenu(self, dropdown_fontName="Georgia",  fontSize=fsNORMAL, 
         #                                values=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"], 
@@ -442,10 +442,10 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
         # Ocean Net Exchange combo box
-        self.OceanNetExchangeCkbVar = tk.StringVar(value=ymlContents['emissions'][tracer]['categories']['ocean']['origin'])  # "mikaloff01"
-        self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
-                                        values=["mikaloff01"], dropdown_font=("Georgia",  fsNORMAL), 
-                                        variable=self.OceanNetExchangeCkbVar)
+        self.OceanNetExchangeCkbVar = ge.guiStringVar(value=ymlContents['emissions'][tracer]['categories']['ocean']['origin'])  # "mikaloff01"
+        self.OceanNetExchangeOptionMenu = ge.guiOptionMenu(self,
+                                        values=["mikaloff01"],
+                                        variable=self.OceanNetExchangeCkbVar, dropdown_fontName="Georgia", dropdown_fontSize=fsNORMAL)
 
 #        self.OceanNetExchangeOptionMenu = ctk.CTkOptionMenu(self,
 #                                        values=["mikaloff01"], dropdown_fontName="Georgia",  fontSize=fsNORMAL, 
@@ -459,11 +459,11 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # Obs data labels
         # ################################################################
         # ObservationsFileLocation
-        self.iObservationsFileLocation= tk.IntVar(value=1)
+        self.iObservationsFileLocation= ge.guiIntVar(value=1)
         if('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
-            self.iObservationsFileLocation = tk.IntVar(value=2)
+            self.iObservationsFileLocation = ge.guiIntVar(value=2)
         else:
-            self.iObservationsFileLocation = tk.IntVar(value=1)
+            self.iObservationsFileLocation = ge.guiIntVar(value=1)
         self.ObsFileLocationCPortalRadioButton = ge.guiRadioButton(self,
                                    text="Ranking of Obsdata from CarbonPortal", fontName="Georgia",  fontSize=fsNORMAL, 
                                    variable=self.iObservationsFileLocation,  value=2, command=setObsFileLocation)
@@ -488,10 +488,11 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         # Ranking of data records from CarbonPortal
         rankingList=ymlContents['observations'][tracer]['file']['ranking']
-        self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
-        self.ObsFileRankingBox = ctk.CTkTextbox(self,
-                                         width=colWidth,
-                                         height=(2*rowHeight+vSpacer))
+        self.ObsFileRankingTbxVar = ge.guiStringVar(value="ObsPack")
+        self.ObsFileRankingBox = ge.guiTextBox(self, width=colWidth,  height=(2*rowHeight+vSpacer),  fontName="Georgia",  fontSize=fsSMALL)
+                                        # ctk.CTkTextbox(self,
+                                        # width=colWidth,
+                                        # height=(2*rowHeight+vSpacer))
         self.ObsFileRankingBox.grid(row=10, column=0,
                              columnspan=1, rowspan=3, padx=xPadding,
                              pady=yPadding, sticky="nsew")
@@ -512,14 +513,14 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         self.observationsFilePathLabel.grid(row=10, column=2,
                             columnspan=2,padx=xPadding, pady=yPadding,
                             sticky="ew")
-        self.ObsFileLocationLocalEntry = ctk.CTkEntry(self,
+        self.ObsFileLocationLocalEntry = ge.guiDataEntry(self,
                           placeholder_text= ymlContents['observations'][tracer]['file']['path'], width=colWidth)
         self.ObsFileLocationLocalEntry.grid(row=11, column=2,
                             columnspan=2, padx=xPadding,
                             pady=yPadding, sticky="ew")
 
         # Ignore ChkBx
-        self.bIgnoreWarningsCkbVar = tk.BooleanVar(value=False) # tk.NORMAL
+        self.bIgnoreWarningsCkbVar = ge.guiBooleanVar(value=False) # tk.NORMAL
         self.ignoreWarningsCkb = ge.guiCheckBox(self,state=tk.DISABLED, 
                             text="Ignore Warnings", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.bIgnoreWarningsCkbVar, text_color='gray5',  text_color_disabled='gray70', 
@@ -547,12 +548,12 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         self.TuningParamLabel.grid(row=13, column=0,
                             columnspan=1,padx=xPadding, pady=yPadding,
                             sticky="ew")
-        #self.LandVegCkbVar = tk.StringVar(value="Vegetation")
+        #self.LandVegCkbVar = ge.guiStringVar(value="Vegetation")
         #self.LandVegCkb = ge.guiCheckBox(self,
         #                     text="Land/Vegetation",
         #                     variable=self.LandVegCkbVar,
         #                     onvalue="Vegetation", offvalue="c1")
-        self.LandVegCkbVar = tk.BooleanVar(value=True)
+        self.LandVegCkbVar = ge.guiBooleanVar(value=True)
         self.LandVegCkb = ge.guiCheckBox(self,
                              text="Land/Vegetation", fontName="Georgia",  fontSize=fsNORMAL, 
                              variable=self.LandVegCkbVar,
@@ -561,7 +562,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-        self.FossilCkbVar = tk.BooleanVar(value=False)
+        self.FossilCkbVar = ge.guiBooleanVar(value=False)
         self.FossilCkb = ge.guiCheckBox(self,
                             text="Fossil (off)", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.FossilCkbVar,
@@ -570,7 +571,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="ew")
 
-        self.OceanCkbVar = tk.BooleanVar(value=False)
+        self.OceanCkbVar = ge.guiBooleanVar(value=False)
         self.OceanCkb = ge.guiCheckBox(self,
                             text="Ocean (off)", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.OceanCkbVar,
@@ -757,11 +758,6 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         
 
 
-
-class GridCTkOptionMenu(ctk.CTkOptionMenu):
-    def __init__(self, root, myGridID, *args, **kwargs):
-        ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
-        self.widgetGridID= myGridID
 
 
 # LumiaGui Class =============================================================
@@ -1068,7 +1064,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         
         # Col0
         # ObservationsFileLocation
-        self.iObservationsFileLocation= tk.IntVar(value=1)
+        self.iObservationsFileLocation= ge.guiIntVar(value=1)
         #iObservationsFileLocation.set(1) # Read observations from local file
         if ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
             self.iObservationsFileLocation.set(2)
@@ -1080,10 +1076,11 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         # Ranking for Observation Files
         rankingList=ymlContents['observations'][tracer]['file']['ranking']
-        self.ObsFileRankingTbxVar = tk.StringVar(value="ObsPack")
-        self.ObsFileRankingBox = ctk.CTkTextbox(rootFrame,
-                                         width=colWidth,
-                                         height=int(2.4*rowHeight+vSpacer))
+        self.ObsFileRankingTbxVar = ge.guiStringVar(value="ObsPack")
+        self.ObsFileRankingBox = ge.guiTextBox(rootFrame,  width=colWidth,  height=(2.4*rowHeight+vSpacer),  fontName="Georgia",  fontSize=fsSMALL)
+                                        # ctk.CTkTextbox(rootFrame,
+                                        # width=colWidth,
+                                        # height=int(2.4*rowHeight+vSpacer))
         self.ObsFileRankingBox.grid(row=2, column=0,
                              columnspan=1, rowspan=2, padx=xPadding,
                              pady=yPadding, sticky="nsew")
@@ -1096,7 +1093,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         # Col2
         #  ##################################################
-        self.ObsLv1CkbVar = tk.BooleanVar(value=True)
+        self.ObsLv1CkbVar = ge.guiBooleanVar(value=True)
         self.ObsLv1Ckb = ge.guiCheckBox(rootFrame,
                             text="Level1", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.ObsLv1CkbVar,
@@ -1105,7 +1102,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="nw")
 
-        self.ObsNRTCkbVar = tk.BooleanVar(value=True)
+        self.ObsNRTCkbVar = ge.guiBooleanVar(value=True)
         self.ObsNRTCkb = ge.guiCheckBox(rootFrame,
                             text="NRT", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.ObsNRTCkbVar,
@@ -1114,7 +1111,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                           padx=xPadding, pady=yPadding,
                           sticky="nw")
 
-        self.ObsOtherCkbVar = tk.BooleanVar(value=True)
+        self.ObsOtherCkbVar = ge.guiBooleanVar(value=True)
         self.ObsOtherCkb = ge.guiCheckBox(rootFrame,
                             text="Other", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.ObsOtherCkbVar,
@@ -1127,7 +1124,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Col 3    Filtering of station altitudes
         #  ##################################################
 
-        self.FilterStationAltitudesCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
+        self.FilterStationAltitudesCkbVar = ge.guiBooleanVar(value=ymlContents['observations']['filters']['bStationAltitude'])
         self.FilterStationAltitudesCkb = ge.guiCheckBox(rootFrame,
                             text="Filter station altitudes", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.FilterStationAltitudesCkbVar,
@@ -1149,16 +1146,16 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         stationMinAlt = ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
         stationMaxAlt = ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
-        self.stationMinAlt=tk.StringVar(value=f'{stationMinAlt}')
-        self.stationMaxAlt=tk.StringVar(value=f'{stationMaxAlt}')
+        self.stationMinAlt=ge.guiStringVar(value=f'{stationMinAlt}')
+        self.stationMaxAlt=ge.guiStringVar(value=f'{stationMaxAlt}')
         # min Altitude Entry
-        self.stationMinAltEntry = ctk.CTkEntry(rootFrame,textvariable=self.stationMinAlt,
+        self.stationMinAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.stationMinAlt,
                           placeholder_text=self.stationMinAlt, width=colWidth)
         self.stationMinAltEntry.grid(row=2, column=4,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="nw")
         # max Altitude Entry
-        self.stationMaxAltEntry = ctk.CTkEntry(rootFrame,textvariable=self.stationMaxAlt,
+        self.stationMaxAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.stationMaxAlt,
                           placeholder_text=self.stationMaxAlt, width=colWidth)
         self.stationMaxAltEntry.grid(row=3, column=4,
                             columnspan=1, padx=xPadding,
@@ -1169,7 +1166,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ################################################################
         # 
 
-        self.FilterSamplingHghtCkbVar = tk.BooleanVar(value=ymlContents['observations']['filters']['bSamplingHeight'])
+        self.FilterSamplingHghtCkbVar = ge.guiBooleanVar(value=ymlContents['observations']['filters']['bSamplingHeight'])
         self.FilterSamplingHghtCkb = ge.guiCheckBox(rootFrame,
                             text="Filter sampling heights", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.FilterSamplingHghtCkbVar,
@@ -1191,16 +1188,16 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         inletMinHght = ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
         inletMaxHght = ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
-        self.inletMinHght=tk.StringVar(value=f'{inletMinHght}')
-        self.inletMaxHght=tk.StringVar(value=f'{inletMaxHght}')
+        self.inletMinHght=ge.guiStringVar(value=f'{inletMinHght}')
+        self.inletMaxHght=ge.guiStringVar(value=f'{inletMaxHght}')
         # min inlet height
-        self.inletMinHghtEntry = ctk.CTkEntry(rootFrame,textvariable=self.inletMinHght,
+        self.inletMinHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.inletMinHght,
                           placeholder_text=self.inletMinHght, width=colWidth)
         self.inletMinHghtEntry.grid(row=2, column=6,
                             columnspan=1, padx=xPadding,
                             pady=yPadding, sticky="nw")
         # max inlet height
-        self.inletMaxHghtEntry = ctk.CTkEntry(rootFrame,textvariable=self.inletMaxHght,
+        self.inletMaxHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.inletMaxHght,
                           placeholder_text=self.inletMaxHght, width=colWidth)
         self.inletMaxHghtEntry.grid(row=3, column=6,
                             columnspan=1, padx=xPadding,
@@ -1215,7 +1212,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
         #
-        self.isICOSRadioButtonVar = tk.IntVar(value=1)
+        self.isICOSRadioButtonVar = ge.guiIntVar(value=1)
         if (ymlContents['observations']['filters']['ICOSonly']==True):
             self.isICOSRadioButtonVar.set(2)
         self.isICOSplusRadioButton = ge.guiRadioButton(rootFrame,
@@ -1495,7 +1492,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         colidx=int(0)  # row['selected']
         # ###################################################
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
-        myWidgetVar= tk.BooleanVar(value=row['selected'])
+        myWidgetVar= ge.guiBooleanVar(value=row['selected'])
         myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="",font=("Georgia", fsNORMAL),
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             variable=myWidgetVar, onvalue=True, offvalue=False) 
@@ -1518,7 +1515,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         num+=1
         if((rowidx==0) or (row['includeCountry'] == True)):
             gridID=int((100*rowidx)+colidx)
-            myWidgetVar= tk.BooleanVar(value=row['includeCountry'])
+            myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
             myWidgetCountry  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False)  
             myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.handleMyCheckboxEvent(myWidgetCountry.widgetGridID, 
@@ -1537,7 +1534,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ###################################################
         num+=1
         gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.BooleanVar(value=row['includeStation'])
+        myWidgetVar= ge.guiBooleanVar(value=row['includeStation'])
         myWidgetStationid  = GridCTkCheckBox(scrollableFrame4Widgets, gridID, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), variable=myWidgetVar, onvalue=True, offvalue=False) 
         myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.handleMyCheckboxEvent(myWidgetStationid.widgetGridID, 
@@ -1553,7 +1550,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         colidx+=1 # =3  row['samplingHeight']
         # ###################################################
         gridID=int((100*rowidx)+colidx)
-        myWidgetVar= tk.StringVar(value=str(row['samplingHeight'][0])) 
+        myWidgetVar= ge.guiStringVar(value=str(row['samplingHeight'][0])) 
         myWidgetSamplingHeight  = GridCTkOptionMenu(scrollableFrame4Widgets, gridID, values=sSamplingHeights,
                                                             variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
