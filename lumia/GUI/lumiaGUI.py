@@ -7,6 +7,8 @@
 # !pip install customtkinter
 # !pip install icoscp_core  -- installed with conflicts and warnings: pangaeapy 1.0.6 requires requests~=2.26.0, but you have requests 2.31.0 which is incompatible
 # !pip install ipython
+# !pip install Pillow
+# !pip install screeninfo
 
 import os
 import sys
@@ -20,6 +22,7 @@ import _thread
 import re
 from loguru import logger
 from pandas import to_datetime
+from screeninfo import get_monitors
 
 ISNOTEBOOK=False
 scriptName=sys.argv[0]
@@ -123,7 +126,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
                     self.after(100, self.event_generate("<Destroy>"))
                 except:
                     pass
-        self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
+            self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
         
         def CancelAndQuit(): 
             #logger.info("LumiaGUI was canceled.")
@@ -532,8 +535,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         # Row 12
         # ################################################################
         # Cancel Button
-        self.CancelButton = ctk.CTkButton(master=self, font=("Georgia", 18), text="Cancel",
-            command=CancelAndQuit)
+        self.CancelButton = ge.guiButton(self, text="Cancel",  command=CancelAndQuit,  fontName="Georgia",  fontSize=fsLARGE) 
         self.CancelButton.grid(row=12, column=4,
                                         columnspan=1, padx=xPadding,
                                         pady=yPadding, sticky="ew")
@@ -1241,7 +1243,7 @@ class RefineObsSelectionGUI(ctk.CTk):
                 hk.runSysCmd(sCmd)
                 global LOOP2_ACTIVE
                 LOOP2_ACTIVE = False
-        root.protocol("WM_DELETE_WINDOW", CloseTheGUI)
+            root.protocol("WM_DELETE_WINDOW", CloseTheGUI)
         
         def CancelAndQuit(): 
             logger.info("LumiaGUI was canceled.")

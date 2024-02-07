@@ -40,6 +40,10 @@ def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
     return(tk.messagebox.askokcancel(title="Quit", message="Is it OK to abort your Lumia run?",  icon=tk.messagebox.QUESTION))
     
 
+def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, ):
+    return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize), text=text)
+)
+
 def   guiCheckBox(self,state=tk.NORMAL, text='', fontName="Georgia",  fontSize=12, variable=None, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
     if((variable is None)):

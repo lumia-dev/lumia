@@ -2,6 +2,11 @@ import re
 #import housekeeping as hk
 import tkinter as tk 
 from loguru import logger
+#import Pillow
+from PIL import Image
+from PIL import  ImageFont, ImageDraw
+from matplotlib import font_manager
+#from Pillow import ImageFont, ImageDraw
 
 def add_keys_nested_dict(d, keys, value=None):
     for key in keys:
@@ -12,49 +17,110 @@ def add_keys_nested_dict(d, keys, value=None):
 
 
 
-def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestTxt,  nCols=1, nRows=1,
-                                                        xPad=20,  yPad=10,  maxFontSize=20,  bWeCanStackColumns=False):
+def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestTxt,  nCols=1, nRows=1, xPad=20,
+                                                        yPad=10,  maxFontSize=20,  USE_TKINTER=True,  bWeCanStackColumns=False):
     FontSize=int(14)  # for normal text
-    font = tk.font.Font(family=sFontFamily, size=FontSize)
+    bFontFound=False
+    system_fonts = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
+    myfontpath=''
+    for fontpath in system_fonts:
+        if(re.search(sFontFamily, fontpath,  re.IGNORECASE)):
+            if(re.search('bold', fontpath,  re.IGNORECASE) or 
+                re.search('italic', fontpath,  re.IGNORECASE) or
+                re.search('condensed', fontpath,  re.IGNORECASE)):
+                    pass
+            else:
+                myfontpath=fontpath
+                bFontFound=True
+                break
+    if(len(myfontpath)<10):
+        return(bFontFound, 9, 10, 12, 15, 19, 24, False) # and hope for the best....
+        logger.warning(f'TTF font for FontFamily {sFontFamily} not found on system. Defaulting to font size 12 as a base size.')
+    if(USE_TKINTER):
+        font = tk.font.Font(family=sFontFamily, size=FontSize)
+    else:
+        try:
+            font = ImageFont.truetype(fontpath, FontSize)
+        except:
+            logger.warning(f'TTF font for FontFamily {sFontFamily} not found on system. Defaulting to font size 12 as a base size.')
+            return(False, 9, 10, 12, 15, 19, 24, False)
+        (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+        w=right - left
+        h=abs(top - bottom)
     tooSmall=8 # pt
     bCanvasTooSmall=False
     bWeMustStack=False
     colW=int(iAvailWidth/nCols)-(0.5*xPad)+0.5
     colH=int( iAvailHght/nRows)-(0.5*yPad)+0.5
     # logger.debug(f"avail colWidth= {colW} pxl: colHeight= {colH} pxl")
-    (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+    if(USE_TKINTER):
+        (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+    else:
+        font = ImageFont.truetype(fontpath, FontSize)
+        (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+        w=right - left
+        h=abs(top - bottom)
     # logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
     # Make the font smaller until the text fits into one column width
     while(w>colW):
         FontSize=FontSize-1
-        font = tk.font.Font(family=sFontFamily, size=FontSize)
-        (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        if(USE_TKINTER):
+            font = tk.font.Font(family=sFontFamily, size=FontSize)
+            (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        else:
+            font = ImageFont.truetype(fontpath, FontSize)
+            (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+            w=right - left
+            h=abs(top - bottom)
         if (FontSize==tooSmall):
             FontSize=FontSize+1
-            font = tk.font.Font(family=sFontFamily, size=FontSize)
+            if(USE_TKINTER):
+                font = tk.font.Font(family=sFontFamily, size=FontSize)
+                (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+            else:
+                font = ImageFont.truetype(fontpath, FontSize)
+                (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+                w=right - left
+                h=abs(top - bottom)
             bCanvasTooSmall=True
-            (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
             break
         # logger.debug(f"{sFontFamily}, {FontSize}pt: (w={w},h={h})pxl")
     # If the screen is too small, check if we could stack the output vertically using fewer columns
     if((bCanvasTooSmall) and (bWeCanStackColumns) and (nCols>1)):
         nCols=int((nCols*0.5)+0.5)
-        font = tk.font.Font(family=sFontFamily, size=FontSize)
-        (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        if(USE_TKINTER):
+            font = tk.font.Font(family=sFontFamily, size=FontSize)
+            (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        else:
+            font = ImageFont.truetype(fontpath, FontSize)
+            (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+            w=right - left
+            h=abs(top - bottom)
         if(w<colW+1):
             bCanvasTooSmall=False
             bWeMustStack=True
-            
     # Now make the font as big as we can
     bestFontSize=FontSize
     while((FontSize<maxFontSize)): # and (not bMaxReached) ):
         FontSize=FontSize+1
-        font = tk.font.Font(family=sFontFamily, size=FontSize)
-        (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        if(USE_TKINTER):
+            font = tk.font.Font(family=sFontFamily, size=FontSize)
+            (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+        else:
+            font = ImageFont.truetype(fontpath, FontSize)
+            (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+            w=right - left
+            h=abs(top - bottom)
         if(w<=colW):
             bestFontSize=FontSize
     FontSize=bestFontSize
-    (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+    if(USE_TKINTER):
+        (w,h) = (font.measure(sLongestTxt),font.metrics("linespace"))
+    else:
+        font = ImageFont.truetype(fontpath, FontSize)
+        (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
+        w=right - left
+        h=abs(top - bottom)
     logger.debug(f"{sFontFamily} {FontSize}: (w={w},h={h})pxl")
     if(h>colH):
         logger.debug("We may need a vertical scrollbar...")
@@ -65,7 +131,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     fsHUGE=int((1.5833333*FontSize)+0.5)  # 19
     fsGIGANTIC=int(2*FontSize)  # 24
     logger.debug(f"fsSMALL={fsSMALL},fsNORMAL={fsNORMAL},fsLARGEL={fsLARGE},fsHUGE={fsHUGE}")
-    return(fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStack)
+    return(bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStack)
 
 
 def grabFirstEntryFromList(myList):
