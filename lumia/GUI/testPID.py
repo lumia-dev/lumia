@@ -165,7 +165,7 @@ class LumiaGui():  #ctk.CTkToplevel  ctk.CTk):
             root.columnconfigure(0, weight=1)
         nCols=5 # sum of labels and entry fields per row
         nRows=13 # number of rows in the GUI
-        likedFonts=["Georgia", "Arial", "Microsoft", "Helvetica"]
+        likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
         sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
         for myFontFamily in likedFonts:
             (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
@@ -273,8 +273,16 @@ class LumiaGui():  #ctk.CTkToplevel  ctk.CTk):
                 pass
                 #logger.error('Failed to destroy the first page of the GUI for whatever reason...')
 
+        if(not USE_TKINTER):
+            toolbar_widget = widgets.VBox()
+            toolbar_widget.children = [
+                self.LatitudesLabel, 
+                CancelButton
+            ]
+            toolbar_widget   
+            display(toolbar_widget) 
         _thread.start_new_thread(loop_function, ())
-        #root.mainloop()     
+        #root.mainloop()
         return(True)
 
     def show(self):

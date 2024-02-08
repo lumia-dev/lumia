@@ -85,7 +85,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         vSpacer=int(2*0.008*maxH)
         myFontFamily="Georgia"
         sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
-        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
+        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
             bs.calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
                                                         yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
         hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
@@ -839,7 +839,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         vSpacer=int(2*0.008*self.maxH)
         myFontFamily="Georgia"
         sLongestTxt="Latitude NN :"
-        (fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
+        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns)= \
             bs.calculateEstheticFontSizes(myFontFamily,  self.maxW,  self.maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
                                                         yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
         hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
