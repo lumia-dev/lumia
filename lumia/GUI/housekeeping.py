@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='ada2c38758fe97723aeb9dcf9a237bc1cfc7c372' 
+LATESTGITCOMMIT_LumiaDA='411f1924912bcf89ceb022793966056e39ef07e4'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
 import sys
 import platform
+import pathlib
 import re
-import git
 import yaml
 from datetime import datetime
-from pandas import to_datetime,  Timestamp
-# from rctools import RcFile as rc
+from pandas import  Timestamp  # , to_datetime
 from loguru import logger
 
 
@@ -32,15 +31,14 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
         i+=1
         myDict = myDict[key]
 
-script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))   
+
 
 def runSysCmd(sCmd,  ignoreError=False):
     try:
         os.system(sCmd)
     except:
         if(ignoreError==False):
-            sTxt=f"Fatal Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc."
-            logger.warning(sTxt)
+            logger.error(f"Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc.")
         return False
     return True
 
@@ -146,38 +144,55 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     branch='UKNOWN    '
     repoUrl='UKNOWN    '
     myCom='UKNOWN    '
-    try:
-        # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        localRepo = git.Repo(script_directory, search_parent_directories=True)
-        logger.debug(f'localRepo={localRepo}')
+    scriptName=sys.argv[0]
+    script_directory = os.path.dirname(os.path.abspath(scriptName))
+    scriptTail=scriptName[-6:]
+    if('.ipynb' in scriptTail):
+        logger.info('Local git information is not available from this python notebook. This is not an issue.')
+    else: 
+        import git
         try:
-            sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
-            logger.debug(f'Found localRepo.working_tree_dir info at : {sLocalGitRepos}')
+            # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+            if('LumiaGUI' in parentScript):
+                # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here
+                lumiaGUIdir=pathlib.Path(script_directory)
+                oneLevelUp=lumiaGUIdir.parent
+                lumiaDA_directory=oneLevelUp.parent
+                try:
+                    localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
+                except:
+                    localRepo = git.Repo(script_directory, search_parent_directories=True)
+            else:        
+                localRepo = git.Repo(script_directory, search_parent_directories=True)
+            logger.debug(f'localRepo={localRepo}')
+            try:
+                sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
+                logger.debug(f'Found localRepo.working_tree_dir info at : {sLocalGitRepos}')
+            except:
+                logger.debug('Failed to find localRepo.working_tree_dir info')
+            try:
+                branch=localRepo.head.ref # repo.head.ref=LumiaDA
+                print(f'Local git info suggests that the branch name is : {branch}')
+            except:
+                logger.debug('Failed to find localRepo.working_tree_dir info')
+            try:
+                repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
+                logger.debug(f'Local git info suggests that the remote github url is : {repoUrl}')
+            # repo.head.commit=6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
+            except:
+                logger.debug('Failed to find localRepo.remotes.origin.url info')
+            try:
+                myCom=str(localRepo.head.commit)
+                logger.debug(f'Local git info suggests that the latest commit is : {myCom}')
+                #myComB=localRepo.head.commit(branch)
+            except:
+                logger.debug('Failed to find localRepo.head.commit info')
+            remoteCommitUrl=repoUrl[:-4]+'/commit/'+str(localRepo.head.commit)
+            logger.debug(f'Which you should also be able to get from : {remoteCommitUrl}')
+            # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
         except:
-            logger.debug('Failed to find localRepo.working_tree_dir info')
-        try:
-            branch=localRepo.head.ref # repo.head.ref=LumiaDA
-            print(f'Local git info suggests that the branch name is : {branch}')
-        except:
-            logger.debug('Failed to find localRepo.working_tree_dir info')
-        try:
-            repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
-            logger.debug(f'Local git info suggests that the remote github url is : {repoUrl}')
-        # repo.head.commit=6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-        except:
-            logger.debug('Failed to find localRepo.remotes.origin.url info')
-        try:
-            myCom=str(localRepo.head.commit)
-            logger.debug(f'Local git info suggests that the latest commit is : {myCom}')
-            #myComB=localRepo.head.commit(branch)
-        except:
-            logger.debug('Failed to find localRepo.head.commit info')
-        remoteCommitUrl=repoUrl[:-4]+'/commit/'+str(localRepo.head.commit)
-        logger.debug(f'Which you should also be able to get from : {remoteCommitUrl}')
-        # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-    except:
-        remoteCommitUrl='UKNOWN    '
-        logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
+            remoteCommitUrl='UKNOWN    '
+            logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
     
     if(LATESTGITCOMMIT_LumiaDA not in myCom):
         logger.error(f"\nError: There is a mismatch between the current local or remote git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this lumia.GUI.housekeeping.py file. \nPlease check if there is a newer version on github or whether you forgot to push your latest local commit to the remote github.\nPlease resolve the conflict before proceeding.")
@@ -262,6 +277,20 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     except:
         tracer='co2'
     
+   # Make sure these keys exist. Do not overwrite existing values.
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='./data', bNewValue=False) # for runflex ./data/meteo/ea.eurocom025x025/
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'run',  'paths',  'temp'],   value='/temp', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr', bNewValue=False )
+    # Run-dependent paths
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'tag'],   value=os.path.join('/output', args.tag), bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication',  'file'],   value='congrad.nc', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward', bNewValue=False)
+    
     myMachine=platform.node()
     pyVers= 'Python 3.10.10' # sys.version()
     pyVersion='Python environment version is '+str(pyVers)
@@ -275,15 +304,19 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'PythonVersion' ],   value=pyVersion, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'hostName' ],   value=myMachine, bNewValue=True)
     # Lumia version
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value=parentScript, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'url'],   value='git@github.com:lumia-dev/lumia.git', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'commit'],   value=LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'location'],   value='git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     # runflex
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'branch'],   value='v2', bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'url'],   value='git@github.com:lumia-dev/runflex.git', bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'commit'],   value=LATESTGITCOMMIT_Runflex, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'git',  'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'softwareUsed',  'runflex',  'branch'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'commit'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'branch'],   value='v2', bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'url'],   value='git@github.com:lumia-dev/runflex.git', bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'commit'],   value=LATESTGITCOMMIT_Runflex, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'location'],   value='git@github.com:lumia-dev/runflex/commit/'+LATESTGITCOMMIT_Runflex, bNewValue=True)
 
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'version'],   value=nThisConfigFileVersion, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'thisConfigFile',  'dataformat', 'subversion'],   value=nThisConfigFileSubVersion, bNewValue=True)
