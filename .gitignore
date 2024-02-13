@@ -34,7 +34,14 @@ scripts/.ipynb_checkpoints/lagrange_mp-checkpoint.py
 site/
 
 coco2_co2_v3.rc
-
 coco2_co2_v2.rc
 
 mkdocs.yml
+lumia/GUI/output/
+lumia/GUI/tmp/
+lumia/GUI/output/*.stop
+lumia/GUI/output/*.go
+tmp/
+output/
+*.stop
+*.go
