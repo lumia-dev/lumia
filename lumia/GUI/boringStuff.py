@@ -1,8 +1,6 @@
 import re
-#import housekeeping as hk
 import tkinter as tk 
 from loguru import logger
-#import Pillow
 from PIL import Image
 from PIL import  ImageFont, ImageDraw
 from matplotlib import font_manager
