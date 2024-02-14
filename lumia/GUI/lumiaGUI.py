@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import os
 import sys
 import housekeeping as hk
@@ -32,7 +33,7 @@ from ipywidgets import widgets
 import boringStuff as bs
 MIN_SCREEN_RES=480 # pxl - just in case querying screen size fails for whatever reason...
 
-def callLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv=1): 
+def prepareCallToLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv=1): 
     '''
     Function 
     callLumiaGUI exposes some paramters of the LUMIA config file (in yaml data format) to a user
@@ -89,28 +90,106 @@ def callLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv=1):
     else:
         logger.debug(f'found Display {myDsp}')
 
-    (bFirstGuiPageSuccessful, ymlContents)=LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv=1) 
+    root=None
+    if(USE_TKINTER):
+        root = LumiaTkGui() #tk.Tk()
+        lumiaGuiAppInst=lumiaGuiApp(root)
+        #lumiaGuiAppInst.button.invoke()
+        lumiaGuiAppInst.sLogCfgPath = sLogCfgPath 
+        lumiaGuiAppInst.ymlContents = ymlContents
+        lumiaGuiAppInst.ymlFile = ymlFile
+        guiPg1TpLv=lumiaGuiAppInst.guiPage1AsTopLv(iVerbosityLv)
+        lumiaGuiAppInst.runPage2(iVerbosityLv)  # of lumiaGuiApp
+        root.mainloop()
+        sys.exit(0)
+        
+        #guiPages=[]
+        #guiPages.append(LumiaTkGui())  # 1st page ctk.ctk window instance
+        #guiPages.append(LumiaTkGui())  # 2nd page ctk.ctk window instance
+        #root=guiPages[0] # LumiaTkGui() # .pack(side="top", fill="both", expand=True)
+    else:
+        notify_output = widgets.Output()
+        display(notify_output)
+    '''
+    (bFirstGuiPageSuccessful, ymlContents)=LumiaGuiPage1(root, sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv=1) 
     
     # Go hunt for the data
     
     # Present to the user the data sets found
-    (bFirstGuiPageSuccessful, ymlContents)=LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=True, iVerbosityLv=1) 
-
-    if(0>1):
-        root=None # TODO: move all this into RefineObsSelectionGUI
-        rootFrame2 = tk.Frame(root, bg="cadet blue")
-        rootFrame2.grid(sticky='news')
-        FrameCanvas2 = tk.Frame(rootFrame2)
-        #guiPage2=RefineObsSelectionGUI(root,  widgetsLst=widgetsLst) 
-        #guiPage2.run(root, sLogCfgPath) 
-        guiPage2=RefineObsSelectionGUI(FrameCanvas2, root, ymlContents) #,  widgetsLst=widgetsLst) 
-        guiPage2.run(FrameCanvas2, sLogCfgPath) 
-        guiPage2.show()
-    
-    # root.mainloop()
+    if(USE_TKINTER):
+        root=guiPages[1] 
+    (bFirstGuiPageSuccessful, ymlContents)=LumiaGuiPage1(root,  sLogCfgPath, ymlContents, ymlFile, bRefine=True, iVerbosityLv=1) 
+    '''
     logger.info('LumiaGUI completed successfully. The updated Lumia config file has been written to:')
     logger.info(ymlFile)
     return
+
+class lumiaGuiApp:
+    def __init__(self, root):
+        self.root = root
+        #self.initActive=True
+        self.guiPg1TpLv=None
+        self.label1 = tk.Label(self.root, text="App main window - hosting the second GUI page.")
+        #self.button = tk.Button(self.root, text="Go to page 1", command=self.guiPage1AsTopLv) # TODO: for testing only. remove this button.
+        #self.initActive=False
+        self.label1.pack()
+        #self.button.pack()
+        #self.button.invoke()
+        
+    def closeTopLv(self, bWriteStop=True):  # of lumiaGuiApp
+        #if(self.initActive):
+        #    return
+        self.guiPg1TpLv.destroy()
+        if(bWriteStop):
+            self.cleanUp(bWriteStop)
+            logger.info('lumiaGUI canceled by user.')
+            self.closeApp(False)
+        self.guiPg1TpLv=None
+        self.root.deiconify()
+        #self.runPage2()
+
+    def gotoPage2(self):
+        self.closeTopLv(bWriteStop=False)
+
+    def closeApp(self, bWriteStop=True):  # of lumiaGuiApp
+        self.cleanUp(bWriteStop)
+        logger.info("Closing the GUI...")
+        self.root.destroy()
+        if(bWriteStop):
+            logger.info('lumiaGUI canceled by user.')
+        else:
+            logger.info(f'LumiaGUI completed successfully. The updated Lumia config file has been written to: {self.ymlFile}')
+        sys.exit(0)
+
+    def exitWithSuccess(self):
+        self.closeApp(bWriteStop=False)
+        
+    def guiPage1AsTopLv(self, iVerbosityLv='INFO'):  # of lumiaGuiApp
+        #if(self.initActive):
+        #    return
+        if(self.guiPg1TpLv is None):
+            self.guiPg1TpLv = tk.Toplevel(self.root)
+            #self.initActive=False
+        self.root.iconify()
+        #self.initActive=True
+        self.label2 = tk.Label(self.guiPg1TpLv, text="I'm your page1 toplevel window.")
+        self.guiPg1TpLv.protocol("WM_DELETE_WINDOW", self.closeTopLv)
+        self.button3 = tk.Button(self.guiPg1TpLv, text="Go to page 2", command=self.gotoPage2)
+        #self.initActive=False
+        self.label2.pack()
+        self.button3.pack()
+
+    def runPage2(self, iVerbosityLv='INFO'):  # of lumiaGuiApp
+        self.button2 = tk.Button(self.root, text="Exit", command=self.exitWithSuccess) # Note: expressions after command= cannot have parameters or they will be executed at initialisation which is unwanted
+        self.button2.pack()
+
+    def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp
+        if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+            logger.info("LumiaGUI was canceled.")
+            sCmd="touch LumiaGui.stop"
+            hk.runSysCmd(sCmd)
+    
+   
 
 # LumiaGui Class =============================================================
 class LumiaTkGui(ctk.CTk):
@@ -125,10 +204,16 @@ class LumiaTkGui(ctk.CTk):
         self.activeTextColor='gray10'
         self.inactiveTextColor='gray50'
 
+class LumiaTkFrame(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
 
 # =======================================================================
-def LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv=1): 
+def LumiaGuiPage1(root,  sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv=1): 
     # =====================================================================
+    global LOOP_ACTIVE
+    LOOP_ACTIVE=True
     def CloseTheGUI(bAskUser=True,  bWriteStop=True):
         if(bAskUser):  # only happens if the GUI window was closed brutally
             if ge.guiAskOkCancel(title="Quit?",  message="Is it OK to abort your Lumia run?"):  # tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
@@ -141,13 +226,20 @@ def LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv
                 logger.info("LumiaGUI was canceled.")
                 sCmd="touch LumiaGui.stop"
                 hk.runSysCmd(sCmd)
+            
             global LOOP_ACTIVE
             LOOP_ACTIVE = False
             logger.info("Closing the GUI...")
             try:
                 if(guiPage1 is not None):
                     try:
-                        guiPage1.after(100, guiPage1.event_generate("<Destroy>"))
+                        # close the current gui page
+                        if(bRefine):
+                            guiPage1.quit()
+                            #guiPage1.after(100, guiPage1.event_generate("<Destroy>"))
+                        else:
+                            guiPage1.iconify
+                            #guiPage1.close()
                     except:
                         pass
             except:
@@ -161,44 +253,61 @@ def LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv
     def show(guiPage1):
         if(USE_TKINTER):
             try:
-                guiPage1.wm_protocol("WM_DELETE_WINDOW", guiPage1.destroy)
+                guiPage1.wm_protocol("WM_DELETE_WINDOW", CancelAndQuit)
             except:
                 pass
-            guiPage1.wait_window(guiPage1)
+            #guiPage1.wait_window(guiPage1)
         return 
 
     if(USE_TKINTER):
-        guiPage1=LumiaTkGui() # .pack(side="top", fill="both", expand=True)
+        #guiPage1=LumiaTkFrame(root) # .pack(side="top", fill="both", expand=True)
+        #guiPage1=LumiaTkGui() # .pack(side="top", fill="both", expand=True)
+        # guiPage1= tk.Frame(root, bg="cadet blue")
+        #guiPage1= tk.Toplevel(root)
+        #guiPage1.parent=root
+        guiPage1 = root
     else:
         notify_output = widgets.Output()
         display(notify_output)
     
-    # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, etc.
-    guiPage1.appWidth, guiPage1.appHeight,  guiPage1.xPadding, guiPage1.yPadding = displayGeometry(maxAspectRatio=1.2)
+    # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+    def stakeOutSpacesAndFonts(guiPage1, nCols, nRows):
+        guiPage1.appWidth, guiPage1.appHeight,  guiPage1.xPadding, guiPage1.yPadding = displayGeometry(maxAspectRatio=1.2)
+        wSpacer=2*guiPage1.xPadding
+        #vSpacer=2*guiPage1.yPadding
+        likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
+        sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
+        for myFontFamily in likedFonts:
+            (bFontFound, guiPage1.fsTINY,  guiPage1.fsSMALL,  guiPage1.fsNORMAL,  guiPage1.fsLARGE,  guiPage1.fsHUGE,  guiPage1.fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
+                bs.calculateEstheticFontSizes(myFontFamily,  guiPage1.appWidth,  guiPage1.appHeight, sLongestTxt, nCols, nRows, 
+                                                                xPad=guiPage1.xPadding, yPad=guiPage1.yPadding, maxFontSize=20, 
+                                                                USE_TKINTER=USE_TKINTER, bWeCanStackColumns=False)
+            if(not bSuccess):
+                if(not bFontFound):
+                    myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
+            if(bFontFound):
+                break
+        if(not bFontFound):
+            myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
+        guiPage1.myFontFamily=myFontFamily
+        hDeadSpace=wSpacer+(nCols*guiPage1.xPadding*2)+wSpacer
+        vDeadSpace=2*guiPage1.yPadding #vSpacer+(nRows*guiPage1.yPadding*2)+vSpacer
+        guiPage1.colWidth=int((guiPage1.appWidth - hDeadSpace)/(nCols*1.0))
+        guiPage1.rowHeight=int((guiPage1.appHeight - vDeadSpace)/(nRows*1.0))
+        return()
+        
+        
+    # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+    if(bRefine):
+        nCols=12 # sum of labels and entry fields per row
+        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
+    else:
+        nCols=5 # sum of labels and entry fields per row
+        nRows=13 # number of rows in the GUI
+    stakeOutSpacesAndFonts(guiPage1, nCols, nRows)
     xPadding=guiPage1.xPadding
-    wSpacer=2*guiPage1.xPadding
     yPadding=guiPage1.yPadding
-    vSpacer=2*guiPage1.yPadding
-    nCols=5 # sum of labels and entry fields per row
-    nRows=13 # number of rows in the GUI
-    likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
-    sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
-    for myFontFamily in likedFonts:
-        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
-            bs.calculateEstheticFontSizes(myFontFamily,  guiPage1.appWidth,  guiPage1.appHeight, sLongestTxt, nCols, nRows, xPad=xPadding, 
-                                                        yPad=yPadding, maxFontSize=20, USE_TKINTER=USE_TKINTER, bWeCanStackColumns=False)
-        if(not bSuccess):
-            if(not bFontFound):
-                myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
-        if(bFontFound):
-            break
-    if(not bFontFound):
-        myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
-    guiPage1.myFontFamily=myFontFamily
-    hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
-    vDeadSpace=2*yPadding #vSpacer+(nRows*yPadding*2)+vSpacer
-    guiPage1.colWidth=int((guiPage1.appWidth - hDeadSpace)/(nCols*1.0))
-    guiPage1.rowHeight=int((guiPage1.appHeight - vDeadSpace)/(nRows*1.0))
+
     # Dimensions of the window
     appWidth, appHeight = guiPage1.appWidth, guiPage1.appHeight
 
@@ -207,17 +316,16 @@ def LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv
     #guiPage1.lonMax = ge.guiDoubleVar(value=45.0)
     #guiPage1.latMin = ge.guiDoubleVar(value=23.0)
     #guiPage1.latMax = ge.guiDoubleVar(value=83.0)
-
     # Row 0:  Title Label
     # ################################################################
     if(bRefine):
         title="LUMIA  --  Refine your selections among the data discovered"
     else:
         title="LUMIA  --  Configure your next LUMIA run"
-    guiPage1.TitleLabel = ge.guiTxtLabel(guiPage1, title, fontName=guiPage1.myFontFamily, fontSize=fsGIGANTIC, bold=True)
+    guiPage1.TitleLabel = ge.guiTxtLabel(guiPage1, title, fontName=guiPage1.myFontFamily, fontSize=guiPage1.fsGIGANTIC, bold=True)
     # Row 12 Cancel Button
     # ################################################################
-    guiPage1.CancelButton = ge.guiButton(guiPage1, text="Cancel",  command=CancelAndQuit,  fontName="Georgia",  fontSize=fsLARGE) 
+    guiPage1.CancelButton = ge.guiButton(guiPage1, text="Cancel",  command=CancelAndQuit,  fontName="Georgia",  fontSize=guiPage1.fsLARGE) 
         
     if(not USE_TKINTER):
         #btn_clickme = widgets.Button(description='Cancel')
@@ -242,9 +350,7 @@ def LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv
     # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
     # sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
     if(USE_TKINTER):
-        # guiPage1.geometry(f"{appWidth}x{appHeight}")   
         guiPage1.geometry(f"{appWidth}x{appHeight}")   
-        # root.wait_window(guiPage1)
         show(guiPage1)
     else:
         toolbar_widget = widgets.VBox()
@@ -254,7 +360,9 @@ def LumiaGuiPage1(sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv
         ]
         toolbar_widget   
         display(toolbar_widget) 
-    guiPage1.mainloop()
+    while LOOP_ACTIVE:
+        #guiPage1.mainloop()
+        guiPage1.update()
     # if we got here, then this subroutine was successful - at least that is the idea...
     bSuccess=True
     return(bSuccess, ymlContents)
@@ -383,6 +491,6 @@ ymlFile=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
 # no need to pass args.start or args.end because hk.documentThisRun() already took care of these.
 scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
 # Call the main method
-callLumiaGUI(ymlFile,  scriptDirectory, args.verbosity)
+prepareCallToLumiaGUI(ymlFile,  scriptDirectory, args.verbosity)
 
 
