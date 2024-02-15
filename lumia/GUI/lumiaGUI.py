@@ -247,6 +247,12 @@ class lumiaGuiApp:
         appWidth, appHeight = self.root.appWidth, self.root.appHeight
         # action if the gui window is closed by the user (==canceled)
         self.guiPg1TpLv.protocol("WM_DELETE_WINDOW", self.closeTopLv)
+        # set the size of the gui window before showing it
+        if(USE_TKINTER):
+            #self.root.xoffset=int(0.5*1920)
+            #self.root.update_idletasks()
+            self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
+            self.guiPg1TpLv.geometry(f"{appWidth}x{appHeight}")
 
         # ====================================================================
         # Creation of all widgets of first GUI page  -- part of lumiaGuiApp (toplevel window)
@@ -312,7 +318,7 @@ class lumiaGuiApp:
         self.Pg1TitleLabel = ge.guiTxtLabel(self.guiPg1TpLv, title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold")
         # Row 1:  Time interval Heading
         # ################################################################
-        self.Pg1LatitudesLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Time interval",  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
+        self.Pg1TimeHeaderLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Time interval",  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         # Row 2: Time interval Entry
         # ################################################################
         self.Pg1TimeStartLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w",
@@ -410,7 +416,7 @@ class lumiaGuiApp:
                             variable=self.FossilCkbVar, onvalue=True, offvalue=False)                             
         self.Pg1OceanCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Ocean (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                             variable=self.OceanCkbVar, onvalue=True, offvalue=False)                            
-        self.Pg1GoButton = ge.guiButton(self.guiPg1TpLv, text="Go to page 2", command=self.EvHdPg1GotoPage2)
+        self.Pg1GoButton = ge.guiButton(self.guiPg1TpLv, text="PROCEED", command=self.EvHdPg1GotoPage2, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
             
  
         # ====================================================================
@@ -418,29 +424,84 @@ class lumiaGuiApp:
         # ====================================================================
         # 
         # ################################################################
-        if(USE_TKINTER):
-            # Row 0:  Title Label
-            self.Pg1TitleLabel.grid(row=0, column=0, columnspan=8,padx=xPadding, pady=yPadding, sticky="ew")
-            # Row 12 : Cancel Button
-            self.Pg1CancelButton.grid(row=12, column=4, columnspan=1, padx=xPadding, pady=yPadding, sticky="ew")
-            # Row 13 : Go to page 2 Button
-            self.Pg1GoButton.grid(row=13, column=4, columnspan=1, padx=xPadding, pady=yPadding, sticky="ew")
-            
-        else:
-            display(self.Pg1TitleLabel)
-            display(self.Pg1CancelButton)
-            display(self.Pg1GoButton)
+        # Row 0:  Title Label
+        ge.guiPlaceWidget(self.Pg1TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 1:  Time interval Heading
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1TimeHeaderLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 2: Time interval Entry
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1TimeStartLabel, row=2, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1TimeStartEntry, row=2, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1TimeEndLabel, row=2, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1TimeEndEntry, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 3:  Geographical Region Heading & Message Box
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1LatitudesLabel, row=3, column=0, columnspan=3,padx=xPadding, pady=yPadding, sticky="ew")
+        #    Text Box for messages, warnings, etc
+        ge.guiPlaceWidget(self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=6, padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 4: Latitudes Entry Fields
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1LatitudeMinLabel, row=4, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1LatitudeMaxLabel, row=4, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1Latitude0Entry, row=4, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1Latitude1Entry, row=4, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 5: Longitudes Entry Fields
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1LongitudeMinLabel, row=5, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1LongitudeMaxLabel, row=5, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1Longitude0Entry, row=5, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1Longitude1Entry, row=5, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 6:  Tracer radiobutton (CO2/CH4)
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1TracerLabel, row=6, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1TracerRadioButton, row=6, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1TracerRadioButton, row=6, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 7: Emissions data (a prioris): Heading and Land/Vegetation choice
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1EmissionsLabel, row=7, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        #       Emissions data (a prioris) : dyn.vegetation net exchange model
+        ge.guiPlaceWidget(self.Pg1NeeLabel , row=7, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        #       Land/Vegetation Net Exchange combo box
+        ge.guiPlaceWidget(self.Pg1LandNetExchangeOptionMenu, row=7, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 8: Emissions data (a prioris) continued: fossil+ocean
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1FossilEmisLabel, row=8, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1FossilEmisOptionMenu, row=8, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Ocean Net Exchange combo box (a prioris)
+        ge.guiPlaceWidget(self.Pg1OceanNetExchangeLabel, row=8, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1OceanNetExchangeOptionMenu, row=8, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 9: Obs data location radiobutton
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1ObsFileLocationCPortalRadioButton, row=9, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalRadioButton, row=9, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 10: Obs data entries
+        # ################################################################
+        # Ranking of data records from CarbonPortal
+        ge.guiPlaceWidget(self.Pg1ObsFileRankingBox, row=10, column=0, columnspan=1, rowspan=3, padx=xPadding, pady=yPadding, sticky="ew")
+        # Label for local  obs data path
+        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalPathLabel, row=10, column=2, columnspan=2, padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 11:  Obs data entries
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalEntry, row=11, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        #       Ignore ChkBx
+        ge.guiPlaceWidget(self.Pg1ignoreWarningsCkb, row=11, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 12 Cancel Button
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1CancelButton, row=12, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 13  chose what categories to adjust (checkboxes) and 'Go to page 2' button
+        # ################################################################
+        ge.guiPlaceWidget(self.Pg1TuningParamLabel, row=13, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1LandVegCkb, row=13, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1FossilCkb, row=13, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1OceanCkb, row=13, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Row 13 : Go to page 2 Button
+        ge.guiPlaceWidget(self.Pg1GoButton, row=13, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         
-        # set the size of the gui window before showing it
-        if(USE_TKINTER):
-            #self.root.xoffset=int(0.5*1920)
-            #self.root.update_idletasks()
-            self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
-            self.guiPg1TpLv.geometry(f"{appWidth}x{appHeight}")
-        else:
+        if(not USE_TKINTER):
             toolbar_widget = widgets.VBox()
             toolbar_widget.children = [
-                self.guiPg1TpLv.Pg1LatitudesLabel, 
+                self.guiPg1TpLv.Pg1TitleLabel, 
                 self.guiPg1TpLv.Pg1CancelButton
             ]
 

@@ -21,6 +21,12 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     )
     #return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize), text=text)
 
+
+def guiPlaceWidget(widget, row, column, columnspan, rowspan=1, padx=10,  pady=10,  sticky="ew"):
+   #widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
+    display(widget)
+    #TODO: add layout with grid
+    
 def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None,  description=''):
     placeholder='x'
     if(width is None):

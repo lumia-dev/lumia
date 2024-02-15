@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-02-15, 12:02:51"
+    "saved": "2024-02-15, 13:11:54"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -826,14 +826,27 @@
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
     },
     {
+      "summary": "TODO: add layout with grid",
+      "description": "",
+      "priority": 1,
+      "lineno": 28,
+      "completed": false,
+      "created": 1707998889.7297308,
+      "type": 1,
+      "uid": "{c217dd20-54de-49bc-a65a-20db8dde7274}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py"
+    },
+    {
       "summary": "TODO: 4GUI: implemented different options for dealing with situations where the externally provided file on CO2 background",
       "description": "",
       "priority": 1,
       "lineno": 67,
       "completed": false,
-      "created": 1707994968.6153014,
+      "created": 1707999111.5201519,
       "type": 1,
-      "uid": "{0c2e99b3-1c3a-4c53-a1ee-614f14190909}",
+      "uid": "{f210253f-c986-4a39-b350-0120e89023aa}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -844,9 +857,9 @@
       "priority": 1,
       "lineno": 199,
       "completed": false,
-      "created": 1707994968.6189387,
+      "created": 1707999111.5240738,
       "type": 1,
-      "uid": "{b2f8f6c3-2c46-490b-8b48-a81e2cc97111}",
+      "uid": "{b9dbaeeb-6d70-4675-9f91-c7085701224d}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -855,11 +868,11 @@
       "summary": "TODO: get the file name",
       "description": "",
       "priority": 1,
-      "lineno": 554,
+      "lineno": 615,
       "completed": false,
-      "created": 1707994968.622702,
+      "created": 1707999111.5281887,
       "type": 1,
-      "uid": "{5058c236-fc6b-4a3b-a8a2-5deb52f854aa}",
+      "uid": "{d65cf454-1733-4e4f-9481-2fc9b68ecd78}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -868,11 +881,11 @@
       "summary": "TODO: relies on  libxrandr2  which may not be available on the current system",
       "description": "",
       "priority": 1,
-      "lineno": 749,
+      "lineno": 810,
       "completed": false,
-      "created": 1707994968.6264703,
+      "created": 1707999111.5320415,
       "type": 1,
-      "uid": "{49042631-7eb9-4b24-bae7-dd0feaffbbfb}",
+      "uid": "{c54c3cef-8530-495e-a3fc-6ed91daeed02}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
