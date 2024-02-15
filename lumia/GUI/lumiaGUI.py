@@ -124,21 +124,45 @@ def prepareCallToLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv=1):
     logger.info(ymlFile)
     return
 
+
+# Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+def stakeOutSpacesAndFonts(guiWindow, nCols, nRows):
+    guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(maxAspectRatio=1.2)
+    wSpacer=2*guiWindow.xPadding
+    #vSpacer=2*guiPage1.yPadding
+    likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
+    sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
+    for myFontFamily in likedFonts:
+        (bFontFound, guiWindow.fsTINY,  guiWindow.fsSMALL,  guiWindow.fsNORMAL,  guiWindow.fsLARGE,  guiWindow.fsHUGE,  guiWindow.fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
+            bs.calculateEstheticFontSizes(myFontFamily,  guiWindow.appWidth,  guiWindow.appHeight, sLongestTxt, nCols, nRows, 
+                                                            xPad=guiWindow.xPadding, yPad=guiWindow.yPadding, maxFontSize=20, 
+                                                            USE_TKINTER=USE_TKINTER, bWeCanStackColumns=False)
+        if(not bSuccess):
+            if(not bFontFound):
+                myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
+        if(bFontFound):
+            break
+    if(not bFontFound):
+        myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
+    guiWindow.myFontFamily=myFontFamily
+    hDeadSpace=wSpacer+(nCols*guiWindow.xPadding*2)+wSpacer
+    vDeadSpace=2*guiWindow.yPadding #vSpacer+(nRows*guiWindow.yPadding*2)+vSpacer
+    guiWindow.colWidth=int((guiWindow.appWidth - hDeadSpace)/(nCols*1.0))
+    guiWindow.rowHeight=int((guiWindow.appHeight - vDeadSpace)/(nRows*1.0))
+    return()
+
+# =============================================================================
+# Tkinter solution for GUI
+# =============================================================================
 class lumiaGuiApp:
     def __init__(self, root):
         self.root = root
-        #self.initActive=True
         self.guiPg1TpLv=None
         self.label1 = tk.Label(self.root, text="App main window - hosting the second GUI page.")
-        #self.button = tk.Button(self.root, text="Go to page 1", command=self.guiPage1AsTopLv) # TODO: for testing only. remove this button.
-        #self.initActive=False
+        self.root.protocol("WM_DELETE_WINDOW", self.closeApp)
         self.label1.pack()
-        #self.button.pack()
-        #self.button.invoke()
         
     def closeTopLv(self, bWriteStop=True):  # of lumiaGuiApp
-        #if(self.initActive):
-        #    return
         self.guiPg1TpLv.destroy()
         if(bWriteStop):
             self.cleanUp(bWriteStop)
@@ -146,7 +170,7 @@ class lumiaGuiApp:
             self.closeApp(False)
         self.guiPg1TpLv=None
         self.root.deiconify()
-        #self.runPage2()
+        #self.runPage2()  # done in parent method
 
     def gotoPage2(self):
         self.closeTopLv(bWriteStop=False)
@@ -158,6 +182,7 @@ class lumiaGuiApp:
         if(bWriteStop):
             logger.info('lumiaGUI canceled by user.')
         else:
+            # TODO: write the GO message to file
             logger.info(f'LumiaGUI completed successfully. The updated Lumia config file has been written to: {self.ymlFile}')
         sys.exit(0)
 
@@ -165,21 +190,77 @@ class lumiaGuiApp:
         self.closeApp(bWriteStop=False)
         
     def guiPage1AsTopLv(self, iVerbosityLv='INFO'):  # of lumiaGuiApp
-        #if(self.initActive):
-        #    return
         if(self.guiPg1TpLv is None):
-            self.guiPg1TpLv = tk.Toplevel(self.root)
-            #self.initActive=False
+            self.guiPg1TpLv = tk.Toplevel(self.root,  bg="cadet blue")
         self.root.iconify()
-        #self.initActive=True
-        self.label2 = tk.Label(self.guiPg1TpLv, text="I'm your page1 toplevel window.")
-        self.guiPg1TpLv.protocol("WM_DELETE_WINDOW", self.closeTopLv)
-        self.button3 = tk.Button(self.guiPg1TpLv, text="Go to page 2", command=self.gotoPage2)
-        #self.initActive=False
-        self.label2.pack()
-        self.button3.pack()
 
+        # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+        nCols=5 # sum of labels and entry fields per row
+        nRows=13 # number of rows in the GUI
+        stakeOutSpacesAndFonts(self.root, nCols, nRows)
+        xPadding=self.root.xPadding
+        yPadding=self.root.yPadding
+        # Dimensions of the window
+        appWidth, appHeight = self.root.appWidth, self.root.appHeight
+
+        # place the widgets
+        #self.label2 = tk.Label(self.guiPg1TpLv, text="I'm your page1 toplevel window.")
+        #self.label2.pack()
+        self.guiPg1TpLv.protocol("WM_DELETE_WINDOW", self.closeTopLv)
+
+        # Define all widgets needed. 
+        # Row 0:  Title Label
+        # ################################################################
+        title="LUMIA  --  Refine your selections among the data discovered"
+        title="LUMIA  --  Configure your next LUMIA run"
+        self.TpTitleLabel = ge.guiTxtLabel(self.guiPg1TpLv, title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, bold=True)
+        # Row 12 Cancel Button
+        # ################################################################
+        self.TpCancelButton = ge.guiButton(self.guiPg1TpLv, text="Cancel",  command=self.closeTopLv,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
+        # Row 13 Cancel Button
+        # ################################################################
+        self.TpGoButton = ge.guiButton(self.guiPg1TpLv, text="Go to page 2", command=self.gotoPage2)
+            
+ 
+        # Now place all the widgets on the frame or canvas
+        # ################################################################
+        if(USE_TKINTER):
+            # Row 0:  Title Label
+            self.TpTitleLabel.grid(row=0, column=0, columnspan=8,padx=xPadding, pady=yPadding, sticky="ew")
+            # Row 12 : Cancel Button
+            self.TpCancelButton.grid(row=12, column=4, columnspan=1, padx=xPadding, pady=yPadding, sticky="ew")
+            # Row 13 : Go to page 2 Button
+            self.TpGoButton.grid(row=13, column=4, columnspan=1, padx=xPadding, pady=yPadding, sticky="ew")
+            
+        else:
+            display(self.TpTitleLabel)
+            display(self.TpCancelButton)
+            display(self.TpGoButton)
+            #guiPage1.CancelButton.on_click(CancelAndQuit)
+            #guiPage1.CancelButton
+            # Row 12 : Cancel Button
+        
+        # set the size of the gui window before showing it
+        if(USE_TKINTER):
+            #self.root.xoffset=int(0.5*1920)
+            #self.root.update_idletasks()
+            self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
+            self.guiPg1TpLv.geometry(f"{appWidth}x{appHeight}")
+        else:
+            toolbar_widget = widgets.VBox()
+            toolbar_widget.children = [
+                self.guiPg1TpLv.LatitudesLabel, 
+                self.guiPg1TpLv.CancelButton
+            ]
+            
+            
     def runPage2(self, iVerbosityLv='INFO'):  # of lumiaGuiApp
+        # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+        nCols=12 # sum of labels and entry fields per row
+        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
+        stakeOutSpacesAndFonts(self.root, nCols, nRows)
+
+        # place the widgets
         self.button2 = tk.Button(self.root, text="Exit", command=self.exitWithSuccess) # Note: expressions after command= cannot have parameters or they will be executed at initialisation which is unwanted
         self.button2.pack()
 
@@ -212,40 +293,6 @@ class LumiaTkFrame(tk.Frame):
 # =======================================================================
 def LumiaGuiPage1(root,  sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv=1): 
     # =====================================================================
-    global LOOP_ACTIVE
-    LOOP_ACTIVE=True
-    def CloseTheGUI(bAskUser=True,  bWriteStop=True):
-        if(bAskUser):  # only happens if the GUI window was closed brutally
-            if ge.guiAskOkCancel(title="Quit?",  message="Is it OK to abort your Lumia run?"):  # tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
-                if(bWriteStop):
-                    logger.info("LumiaGUI was canceled.")
-                    sCmd="touch LumiaGui.stop"
-                    hk.runSysCmd(sCmd)
-        else:  # the user clicked Cancel or Go
-            if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
-                logger.info("LumiaGUI was canceled.")
-                sCmd="touch LumiaGui.stop"
-                hk.runSysCmd(sCmd)
-            
-            global LOOP_ACTIVE
-            LOOP_ACTIVE = False
-            logger.info("Closing the GUI...")
-            try:
-                if(guiPage1 is not None):
-                    try:
-                        # close the current gui page
-                        if(bRefine):
-                            guiPage1.quit()
-                            #guiPage1.after(100, guiPage1.event_generate("<Destroy>"))
-                        else:
-                            guiPage1.iconify
-                            #guiPage1.close()
-                    except:
-                        pass
-            except:
-                pass
-        #if(USE_TKINTER):
-        #    guiPage1.protocol("WM_DELETE_WINDOW", CloseTheGUI)
     
     def CancelAndQuit(): 
         CloseTheGUI(bAskUser=False,  bWriteStop=True)
@@ -270,52 +317,19 @@ def LumiaGuiPage1(root,  sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerb
         notify_output = widgets.Output()
         display(notify_output)
     
-    # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
-    def stakeOutSpacesAndFonts(guiPage1, nCols, nRows):
-        guiPage1.appWidth, guiPage1.appHeight,  guiPage1.xPadding, guiPage1.yPadding = displayGeometry(maxAspectRatio=1.2)
-        wSpacer=2*guiPage1.xPadding
-        #vSpacer=2*guiPage1.yPadding
-        likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
-        sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
-        for myFontFamily in likedFonts:
-            (bFontFound, guiPage1.fsTINY,  guiPage1.fsSMALL,  guiPage1.fsNORMAL,  guiPage1.fsLARGE,  guiPage1.fsHUGE,  guiPage1.fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
-                bs.calculateEstheticFontSizes(myFontFamily,  guiPage1.appWidth,  guiPage1.appHeight, sLongestTxt, nCols, nRows, 
-                                                                xPad=guiPage1.xPadding, yPad=guiPage1.yPadding, maxFontSize=20, 
-                                                                USE_TKINTER=USE_TKINTER, bWeCanStackColumns=False)
-            if(not bSuccess):
-                if(not bFontFound):
-                    myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
-            if(bFontFound):
-                break
-        if(not bFontFound):
-            myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
-        guiPage1.myFontFamily=myFontFamily
-        hDeadSpace=wSpacer+(nCols*guiPage1.xPadding*2)+wSpacer
-        vDeadSpace=2*guiPage1.yPadding #vSpacer+(nRows*guiPage1.yPadding*2)+vSpacer
-        guiPage1.colWidth=int((guiPage1.appWidth - hDeadSpace)/(nCols*1.0))
-        guiPage1.rowHeight=int((guiPage1.appHeight - vDeadSpace)/(nRows*1.0))
-        return()
         
         
-    # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
-    if(bRefine):
-        nCols=12 # sum of labels and entry fields per row
-        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
-    else:
-        nCols=5 # sum of labels and entry fields per row
-        nRows=13 # number of rows in the GUI
-    stakeOutSpacesAndFonts(guiPage1, nCols, nRows)
     xPadding=guiPage1.xPadding
     yPadding=guiPage1.yPadding
 
     # Dimensions of the window
     appWidth, appHeight = guiPage1.appWidth, guiPage1.appHeight
 
-    # Define all widgets needed. 
     #guiPage1.lonMin = ge.guiDoubleVar(value=-25.0)
     #guiPage1.lonMax = ge.guiDoubleVar(value=45.0)
     #guiPage1.latMin = ge.guiDoubleVar(value=23.0)
     #guiPage1.latMax = ge.guiDoubleVar(value=83.0)
+    # Define all widgets needed. 
     # Row 0:  Title Label
     # ################################################################
     if(bRefine):
@@ -381,6 +395,7 @@ def displayGeometry(maxAspectRatio=1.778):
     # Get the screen resolution
     # m may return a string like
     # Monitor(x=0, y=0, width=1920, height=1080, width_mm=1210, height_mm=680, name='HDMI-1', is_primary=True)
+    xoffset=0
     try:
         monitors=get_monitors()  # TODO: relies on  libxrandr2  which may not be available on the current system
         screenWidth=0
@@ -398,6 +413,8 @@ def displayGeometry(maxAspectRatio=1.778):
         if (screenWidth < MIN_SCREEN_RES):
             screenWidth=MIN_SCREEN_RES
             screenHeight=MIN_SCREEN_RES
+            xoffset=1
+            
     except:
         logger.error('screeninfo.get_monitors() failed. Try installing the libxrandr2 library if missing. Setting display to 1080x960pxl')
         screenWidth= int(1080)
@@ -417,10 +434,12 @@ def displayGeometry(maxAspectRatio=1.778):
     if(maxW > 1.2*maxH):
         maxW = int((1.2*maxH)+0.5)
         logger.debug(f'maxW={maxW},  maxH={maxH},  max aspect ratio fix.')
+    if(xoffset==0):
+        xoffset=0.5*(screenWidth-maxW) # helps us to place the gui horizontally in the center of the screen
     # Sets the dimensions of the window to something reasonable with respect to the user's screen properties
     xPadding=int(0.008*maxW)
     yPadding=int(0.008*maxH)
-    return(maxW, maxH, xPadding, yPadding)
+    return(maxW, maxH, xPadding, yPadding, xoffset)
 
 
 

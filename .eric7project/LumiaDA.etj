@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-02-14, 20:05:16"
+    "saved": "2024-02-15, 01:00:45"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -831,22 +831,22 @@
       "priority": 1,
       "lineno": 43,
       "completed": false,
-      "created": 1707937513.5125818,
+      "created": 1707955242.7168815,
       "type": 1,
-      "uid": "{95822fd2-4e45-4e9a-b3af-7988fa3e32c6}",
+      "uid": "{1680487a-6e47-4b8f-a747-833bdd26321f}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
     },
     {
-      "summary": "TODO: for testing only. remove this button.",
+      "summary": "TODO: write the GO message to file",
       "description": "",
       "priority": 1,
-      "lineno": 133,
+      "lineno": 185,
       "completed": false,
-      "created": 1707937513.5152357,
+      "created": 1707955242.7196155,
       "type": 1,
-      "uid": "{94307966-a202-46a2-a6c0-5e6cb0aede27}",
+      "uid": "{835c9bce-5264-480f-96ad-2d6f7d1f6953}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -855,11 +855,11 @@
       "summary": "TODO: relies on  libxrandr2  which may not be available on the current system",
       "description": "",
       "priority": 1,
-      "lineno": 385,
+      "lineno": 400,
       "completed": false,
-      "created": 1707937513.5180209,
+      "created": 1707955242.7224803,
       "type": 1,
-      "uid": "{353427c9-85d4-4ff7-b5d2-7756c7234bfc}",
+      "uid": "{20063bbf-77e1-433e-8d0b-d79e34b92b75}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
