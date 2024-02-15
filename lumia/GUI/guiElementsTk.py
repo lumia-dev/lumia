@@ -41,8 +41,8 @@ def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
     return(tk.messagebox.askokcancel(title="Quit", message="Is it OK to abort your Lumia run?",  icon=tk.messagebox.QUESTION))
     
 
-def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, ):
-    return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize), text=text)
+def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, style="normal"):
+    return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize, style), text=text)
 )
 
 def   guiCheckBox(self,state=tk.NORMAL, text='', fontName="Georgia",  fontSize=12, variable=None, 
@@ -76,10 +76,7 @@ def guiRadioButton(rootFrame, text, fontName="Georgia",  fontSize=12,
 def guiTextBox(self, width=200,  height=100,  fontName="Georgia",  fontSize=12, text_color="black"):
     return(ctk.CTkTextbox(self, width=width, text_color=text_color, font=(fontName, fontSize),  height=height))
 
-def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None,  bold=False):
-    style="normal"
-    if(bold):
-        style="bold"
+def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None, style="normal"):
     if((anchor is None) and (width is None)):
         return(ctk.CTkLabel(self, text=text,  font=(fontName,  fontSize, style)))                                
     elif(anchor is None):
