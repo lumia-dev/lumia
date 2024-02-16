@@ -89,3 +89,27 @@ def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  wid
     else:
         return(ctk.CTkLabel(self, text=text,  anchor=anchor, width=width, font=(fontName,  fontSize, style)))                                
 
+
+def  updateWidget(widget,  value, bTextvar=False,  bText_color=False,  bFg_color=False,  bBg_color=False):
+    if(bTextvar):
+        widget.configure(textvariable=value)
+    elif(bText_color):  
+        widget.configure(text_color=value)
+    elif(bFg_color):   # in CTk this is the main button color (not the text color)
+        widget.configure(fg_color=value)
+    elif(bBg_color):   
+        widget.configure(bg_color=value)
+
+
+def guiWipeTextBox(TxtBox,  protect=False):
+    TxtBox.configure(state=tk.NORMAL)
+    TxtBox.delete("0.0", "end")  # delete all text
+    if(protect):
+        TxtBox.configure(state=tk.DISABLED) 
+
+def guiWriteIntoTextBox( TxtBox,  text,  protect=False):
+    TxtBox.configure(state=tk.NORMAL)
+    TxtBox.insert("0.0", text)
+    if(protect):
+        TxtBox.configure(state=tk.DISABLED) 
+

@@ -205,6 +205,54 @@ class lumiaGuiApp:
     # ====================================================================
     def EvHdPg1ExitWithSuccess(self):
         self.closeApp(bWriteStop=False)
+                
+    def EvHdPg1GotoPage2(self):
+        bGo=False
+        (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues()
+        ge.guiWipeTextBox(self.Pg1displayBox, protect=True) # delete all text
+        if((bErrors) and (bWarnings)):
+            # self.Pg1displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
+            ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg, protect=True)
+        elif(bErrors):
+            ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg, protect=True)
+        elif(bWarnings):
+            ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
+            if(self.bIgnoreWarningsCkbVar.get()):
+                bGo=True
+            if(USE_TKINTER):
+                self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
+        else:
+            bGo=True
+        if(USE_TKINTER):
+            self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+
+        if(bGo):
+            # Save  all details of the configuration and the version of the software used:
+            #current_date = datetime.now()
+            try:
+                with open(self.ymlFile, 'w') as outFile:
+                    yaml.dump(self.ymlContents, outFile)
+            except:
+                sTxt=f"Fatal Error: Failed to write to text file {self.ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+                logger.error(sTxt)
+                self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2
+
+            sCmd="touch LumiaGui.go"
+            hk.runSysCmd(sCmd)
+            logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
+            self.closeTopLv(bWriteStop=False)
+
+    def EvHdPg1selectFile(self):
+        filename = ctk.filedialog.askopenfilename()
+        if ((filename is None) or (len(filename)<5)):
+            return   # Canceled or no valid filename returned: Keep previous data and continue
+        # update the file entry widgets
+        self.ObsFileLocationEntryVar = ge.guiStringVar(value=filename)
+        ge.updateWidget(self.Pg1ObsFileLocationLocalEntry,  value=self.ObsFileLocationEntryVar, bTextvar=True)
+        # self.Pg1ObsFileLocationLocalEntry.configure(textvariable=self.ObsFileLocationEntryVar)
+        # if textvariable is longer than entry box, i.e. the path spills over, it will be right-aligned, showing the end with the file name
+        if(USE_TKINTER):
+            self.Pg1ObsFileLocationLocalEntry.xview_moveto(1)  
 
     def EvHdPg1SetObsFileLocation(self):
         # "TracerRadioButton, iTracerRbVal"
@@ -221,10 +269,6 @@ class lumiaGuiApp:
         else:
             self.ymlContents['run']['tracers'] = 'ch4'
         # applyRules()
-        
-    def EvHdPg1GotoPage2(self):
-        self.closeTopLv(bWriteStop=False)
-
 
     # ====================================================================
     # body & brain of first GUI page  -- part of lumiaGuiApp (toplevel window)
@@ -291,6 +335,13 @@ class lumiaGuiApp:
             self.iTracerRbVal = ge.guiIntVar(value=2)
         else:
             self.iTracerRbVal = ge.guiIntVar(value=1)
+        # Ranking of data records from CarbonPortal : populate the Pg1ObsFileRankingBoxTxt
+        rankingList=self.ymlContents['observations'][self.tracer]['file']['ranking']
+        self.Pg1ObsFileRankingBoxTxt=""
+        rank=4
+        for sEntry in  rankingList:
+            self.Pg1ObsFileRankingBoxTxt+=str(rank)+': '+sEntry+'\n'
+            rank=rank-1
         # Land/vegetation net exchange drop down combo box - initial values and drop-down lists
         self.LandNetExchangeModelCkbVar = ge.guiStringVar(value=self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['origin'])
         # Fossil emissions combo box.  Latest version at time of writing: https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3
@@ -306,6 +357,8 @@ class lumiaGuiApp:
             self.iObservationsFileLocation = ge.guiIntVar(value=2)
         #       Ignore ChkBx
         self.bIgnoreWarningsCkbVar = ge.guiBooleanVar(value=False) 
+        # Filename of local obs data file
+        self.ObsFileLocationEntryVar = ge.guiStringVar(value=self.ymlContents['observations'][self.tracer]['file']['path'])
         # initial values --  chose what categories to adjust (checkboxes)
         self.LandVegCkbVar = ge.guiBooleanVar(value=True)
         self.FossilCkbVar = ge.guiBooleanVar(value=False)
@@ -318,7 +371,7 @@ class lumiaGuiApp:
         self.Pg1TitleLabel = ge.guiTxtLabel(self.guiPg1TpLv, title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold")
         # Row 1:  Time interval Heading
         # ################################################################
-        self.Pg1TimeHeaderLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Time interval",  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
+        self.Pg1TimeHeaderLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Time interval",  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE, anchor="w")
         # Row 2: Time interval Entry
         # ################################################################
         self.Pg1TimeStartLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w",
@@ -334,7 +387,7 @@ class lumiaGuiApp:
         self.Pg1LatitudesLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w", text="Geographical extent of the area modelled (in deg. North/East)",
                                                                     fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         #    Text Box for messages, warnings, etc
-        self.Pg1displayBox = ge.guiTextBox(self.guiPg1TpLv, width=200,  height=100,  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL, text_color="red") 
+        self.Pg1displayBox = ge.guiTextBox(self.guiPg1TpLv, width=self.root.colWidth,  height=(4*self.root.rowHeight),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL, text_color="red") 
         self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
         # Row 4: Latitudes Entry Fields
         # ################################################################
@@ -355,7 +408,7 @@ class lumiaGuiApp:
         self.Pg1TracerRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
                                    text="CO2", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                                    variable=self.iTracerRbVal,  value=1, command=self.EvHdPg1SetTracer)
-        self.Pg1TracerRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
+        self.Pg1TracerRadioButton2 = ge.guiRadioButton(self.guiPg1TpLv,
                                    text="CH4", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                    variable=self.iTracerRbVal,  value=2, command=self.EvHdPg1SetTracer)
         # Row 7: Emissions data (a prioris): Heading and Land/Vegetation choice
@@ -387,26 +440,30 @@ class lumiaGuiApp:
         # ################################################################
 
         # Ranking of data records from CarbonPortal
-        rankingList=self.ymlContents['observations'][self.tracer]['file']['ranking']
         self.Pg1ObsFileRankingTbxVar = ge.guiStringVar(value="ObsPack")
-        self.Pg1ObsFileRankingBox = ge.guiTextBox(self.guiPg1TpLv, width=self.root.colWidth,  height=(2*self.root.rowHeight+self.root.vSpacer),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL)
-        txt=""
-        rank=4
-        for sEntry in  rankingList:
-            txt+=str(rank)+': '+sEntry+'\n'
-            rank=rank-1
-        self.Pg1ObsFileRankingBox.insert('0.0', txt)  # insert at line 0 character 0
+        self.Pg1ObsFileRankingBox = ge.guiTextBox(self.guiPg1TpLv, width=self.root.colWidth,  height=(2*self.root.rowHeight),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL)
+        self.Pg1ObsFileRankingBox.insert('0.0', self.Pg1ObsFileRankingBoxTxt)  # insert at line 0 character 0
         # Label for local  obs data path
-        self.Pg1ObsFileLocationLocalPathLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Local.file.with.obs.data:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.Pg1ObsFileLocationLocalPathLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Local.file.with.obs.data:", width=self.root.colWidth,  
+                        fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="w")
         # Row 11:  Obs data entries
         # ################################################################
-        self.Pg1ObsFileLocationLocalEntry = ge.guiDataEntry(self.guiPg1TpLv, placeholder_text= self.ymlContents['observations'][self.tracer]['file']['path'], width=self.root.colWidth)
+        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select File",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
+        ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
+        ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)
         #       Ignore ChkBx
         self.Pg1ignoreWarningsCkb = ge.guiCheckBox(self.guiPg1TpLv,state=tk.DISABLED, text="Ignore Warnings", fontName=self.root.myFontFamily,  
                             fontSize=self.root.fsNORMAL, variable=self.bIgnoreWarningsCkbVar, onvalue=True, offvalue=False) # text_color='gray5',  text_color_disabled='gray70', 
-        # Row 12 Cancel Button
+        # Row 12 Local Obs data filename entry and Cancel Button
         # ################################################################
+        self.Pg1ObsFileLocationLocalEntry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.ObsFileLocationEntryVar, placeholder_text=self.ObsFileLocationEntryVar, width=self.root.colWidth)
+        ge.updateWidget(self.Pg1ObsFileLocationLocalEntry,  value='lemon chiffon', bFg_color=True) # in CTk this is the main button color (not the text color)
+        if(USE_TKINTER):
+            # if textvariable is longer than entry box, i.e. the path spills over, it will be right-aligned, showing the end with the file name
+            self.Pg1ObsFileLocationLocalEntry.xview_moveto(1)  
         self.Pg1CancelButton = ge.guiButton(self.guiPg1TpLv, text="Cancel",  command=self.closeTopLv,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
+        ge.updateWidget(self.Pg1CancelButton,  value='gray1', bText_color=True)
+        ge.updateWidget(self.Pg1CancelButton,  value='DarkOrange1', bFg_color=True) # in CTk this is the main button color (not the text color)
         # Row 13  chose what categories to adjust (checkboxes) and 'Go to page 2' button
         # ################################################################
         self.Pg1TuningParamLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="LUMIA may adjust:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
@@ -417,6 +474,8 @@ class lumiaGuiApp:
         self.Pg1OceanCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Ocean (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                             variable=self.OceanCkbVar, onvalue=True, offvalue=False)                            
         self.Pg1GoButton = ge.guiButton(self.guiPg1TpLv, text="PROCEED", command=self.EvHdPg1GotoPage2, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
+        ge.updateWidget(self.Pg1GoButton,  value='gray1', bText_color=True)
+        ge.updateWidget(self.Pg1GoButton,  value='green3', bFg_color=True) # in CTk this is the main button color (not the text color)
             
  
         # ====================================================================
@@ -439,7 +498,7 @@ class lumiaGuiApp:
         # ################################################################
         ge.guiPlaceWidget(self.Pg1LatitudesLabel, row=3, column=0, columnspan=3,padx=xPadding, pady=yPadding, sticky="ew")
         #    Text Box for messages, warnings, etc
-        ge.guiPlaceWidget(self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=6, padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=7, padx=xPadding, pady=yPadding, sticky="ew")
         # Row 4: Latitudes Entry Fields
         # ################################################################
         ge.guiPlaceWidget(self.Pg1LatitudeMinLabel, row=4, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
@@ -456,7 +515,7 @@ class lumiaGuiApp:
         # ################################################################
         ge.guiPlaceWidget(self.Pg1TracerLabel, row=6, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.Pg1TracerRadioButton, row=6, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1TracerRadioButton, row=6, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1TracerRadioButton2, row=6, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 7: Emissions data (a prioris): Heading and Land/Vegetation choice
         # ################################################################
         ge.guiPlaceWidget(self.Pg1EmissionsLabel, row=7, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
@@ -483,11 +542,12 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalPathLabel, row=10, column=2, columnspan=2, padx=xPadding, pady=yPadding, sticky="ew")
         # Row 11:  Obs data entries
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalEntry, row=11, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.Pg1FileSelectButton, row=11, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #       Ignore ChkBx
         ge.guiPlaceWidget(self.Pg1ignoreWarningsCkb, row=11, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 12 Cancel Button
         # ################################################################
+        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalEntry, row=12, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.Pg1CancelButton, row=12, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 13  chose what categories to adjust (checkboxes) and 'Go to page 2' button
         # ################################################################
@@ -520,12 +580,12 @@ class lumiaGuiApp:
         # Get the Start- & End Dates/Times and do some sanity checks 
         # start format: '2018-01-01 00:00:00'    
         bTimeError=False
-        strStartTime=self.TimeStartEntry.get()
-        strEndTime=self.TimeEndEntry.get()
+        strStartTime=self.Pg1TimeStartEntry.get()
+        strEndTime=self.Pg1TimeEndEntry.get()
         if (len(strStartTime)<10):
             bTimeError=True
             sErrorMsg+='Invalid Start Date entered.\n'
-        if (len(strStartTime)<10):
+        if (len(strEndTime)<10):
             bTimeError=True
             sErrorMsg+='Invalid End Date entered.\n'
 
@@ -537,12 +597,12 @@ class lumiaGuiApp:
                 tStart=pd.Timestamp(strStartTime)
             except:
                 bTimeError=True
-                sErrorMsg+='Invalid or corrupted Start Date entered. Please use the ISO format YYY-MM-DD when entering dates.\n'
+                sErrorMsg+='Invalid or corrupted Start Date entered. Please use the ISO format YYYY-MM-DD when entering dates.\n'
             try:
                 tEnd=pd.Timestamp(strEndTime)
             except:
                 bTimeError=True
-                sErrorMsg+='Invalid or corrupted End Date entered. Please use the ISO format YYY-MM-DD when entering dates.\n'
+                sErrorMsg+='Invalid or corrupted End Date entered. Please use the ISO format YYYY-MM-DD when entering dates.\n'
         if (not bTimeError): 
             current_date = datetime.now()
             rightNow=current_date.isoformat("T","minutes")
@@ -560,15 +620,18 @@ class lumiaGuiApp:
         if(bTimeError):
             bErrors=True
         else:    
-            self.ymlContents['run']['time']['start'] = tStart.strftime('%Y-%m-%d %H:%M:%S')
-            self.ymlContents['run']['time']['end'] = tEnd.strftime('%Y-%m-%d %H:%M:%S')
-            
+            try:
+                self.ymlContents['run']['time']['start'] = tStart.strftime('%Y-%m-%d %H:%M:%S')
+                self.ymlContents['run']['time']['end'] = tEnd.strftime('%Y-%m-%d %H:%M:%S')
+            except:
+                sErrorMsg+=f'Invalid or corrupted Start/End Date entered. cannot understand {tStart} - {tEnd}. Please use the ISO format YYYY-MM-DD when entering dates.\n'
+                bErrors=True
         # Get the latitudes & langitudes of the selected region and do some sanity checks 
         bLatLonError=False
-        Lat0=float(self.Latitude0Entry.get())
-        Lat1=float(self.Latitude1Entry.get())
-        Lon0=float(self.Longitude0Entry.get())
-        Lon1=float(self.Longitude1Entry.get())
+        Lat0=float(self.Pg1Latitude0Entry.get())
+        Lat1=float(self.Pg1Latitude1Entry.get())
+        Lon0=float(self.Pg1Longitude0Entry.get())
+        Lon1=float(self.Pg1Longitude1Entry.get())
 
         if(Lat0 < float(self.latMin.get())):
             bLatLonError=True
@@ -612,36 +675,38 @@ class lumiaGuiApp:
             self.ymlContents['observations'][self.tracer]['file']['location'] = 'CARBONPORTAL'
         else:
             self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
-            # TODO: get the file name
+        # Get the name of the local obs data file. This is ignored, if (self.ymlContents['observations'][self.tracer]['file']['location'] == 'CARBONPORTAL')
+        fname=self.Pg1ObsFileLocationLocalEntry.get()
+        self.ymlContents['observations'][self.tracer]['file']['path'] = fname
             
         # Emissions data (a prioris)
         # Land/Vegetation Net Exchange combo box
-        sLandVegModel=self.LandNetExchangeOptionMenu.get()  # 'VPRM', 'LPJ-GUESS'
+        sLandVegModel=self.Pg1LandNetExchangeOptionMenu.get()  # 'VPRM', 'LPJ-GUESS'
         self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['origin']=sLandVegModel
         # Fossil emissions combo box
-        sFossilEmisDataset = self.FossilEmisOptionMenu.get()  # "EDGARv4_LATEST")
+        sFossilEmisDataset = self.Pg1FossilEmisOptionMenu.get()  # "EDGARv4_LATEST")
         self.ymlContents['emissions'][self.tracer]['categories']['fossil']['origin']=sFossilEmisDataset
         # Ocean Net Exchange combo box
-        sOceanNetExchangeDataset = self.OceanNetExchangeCkbVar.get()  # "mikaloff01"
+        sOceanNetExchangeDataset = self.Pg1OceanNetExchangeOptionMenu.get()  # "mikaloff01"
         self.ymlContents['emissions'][self.tracer]['categories']['ocean']['origin']=sOceanNetExchangeDataset
 
         # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
-        if((not self.LandVegCkb.get()) and  (not self.FossilCkb.get()) and (not self.OceanCkb.get())):
+        if((not self.Pg1LandVegCkb.get()) and  (not self.Pg1FossilCkb.get()) and (not self.Pg1OceanCkb.get())):
             bErrors=True
             sErrorMsg+="Error: At least one of Land, Fossil or Ocean needs to be adjustable, preferably Land.\n"
-        elif(not self.LandVegCkb.get()):
+        elif(not self.Pg1LandVegCkb.get()):
             bWarnings=True
             sWarningsMsg+="Warning: It is usually a bad idea NOT to adjust the land/vegetation net exchange. Are you sure?!\n"
-        if(self.FossilCkb.get()):
+        if(self.Pg1FossilCkb.get()):
             bWarnings=True
             sWarningsMsg+="Warning: It is unusual wanting to adjust the fossil emissions in LUMIA. Are you sure?!\n"
-        if(self.OceanCkb.get()):
+        if(self.Pg1OceanCkb.get()):
             bWarnings=True
             sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
         if(bErrors==False):
-            self.ymlContents['optimize']['emissions'][self.tracer]['biosphere']['adjust'] = self.LandVegCkb.get()
-            self.ymlContents['optimize']['emissions'][self.tracer]['fossil']['adjust'] = self.FossilCkb.get()
-            self.ymlContents['optimize']['emissions'][self.tracer]['ocean']['adjust'] = self.OceanCkb.get()                
+            self.ymlContents['optimize']['emissions'][self.tracer]['biosphere']['adjust'] = self.Pg1LandVegCkb.get()
+            self.ymlContents['optimize']['emissions'][self.tracer]['fossil']['adjust'] = self.Pg1FossilCkb.get()
+            self.ymlContents['optimize']['emissions'][self.tracer]['ocean']['adjust'] = self.Pg1OceanCkb.get()                
             
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
