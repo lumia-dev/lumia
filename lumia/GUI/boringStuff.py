@@ -1,10 +1,19 @@
 import re
 import tkinter as tk 
+import housekeeping as hk
 from loguru import logger
-from PIL import Image
-from PIL import  ImageFont, ImageDraw
 from matplotlib import font_manager
+from screeninfo import get_monitors
+# from PIL import Image
+from PIL import  ImageFont  #, ImageDraw
 #from Pillow import ImageFont, ImageDraw
+
+MIN_SCREEN_RES=480 # pxl - just in case querying screen size fails for whatever reason...
+
+# =============================================================================
+# small helper functions for mostly mundane tasks - ordered alphabetically by function name
+# =============================================================================
+
 
 def add_keys_nested_dict(d, keys, value=None):
     for key in keys:
@@ -14,12 +23,14 @@ def add_keys_nested_dict(d, keys, value=None):
     d.setdefault(keys[-1], value)
 
 
-
 def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestTxt,  nCols=1, nRows=1, xPad=20,
                                                         yPad=10,  maxFontSize=20,  USE_TKINTER=True,  bWeCanStackColumns=False):
     FontSize=int(14)  # for normal text
     bFontFound=False
     bSuccess=False
+    w=0
+    h=0
+    fontHeight=h
     system_fonts = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
     myfontpath=''
     for fontpath in system_fonts:
@@ -125,7 +136,8 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
         w=right - left
         h=abs(top - bottom)
     logger.debug(f"{sFontFamily} {FontSize}: (w={w},h={h})pxl")
-    if(h>colH):
+    fontHeight=h
+    if(fontHeight>colH):
         logger.debug("We may need a vertical scrollbar...")
     fsNORMAL=FontSize # 12
     fsTINY=int((0.75*FontSize)+0.5)  # 9/12=0.75
@@ -135,21 +147,86 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     fsGIGANTIC=int(2*FontSize)  # 24
     bSuccess=True
     logger.debug(f"fsSMALL={fsSMALL},fsNORMAL={fsNORMAL},fsLARGEL={fsLARGE},fsHUGE={fsHUGE}")
-    return(bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStack, bSuccess)
+    return(bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC, fontHeight, bWeMustStack, bSuccess)
+
+\
+def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp
+    if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+        logger.info("LumiaGUI was canceled.")
+        sCmd="touch LumiaGui.stop"
+        hk.runSysCmd(sCmd)
 
 
-def grabFirstEntryFromList(myList):
-  try:
-    return myList[0]  
-  except:
-    return myList
+def displayGeometry(maxAspectRatio=1.778):  
+    '''
+    Query the current monitor or viewport about its dimensions in pixels.
+    @maxAspectRatio 1920/1080.0=1.778 is here to prevant silly things if one uses multiple screens....
+    @type float
+    @return a tuple (screenWidth, screenHeight, xPadding, yPadding)
+    @type integers
+    '''
+    # Get the screen resolution
+    # m may return a string like
+    # Monitor(x=0, y=0, width=1920, height=1080, width_mm=1210, height_mm=680, name='HDMI-1', is_primary=True)
+    xoffset=0
+    try:
+        monitors=get_monitors()  # TODO: relies on  libxrandr2  which may not be available on the current system
+        screenWidth=0
+        for screen in monitors:
+            try:
+                useThisOne=screen.is_primary
+            except:
+                useThisOne=True # 'isprimary' entry may be absent on simple systems, then it is the only one
+            if(useThisOne):
+                try:
+                    screenWidth = screen.width
+                    screenHeight =screen.height
+                except:
+                    pass
+        if (screenWidth < MIN_SCREEN_RES):
+            screenWidth=MIN_SCREEN_RES
+            screenHeight=MIN_SCREEN_RES
+            xoffset=1
+            
+    except:
+        logger.error('screeninfo.get_monitors() failed. Try installing the libxrandr2 library if missing. Setting display to 1080x960pxl')
+        screenWidth= int(1080)
+        screenHeight= int(960)
+    # on Linux you can also run from commandline, but it may not be ideal if you encounter systems with multiple screens attached.
+    # xrandr | grep '*'
+    #    1920x1080     60.00*+  50.00    59.94    30.00    25.00    24.00    29.97    23.98  
+    # Use the screen resolution to scale the GUI in the smartest way possible...
+    # screenWidth = rootFrame.winfo_screenwidth()
+    # screenHeight = rootFrame.winfo_screenheight()
+    logger.debug(f'screeninfo.get_monitors.screenwidth()={screenWidth},  screenheight()={screenHeight} (primary screen)')
+    if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
+        screenWidth=int(screenHeight*(1920/1080.0))
+    logger.debug(f'guiPage1.winfo_screenwidth()={screenWidth},   guiPage1.winfo_screenheight()={screenHeight},  multiple screen correction')
+    maxW = int(0.92*screenWidth)
+    maxH = int(0.92*screenHeight)
+    if(maxW > 1.2*maxH):
+        maxW = int((1.2*maxH)+0.5)
+        logger.debug(f'maxW={maxW},  maxH={maxH},  max aspect ratio fix.')
+    if(xoffset==0):
+        xoffset=0.5*(screenWidth-maxW) # helps us to place the gui horizontally in the center of the screen
+    # Sets the dimensions of the window to something reasonable with respect to the user's screen properties
+    xPadding=int(0.008*maxW)
+    yPadding=int(0.008*maxH)
+    return(maxW, maxH, xPadding, yPadding, xoffset)
 
 
-def swapListElements(list, pos1, pos2):
-    # pos1 and pos2 should be counted from zero
-    if(pos1 != pos2):
-        list[pos1], list[pos2] = list[pos2], list[pos1]
-    return list
+def extract_numbers_from_string(s):
+    # This regular expression pattern matches integers and floating-point numbers.
+    pattern = r"[-+]?[.]?[d]+(?:,ddd)[.]?d(?:[eE][-+]?d+)?"
+    numbers = re.findall(pattern, s)
+    # Convert the extracted strings to either int or float.
+    for i in range(len(numbers)):
+        if "." in numbers[i] or "e" in numbers[i] or "E" in numbers[i]:
+            numbers[i] = float(numbers[i])
+        else:
+            numbers[i] = int(numbers[i])
+    return numbers
+
 
 
 def formatMyString(inString, minLen, units=""):
@@ -163,6 +240,15 @@ def formatMyString(inString, minLen, units=""):
     while (len(outStr) < minLen):
         outStr=' '+outStr
     return(outStr+units)
+
+
+
+def grabFirstEntryFromList(myList):
+  try:
+    return myList[0]  
+  except:
+    return myList
+
 
 
 def nestedKeyExists(element, *keys):
@@ -184,15 +270,38 @@ def nestedKeyExists(element, *keys):
 
 
 
-def extract_numbers_from_string(s):
-    # This regular expression pattern matches integers and floating-point numbers.
-    pattern = r"[-+]?[.]?[d]+(?:,ddd)[.]?d(?:[eE][-+]?d+)?"
-    numbers = re.findall(pattern, s)
-    # Convert the extracted strings to either int or float.
-    for i in range(len(numbers)):
-        if "." in numbers[i] or "e" in numbers[i] or "E" in numbers[i]:
-            numbers[i] = float(numbers[i])
-        else:
-            numbers[i] = int(numbers[i])
-    return numbers
+# Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER):
+    guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(maxAspectRatio=1.2)
+    wSpacer=2*guiWindow.xPadding
+    guiWindow.vSpacer=2*guiWindow.yPadding
+    likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
+    sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
+    for myFontFamily in likedFonts:
+        (bFontFound, guiWindow.fsTINY,  guiWindow.fsSMALL,  guiWindow.fsNORMAL,  guiWindow.fsLARGE,  guiWindow.fsHUGE,  guiWindow.fsGIGANTIC,  guiWindow.fontHeight,  bWeMustStackColumns, bSuccess)= \
+            calculateEstheticFontSizes(myFontFamily,  guiWindow.appWidth,  guiWindow.appHeight, sLongestTxt, nCols, nRows, 
+                                                            xPad=guiWindow.xPadding, yPad=guiWindow.yPadding, maxFontSize=20, 
+                                                            USE_TKINTER=USE_TKINTER, bWeCanStackColumns=False)
+        if(not bSuccess):
+            if(not bFontFound):
+                myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
+        if(bFontFound):
+            break
+    if(not bFontFound):
+        myFontFamily="Times New Roman"  # should exist on any operating system with western language fonts installed...
+    guiWindow.myFontFamily=myFontFamily
+    hDeadSpace=wSpacer+(nCols*guiWindow.xPadding*2)+wSpacer
+    vDeadSpace=2*guiWindow.yPadding #vSpacer+(nRows*guiWindow.yPadding*2)+vSpacer
+    guiWindow.colWidth=int((guiWindow.appWidth - hDeadSpace)/(nCols*1.0))
+    guiWindow.rowHeight=int((guiWindow.appHeight - vDeadSpace)/(nRows*1.0))
+    return()
+
+
+def swapListElements(list, pos1, pos2):
+    # pos1 and pos2 should be counted from zero
+    if(pos1 != pos2):
+        list[pos1], list[pos2] = list[pos2], list[pos1]
+    return list
+
+
 

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-02-16, 13:41:43"
+    "saved": "2024-02-16, 17:53:25"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -839,14 +839,27 @@
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
     },
     {
+      "summary": "TODO: relies on  libxrandr2  which may not be available on the current system",
+      "description": "",
+      "priority": 1,
+      "lineno": 173,
+      "completed": false,
+      "created": 1708101535.8930292,
+      "type": 1,
+      "uid": "{0e2dfa31-bf0f-48b5-b8ea-8726c1f69116}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/boringStuff.py"
+    },
+    {
       "summary": "TODO: 4GUI: implemented different options for dealing with situations where the externally provided file on CO2 background",
       "description": "",
       "priority": 1,
-      "lineno": 67,
+      "lineno": 57,
       "completed": false,
-      "created": 1708087300.8752992,
+      "created": 1708102402.0822248,
       "type": 1,
-      "uid": "{6299be65-80b8-4ec6-9d9f-60c3bc1f9ae9}",
+      "uid": "{b71191d7-ce98-4161-887c-f743a2db13c2}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -855,24 +868,11 @@
       "summary": "TODO: write the GO message to file",
       "description": "",
       "priority": 1,
-      "lineno": 199,
+      "lineno": 160,
       "completed": false,
-      "created": 1708087300.8789582,
+      "created": 1708102402.0862072,
       "type": 1,
-      "uid": "{32f9f29d-dd7d-40ef-b17d-8f126f82062d}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
-    },
-    {
-      "summary": "TODO: relies on  libxrandr2  which may not be available on the current system",
-      "description": "",
-      "priority": 1,
-      "lineno": 875,
-      "completed": false,
-      "created": 1708087300.8830462,
-      "type": 1,
-      "uid": "{52ab2d19-c7d7-4d28-88a3-0a7684822a00}",
+      "uid": "{07715c82-5e65-438c-b578-40f6b011d84f}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
