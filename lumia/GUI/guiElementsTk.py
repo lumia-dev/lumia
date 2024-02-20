@@ -45,16 +45,16 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize, style), text=text)
 )
 
-def   guiCheckBox(self,state=tk.NORMAL, text='', fontName="Georgia",  fontSize=12, variable=None, 
+def   guiCheckBox(self,state=tk.NORMAL, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
     if((variable is None)):
         raise RuntimeError('Attempt to create a CheckBox failed. Required parameter >>variable<< is not valid.')
     if((text_color is None) and (text_color_disabled is None)):
         return(ctk.CTkCheckBox(self,state=state, text=text, font=(fontName, fontSize), variable=variable,   
-                                        onvalue=onvalue, offvalue=offvalue) )
+                                        command=command,  onvalue=onvalue, offvalue=offvalue) )
     else:
         return(ctk.CTkCheckBox(self,state=state, text=text, font=(fontName, fontSize), variable=variable, text_color='gray5',  
-                                        text_color_disabled='gray70', onvalue=onvalue, offvalue=offvalue) )
+                                        command=command, text_color_disabled='gray70', onvalue=onvalue, offvalue=offvalue) )
 
 
 def guiDataEntry(self, textvariable='',  placeholder_text='', width:int=40):

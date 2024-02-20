@@ -204,8 +204,8 @@ def displayGeometry(maxAspectRatio=1.778):
     logger.debug(f'guiPage1.winfo_screenwidth()={screenWidth},   guiPage1.winfo_screenheight()={screenHeight},  multiple screen correction')
     maxW = int(0.92*screenWidth)
     maxH = int(0.92*screenHeight)
-    if(maxW > 1.2*maxH):
-        maxW = int((1.2*maxH)+0.5)
+    if(maxW > maxAspectRatio*maxH):
+        maxW = int((maxAspectRatio*maxH)+0.5)
         logger.debug(f'maxW={maxW},  maxH={maxH},  max aspect ratio fix.')
     if(xoffset==0):
         xoffset=0.5*(screenWidth-maxW) # helps us to place the gui horizontally in the center of the screen
@@ -271,12 +271,15 @@ def nestedKeyExists(element, *keys):
 
 
 # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
-def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER):
-    guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(maxAspectRatio=1.2)
+def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):",  maxWidth=False):
+    if(maxWidth):
+        maxAspectRatio=16/9.0
+    else:
+        maxAspectRatio=1.2        
+    guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(maxAspectRatio=maxAspectRatio)
     wSpacer=2*guiWindow.xPadding
     guiWindow.vSpacer=2*guiWindow.yPadding
     likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
-    sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
     for myFontFamily in likedFonts:
         (bFontFound, guiWindow.fsTINY,  guiWindow.fsSMALL,  guiWindow.fsNORMAL,  guiWindow.fsLARGE,  guiWindow.fsHUGE,  guiWindow.fsGIGANTIC,  guiWindow.fontHeight,  bWeMustStackColumns, bSuccess)= \
             calculateEstheticFontSizes(myFontFamily,  guiWindow.appWidth,  guiWindow.appHeight, sLongestTxt, nCols, nRows, 
