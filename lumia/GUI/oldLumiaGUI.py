@@ -41,6 +41,21 @@ import warnings
 
 warnings.simplefilter("ignore", FutureWarning)
 
+class GridCTkCheckBox(ctk.CTkCheckBox):
+    def __init__(self, root, myGridID,  *args, **kwargs):
+        ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
+        self.widgetGridID= myGridID
+
+class GridCTkLabel(ctk.CTkLabel):
+    def __init__(self, root, myGridID,  *args, **kwargs):
+        ctk.CTkLabel.__init__(self, root, *args, **kwargs)
+        self.widgetGridID= tk.IntVar(value=myGridID)
+
+
+class GridCTkOptionMenu(ctk.CTkOptionMenu):
+    def __init__(self, root, myGridID, *args, **kwargs):
+        ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
+        self.widgetGridID= myGridID
 
 
 # LumiaGui Class =============================================================
@@ -85,9 +100,9 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
         vSpacer=int(2*0.008*maxH)
         myFontFamily="Georgia"
         sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
-        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
+        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC, myFontHeight,  bWeMustStackColumns, bSuccess)= \
             bs.calculateEstheticFontSizes(myFontFamily,  maxW,  maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
-                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
+                                                        yPad=yPadding, maxFontSize=20, USE_TKINTER=True,  bWeCanStackColumns=False)
         hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
         vDeadSpace=2*yPadding #vSpacer+(nRows*yPadding*2)+vSpacer
         colWidth=int((maxW - hDeadSpace)/(nCols*1.0))
@@ -822,8 +837,15 @@ class RefineObsSelectionGUI(ctk.CTk):
             #global LOOP2_ACTIVE
             #LOOP2_ACTIVE = False
             #return
-        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
-                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
+            
+        # discoverObservationsOnCarbonPortal()
+        # TODO: uncomment the next line to stop using a canned list DiscoveredObservations-short.csv for testing (saves a lot fo time in the debugger)
+        #(dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
+        #                    pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
+        fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
+        badPidsLst=[]
+        
+
         if (len(badPidsLst) > 0):
             sFOut=ymlContents['observations'][tracer]['file']['selectedPIDs']
             sFOut=sFOut[:-21]+'bad-PIDs.csv'
@@ -839,9 +861,9 @@ class RefineObsSelectionGUI(ctk.CTk):
         vSpacer=int(2*0.008*self.maxH)
         myFontFamily="Georgia"
         sLongestTxt="Latitude NN :"
-        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
+        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC, myFontHeight,  bWeMustStackColumns, bSuccess)= \
             bs.calculateEstheticFontSizes(myFontFamily,  self.maxW,  self.maxH, sLongestTxt, nCols, nRows, xPad=xPadding, 
-                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
+                                                        yPad=yPadding, maxFontSize=20, USE_TKINTER=True, bWeCanStackColumns=False)
         hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
         vDeadSpace=2*yPadding 
         colWidth=int((self.maxW - hDeadSpace)/(nCols*1.0))
@@ -1071,7 +1093,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         if ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']):
             self.iObservationsFileLocation.set(2)
         self.RankingLabel = ctk.CTkLabel(rootFrame,
-                                   text="Obsdata Ranking", fontName="Georgia",  fontSize=fsNORMAL)
+                                   text="Obsdata Ranking", font=("Georgia",  fsNORMAL))
         self.RankingLabel.grid(row=1, column=0,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
@@ -1136,12 +1158,12 @@ class RefineObsSelectionGUI(ctk.CTk):
                           sticky="nw")
 
         self.minAltLabel = ctk.CTkLabel(rootFrame,
-                                   text="min alt:", fontName="Georgia",  fontSize=fsNORMAL)
+                                   text="min alt:", font=("Georgia",  fsNORMAL))
         self.minAltLabel.grid(row=2, column=3,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
         self.maxAltLabel = ctk.CTkLabel(rootFrame,
-                                   text="max alt:", fontName="Georgia",  fontSize=fsNORMAL)
+                                   text="max alt:", font=("Georgia",  fsNORMAL))
         self.maxAltLabel.grid(row=3, column=3,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
@@ -1178,12 +1200,12 @@ class RefineObsSelectionGUI(ctk.CTk):
                           sticky="nw")
 
         self.minHghtLabel = ctk.CTkLabel(rootFrame,
-                                   text="min alt:", fontName="Georgia",  fontSize=fsNORMAL)
+                                   text="min alt:", font=("Georgia",  fsNORMAL))
         self.minHghtLabel.grid(row=2, column=5,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
         self.maxHghtLabel = ctk.CTkLabel(rootFrame,
-                                   text="max alt:", fontName="Georgia",  fontSize=fsNORMAL)
+                                   text="max alt:", font=("Georgia",  fsNORMAL))
         self.maxHghtLabel.grid(row=3, column=5,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
@@ -1209,7 +1231,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ################################################################
         # 
         self.ICOSstationsLabel = ctk.CTkLabel(rootFrame,
-                                   text="ICOS stations", fontName="Georgia",  fontSize=fsNORMAL)
+                                   text="ICOS stations", font=("Georgia",  fsNORMAL))
         self.ICOSstationsLabel.grid(row=1, column=7,
                                   columnspan=1, padx=xPadding, pady=yPadding,
                                   sticky="nw")
@@ -1371,7 +1393,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude    Network   Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
-                                   text=myLabels, fontName="Georgia",  fontSize=fsNORMAL)
+                                   text=myLabels, font=("Georgia",  fsNORMAL))
         self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
 
         # Create a scrollable frame onto which to place the many widgets that represent all valid observations found
@@ -1495,7 +1517,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # ###################################################
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
         myWidgetVar= ge.guiBooleanVar(value=row['selected'])
-        myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="",font=("Georgia", fsNORMAL),
+        myWidgetSelect  = GridCTkCheckBox(scrollableFrame4Widgets, gridID,  text="", font=("Georgia", fsNORMAL),
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             variable=myWidgetVar, onvalue=True, offvalue=False) 
         myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.handleMyCheckboxEvent(myWidgetSelect.widgetGridID, 

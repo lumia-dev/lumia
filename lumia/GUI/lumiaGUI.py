@@ -255,7 +255,7 @@ class lumiaGuiApp:
         # TODO: uncomment the next line to stop using a canned list DiscoveredObservations-short.csv for testing (saves a lot fo time in the debugger)
         #(dobjLst, selectedDobjLst, dfObsDataInfo, self.fDiscoveredObservations, self.badPidsLst)=discoverObservationsOnCarbonPortal(self.tracer,   
         #                    pdTimeStart, pdTimeEnd, timeStep,  self.ymlContents,  sDataType=None, printProgress=True,    self.iVerbosityLv='INFO')
-        self.fDiscoveredObservations='DiscoveredObservations-short.csv'
+        self.fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
         self.badPidsLst=[]
         
         if (len(self.badPidsLst) > 0):
@@ -347,7 +347,7 @@ class lumiaGuiApp:
 
 
     # ====================================================================
-    # EventHandler for widgets of second GUI page  -- part of lumiaGuiApp (root window)
+    # EventHandler and helper functions for widgets of the second GUI page  -- part of lumiaGuiApp (root window)
     # ====================================================================
     def guiPg2createRowOfObsWidgets(self, scrollableFrame4Widgets, widgetsLst, num, rowidx, row, guiRow, 
                                                 sSamplingHeights, activeTextColor, 
@@ -671,7 +671,6 @@ class lumiaGuiApp:
             except:
                 pass
         
-
 
 
     # ====================================================================
@@ -1141,6 +1140,7 @@ class lumiaGuiApp:
         # EventHandler for widgets of second GUI page  -- part of lumiaGuiApp (root window)
         # ====================================================================
 
+        
         def applyFilterRules():
             bICOSonly=self.ymlContents['observations']['filters']['ICOSonly']
             self.getFilters()
