@@ -272,11 +272,7 @@ def nestedKeyExists(element, *keys):
 
 
 # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
-def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):",  maxWidth=False):
-    if(maxWidth):
-        maxAspectRatio=16/9.0
-    else:
-        maxAspectRatio=1.2        
+def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):",  maxAspectRatio=1.2):
     guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(maxAspectRatio=maxAspectRatio)
     wSpacer=2*guiWindow.xPadding
     guiWindow.vSpacer=2*guiWindow.yPadding

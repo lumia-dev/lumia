@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-02-21, 00:47:05"
+    "saved": "2024-02-21, 02:28:29"
   },
   "MultiProject": "",
   "Project": "",
@@ -26,8 +26,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
       "Cursor": [
-        140,
-        0
+        2,
+        65
       ],
       "Folds": [],
       "Zoom": 0,
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/boringStuff.py",
       "Cursor": [
-        300,
-        0
+        47,
+        14
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,7 +62,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
       "Cursor": [
-        20,
+        38,
         0
       ],
       "Folds": [],
@@ -132,7 +132,13 @@
       "Editorindex": 10
     }
   ],
-  "ActiveWindow": {},
+  "ActiveWindow": {
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
+    "Cursor": [
+      2,
+      65
+    ]
+  },
   "Breakpoints": [
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
@@ -624,7 +630,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/tk2pagesGuiTest3.py",
-      22,
+      21,
       "",
       false,
       true,
@@ -632,7 +638,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/tk2pagesGuiTest3.py",
-      132,
+      129,
       "",
       false,
       true,
@@ -648,7 +654,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/tk2pagesGuiTest3.py",
-      105,
+      103,
       "",
       false,
       true,
@@ -656,7 +662,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/tk2pagesGuiTest3.py",
-      91,
+      89,
       "",
       false,
       true,

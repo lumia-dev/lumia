@@ -951,7 +951,8 @@ class RefineObsSelectionGUI(ctk.CTk):
         
         # Now we venture to make the root scrollable....
         #main_frame = tk.Frame(root)
-        rootFrame = tk.Frame(root, bg="cadet blue")
+        rootFrame = tk.Frame(root)
+        rootFrame.configure(background='sienna1')
         rootFrame.grid(sticky='news')
         excludedCountriesList = []
         excludedStationsList = []
@@ -1404,17 +1405,19 @@ class RefineObsSelectionGUI(ctk.CTk):
         #x, y, width, height = rootFrame.grid_bbox()
 
         rootFrameCanvas = tk.Frame(rootFrame)
+        rootFrameCanvas.configure(background='OliveDrab1')
         rootFrameCanvas.grid(row=5, column=0,  columnspan=12,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-        rootFrameCanvas.grid_rowconfigure(0, weight=8)
-        rootFrameCanvas.grid_columnconfigure(0, weight=8)
+        rootFrameCanvas.grid_rowconfigure(0, weight=0)
+        rootFrameCanvas.grid_columnconfigure(0, weight=0)
         # Set grid_propagate to False to allow 5-by-5 buttons resizing later
         #rootFrameCanvas.grid_propagate(False)
         cWidth = self.appWidth - xPadding
         cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
         cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
-        
+        logger.debug(f'requested dimensions for scrollableCanvas: w={cWidth} h={cHeight}.')
         # Add a scrollableCanvas in that frame
-        scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="cadet blue", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+        scrollableCanvas = tk.Canvas(rootFrameCanvas, width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+        scrollableCanvas.configure(background='cadet blue')
         scrollableCanvas.grid(row=0, column=0,  columnspan=12,  rowspan=10, sticky="news")
         
         # Link a scrollbar to the scrollableCanvas
@@ -1423,7 +1426,8 @@ class RefineObsSelectionGUI(ctk.CTk):
         scrollableCanvas.configure(yscrollcommand=vsb.set)
         
         # Create a frame to contain the widgets for all obs data sets found following initial user criteria
-        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") #  slightly lighter than "cadet blue"
+        scrollableFrame4Widgets = tk.Frame(scrollableCanvas) #, bg="#82d0d2") #  slightly lighter than "cadet blue"
+        scrollableFrame4Widgets.configure(background='orchid1')
         scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
         # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
         
@@ -2100,6 +2104,8 @@ p.add_argument('--start', dest='start', default=None, help="Start of the simulat
 p.add_argument('--end', dest='end', default=None, help="End of the simulation as in \'2018-12-31 23:59:59\'. Overwrites the value in the rc-file")
 p.add_argument('--rcf', dest='rcf', default=None, help="Same as the --ymf option. Deprecated. For backward compatibility only.")   
 p.add_argument('--ymf', dest='ymf', default=None,  help='yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.')   
+p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
+p.add_argument('--noTkinter', '-n', action='store_true', default=False, help="Do not use tkinter (=> use ipywidgets)")
 #p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
 p.add_argument('--tag', dest='tag', default='')
 p.add_argument('--verbosity', '-v', dest='verbosity', default='INFO')

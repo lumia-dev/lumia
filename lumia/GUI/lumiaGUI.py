@@ -670,11 +670,14 @@ class lumiaGuiApp:
     # ====================================================================
         
     def guiPage1AsTopLv(self, iVerbosityLv='INFO'):  # of lumiaGuiApp
-        if(self.guiPg1TpLv is None):
-            # self.guiPg1TpLv = tk.Toplevel(self.root,  bg="cadet blue")
-            self.guiPg1TpLv = ge.guiToplevel(self,  bg="cadet blue")
         if(USE_TKINTER):
-            self.root.iconify()
+            if(self.guiPg1TpLv is None):
+                self.root.iconify()
+                # self.guiPg1TpLv = tk.Toplevel(self.root,  bg="cadet blue")
+                self.guiPg1TpLv = ge.guiToplevel(self.root,  bg="cadet blue")
+        else:
+            if(self.guiPg1TpLv is None):
+                self.guiPg1TpLv = ge.guiToplevel(self,  bg="cadet blue")
 
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
         nCols=5 # sum of labels and entry fields per row
@@ -690,7 +693,7 @@ class lumiaGuiApp:
         # set the size of the gui window before showing it
         if(USE_TKINTER):
             #self.root.xoffset=int(0.5*1920)
-            self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
+            #self.root.geometry(f"{1800}x{appHeight}+{self.root.xoffset}+0")   # TODO: appWidth
             sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
             if(sufficentHeight < appHeight):
                 appHeight=sufficentHeight
@@ -1326,7 +1329,8 @@ class lumiaGuiApp:
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
         nCols=11 # sum of labels and entry fields per row
         nRows=32 #5+len(self.newDf) # number of rows in the GUI - not so important - window is scrollable
-        bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Obsdata Rankin",  maxWidth=True)
+        maxAspectRatio=16/9.0 # we need the full width of the sceen, so allow max screen width when checked against the max aspect ratio
+        bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Obsdata Rankin",  maxAspectRatio=maxAspectRatio)
         # this gives us self.root.colWidth self.root.rowHeight, self.myFontFamily, self.fontHeight, self.fsNORMAL & friends
         xPadding=self.root.xPadding
         yPadding=self.root.yPadding
@@ -1341,13 +1345,17 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             #self.root.xoffset=int(0.5*1920)
             self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
+            logger.debug(f'requested dimensions  GuiApp w={appWidth} h={appHeight}')
+            self.root.geometry(f"{1800}x{appHeight}+{self.root.xoffset}+0")   
             sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
             if(sufficentHeight < appHeight):
                 appHeight=sufficentHeight
-            self.root.geometry(f"{appWidth}x{appHeight}")
+            self.root.geometry(f"{1800}x{appHeight}") # TODO: appWidth
             # Now we venture to make the root scrollable....
             #main_frame = tk.Frame(root)
-            rootFrame = tk.Frame(self.root, bg="cadet blue")
+            cWidth = 993 - xPadding  # TODO: self.appWidth
+            rootFrame = tk.Frame(self.root, bg="cadet blue", width=cWidth)
+            rootFrame.configure(background='sienna1')
             rootFrame.grid(sticky='news')
             
             
@@ -1573,26 +1581,28 @@ class lumiaGuiApp:
             #  ##################################################################
             # Create a frame for the canvas with non-zero row&column weights
             rootFrameCanvas = tk.Frame(rootFrame)
+            rootFrameCanvas.configure(background='OliveDrab1')
             rootFrameCanvas.grid(row=5, column=0,  columnspan=11,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-            rootFrameCanvas.grid_rowconfigure(0, weight=8)
-            rootFrameCanvas.grid_columnconfigure(0, weight=8)
+            rootFrameCanvas.grid_rowconfigure(0, weight=0)
+            rootFrameCanvas.grid_columnconfigure(0, weight=0)
             cWidth = appWidth - xPadding
             cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
             cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
+            logger.debug(f'requested dimensions for scrollableCanvas: w={cWidth} h={cHeight}. GuiApp w={self.root.appWidth} h={self.root.appHeight}')
+            if (cWidth > self.root.appWidth):
+                cWidth = self.root.appWidth-1
             # Add a scrollableCanvas in that frame
-            scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="cadet blue", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+            scrollableCanvas = tk.Canvas(rootFrameCanvas, width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+            scrollableCanvas.configure(background='cadet blue')
             scrollableCanvas.grid(row=0, column=0,  columnspan=11,  rowspan=10, sticky="news")
             # Link a scrollbar to the scrollableCanvas
             vsb = tk.Scrollbar(rootFrameCanvas, orient="vertical", command=scrollableCanvas.yview)
             vsb.grid(row=0, column=1, sticky='ns')
             scrollableCanvas.configure(yscrollcommand=vsb.set)
             # Create a frame to contain the widgets for all obs data sets found following initial user criteria
-            scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") #  slightly lighter than "cadet blue"
+            scrollableFrame4Widgets = tk.Frame(scrollableCanvas) #, bg="#82d0d2") #  slightly lighter than "cadet blue"
+            scrollableFrame4Widgets.configure(background='orchid1')
             scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
-            # Update buttons frames idle tasks to let tkinter calculate buttons sizes
-            scrollableFrame4Widgets.update_idletasks()
-            # Set the scrollableCanvas scrolling region
-            scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
 
 
         # ====================================================================
@@ -1642,6 +1652,11 @@ class lumiaGuiApp:
             stationInactive=row['stationID'] in self.excludedStationsList
             self.newDf.at[(rowidx) ,  ('includeCountry')] = (not countryInactive)
             self.newDf.at[(rowidx) ,  ('includeStation')] =(not stationInactive)
+        if(USE_TKINTER):
+            # Update buttons frames idle tasks to let tkinter calculate buttons sizes
+            scrollableFrame4Widgets.update_idletasks()
+            # Set the scrollableCanvas scrolling region
+            scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
    
    
 
