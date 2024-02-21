@@ -692,8 +692,6 @@ class lumiaGuiApp:
         self.guiPg1TpLv.protocol("WM_DELETE_WINDOW", self.closeTopLv)
         # set the size of the gui window before showing it
         if(USE_TKINTER):
-            #self.root.xoffset=int(0.5*1920)
-            #self.root.geometry(f"{1800}x{appHeight}+{self.root.xoffset}+0")   # TODO: appWidth
             sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
             if(sufficentHeight < appHeight):
                 appHeight=sufficentHeight
@@ -1346,16 +1344,16 @@ class lumiaGuiApp:
             #self.root.xoffset=int(0.5*1920)
             self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
             logger.debug(f'requested dimensions  GuiApp w={appWidth} h={appHeight}')
-            self.root.geometry(f"{1800}x{appHeight}+{self.root.xoffset}+0")   
+            #self.root.geometry(f"{1800}x{appHeight}+{self.root.xoffset}+0")   
             sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
             if(sufficentHeight < appHeight):
                 appHeight=sufficentHeight
-            self.root.geometry(f"{1800}x{appHeight}") # TODO: appWidth
+            #self.root.geometry(f"{1800}x{appHeight}") # TODO: appWidth
             # Now we venture to make the root scrollable....
             #main_frame = tk.Frame(root)
-            cWidth = 993 - xPadding  # TODO: self.appWidth
-            rootFrame = tk.Frame(self.root, bg="cadet blue", width=cWidth)
-            rootFrame.configure(background='sienna1')
+            #cWidth = 993 - xPadding  # TODO: self.appWidth
+            rootFrame = tk.Frame(self.root, bg="cadet blue") #, width=cWidth)
+            rootFrame.configure(background='cadet blue')  # 'sienna1'
             rootFrame.grid(sticky='news')
             
             
@@ -1581,10 +1579,10 @@ class lumiaGuiApp:
             #  ##################################################################
             # Create a frame for the canvas with non-zero row&column weights
             rootFrameCanvas = tk.Frame(rootFrame)
-            rootFrameCanvas.configure(background='OliveDrab1')
+            rootFrameCanvas.configure(background='thistle1') # 'OliveDrab1')
             rootFrameCanvas.grid(row=5, column=0,  columnspan=11,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-            rootFrameCanvas.grid_rowconfigure(0, weight=0)
-            rootFrameCanvas.grid_columnconfigure(0, weight=0)
+            rootFrameCanvas.grid_rowconfigure(0, weight=2) # the weight>0 effectively moves the scrollbar to the far right though there may be better ways to achieve this
+            rootFrameCanvas.grid_columnconfigure(0, weight=2)
             cWidth = appWidth - xPadding
             cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
             cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
@@ -1593,7 +1591,7 @@ class lumiaGuiApp:
                 cWidth = self.root.appWidth-1
             # Add a scrollableCanvas in that frame
             scrollableCanvas = tk.Canvas(rootFrameCanvas, width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
-            scrollableCanvas.configure(background='cadet blue')
+            scrollableCanvas.configure(background='CadetBlue3')  # 'cadet blue')
             scrollableCanvas.grid(row=0, column=0,  columnspan=11,  rowspan=10, sticky="news")
             # Link a scrollbar to the scrollableCanvas
             vsb = tk.Scrollbar(rootFrameCanvas, orient="vertical", command=scrollableCanvas.yview)
@@ -1601,7 +1599,7 @@ class lumiaGuiApp:
             scrollableCanvas.configure(yscrollcommand=vsb.set)
             # Create a frame to contain the widgets for all obs data sets found following initial user criteria
             scrollableFrame4Widgets = tk.Frame(scrollableCanvas) #, bg="#82d0d2") #  slightly lighter than "cadet blue"
-            scrollableFrame4Widgets.configure(background='orchid1')
+            scrollableFrame4Widgets.configure(background='#82d0d2')  # 'orchid1')
             scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
 
 

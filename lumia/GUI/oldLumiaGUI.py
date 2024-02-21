@@ -952,7 +952,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Now we venture to make the root scrollable....
         #main_frame = tk.Frame(root)
         rootFrame = tk.Frame(root)
-        rootFrame.configure(background='sienna1')
+        rootFrame.configure(background='cadet blue')  # 'sienna1'
         rootFrame.grid(sticky='news')
         excludedCountriesList = []
         excludedStationsList = []
@@ -1405,10 +1405,10 @@ class RefineObsSelectionGUI(ctk.CTk):
         #x, y, width, height = rootFrame.grid_bbox()
 
         rootFrameCanvas = tk.Frame(rootFrame)
-        rootFrameCanvas.configure(background='OliveDrab1')
+        rootFrameCanvas.configure(background='thistle1') # 'OliveDrab1')
         rootFrameCanvas.grid(row=5, column=0,  columnspan=12,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-        rootFrameCanvas.grid_rowconfigure(0, weight=0)
-        rootFrameCanvas.grid_columnconfigure(0, weight=0)
+        rootFrameCanvas.grid_rowconfigure(0, weight=2)
+        rootFrameCanvas.grid_columnconfigure(0, weight=2)
         # Set grid_propagate to False to allow 5-by-5 buttons resizing later
         #rootFrameCanvas.grid_propagate(False)
         cWidth = self.appWidth - xPadding
@@ -1417,7 +1417,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         logger.debug(f'requested dimensions for scrollableCanvas: w={cWidth} h={cHeight}.')
         # Add a scrollableCanvas in that frame
         scrollableCanvas = tk.Canvas(rootFrameCanvas, width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
-        scrollableCanvas.configure(background='cadet blue')
+        scrollableCanvas.configure(background='CadetBlue3')  # 'cadet blue')
         scrollableCanvas.grid(row=0, column=0,  columnspan=12,  rowspan=10, sticky="news")
         
         # Link a scrollbar to the scrollableCanvas
@@ -1427,7 +1427,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         
         # Create a frame to contain the widgets for all obs data sets found following initial user criteria
         scrollableFrame4Widgets = tk.Frame(scrollableCanvas) #, bg="#82d0d2") #  slightly lighter than "cadet blue"
-        scrollableFrame4Widgets.configure(background='orchid1')
+        scrollableFrame4Widgets.configure(background='#82d0d2')  # 'orchid1')
         scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
         # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
         
