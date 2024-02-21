@@ -38,6 +38,13 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     )
     #return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize), text=text)
 
+def guiFileDialog(filetypes='*', title='Open', multiple=False): 
+    fileNameDlg= FileUpload(
+        accept=filetypes,  # Accepted file extension e.g. '.txt', '.pdf', 'image/*', 'image/*,.pdf'
+        multiple=multiple  # True to accept multiple files upload else False
+    )
+    return(fileNameDlg)
+
 
 def guiPlaceWidget(widget, row, column, columnspan, rowspan=1, padx=10,  pady=10,  sticky="ew"):
    #widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)

@@ -8,7 +8,7 @@ import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
 import yaml
-#import time
+import time
 import re
 from pandas import to_datetime
 from loguru import logger
@@ -27,7 +27,7 @@ AVAIL_OCEAN_NETEX_DATA=["mikaloff01"]
         # https://hdl.handle.net/11676/ZU0G9vak8AOz-GprC0uY-HPM  EDGARv4.3_BP2021_CO2_EU2_2019.nc
         # https://hdl.handle.net/11676/De0ogQ4l6hAsrgUwgjAoGDoy EDGARv4.3_BP2021_CO2_EU2_2018.nc
 
-
+APPISACTIVE=True
 USE_TKINTER=True
 scriptName=sys.argv[0]
 if('.ipynb' in scriptName[-6:]):
@@ -120,6 +120,8 @@ def prepareCallToLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv='INFO'):
     
     # Present to the user the data sets found
     '''
+    while(APPISACTIVE):
+        time.sleep(1)
     logger.info('LumiaGUI completed successfully. The updated Lumia config file has been written to:')
     logger.info(ymlFile)
     return
@@ -157,6 +159,8 @@ class lumiaGuiApp:
         else:
             # TODO: write the GO message to file
             logger.info(f'LumiaGUI completed successfully. The updated Lumia config file has been written to: {self.ymlFile}')
+        global APPISACTIVE
+        APPISACTIVE=False
         sys.exit(0)
 
     # ====================================================================
@@ -186,6 +190,8 @@ class lumiaGuiApp:
             self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
 
         if(bGo):
+            self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
+                        message='Do you want to use the cached discovered observations from 0 days ago?')
             self.guiPg1TpLv.iconify()
             # Save  all details of the configuration and the version of the software used:
             try:
@@ -203,7 +209,7 @@ class lumiaGuiApp:
             self.closeTopLv(bWriteStop=False)
             
     def EvHdPg1selectFile(self):
-        filename = ctk.filedialog.askopenfilename()
+        filename = ge.guiFileDialog() 
         if ((filename is None) or (len(filename)<5)):
             return   # Canceled or no valid filename returned: Keep previous data and continue
         # update the file entry widget
@@ -241,14 +247,15 @@ class lumiaGuiApp:
         pdTimeStart=pdTimeStart.tz_localize('UTC')
         pdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
         pdTimeEnd=pdTimeEnd.tz_localize('UTC')
-        #timeStep=self.ymlContents['run']['time']['timestep']
+        timeStep=self.ymlContents['run']['time']['timestep']
         
         # discoverObservationsOnCarbonPortal()
-        # TODO: uncomment the next line to stop using a canned list DiscoveredObservations-short.csv for testing (saves a lot fo time in the debugger)
-        #(dobjLst, selectedDobjLst, dfObsDataInfo, self.fDiscoveredObservations, self.badPidsLst)=discoverObservationsOnCarbonPortal(self.tracer,   
-        #                    pdTimeStart, pdTimeEnd, timeStep,  self.ymlContents,  sDataType=None, printProgress=True,    self.iVerbosityLv='INFO')
-        self.fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
-        self.badPidsLst=[]
+        if(self.bUseCachedList):
+            self.fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
+            self.badPidsLst=[]
+        else:
+            (dobjLst, selectedDobjLst, dfObsDataInfo, self.fDiscoveredObservations, self.badPidsLst)=discoverObservationsOnCarbonPortal(self.tracer,   
+                                pdTimeStart, pdTimeEnd, timeStep,  self.ymlContents,  sDataType=None, printProgress=True,  iVerbosityLv='INFO')
         
         if (len(self.badPidsLst) > 0):
             sFOut=self.ymlContents['observations'][self.tracer]['file']['selectedPIDs']
@@ -345,7 +352,9 @@ class lumiaGuiApp:
                                                 sSamplingHeights, activeTextColor, 
                                                 inactiveTextColor, fsNORMAL, xPadding, yPadding, fsSMALL, obsDf):
         ''' draw all the widgets belonging to one observational data set corresponding to a single line on the GUI '''
-        #nWidgetsPerRow=5
+        # There are 5 active widgets per ObsData entry or row: selected,  country,  stationID,  samplingHeight,  and 
+        # one textLabel for the remaining info on station altitude, network, lat, lon, dataRanking and dataDescription
+        self.nWidgetsPerRow=5
         gridRow=[]
         
         bSelected=row['selected']
@@ -447,15 +456,6 @@ class lumiaGuiApp:
         gridRow.append(myWidgetVar)
         # ###################################################
         # guiPg2createRowOfObsWidgets() completed
-
-    def EvHdPg2isICOSfilter(self):
-        isICOSrbValue=self.isICOSplusRadioButton.cget("variable")
-        if(isICOSrbValue==2):
-            self.ymlContents['observations']['filters']['ICOSonly']=True
-        else:
-            self.ymlContents['observations']['filters']['ICOSonly']=False
-        self.applyFilterRules()                       
-    
 
     def EvHdPg2myCheckboxEvent(self, gridID, widgetsLst, obsDf, nWidgetsPerRow, activeTextColor, inactiveTextColor):
         ri=int(0.01*gridID)  # row index for the widget on the grid
@@ -568,7 +568,6 @@ class lumiaGuiApp:
                     self.EvHdPg2updateRowOfObsWidgets(widgetsLst, ri, row, nWidgetsPerRow, activeTextColor, inactiveTextColor)
                     ri+=1
                     widgetID+=nWidgetsPerRow
-                    #includeStationIdx+=nWidgetsPerRow
                     if(ri>=self.nRows):
                         break
                     row=obsDf.iloc[ri]
@@ -612,7 +611,6 @@ class lumiaGuiApp:
             We only modify the state parameters of existing widgets.
         '''
         ri=rowidx
-        #nWidgetsPerRow=5
         colidx=int(0)  # row['selected']
         # ###################################################
         widgetID=(ri*nWidgetsPerRow)+colidx  # calculate the corresponding index to access the right widget in widgetsLst
@@ -1171,6 +1169,15 @@ class lumiaGuiApp:
                     self.EvHdPg2updateRowOfObsWidgets(widgetsLst, ri, row, self.nWidgetsPerRow, activeTextColor, inactiveTextColor)
                     
                     
+        def EvHdPg2isICOSfilter(self):
+            isICOSrbValue=self.isICOSplusRadioButton.cget("variable")
+            if(isICOSrbValue==2):
+                self.ymlContents['observations']['filters']['ICOSonly']=True
+            else:
+                self.ymlContents['observations']['filters']['ICOSonly']=False
+            applyFilterRules()                       
+    
+
         def EvHdPg2stationAltitudeFilterAction():
             stationMinAltCommonSense= -100 #m Dead Sea
             stationMaxAltCommonSense= 9000 #m Himalaya
@@ -1198,7 +1205,7 @@ class lumiaGuiApp:
             elif(self.ymlContents['observations']['filters']['bStationAltitude']):
                 self.ymlContents['observations']['filters']['stationMaxAlt']=mxh
                 self.ymlContents['observations']['filters']['stationMinAlt']=mnh
-            self.applyFilterRules()                       
+            applyFilterRules()                       
             
         def EvHdPg2stationSamplingHghtAction():
             inletMinHeightCommonSense = 0    # in meters
@@ -1227,7 +1234,7 @@ class lumiaGuiApp:
             elif(self.ymlContents['observations']['filters']['bSamplingHeight']):
                 self.ymlContents['observations']['filters']['inletMaxHeight']=mxh
                 self.ymlContents['observations']['filters']['inletMinHeight']=mnh
-            self.applyFilterRules()
+            applyFilterRules()
     
             
         def EvHdPg2GoBtnHit():
@@ -1343,20 +1350,14 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             #self.root.xoffset=int(0.5*1920)
             self.root.geometry(f"{appWidth}x{appHeight}+{self.root.xoffset}+0")   
-            logger.debug(f'requested dimensions  GuiApp w={appWidth} h={appHeight}')
-            #self.root.geometry(f"{1800}x{appHeight}+{self.root.xoffset}+0")   
-            sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
-            if(sufficentHeight < appHeight):
-                appHeight=sufficentHeight
-            #self.root.geometry(f"{1800}x{appHeight}") # TODO: appWidth
+            #logger.debug(f'requested dimensions  GuiApp w={appWidth} h={appHeight}')
+            #sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
+            #if(sufficentHeight < appHeight):
+            #    appHeight=sufficentHeight
             # Now we venture to make the root scrollable....
-            #main_frame = tk.Frame(root)
-            #cWidth = 993 - xPadding  # TODO: self.appWidth
-            rootFrame = tk.Frame(self.root, bg="cadet blue") #, width=cWidth)
+            rootFrame = tk.Frame(self.root) #, width=cWidth)
             rootFrame.configure(background='cadet blue')  # 'sienna1'
             rootFrame.grid(sticky='news')
-            
-            
         #self.deiconify()
             
 
@@ -1456,10 +1457,10 @@ class lumiaGuiApp:
                                    text="ICOS stations", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
         self.isICOSplusRadioButton = ge.guiRadioButton(rootFrame,
                                    text="Any station", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
-                                   variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter)
+                                   variable=self.isICOSRadioButtonVar,  value=1,  command=EvHdPg2isICOSfilter)
         self.ICOSradioButton = ge.guiRadioButton(rootFrame,
                                    text="ICOS only", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
-                                   variable=self.isICOSRadioButtonVar,  value=2,  command=self.EvHdPg2isICOSfilter)
+                                   variable=self.isICOSRadioButtonVar,  value=2,  command=EvHdPg2isICOSfilter)
         # Col_11
         # ################################################################
         # 
@@ -1469,8 +1470,8 @@ class lumiaGuiApp:
         # Col_12
         # ################################################################
         # GO! Button
-        self.GoButton = ctk.CTkButton(rootFrame, font=(self.root.myFontFamily, self.root.fsNORMAL), 
-                                        command=EvHdPg2GoBtnHit,  text="RUN")  # Note: expressions after command= cannot have parameters or they will be executed at initialisation which is unwanted
+        self.GoButton = ctk.CTkButton(rootFrame, font=(self.root.myFontFamily, self.root.fsLARGE), 
+                                        command=EvHdPg2GoBtnHit,  text="GO!")  # Note: expressions after command= cannot have parameters or they will be executed at initialisation which is unwanted
         #self.GoButton.configure(command= lambda: self.EvHdPg2GoBtnHit) 
         ge.updateWidget(self.GoButton,  value='gray1', bText_color=True)
         ge.updateWidget(self.GoButton,  value='green3', bFg_color=True) # in CTk this is the main button color (not the text color)
@@ -1708,6 +1709,9 @@ args, unknown = p.parse_known_args(sys.argv[1:])
 logger.remove()
 logger.add(sys.stderr, level=args.verbosity)
 
+USE_TKINTER=False # when called from lumiaGUInotebook.ipynb there are no commandline options
+if((args.start is not None) or (args.rcf is not None) or (args.ymf is not None)):
+    USE_TKINTER=True # called as a notebook, not from the commandline
 if(args.noTkinter):
     USE_TKINTER=False
 if(USE_TKINTER):
@@ -1721,8 +1725,35 @@ else:
     from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
 if(args.rcf is None):
     if(args.ymf is None):
-        logger.error("LumiaGUI: Fatal error: no user configuration (yaml) file provided.")
-        sys.exit(1)
+        title='Open existing LUMIA configuration file:'
+        filename=None
+        if(USE_TKINTER):
+            filetypes=[("YAML files", "*.yml")]
+        else:
+            filetypes='*.yml'
+        if(not USE_TKINTER):
+            selectFileDlg = ge.guiFileDialog(filetypes=filetypes, title=title)
+            selectFileDlg
+            display(selectFileDlg)
+            filenameTupl=None
+            start_time = datetime.now()
+            while((filenameTupl is None) or (len(filenameTupl)<1)):
+                selectFileDlg.observe(selectFileDlg, 'value')
+                filenameTupl = selectFileDlg.value
+                if ((datetime.now() - start_time).total_seconds() > 10): # check if 10 seconds passed
+                    break # break out of loop
+            if((filenameTupl is None) or (len(filenameTupl)>0)):
+                try:
+                    filename=filenameTupl[0]
+                except:
+                    pass
+        else:
+            filename = ge.guiFileDialog(filetypes=filetypes, title=title)
+        if(filename is None):
+            filename='./lumia-config-v6-tr-co2.yml'
+            #logger.error("LumiaGUI: Fatal error: no user configuration (yaml) file provided.")
+            #sys.exit(1)
+        ymlFile=filename
     else:
         ymlFile = args.ymf
 else:            

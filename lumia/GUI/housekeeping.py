@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='ce83181612177439929c747caa3cec0633643cfd'
+LATESTGITCOMMIT_LumiaDA='aad073dc4419582b549f53666b0cffeb8fce3425'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
 import sys
+import getpass
 import platform
 import pathlib
 import re
@@ -219,7 +220,14 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         logger.error(f'Wrong format of input Lumia config yml file. Your configuration file needs to be of major version=={nThisConfigFileVersion} and sub-version>0.')
         sys.exit(-3)
     # Document what kind of system the run was carried out on
-    sUsername=os.getlogin()  # The user's login name
+    try:        
+        sUsername=os.getlogin()  # The user's login name - works only if run from terminal
+    except:
+        try:
+            sUsername=getpass.getuser()
+        except:
+            sUsername="UNKNOWN" 
+    logger.info(f'lumiaGUI is run by user {sUsername}')
     # sysName=platform.system() # Linux
     #sysReleaseVersion=platform.release()  # 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
     myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35

@@ -2,6 +2,7 @@
 
 import tkinter as tk    
 import customtkinter as ctk
+from tkinter import messagebox as mb
 #from loguru import logger
 
 '''
@@ -54,6 +55,9 @@ def guiIntVar(value):
 def guiStringVar(value):
    return(tk.StringVar(value=value))
 
+def guiAskyesno(title='', message='?'):
+    return(mb.askyesno(title='Use previous list of obs data?',
+                        message='Do you want to use the cached discovered observations data from 0 days ago?'))
 
 def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
     # If you click the OK button, the function returns True. Else, if you click the Cancel button, the function returns False
@@ -79,6 +83,8 @@ def   guiCheckBox(self,state=tk.NORMAL, text='', fontName="Georgia", command=Non
 def guiDataEntry(self, textvariable='',  placeholder_text='', width:int=40):
     return(ctk.CTkEntry(self,textvariable=textvariable, placeholder_text=placeholder_text, width=width))
 
+def guiFileDialog(filetypes=[("All", "*")],  title='Open local file'): 
+    return(ctk.filedialog.askopenfilename(filetypes=filetypes,  title=title))
 
 def guiOptionMenu(self, values:[], variable=None,  dropdown_fontName="Georgia",  dropdown_fontSize=12):
     if((variable is None) or (values is None)):

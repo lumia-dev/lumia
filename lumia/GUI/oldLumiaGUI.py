@@ -1819,11 +1819,6 @@ class RefineObsSelectionGUI(ctk.CTk):
             except:
                 pass
         
-
-
-    def AskUserAboutWarnings(self):
-        GoBackAndFixIt=True
-        return(GoBackAndFixIt)
     
 
         
