@@ -8,7 +8,8 @@ from screeninfo import get_monitors
 from PIL import  ImageFont  #, ImageDraw
 #from Pillow import ImageFont, ImageDraw
 
-MIN_SCREEN_RES=480 # pxl - just in case querying screen size fails for whatever reason...
+MIN_SCREEN_WIDTH=1920 # pxl - just in case querying screen size fails for whatever reason...
+MIN_SCREEN_HEIGHT=1080 # pxl - just in case querying screen size fails for whatever reason...
 
 # =============================================================================
 # small helper functions for mostly mundane tasks - ordered alphabetically by function name
@@ -29,7 +30,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     bFontFound=False
     bSuccess=False
     w=0
-    h=0
+    h=25
     fontHeight=h
     system_fonts = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
     myfontpath=''
@@ -44,20 +45,20 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
                 bFontFound=True
                 break
     if(len(myfontpath)<10):
-        return(bFontFound, 9, 10, 12, 15, 19, 24, False, bSuccess) # and hope for the best....
+        return(bFontFound, 9, 10, 12, 15, 19, 24, fontHeight, False, bSuccess) # and hope for the best....
         logger.warning(f'TTF font for FontFamily {sFontFamily} not found on system. Defaulting to font size 12 as a base size.')
     if(USE_TKINTER):
         try:
             font = tk.font.Font(family=sFontFamily, size=FontSize)
         except:
             logger.warning('Hook to tk app invalid. Defaulting to font size 12 as a base size.')
-            return(bFontFound, 9, 10, 12, 15, 19, 24, False, bSuccess) # and hope for the best....
+            return(bFontFound, 9, 10, 12, 15, 19, 24, fontHeight, False, bSuccess) # and hope for the best....
     else:
         try:
             font = ImageFont.truetype(fontpath, FontSize)
         except:
             logger.warning(f'TTF font for FontFamily {sFontFamily} not found on system. Defaulting to font size 12 as a base size.')
-            return(False, 9, 10, 12, 15, 19, 24, False, bSuccess)
+            return(False, 9, 10, 12, 15, 19, 24, fontHeight, False, bSuccess)
         (left, top, right, bottom)=font.getbbox(sLongestTxt, anchor="ls")
         w=right - left
         h=abs(top - bottom)
@@ -149,7 +150,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     logger.debug(f"fsSMALL={fsSMALL},fsNORMAL={fsNORMAL},fsLARGEL={fsLARGE},fsHUGE={fsHUGE}")
     return(bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC, fontHeight, bWeMustStack, bSuccess)
 
-\
+
 def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp
     if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
         logger.info("LumiaGUI was canceled.")
@@ -183,9 +184,9 @@ def displayGeometry(maxAspectRatio=1.778):
                     screenHeight =screen.height
                 except:
                     pass
-        if (screenWidth < MIN_SCREEN_RES):
-            screenWidth=MIN_SCREEN_RES
-            screenHeight=MIN_SCREEN_RES
+        if (screenWidth < MIN_SCREEN_WIDTH):
+            screenWidth=MIN_SCREEN_WIDTH
+            screenHeight=MIN_SCREEN_HEIGHT
             xoffset=1
             
     except:

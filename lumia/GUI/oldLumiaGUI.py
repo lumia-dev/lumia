@@ -840,10 +840,10 @@ class RefineObsSelectionGUI(ctk.CTk):
             
         # discoverObservationsOnCarbonPortal()
         # TODO: uncomment the next line to stop using a canned list DiscoveredObservations-short.csv for testing (saves a lot fo time in the debugger)
-        #(dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
-        #                    pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
-        fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
-        badPidsLst=[]
+        (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
+                            pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
+        #fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
+        #badPidsLst=[]
         
 
         if (len(badPidsLst) > 0):

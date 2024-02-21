@@ -265,6 +265,7 @@ if args.optimize or args.gradtest :
     else :
         db.setup_uncertainties()
 
+
 if args.optimize or args.adjtest or args.gradtest :
     from lumia.interfaces.multitracer import Interface
 
@@ -285,10 +286,8 @@ if args.optimize or args.adjtest or args.gradtest :
         opt.AdjointTest()
     elif args.gradtest :
         opt.GradientTest()
-
 elif args.emis :
     model.writeStruct(emis, rcf['run']['paths']['output'], 'modelData')
-
 elif args.adjtestmod :
     # Test only the adjoint of the CTM (skip the lumia stuff ...).
     model.adjoint_test(emis)

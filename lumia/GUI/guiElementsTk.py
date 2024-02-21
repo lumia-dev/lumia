@@ -8,6 +8,25 @@ import customtkinter as ctk
  This file guiElementsTk.py provides generig interfaces to tkinter and customtkinter GUI elements
 '''
 
+# LumiaGui Class =============================================================
+class LumiaGui(ctk.CTk):
+    def __init__(self): 
+        ctk.set_appearance_mode("System")
+        ctk.set_default_color_theme("/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/doc/lumia-dark-theme.json")
+        ctk.CTk.__init__(self)
+        # self.geometry(f"{maxW+1}x{maxH+1}")   is set later when we know about the screen dimensions
+        self.title('LUMIA - the Lund University Modular Inversion Algorithm')
+        self.grid_rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.activeTextColor='gray10'
+        self.inactiveTextColor='gray50'
+
+class LumiaTkFrame(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+
+
 class GridCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID,  *args, **kwargs):
         ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
@@ -89,6 +108,8 @@ def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  wid
     else:
         return(ctk.CTkLabel(self, text=text,  anchor=anchor, width=width, font=(fontName,  fontSize, style)))                                
 
+def guiToplevel(self,  bg="cadet blue"):
+    return(tk.Toplevel(self,  bg=bg))
 
 def  updateWidget(widget,  value, bTextvar=False,  bText_color=False,  bFg_color=False,  bBg_color=False):
     if(bTextvar):

@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
+import ipywidgets  as widgets
+import ipywidgets as widgets
+from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
 
-from ipywidgets import widgets 
 from IPython.display import display
+
+
+# LumiaGui Class =============================================================
+class LumiaGui:
+    def __init__(self): 
+        self.title='LUMIA - the Lund University Modular Inversion Algorithm'
+        self.activeTextColor='gray10'
+        self.inactiveTextColor='gray50'
+
+class guiToplevel:
+    def __init__(self, bg="cadet blue"):
+        self.bg=bg
+        self.title='LUMIA - the Lund University Modular Inversion Algorithm'
+        self.activeTextColor='gray10'
+        self.inactiveTextColor='gray50'
 
 
 from loguru import logger
@@ -27,7 +44,7 @@ def guiPlaceWidget(widget, row, column, columnspan, rowspan=1, padx=10,  pady=10
     display(widget)
     #TODO: add layout with grid
     
-def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None,  description=''):
+def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None, description='' , style="normal"):
     placeholder='x'
     if(width is None):
         placeholder="LUMIA  --  Configure your next LUMIA run"
