@@ -1068,7 +1068,7 @@ class RefineObsSelectionGUI(ctk.CTk):
 
         def isICOSrbAction():
             isICOSrbValue=self.isICOSplusRadioButton.cget("variable")
-            if(isICOSrbValue==2):
+            if(isICOSrbValue.get()==2):
                 ymlContents['observations']['filters']['ICOSonly']=True
             else:
                 ymlContents['observations']['filters']['ICOSonly']=False
@@ -1392,7 +1392,7 @@ class RefineObsSelectionGUI(ctk.CTk):
         # Row 4 title for individual entries
         # ################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
-        myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude    Network   Latitude Longitude  DataRanking DataDescription"
+        myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ctk.CTkLabel(rootFrame, justify="left", anchor="w",
                                    text=myLabels, font=("Georgia",  fsNORMAL))
         self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")

@@ -286,10 +286,12 @@ class lumiaGuiApp:
         #            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
         self.getFilters()
         newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+        logger.debug(f'reading the listing of all discovered obs data sets from file {self.fDiscoveredObservations}')
         dfAllObs = pd.read_csv (self.fDiscoveredObservations)
         for index, row in dfAllObs.iterrows():
             hLst=[row['samplingHeight'] ]
             pidLst=[ row['pid']]
+            # bStationAltOk and bSamplHghtOk are helper variables that make filtering easier if requested at a later stage
             bStationAltOk = (((row['altitude'] >= self.stationMinAlt) &
                                 (row['altitude'] <= self.stationMaxAlt) ) | (self.bUseStationAltitudeFilter==False)) 
             bSamplHghtOk = (((row['samplingHeight'] >= self.inletMinHght) &
@@ -442,9 +444,10 @@ class lumiaGuiApp:
         colidx+=1 # =4  Remaining Labels in one string
         # ###################################################
         gridID=int((100*rowidx)+colidx)
-        affiliationICOS="ICOS"
-        if(not row['isICOS']):
-            affiliationICOS="non-ICOS"
+        affiliationICOS=row['isICOS'] #"ICOS"
+        affiliationICOS=str(affiliationICOS)
+        #if('no' in row['isICOS']):
+        #    affiliationICOS="non-ICOS"
         sLat="{:.2f}".format(row['latitude'])
         sLon="{:.2f}".format(row['longitude'])
         myWidgetVar= bs.formatMyString(str(row['altitude']), 9, 'm')\
@@ -1175,7 +1178,8 @@ class lumiaGuiApp:
                 sH=float(row['samplingHeight'])
             row['HghtOk'] = (((sH >= self.inletMinHght) &
                                             (sH <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
-            bIcosOk=((bICOSonly==False)or(row['isICOS']==True))
+            icosStatus=row['isICOS'] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
+            bIcosOk=((bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
             bSel=False
             countryInactive=row['country'] in self.excludedCountriesList
             stationInactive=row['stationID'] in self.excludedStationsList
@@ -1256,7 +1260,7 @@ class lumiaGuiApp:
     
     def EvHdPg2isICOSfilter(self):
         isICOSrbValue=self.Pg2isICOSradioButton.cget("variable")
-        if(isICOSrbValue==2):
+        if(isICOSrbValue.get()==2):
             self.ymlContents['observations']['filters']['ICOSonly']=True
         else:
             self.ymlContents['observations']['filters']['ICOSonly']=False
@@ -1575,7 +1579,7 @@ class lumiaGuiApp:
         # Row 4 title for individual entries
         #  ##############################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
-        myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude    Network   Latitude Longitude  DataRanking DataDescription"
+        myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ge.guiTxtLabel(rootFrame, anchor="w", text=myLabels, fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
 
    

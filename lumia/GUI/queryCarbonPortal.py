@@ -441,6 +441,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     #df['dClass'] = np.where(df.dataSetLabel.str.contains("Release", flags=re.IGNORECASE), int(3), df['dClass'] )
     #df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
     #df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
+    myCarbonPortalTools.printProgressBar(nObj, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
     df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
     if(nBadDataSets > 0):
