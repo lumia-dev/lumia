@@ -539,7 +539,7 @@ class LumiaGui(ctk.CTkToplevel):  #ctk.CTk):
 
         # Ignore ChkBx
         self.bIgnoreWarningsCkbVar = ge.guiBooleanVar(value=False) # tk.NORMAL
-        self.ignoreWarningsCkb = ge.guiCheckBox(self,state=tk.DISABLED, 
+        self.ignoreWarningsCkb = ge.guiCheckBox(self,disabled=True, 
                             text="Ignore Warnings", fontName="Georgia",  fontSize=fsNORMAL,
                             variable=self.bIgnoreWarningsCkbVar, text_color='gray5',  text_color_disabled='gray70', 
                             onvalue=True, offvalue=False)                            

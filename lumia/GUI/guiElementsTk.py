@@ -68,8 +68,12 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize, style), text=text)
 )
 
-def   guiCheckBox(self,state=tk.NORMAL, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
+def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
+    if(disabled):
+        state=tk.DISABLED
+    else:
+        state=tk.NORMAL
     if((variable is None)):
         raise RuntimeError('Attempt to create a CheckBox failed. Required parameter >>variable<< is not valid.')
     if((text_color is None) and (text_color_disabled is None)):
@@ -101,8 +105,11 @@ def guiRadioButton(rootFrame, text, fontName="Georgia",  fontSize=12,
     return(ctk.CTkRadioButton(rootFrame, text=text,  font=(fontName, fontSize),  
                                    variable=variable,  value=value,  command=command))
 
-def guiTextBox(self, width=200,  height=100,  fontName="Georgia",  fontSize=12, text_color="black"):
-    return(ctk.CTkTextbox(self, width=width, text_color=text_color, font=(fontName, fontSize),  height=height))
+def guiTextBox(self, text='', width=200,  height=100,  fontName="Georgia",  fontSize=12, text_color="black"):
+    tbox=ctk.CTkTextbox(self, width=width, text_color=text_color, font=(fontName, fontSize),  height=height)
+    if(len(text)>1):
+        tbox.insert('0.0',text) # insert at line 0 character 0
+    return(tbox)
 
 def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None, style="normal"):
     if((anchor is None) and (width is None)):
@@ -112,7 +119,8 @@ def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  wid
     elif(width is None):
         return(ctk.CTkLabel(self, text=text,  anchor=anchor, font=(fontName,  fontSize, style)))                                
     else:
-        return(ctk.CTkLabel(self, text=text,  anchor=anchor, width=width, font=(fontName,  fontSize, style)))                                
+        return(ctk.CTkLabel(self, text=text,  anchor=anchor, width=width, font=(fontName,  fontSize, style)))  
+    
 
 def guiToplevel(self,  bg="cadet blue"):
     return(tk.Toplevel(self,  bg=bg))
