@@ -42,7 +42,7 @@ import boringStuff as bs
 # Core functions with interesting tasks
 # =============================================================================
 
-def prepareCallToLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv='INFO'): 
+def prepareCallToLumiaGUI(ymlFile,  initialYmlFile,  oldDiscoveredObservations, scriptDirectory, iVerbosityLv='INFO'): 
     '''
     Function 
     LumiaGUI exposes selected paramters of the LUMIA config file (in yaml data format) to a user
@@ -104,8 +104,9 @@ def prepareCallToLumiaGUI(ymlFile,  scriptDirectory, iVerbosityLv='INFO'):
     lumiaGuiAppInst.ymlContents = ymlContents # the contents of the Lumia configuration file
     lumiaGuiAppInst.sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix'] # where to write output
     lumiaGuiAppInst.sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
+    lumiaGuiAppInst.oldDiscoveredObservations=oldDiscoveredObservations
     lumiaGuiAppInst.iVerbosityLv=iVerbosityLv
-    guiPg1TpLv=lumiaGuiAppInst.guiPage1AsTopLv(iVerbosityLv)  # the first of 2 pages of the GUI implemented as a toplevel window (init)
+    guiPg1TpLv=lumiaGuiAppInst.guiPage1AsTopLv(initialYmlFile=initialYmlFile,  iVerbosityLv=iVerbosityLv)  # the first of 2 pages of the GUI implemented as a toplevel window (init)
         #lumiaGuiAppInst.runPage2  # execute the central method of lumiaGuiApp
     if(USE_TKINTER):
         root.mainloop()
@@ -144,22 +145,24 @@ class lumiaGuiApp:
     def closeTopLv(self, bWriteStop=True):  # of lumiaGuiApp
         self.guiPg1TpLv.destroy()
         if(bWriteStop):
-            bs.cleanUp(bWriteStop)
-            logger.info('lumiaGUI canceled by user.')
-            self.closeApp(False)
+            # do this in closeApp(): bs.cleanUp(bWriteStop=bWriteStop,  ymlFile=self.ymlFile)
+            # logger.info('lumiaGUI canceled by user.')
+            self.closeApp(True)
         self.guiPg1TpLv=None
         self.root.deiconify()
         self.runPage2()  
 
     def closeApp(self, bWriteStop=True):  # of lumiaGuiApp
-        bs.cleanUp(bWriteStop)
+        bs.cleanUp(bWriteStop=bWriteStop,  ymlFile=self.initialYmlFile)
         logger.info("Closing the GUI...")
         self.root.destroy()
         if(bWriteStop):
             logger.info('lumiaGUI canceled by user.')
         else:
             # TODO: write the GO message to file
-            logger.info(f'LumiaGUI completed successfully. The updated Lumia config file has been written to: {self.ymlFile}')
+            sCmd=f'cp {self.ymlFile} {self.initialYmlFile}'
+            hk.runSysCmd(sCmd)
+            logger.info(f'LumiaGUI completed successfully. The updated Lumia config file has been written to: {self.ymlFile} and {self.initialYmlFile}')
         global APPISACTIVE
         APPISACTIVE=False
         sys.exit(0)
@@ -193,12 +196,10 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
         if(bGo):
-            # TODO: analyse input yml file for most recent DiscoveredObservations.csv, geographical region and start/end time
-            # and compare these to the current user selections and only if sesnsible, offer to use the cached data
-            self.fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
-            self.badPidsLst=[]            
-            self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
-                        message='Do you want to use the cached discovered observations from 0 days ago?')
+            self.bUseCachedList=False
+            if(self.bSuggestOldDiscoveredObservations):
+                self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
+                            message='Do you want to use the cached discovered observations from 0 days ago?')
             self.guiPg1TpLv.iconify()
             # Save  all details of the configuration and the version of the software used:
             try:
@@ -247,6 +248,31 @@ class lumiaGuiApp:
         self.inletMinHght = self.ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
         self.inletMaxHght = self.ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
 
+    def check4recentDiscoveredObservations(self, ymlContents):
+        # Do we have a DiscoveredObservations.csv file from a previous run that a user could use?
+        # This saves a fair bit of time if say you only want to do minor changes or check the settings.
+        # However, because hk.documentThisRun() has already be run, so the value of sOutputPrfx
+        # may already have changed. This means, we need to construct the likely name and location from the
+        #         selectedObsData=ymlContents['observations'][tracer]['file']['selectedObsData']
+        # key. For this we need the value of [tracer]. And then from something like 
+        # ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-selected-ObsData-co2.csv
+        # we need to construct
+        # ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-DiscoveredObservations.csv
+        self.haveDiscoveredObs=False
+        if (os.path.exists(self.oldDiscoveredObservations)):
+            self.oldLat0=ymlContents['run']['region']['lat0']  # 33.0
+            self.oldLat1=ymlContents['run']['region']['lat1']   #73.0
+            self.oldLon0=ymlContents['run']['region']['lon0']  # -15.0
+            self.oldLon1=ymlContents['run']['region']['lon1']   #35.0
+            sStart=self.ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
+            sEnd=self.ymlContents['run']['time']['end']
+            self.oldpdTimeStart = to_datetime(sStart[:19], format="%Y-%m-%d %H:%M:%S")
+            self.oldpdTimeStart=self.oldpdTimeStart.tz_localize('UTC')
+            self.oldpdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
+            self.oldpdTimeEnd=self.oldpdTimeEnd.tz_localize('UTC')
+            self.haveDiscoveredObs=True
+            
+
     def huntAndGatherObsData(self):
         # prowl through the carbon portal for any matching data sets in accordance with the choices from the first gui page.
         sStart=self.ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
@@ -258,9 +284,22 @@ class lumiaGuiApp:
         timeStep=self.ymlContents['run']['time']['timestep']
         
         # discoverObservationsOnCarbonPortal()
-        if(not self.bUseCachedList):
+        if(self.bUseCachedList):
+            # re-use the existing DiscoveredObservations.csv file, i.e. do not hunt for available data on the carbon portal
+            self.badPidsLst=[] 
+            # copy the existing and re-used DiscoveredObservations over to the current output directory
+            sOutputPrfx=self.ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
+            self.fDiscoveredObservations=sOutputPrfx+"DiscoveredObservations.csv"
+            sCmd=f'cp {self.oldDiscoveredObservations} {self.fDiscoveredObservations}'
+            hk.runSysCmd(sCmd)
+            tracer=hk.getTracer(self.ymlContents['run']['tracers'])
+            hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', tracer,  'file',  'dicoveredObsData'],   
+                                                                        value=self.fDiscoveredObservations, bNewValue=True)
+        else:
             (dobjLst, selectedDobjLst, dfObsDataInfo, self.fDiscoveredObservations, self.badPidsLst)=discoverObservationsOnCarbonPortal(self.tracer,   
                                 pdTimeStart, pdTimeEnd, timeStep,  self.ymlContents,  sDataType=None, printProgress=True,  iVerbosityLv='INFO')
+            hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', tracer,  'file',  'dicoveredObsData'],   
+                                                                        value=self.fDiscoveredObservations, bNewValue=True)
         
         if (len(self.badPidsLst) > 0):
             sFOut=self.ymlContents['observations'][self.tracer]['file']['selectedPIDs']
@@ -674,7 +713,8 @@ class lumiaGuiApp:
     # body & brain of first GUI page  -- part of lumiaGuiApp (toplevel window)
     # ====================================================================
         
-    def guiPage1AsTopLv(self, iVerbosityLv='INFO'):  # of lumiaGuiApp
+    def guiPage1AsTopLv(self, initialYmlFile='',  iVerbosityLv='INFO'):  # of lumiaGuiApp
+        self.initialYmlFile=initialYmlFile
         if(USE_TKINTER):
             if(self.guiPg1TpLv is None):
                 self.root.iconify()
@@ -686,6 +726,8 @@ class lumiaGuiApp:
             if(USE_TKINTER):
                 self.guiPg1TpLv.configure(background='cadet blue')
 
+        self.bSuggestOldDiscoveredObservations=False
+        self.check4recentDiscoveredObservations(self.ymlContents)
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
         nCols=5 # sum of labels and entry fields per row
         nRows=13 # number of rows in the GUI
@@ -730,11 +772,7 @@ class lumiaGuiApp:
         self.sLon0=ge.guiStringVar(value=f'{Lon0:.3f}')
         self.sLon1=ge.guiStringVar(value=f'{Lon1:.3f}')
         # Get the currently selected tracer from the yml config file
-        tracers = self.ymlContents['run']['tracers']
-        if (isinstance(tracers, list)):
-            self.tracer=tracers[0]
-        else:
-            self.tracer=self.ymlContents['run']['tracers']
+        self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         # Set the Tracer radiobutton initial status in accordance with the (first) tracer extracted from the yml config file
         self.iTracerRbVal= ge.guiIntVar(value=1)
         if(('ch4' in self.tracer) or ('CH4' in self.tracer)):
@@ -1156,10 +1194,31 @@ class lumiaGuiApp:
             self.ymlContents['optimize']['emissions'][self.tracer]['biosphere']['adjust'] = self.Pg1LandVegCkb.get()
             self.ymlContents['optimize']['emissions'][self.tracer]['fossil']['adjust'] = self.Pg1FossilCkb.get()
             self.ymlContents['optimize']['emissions'][self.tracer]['ocean']['adjust'] = self.Pg1OceanCkb.get()                
-            
+
+        # Can we suggest to the user to use the existing DiscoveredObservations.csv file?
+        if(self.haveDiscoveredObs):
+            self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
         # Deal with any errors or warnings
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
 
+    def canUseRecentDiscoveredObservations(self):
+        # Does the currently selected geographical region exceed the one used in self.oldDiscoveredObservations?
+        if(     (self.ymlContents['run']['region']['lat0'] < self.oldLat0) 
+            or (self.ymlContents['run']['region']['lat1'] > self.oldLat1)
+            or (self.ymlContents['run']['region']['lon0'] < self.oldLon0)
+            or (self.ymlContents['run']['region']['lon1'] > self.oldLon1)):
+            return(False)
+        # Does the currently selected start/end time exceed the ones used in self.oldDiscoveredObservations?
+        sStart=self.ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
+        sEnd=self.ymlContents['run']['time']['end']
+        pdTimeStart = to_datetime(sStart[:19], format="%Y-%m-%d %H:%M:%S")
+        pdTimeStart=pdTimeStart.tz_localize('UTC')
+        pdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
+        pdTimeEnd=pdTimeEnd.tz_localize('UTC')
+        if((pdTimeStart < self.oldpdTimeStart) or (pdTimeEnd > self.oldpdTimeEnd)):
+            return(False)
+        #self.oldDiscoveredObservations=fDiscoveredObservations    
+        return(True)
             
             
         
@@ -1649,24 +1708,18 @@ def  readMyYamlFile(ymlFile):
     @type yamlObject
     '''
     ymlContents=None
-    tryAgain=False
     try:
         with open(ymlFile, 'r') as file:
             ymlContents = yaml.safe_load(file)
-        sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
-        os.system(sCmd)
     except:
-        tryAgain=True
-    if(tryAgain==True):
         sCmd="cp "+ymlFile+'.bac '+ymlFile # recover from most recent backup file.
         os.system(sCmd)
         try:
             with open(ymlFile, 'r') as file:
                 ymlContents = yaml.safe_load(file)
-            sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
-            os.system(sCmd)
+            #sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # This is now already done in housekeeping.py, which is more consistent
+            #os.system(sCmd)
         except:
-            tryAgain=True
             logger.error(f"Abort! Unable to read yaml configuration file {ymlFile} - failed to read its contents with yaml.safe_load()")
             sys.exit(1)
     return(ymlContents)
@@ -1742,12 +1795,13 @@ if (not os.path.isfile(ymlFile)):
 
 # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
 thisScript='LumiaGUI'
-ymlFile=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+initialYmlFile=ymlFile
+(ymlFile, oldDiscoveredObservations)=hk.documentThisRun(initialYmlFile, thisScript,  args)  # from housekeepimg.py
 # Now the config.yml file has all the details for this particular run
 
 # no need to pass args.start or args.end because hk.documentThisRun() already took care of these.
 scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
 # Call the main method
-prepareCallToLumiaGUI(ymlFile,  scriptDirectory, args.verbosity)
+prepareCallToLumiaGUI(ymlFile,  initialYmlFile,  oldDiscoveredObservations, scriptDirectory, args.verbosity)
 
 

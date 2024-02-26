@@ -51,7 +51,8 @@ if (not os.path.isfile(ymlFile)):
 
 # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
 thisScript='LumiaDA'
-sCmd=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+(ymlFile, oldDiscoveredObservations)=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+# oldDiscoveredObservations is not needed in LumiaDA, only in lumiaGUI
 # Now the config.yml file has all the details for this particular run
 
 # Shall we call the GUI to tweak some parameters before we start the ball rolling?

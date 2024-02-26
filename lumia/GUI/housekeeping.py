@@ -44,6 +44,19 @@ def runSysCmd(sCmd,  ignoreError=False):
     return True
 
 
+def getTracer(ymlEntryTracer):
+    # Find out the first (only) tracer being used
+    tracer='co2'
+    try:
+        if (isinstance(ymlEntryTracer, str)):
+            tracer=ymlEntryTracer
+        else:
+            trac=ymlEntryTracer
+            tracer=trac[0]
+    except:
+        tracer='co2'
+    return(tracer)
+
 
 current_date = datetime.now()
 sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
@@ -67,6 +80,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         try:
             with open(ymlFile, 'r') as file:
                 ymlContents = yaml.safe_load(file)
+            # Create a backup ymlFile in case something goofs up or if the user cancels the run so we can revert back.
             sCmd="cp "+ymlFile+' '+ymlFile+'.bac' # create a backup file.
             os.system(sCmd)
         except:
@@ -275,16 +289,17 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         sys.exit(f'Abort. Failed to create user-requested temp sub-directory {sTmpDir}LumiaDA-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     sTmpPrfx=sTmpDir+sTmpPrfx
 
-    # Find out the first (only) tracer being used
-    tracer='co2'
+    tracer=getTracer(ymlContents['run']['tracers'])
+    # Before setting a new output path, grab the name of the latest (existing) dicoveredObsData if it exists
+    oldDiscoveredObservations='DiscoveredObservations.csv'
     try:
-        if (isinstance(ymlContents['run']['tracers'], str)):
-            tracer=ymlContents['run']['tracers']
-        else:
-            trac=ymlContents['run']['tracers']
-            tracer=trac[0]
+        oldDiscoveredObservations=ymlContents['observations'][tracer]['file']['dicoveredObsData']
     except:
-        tracer='co2'
+        try:
+            sOldSlctObs=ymlContents['observations'][tracer]['file']['selectedObsData']
+            oldDiscoveredObservations=sOldSlctObs[:-24]+oldDiscoveredObservations
+        except:
+            pass
     
    # Make sure these keys exist. Do not overwrite existing values.
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'path',  'data'],   value='./data', bNewValue=False) # for runflex ./data/meteo/ea.eurocom025x025/
@@ -413,6 +428,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     if(rValue!=0):
         sys.exit(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
         sys.exit(-7)
+    sCmd=f'cp {ymlFile}.bac {sNewYmlFileName}.bac'  # copy also the .bac file in case the user pulls out and we want to revert to the original ymlFIle
+    rValue=os.system(sCmd)
 
     # Document the Python environment
     sCmd=(f'pip list > {sOutputPrfx}-python-environment-pipLst.txt')
@@ -426,7 +443,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         sys.exit(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Python environment you are using.')
         sys.exit(-7)
     
-    return(sNewYmlFileName)
+    return(sNewYmlFileName, oldDiscoveredObservations)
 
 
 

@@ -842,6 +842,8 @@ class RefineObsSelectionGUI(ctk.CTk):
         # TODO: uncomment the next line to stop using a canned list DiscoveredObservations-short.csv for testing (saves a lot fo time in the debugger)
         (dobjLst, selectedDobjLst, dfObsDataInfo, fDiscoveredObservations, badPidsLst)=discoverObservationsOnCarbonPortal(tracer,   
                             pdTimeStart, pdTimeEnd, timeStep,  ymlContents,  sDataType=None, printProgress=True,    iVerbosityLv=1)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', tracer,  'file',  'dicoveredObsData'],   
+                                                                    value=self.fDiscoveredObservations, bNewValue=True)
         #fDiscoveredObservations='DiscoveredObservations.csv' # 'DiscoveredObservations-short.csv'
         #badPidsLst=[]
         
@@ -2141,7 +2143,7 @@ if(bError):
 
 # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
 thisScript='LumiaGUI'
-ymlFile=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
+(ymlFile, oldDiscoveredObservations)=hk.documentThisRun(ymlFile, thisScript,  args)  # from housekeepimg.py
 # Now the config.yml file has all the details for this particular run
     
     
