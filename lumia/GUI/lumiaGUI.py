@@ -166,6 +166,7 @@ class lumiaGuiApp:
         global APPISACTIVE
         APPISACTIVE=False
         sys.exit(0)
+        
 
     # ====================================================================
     #  Event handler for widget events from first GUI page of lumiaGuiApp 
@@ -199,7 +200,7 @@ class lumiaGuiApp:
             self.bUseCachedList=False
             if(self.bSuggestOldDiscoveredObservations):
                 self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
-                            message='Do you want to use the cached discovered observations from 0 days ago?')
+                            message=self.ageOfExistingDiscoveredObservations)
             self.guiPg1TpLv.iconify()
             # Save  all details of the configuration and the version of the software used:
             try:
@@ -270,6 +271,21 @@ class lumiaGuiApp:
             self.oldpdTimeStart=self.oldpdTimeStart.tz_localize('UTC')
             self.oldpdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
             self.oldpdTimeEnd=self.oldpdTimeEnd.tz_localize('UTC')
+            self.ageOfExistingDiscoveredObservations='Do you want to use the cached discovered observations from UNKNOWN time ago?'
+            try:
+                # Extract the creation time of the existing oldDiscoveredObservations from its filename:
+                baseName=os.path.basename(self.oldDiscoveredObservations)
+                # has format LumiaGUI-2024-02-26T12_36-DiscoveredObservations.csv
+                tStamp=baseName[-43:-27]
+                tStampDatetime = to_datetime(tStamp, format="%Y-%m-%dT%H_%M")
+                currentTime = datetime.now()
+                dT=currentTime - tStampDatetime
+                sdT=f'{dT}'
+                sdT=sdT.replace(':','h',1)
+                sdTcleaned = sdT.split(':', 1)[0] # # 0 days 7h2m
+                self.ageOfExistingDiscoveredObservations=f'Do you want to use the cached discovered observations from \n{sdTcleaned}m ago?'
+            except:
+                pass
             self.haveDiscoveredObs=True
             
 
@@ -287,9 +303,12 @@ class lumiaGuiApp:
         if(self.bUseCachedList):
             # re-use the existing DiscoveredObservations.csv file, i.e. do not hunt for available data on the carbon portal
             self.badPidsLst=[] 
-            # copy the existing and re-used DiscoveredObservations over to the current output directory
+            # copy the existing and re-used DiscoveredObservations.csv file  over to the current output directory
+            # Preserve its filename so the correct creation date is carried forward (relevant in case it may be re-used again and again)
             sOutputPrfx=self.ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-            self.fDiscoveredObservations=sOutputPrfx+"DiscoveredObservations.csv"
+            sOutDir = os.path.dirname(sOutputPrfx)
+            fname = os.path.basename(self.oldDiscoveredObservations)
+            self.fDiscoveredObservations=os.path.join(sOutDir,  fname)
             sCmd=f'cp {self.oldDiscoveredObservations} {self.fDiscoveredObservations}'
             hk.runSysCmd(sCmd)
             tracer=hk.getTracer(self.ymlContents['run']['tracers'])

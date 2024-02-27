@@ -57,7 +57,7 @@ def guiStringVar(value):
 
 def guiAskyesno(title='', message='?'):
     return(mb.askyesno(title='Use previous list of obs data?',
-                        message='Do you want to use the cached discovered observations data from 0 days ago?'))
+                        message=message))
 
 def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
     # If you click the OK button, the function returns True. Else, if you click the Cancel button, the function returns False
