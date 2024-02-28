@@ -59,40 +59,10 @@ def verifyYmlFile(ymlFile):
     filename=ymlFile
     if(ymlFile is None):
         filetypes='*.yml'
-        if(USE_TKINTER):
-            filename = ge.guiFileDialog(filetypes=filetypes, title=title)
-        else:
-            '''
-            #from ipywidgets import uploader 
-            selectFileDlg = wdg.FileUpload(accept='*.yml',  multiple=False)
-            filename = wdg.Text()           
-            selectFileDlg
-            display(selectFileDlg)
-            selectedFile = uploader.value[0]
-            filename = selectedFile["name"]
-    
-            selectFileDlg = ge.guiFileDialog(filetypes=filetypes, title=title)
-            selectFileDlg
-            display(selectFileDlg)
-            filenameTupl=None
-            start_time = datetime.now()
-            #printonce=True
-            while((filenameTupl is None) or (len(filenameTupl)<1)):
-                selectFileDlg.observe(selectFileDlg, 'value')
-                filenameTupl = selectFileDlg.value
-                if ((datetime.now() - start_time).total_seconds() > 12): # check if 12 seconds passed
-                    break # break out of loop
-            if((filenameTupl is not None) and (len(filenameTupl)>0)):
-                try:
-                    filename=filenameTupl[0]
-                except:
-                    pass
-            print(f'Loading ymlFile {filename}...')
-            '''
-            filename = ge.guiFileDialog(filetypes=filetypes, title=title)
-    #if(filename is None):
-    #    filename='./lumia-config-v6-tr-co2.yml'
+        filename = ge.doThis()
+        #filename = ge.guiFileDialog(filetypes=filetypes, title=title)
     ymlFile=filename
+    print(f'ymlFile={ymlFile}')
     if (not os.path.isfile(ymlFile)):
         logger.error(f"Fatal error in LumiaGUI: User specified configuration file {ymlFile} does not exist. Abort.")
         sys.exit(-3)
@@ -114,40 +84,6 @@ def prepareCallToLumiaGUI(ymlFile, args):
     @param ymlFile : the LUMIA YAML configuration file in yaml (or rc) data format (formatted text)
     @type string (file name)
     '''
-
-    # Create the widget
-    widget = wdg.Dropdown(
-        options=['a','b','c'],
-        value=None,
-        disabled=False)
-    
-    # Create a function to continue the execution
-    button_clicked = False
-    def on_click(b):
-        global button_clicked
-        button_clicked = True
-        print('button clicked')
-    
-    # Create a button widget
-    button = wdg.Button(description="Continue")
-    button.on_click(on_click)
-    
-    # Display the widget and button
-    display(widget, button)
-    
-    # Wait for user to press the button
-    with ui_events() as poll:
-        while button_clicked is False:
-            poll(10)          # React to UI events (upto 10 at a time)
-            time.sleep(0.1)
-    
-    print("Continuing execution...")
-    # Get the selected value from the widget
-    selected_value = widget.value
-    print("Selected value:", selected_value)
-    sys.exit(0)
-
-
     # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
     thisScript='LumiaGUI'
     # scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -157,7 +93,6 @@ def prepareCallToLumiaGUI(ymlFile, args):
     initialYmlFile=ymlFile
     (ymlFile, oldDiscoveredObservations)=hk.documentThisRun(initialYmlFile, thisScript,  args)  # from housekeepimg.py
     # Now the config.yml file has all the details for this particular run
-    
 
     # remove old message files - these are only relevant if LumiaGUI is used in an automated workflow as they signal
     # success or failure of this step in the workflow

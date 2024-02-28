@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import ipywidgets  as widgets
+import ipywidgets  as wdg
 from loguru import logger
 import time
 from jupyter_ui_poll import ui_events
@@ -51,7 +51,7 @@ def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
 
 
 def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, ):
-    return(widgets.Button(
+    return(wdg.Button(
     description=text,
     disabled=False,
     button_style='', # 'success', 'info', 'warning', 'danger' or ''
@@ -64,7 +64,7 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
 
 def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
-    return(widgets.Checkbox(
+    return(wdg.Checkbox(
         value=offvalue,
         description=text,
         disabled=disabled,
@@ -73,7 +73,7 @@ def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None
 
 # guiDataEntry(self.guiPg1TpLv,textvariable=self.sStartDate, placeholder_text=txt, width=self.root.colWidth)
 def guiDataEntry(canvas,textvariable='', placeholder_text='', width:int=40):
-    return(widgets.Text(
+    return(wdg.Text(
         value=textvariable,
         placeholder=placeholder_text,
         description='',
@@ -89,7 +89,90 @@ def oldGuiFileDialog(filetypes='*', title='Open', multiple=False):
     )
     return(fileNameDlg)
 
+def doThis():
+    '''
+    new lumiaGUI: ipywidgets can be a real pain in the butt. It seemed impossible to make execution wait until the user 
+    has selected the input file using the fileUploader widget. And achieving this is indeed tricky and caused me lots of frustration 
+    questioning my sanity. After lots of googling I found both an explanation why this is so hard to do and a solution to get 
+    around this. Look at these resources to know more about it: 
+    https://pypi.org/project/jupyter-ui-poll/  and  
+    https://stackoverflow.com/questions/76564282/how-to-get-an-ipywidget-to-wait-for-user-input-then-continue-running-your-scrip 
+    The current commit is the first test of getting this to work at all and is placed at the beginning of everything,
+    just because it is WORKING :)
+    Note that the first block is the original example and the second uses the fileUploader widget instead of a dropdown box.
+    '''
+    global button_clicked
+    filename=None
+    filetypes="*.yml"
+    ui_done = False
+
+    # Create the file selector widget
+    upload_btn = wdg.FileUpload(accept=filetypes, multiple=False)
+
+    # Create a function to continue the execution
+    button_clicked = False
+    def on_click(b):
+        global button_clicked
+        button_clicked = True
+        #print('button clicked')
+    
+    # Create a button widget
+    button = wdg.Button(description="Continue after file selection")
+    button.on_click(on_click)
+    
+    # Display the widget and button
+    display(upload_btn, button)
+    
+    # Wait for user to press the button
+    with ui_events() as poll:
+        while button_clicked is False:
+            poll(10)          # React to UI events (upto 10 at a time)
+            time.sleep(0.1)
+
+    #filename =on_upload_btn_click
+    fileInfo = upload_btn.value[0]
+    filename=fileInfo['name']
+    # filename returns a dictionary of the form (example):
+    # {'name': 'lumia-config-v6-tr-co2.yml', 'type': 'application/x-yaml', 'size': 5808, 'content': <memory at 0x7f5ccc65f1c0>, 
+    #    'last_modified': datetime.datetime(2024, 2, 27, 0, 12, 32, 459000, tzinfo=datetime.timezone.utc)}
+    print(f"Have uploaded {filename}. Continuing execution...")
+    return filename
+
+
 def guiFileDialog(filetypes='', title='Open', multiple=False):
+    # Create the widget
+    widget = wdg.Dropdown(
+        options=['a','b','c'],
+        value=None,
+        disabled=False)
+    
+    # Create a function to continue the execution
+    button_clicked = False
+    def on_click(b):
+        global button_clicked
+        button_clicked = True
+        print('button clicked')
+    
+    # Create a button widget
+    button = wdg.Button(description="Continue")
+    button.on_click(on_click)
+    
+    # Display the widget and button
+    display(widget, button)
+    
+    # Wait for user to press the button
+    with ui_events() as poll:
+        while button_clicked is False:
+            poll(10)          # React to UI events (upto 10 at a time)
+            time.sleep(0.1)
+    
+    # Get the selected value from the widget
+    selected_value = widget.value
+    print("Selected value:", selected_value)
+    print("Continuing execution...")
+
+    filename=None
+    filetypes="*.yml"
     ui_done = False
 
     def on_upload_btn_click(change):
@@ -101,22 +184,43 @@ def guiFileDialog(filetypes='', title='Open', multiple=False):
         #btn.description = 'ok'       
         return uploaded_file #content
 
-    upload_btn = widgets.FileUpload(accept=filetypes, multiple=multiple)
+    upload_btn = wdg.FileUpload(accept=filetypes, multiple=False)
     #upload_btn.on_click(on_upload_btn_click)
-    upload_btn.observe(on_upload_btn_click, names='value')
-    display(upload_btn)
+    #upload_btn.observe(on_upload_btn_click, names='value')
+    #display(upload_btn)
 
-    # Wait for the user to click the file selection dialog
+    # Create a function to continue the execution
+    button_clicked = False
+    def on_click(b):
+        global button_clicked
+        button_clicked = True
+        print('button clicked')
+    
+    # Create a button widget
+    button = wdg.Button(description="Continue")
+    button.on_click(on_click)
+    
+    # Display the widget and button
+    display(upload_btn, button)
+    
+    # Wait for user to press the button
     with ui_events() as poll:
-        while ui_done is False:
+        while button_clicked is False:
             poll(10)          # React to UI events (upto 10 at a time)
-            print('.', end='')
-            time.sleep(0.5)
+            time.sleep(0.1)
 
-    return on_upload_btn_click
+    #filename =on_upload_btn_click
+    fileInfo = upload_btn.value[0]
+    filename=fileInfo['name']
+    # filename returns a dictionary of the form (example):
+    # {'name': 'lumia-config-v6-tr-co2.yml', 'type': 'application/x-yaml', 'size': 5808, 'content': <memory at 0x7f5ccc65f1c0>, 
+    #    'last_modified': datetime.datetime(2024, 2, 27, 0, 12, 32, 459000, tzinfo=datetime.timezone.utc)}
+    print(f"Have uploaded {filename}. Continuing execution...")
+
+    return filename
 
 def guiOptionMenu(self, values:[], variable=int(0),  dropdown_fontName="Georgia",  dropdown_fontSize=12):
-    return(widgets.Dropdown(
+    return(wdg.Dropdown(
         options=values,
         value=variable,
         description='',
@@ -145,7 +249,7 @@ def guiRadioButton(options=[] , description='',  text='', preselected=None):
         preselected=options[0]
     if(len(description)==0):
         description=text
-    return(widgets.RadioButtons(
+    return(wdg.RadioButtons(
         options=options,
         value=preselected, # Defaults to 'pineapple'
     #    layout={'width': 'max-content'}, # If the items' names are long
@@ -156,7 +260,7 @@ def guiRadioButton(options=[] , description='',  text='', preselected=None):
 
 
 def guiTextBox(frame, text='',  description='', width='18%',  height='20%',  fontName="Georgia",  fontSize=12, text_color="black"):
-    box=widgets.Textarea(
+    box=wdg.Textarea(
         value=text,
         placeholder='___________________________________________________________________________________________________________________________________________',
         description=description,
@@ -173,7 +277,7 @@ def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  wid
     else:
         for i in range(width):
             placeholder=placeholder+'x'
-    return(widgets.Text(
+    return(wdg.Text(
     value=text,
     placeholder=placeholder,
     description=description,
