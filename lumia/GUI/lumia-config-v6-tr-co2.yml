@@ -6,7 +6,7 @@ background:
       stationWithoutBackgroundConcentration: DAILYMEAN
       userProvidedBackgroundConcentration: 410
 congrad:
-  communication_file: ./tmp/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-congrad.nc
+  communication_file: ./tmp/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-congrad.nc
   executable: ${lumiacode.homedir}/src/congrad/congrad.exe
   gradient_norm_reduction: 1.e12
   max_number_of_iterations: 128
@@ -72,6 +72,7 @@ model:
 observations:
   co2:
     file:
+      dicoveredObsData: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-26T10_30-DiscoveredObservations.csv
       discoverData: false
       location: CARBONPORTAL
       path: observations.tar.gz
@@ -82,8 +83,8 @@ observations:
       - NRT
       - AnyOther
       rename: background:mix_background
-      selectedObsData: ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-selected-ObsData-co2.csv
-      selectedPIDs: ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-selected-PIDs-co2.csv
+      selectedObsData: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-selected-ObsData-co2.csv
+      selectedPIDs: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-selected-PIDs-co2.csv
       tracer: co2
     units: ppm
   end: ${run.time.end}
@@ -95,8 +96,7 @@ observations:
   filters:
     CountriesExcluded: []
     ICOSonly: false
-    StationsExcluded:
-    - PRS
+    StationsExcluded: []
     bSamplingHeight: false
     bStationAltitude: false
     inletMaxHeight: 800
@@ -155,15 +155,15 @@ run:
   thisRun:
     PythonVersion: Python environment version is Python 3.10.10
     hostName: tux.nateko.lu.se
-    platformCore: Linux-5.15.0-94-generic-x86_64-with-glibc2.35
-    platformFlavour: 04-Ubuntu SMP Tue Jan 9 15:25:40 UTC 202
-    uniqueIdentifierDateTime: 2024-02-22T02_16
-    uniqueOutputPrefix: ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-
-    uniqueTmpPrefix: ./tmp/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-
+    platformCore: Linux-5.15.0-97-generic-x86_64-with-glibc2.35
+    platformFlavour: 07-Ubuntu SMP Wed Feb 7 13:26:48 UTC 202
+    uniqueIdentifierDateTime: 2024-02-27T01_02
+    uniqueOutputPrefix: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-
+    uniqueTmpPrefix: ./tmp/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-
     username: cec-ami
   time:
-    end: '2018-02-01 23:59:59Z'
-    start: '2018-01-01 00:00:00Z'
+    end: '2018-02-01 23:59:59'
+    start: '2018-01-01 00:00:00'
     timestep: 1h
   tracers:
   - co2
@@ -173,8 +173,8 @@ softwareUsed:
     commit: gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git
     git:
       branch: LumiaGUI
-      commit: e0e9ab11cf33c4fe7eb3f2276b805fc9ac0ab25c
-      location: git@github.com:lumia-dev/lumia/commit/e0e9ab11cf33c4fe7eb3f2276b805fc9ac0ab25c
+      commit: 0879c961b148ae7ed45127560b19d56656689f74
+      location: git@github.com:lumia-dev/lumia/commit/0879c961b148ae7ed45127560b19d56656689f74
       url: git@github.com:lumia-dev/lumia.git
   runflex:
     branch: gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git
@@ -194,5 +194,5 @@ transport:
   steps: forward
 var4d:
   communication:
-    file: ./tmp/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-congrad.nc
+    file: ./tmp/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-congrad.nc
   max_iter: 333

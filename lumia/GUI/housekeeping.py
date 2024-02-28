@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='0879c961b148ae7ed45127560b19d56656689f74'
+LATESTGITCOMMIT_LumiaDA='b350b7fb56299868401397fd90aed3bcb345959e'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -277,7 +277,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     if(len(sOutpDir)>0):
         sCmd=("mkdir -p "+sTmpDir)
     try:
-        os.system(sCmd)
+        if not('LumiaGUI' in parentScript): # lumiaGUI only writes to the outputDir not the sTmpDir directory
+            os.system(sCmd)
     except:
         sys.exit(f'Abort. Failed to create user-requested temp directory {sTmpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     if ((len(sTmpDir)>0) and (sTmpDir[-1]!=os.path.sep)):

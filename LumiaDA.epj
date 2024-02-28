@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2024 , ",
-    "saved": "2024-02-09, 14:13:48"
+    "saved": "2024-02-28, 13:24:07"
   },
   "project": {
     "AUTHOR": "",
@@ -82,6 +82,7 @@
       "lumia/GUI/guiElements_ipyWdg.py",
       "lumia/GUI/housekeeping.py",
       "lumia/GUI/lumiaGUI.py",
+      "lumia/GUI/lumiaGUInotebook.py",
       "lumia/GUI/myCarbonPortalTools.py",
       "lumia/GUI/oldLumiaGUI.py",
       "lumia/GUI/queryCarbonPortal.py",

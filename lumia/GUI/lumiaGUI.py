@@ -7,6 +7,8 @@ import housekeeping as hk
 import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
+import time
+from jupyter_ui_poll import ui_events
 import yaml
 import time
 import re
@@ -42,7 +44,61 @@ import boringStuff as bs
 # Core functions with interesting tasks
 # =============================================================================
 
-def prepareCallToLumiaGUI(ymlFile,  initialYmlFile,  oldDiscoveredObservations, scriptDirectory, iVerbosityLv='INFO'): 
+def verifyYmlFile(ymlFile):
+    '''
+    Function verifyYmlFile
+
+    @param ymlFile the name of the ymlFile provided as an (optional) commandline argument, else it is None
+    @type TYPE string
+    if ymlFile is given as a commandline argument, this function checks if that file exists.
+    If no  ymlFile was specified, it either directly opens a file dialog box (tkinter) or paints a fileUpload button that the user needs to click 
+    (Jupyter notebook or using ipywidgets), then the user needs to select an appropriate file before proceeding. This file is crucial to
+    have before lumiaGUI can do anything meaningful.
+    '''
+    title='Open existing LUMIA configuration file:'
+    filename=ymlFile
+    if(ymlFile is None):
+        filetypes='*.yml'
+        if(USE_TKINTER):
+            filename = ge.guiFileDialog(filetypes=filetypes, title=title)
+        else:
+            '''
+            #from ipywidgets import uploader 
+            selectFileDlg = wdg.FileUpload(accept='*.yml',  multiple=False)
+            filename = wdg.Text()           
+            selectFileDlg
+            display(selectFileDlg)
+            selectedFile = uploader.value[0]
+            filename = selectedFile["name"]
+    
+            selectFileDlg = ge.guiFileDialog(filetypes=filetypes, title=title)
+            selectFileDlg
+            display(selectFileDlg)
+            filenameTupl=None
+            start_time = datetime.now()
+            #printonce=True
+            while((filenameTupl is None) or (len(filenameTupl)<1)):
+                selectFileDlg.observe(selectFileDlg, 'value')
+                filenameTupl = selectFileDlg.value
+                if ((datetime.now() - start_time).total_seconds() > 12): # check if 12 seconds passed
+                    break # break out of loop
+            if((filenameTupl is not None) and (len(filenameTupl)>0)):
+                try:
+                    filename=filenameTupl[0]
+                except:
+                    pass
+            print(f'Loading ymlFile {filename}...')
+            '''
+            filename = ge.guiFileDialog(filetypes=filetypes, title=title)
+    #if(filename is None):
+    #    filename='./lumia-config-v6-tr-co2.yml'
+    ymlFile=filename
+    if (not os.path.isfile(ymlFile)):
+        logger.error(f"Fatal error in LumiaGUI: User specified configuration file {ymlFile} does not exist. Abort.")
+        sys.exit(-3)
+    return(ymlFile)
+
+def prepareCallToLumiaGUI(ymlFile, args): 
     '''
     Function 
     LumiaGUI exposes selected paramters of the LUMIA config file (in yaml data format) to a user
@@ -57,9 +113,72 @@ def prepareCallToLumiaGUI(ymlFile,  initialYmlFile,  oldDiscoveredObservations, 
 
     @param ymlFile : the LUMIA YAML configuration file in yaml (or rc) data format (formatted text)
     @type string (file name)
-    @param scriptDirectory : where in the storage this script lives.  - e.g. used to look for .git files for the self-documentation of each run
-    @type string (file name)
     '''
+
+    # Create the widget
+    widget = wdg.Dropdown(
+        options=['a','b','c'],
+        value=None,
+        disabled=False)
+    
+    # Create a function to continue the execution
+    button_clicked = False
+    def on_click(b):
+        global button_clicked
+        button_clicked = True
+        print('button clicked')
+    
+    # Create a button widget
+    button = wdg.Button(description="Continue")
+    button.on_click(on_click)
+    
+    # Display the widget and button
+    display(widget, button)
+    
+    # Wait for user to press the button
+    with ui_events() as poll:
+        while button_clicked is False:
+            poll(10)          # React to UI events (upto 10 at a time)
+            time.sleep(0.1)
+    
+    print("Continuing execution...")
+    # Get the selected value from the widget
+    selected_value = widget.value
+    print("Selected value:", selected_value)
+    sys.exit(0)
+
+
+    # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
+    thisScript='LumiaGUI'
+    # scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
+    iVerbosityLv=args.verbosity
+    ymlFile=verifyYmlFile(ymlFile)
+
+    initialYmlFile=ymlFile
+    (ymlFile, oldDiscoveredObservations)=hk.documentThisRun(initialYmlFile, thisScript,  args)  # from housekeepimg.py
+    # Now the config.yml file has all the details for this particular run
+    
+
+    # remove old message files - these are only relevant if LumiaGUI is used in an automated workflow as they signal
+    # success or failure of this step in the workflow
+    if(os.path.isfile("LumiaGui.stop")):
+        sCmd="rm LumiaGui.stop"
+        hk.runSysCmd(sCmd,  ignoreError=True)
+    if(os.path.isfile("LumiaGui.go")):
+        sCmd="rm LumiaGui.go"
+        hk.runSysCmd(sCmd,  ignoreError=True)
+
+    # ensure we have a display connected
+    myDsp=os.environ.get('DISPLAY','')
+    if (myDsp == ''):
+        logger.warning('DISPLAY not listed in os.environ. On simple systems DISPLAY is usually :0.0  ...so I will give that one a shot. Proceeding with fingers crossed...')
+        os.environ.__setitem__('DISPLAY', ':0.0')
+    else:
+        logger.debug(f'found Display {myDsp}')
+
+    if not(USE_TKINTER):
+        notify_output = wdg.Output()
+        display(notify_output)
     # Read the yaml configuration file
     ymlContents=readMyYamlFile(ymlFile)
     # All output is written into  subdirectories (defined by run.paths.output and run.paths.temp) followed by a directory level named 
@@ -80,40 +199,22 @@ def prepareCallToLumiaGUI(ymlFile,  initialYmlFile,  oldDiscoveredObservations, 
         except:
             logger.error('Abort. Unable to write log files. Unable to create requested output directory.')
     
-    # remove old message files - these are only relevant if LumiaGUI is used in an automated workflow as they signal
-    # success or failure of this step in the workflow
-    if(os.path.isfile("LumiaGui.stop")):
-        sCmd="rm LumiaGui.stop"
-        hk.runSysCmd(sCmd,  ignoreError=True)
-    if(os.path.isfile("LumiaGui.go")):
-        sCmd="rm LumiaGui.go"
-        hk.runSysCmd(sCmd,  ignoreError=True)
-        
-    myDsp=os.environ.get('DISPLAY','')
-    if (myDsp == ''):
-        logger.warning('DISPLAY not listed in os.environ. On simple systems DISPLAY is usually :0.0  ...so I will give that one a shot. Proceeding with fingers crossed...')
-        os.environ.__setitem__('DISPLAY', ':0.0')
-    else:
-        logger.debug(f'found Display {myDsp}')
-
     root=None
     root = ge.LumiaGui() # is the ctk.CTk() root window
     lumiaGuiAppInst=lumiaGuiApp(root)  # the main GUI application (class)
     lumiaGuiAppInst.sLogCfgPath = sLogCfgPath  # TODO: check if this is obsolete now
-    lumiaGuiAppInst.ymlFile = ymlFile  # the initial Lumia configuration file from which we start
+    lumiaGuiAppInst.initialYmlFile=initialYmlFile # the initial Lumia configuration file from which we started in case it needs to be restored
+    lumiaGuiAppInst.ymlFile = ymlFile  # the current Lumia configuration file after pre-processing with housekeeping.py
     lumiaGuiAppInst.ymlContents = ymlContents # the contents of the Lumia configuration file
     lumiaGuiAppInst.sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix'] # where to write output
     lumiaGuiAppInst.sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
     lumiaGuiAppInst.oldDiscoveredObservations=oldDiscoveredObservations
     lumiaGuiAppInst.iVerbosityLv=iVerbosityLv
-    guiPg1TpLv=lumiaGuiAppInst.guiPage1AsTopLv(initialYmlFile=initialYmlFile,  iVerbosityLv=iVerbosityLv)  # the first of 2 pages of the GUI implemented as a toplevel window (init)
+    guiPg1TpLv=lumiaGuiAppInst.guiPage1AsTopLv( iVerbosityLv=iVerbosityLv)  # the first of 2 pages of the GUI implemented as a toplevel window (init)
         #lumiaGuiAppInst.runPage2  # execute the central method of lumiaGuiApp
     if(USE_TKINTER):
         root.mainloop()
         sys.exit(0)
-    else:
-        notify_output = widgets.Output()
-        display(notify_output)
     '''
     (bFirstGuiPageSuccessful, ymlContents)=LumiaGuiPage1(root, sLogCfgPath, ymlContents, ymlFile, bRefine=False, iVerbosityLv=1) 
     
@@ -378,7 +479,7 @@ class lumiaGuiApp:
                 
         if(not isDifferent):
             newDf.drop(newDf.tail(1).index,inplace=True) # drop the last row 
-        newDf.to_csv(self.sTmpPrfx+'_dbg_newDfObs.csv', mode='w', sep=',')  
+        #newDf.to_csv(self.sTmpPrfx+'_dbg_newDfObs.csv', mode='w', sep=',')  
         nObs=len(newDf)
         #filtered = ((newDf['selected'] == True))
         #dfq= newDf[filtered]
@@ -395,7 +496,7 @@ class lumiaGuiApp:
             if(isSameStation):
                 newDf.at[(self.nRows) ,  ('selected')] = False
             self.nRows+=1
-        newDf.to_csv(self.sTmpPrfx+'_dbg_selectedObs.csv', mode='w', sep=',')  
+        #newDf.to_csv(self.sTmpPrfx+'_dbg_selectedObs.csv', mode='w', sep=',')  
 
         self.excludedCountriesList = []
         self.excludedStationsList = []
@@ -732,24 +833,25 @@ class lumiaGuiApp:
     # body & brain of first GUI page  -- part of lumiaGuiApp (toplevel window)
     # ====================================================================
         
-    def guiPage1AsTopLv(self, initialYmlFile='',  iVerbosityLv='INFO'):  # of lumiaGuiApp
-        self.initialYmlFile=initialYmlFile
+    def guiPage1AsTopLv(self,  iVerbosityLv='INFO'):  # of lumiaGuiApp
+        # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
+        nCols=5 # sum of labels and entry fields per row
+        nRows=13 # number of rows in the GUI
+
         if(USE_TKINTER):
+            self.wdgGrid=None
             if(self.guiPg1TpLv is None):
                 self.root.iconify()
                 # self.guiPg1TpLv = tk.Toplevel(self.root,  bg="cadet blue")
                 self.guiPg1TpLv = ge.guiToplevel(self.root,  bg="cadet blue")
         else:
+            self.wdgGrid = wdg.GridspecLayout(n_rows=nRows, n_columns=nCols)
             if(self.guiPg1TpLv is None):
-                self.guiPg1TpLv = ge.guiToplevel(self) # ,  bg="cadet blue"
-            if(USE_TKINTER):
-                self.guiPg1TpLv.configure(background='cadet blue')
+                self.guiPg1TpLv = ge.guiToplevel(self,  nCols=5,  nRows=13) # ,  bg="cadet blue"
+                # self.guiPg1TpLv.configure(background='cadet blue')
 
         self.bSuggestOldDiscoveredObservations=False
         self.check4recentDiscoveredObservations(self.ymlContents)
-        # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
-        nCols=5 # sum of labels and entry fields per row
-        nRows=13 # number of rows in the GUI
         bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):")
         # this gives us self.root.colWidth self.root.rowHeight, self.myFontFamily, self.fontHeight, self.fsNORMAL & friends
         xPadding=self.root.xPadding
@@ -975,89 +1077,84 @@ class lumiaGuiApp:
         # ====================================================================
         # ################################################################
         # Row 0:  Title Label
-        ge.guiPlaceWidget(self.Pg1TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 1:  Time interval Heading
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1TimeHeaderLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TimeHeaderLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 2: Time interval Entry
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1TimeStartLabel, row=2, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1TimeStartEntry, row=2, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1TimeEndLabel, row=2, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1TimeEndEntry, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TimeStartLabel, row=2, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TimeStartEntry, row=2, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TimeEndLabel, row=2, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TimeEndEntry, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 3:  Geographical Region Heading & Message Box
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1LatitudesLabel, row=3, column=0, columnspan=3,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LatitudesLabel, row=3, column=0, columnspan=3,padx=xPadding, pady=yPadding, sticky="ew")
         #    Text Box for messages, warnings, etc
-        ge.guiPlaceWidget(self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=7, padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=7, padx=xPadding, pady=yPadding, sticky="ew")
         # Row 4: Latitudes Entry Fields
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1LatitudeMinLabel, row=4, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1LatitudeMaxLabel, row=4, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1Latitude0Entry, row=4, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1Latitude1Entry, row=4, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LatitudeMinLabel, row=4, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LatitudeMaxLabel, row=4, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1Latitude0Entry, row=4, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1Latitude1Entry, row=4, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 5: Longitudes Entry Fields
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1LongitudeMinLabel, row=5, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1LongitudeMaxLabel, row=5, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1Longitude0Entry, row=5, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1Longitude1Entry, row=5, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LongitudeMinLabel, row=5, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LongitudeMaxLabel, row=5, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1Longitude0Entry, row=5, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1Longitude1Entry, row=5, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 6:  Tracer radiobutton (CO2/CH4)
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1TracerLabel, row=6, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1TracerRadioButton, row=6, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TracerLabel, row=6, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TracerRadioButton, row=6, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         if(USE_TKINTER):
-            ge.guiPlaceWidget(self.Pg1TracerRadioButton2, row=6, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg1TracerRadioButton2, row=6, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 7: Emissions data (a prioris): Heading and Land/Vegetation choice
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1EmissionsLabel, row=7, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1EmissionsLabel, row=7, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         #       Emissions data (a prioris) : dyn.vegetation net exchange model
-        ge.guiPlaceWidget(self.Pg1NeeLabel , row=7, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1NeeLabel , row=7, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #       Land/Vegetation Net Exchange combo box
-        ge.guiPlaceWidget(self.Pg1LandNetExchangeOptionMenu, row=7, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LandNetExchangeOptionMenu, row=7, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 8: Emissions data (a prioris) continued: fossil+ocean
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1FossilEmisLabel, row=8, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1FossilEmisOptionMenu, row=8, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1FossilEmisLabel, row=8, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1FossilEmisOptionMenu, row=8, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Ocean Net Exchange combo box (a prioris)
-        ge.guiPlaceWidget(self.Pg1OceanNetExchangeLabel, row=8, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1OceanNetExchangeOptionMenu, row=8, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1OceanNetExchangeLabel, row=8, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1OceanNetExchangeOptionMenu, row=8, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 9: Obs data location radiobutton
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1ObsFileLocationCPortalRadioButton, row=9, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationCPortalRadioButton, row=9, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         if(USE_TKINTER):
-            ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalRadioButton, row=9, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalRadioButton, row=9, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 10: Obs data entries
         # ################################################################
         # Ranking of data records from CarbonPortal
-        ge.guiPlaceWidget(self.Pg1ObsFileRankingBox, row=10, column=0, columnspan=1, rowspan=3, padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileRankingBox, row=10, column=0, columnspan=1, rowspan=3, padx=xPadding, pady=yPadding, sticky="ew")
         # Label for local  obs data path
-        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalPathLabel, row=10, column=2, columnspan=2, padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalPathLabel, row=10, column=2, columnspan=2, padx=xPadding, pady=yPadding, sticky="ew")
         # Row 11:  Obs data entries
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1FileSelectButton, row=11, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1FileSelectButton, row=11, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #       Ignore ChkBx
-        ge.guiPlaceWidget(self.Pg1ignoreWarningsCkb, row=11, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ignoreWarningsCkb, row=11, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 12 Cancel Button
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1ObsFileLocationLocalEntry, row=12, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1CancelButton, row=12, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalEntry, row=12, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1CancelButton, row=12, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 13  chose what categories to adjust (checkboxes) and 'Go to page 2' button
         # ################################################################
-        ge.guiPlaceWidget(self.Pg1TuningParamLabel, row=13, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1LandVegCkb, row=13, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1FossilCkb, row=13, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg1OceanCkb, row=13, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TuningParamLabel, row=13, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1LandVegCkb, row=13, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1FossilCkb, row=13, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1OceanCkb, row=13, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 13 : Go to page 2 Button
-        ge.guiPlaceWidget(self.Pg1GoButton, row=13, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1GoButton, row=13, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         if(not USE_TKINTER):
-            toolbar_widget = widgets.Box()
-            toolbar_widget.children = [
-                self.guiPg1TpLv.Pg1TitleLabel, 
-                self.guiPg1TpLv.Pg1CancelButton
-            ]
-            toolbar_widget
-            display(toolbar_widget)
+            self.wdgGrid
+            display(self.wdgGrid)
 
 
     # ====================================================================
@@ -1355,11 +1452,13 @@ class lumiaGuiApp:
             logger.info(f"Thereof {nSelected} are presently selected.")
         except:
             pass
+        '''
         try:
             self.newDf.to_csv(self.sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
         except:
             logger.error(f"Fatal Error: Failed to write to file {self.sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc.")
             self.closeApp
+        '''
         try:
             dfq['pid2'] = dfq['pid'].apply(bs.grabFirstEntryFromList)
             dfq['samplingHeight2'] = dfq['samplingHeight'].apply(bs.grabFirstEntryFromList)
@@ -1666,54 +1765,54 @@ class lumiaGuiApp:
         # Placement  the static widgets  of the second GUI page  -- part of lumiaGuiApp (root window)
         # 1) Static widgets (top part)
         # ====================================================================
-        ge.guiPlaceWidget(self.Pg2TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.RankingLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg2TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.RankingLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #self.RankingLabel.grid(row=1, column=0, columnspan=1, padx=xPadding, pady=yPadding, sticky="nw")
-        ge.guiPlaceWidget(self.ObsFileRankingBox, row=2, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ObsFileRankingBox, row=2, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ObsFileRankingBox.grid(row=2, column=0, columnspan=1, rowspan=2, padx=xPadding, pady=yPadding, sticky="nsew")
         # Col2
         #  ##############################################################################
-        ge.guiPlaceWidget(self.ObsLv1Ckb, row=1, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.ObsNRTCkb, row=2, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.ObsOtherCkb, row=3, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ObsLv1Ckb, row=1, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ObsNRTCkb, row=2, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ObsOtherCkb, row=3, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col 3    Filtering of station altitudes
         #  ##############################################################################
-        ge.guiPlaceWidget(self.FilterStationAltitudesCkb, row=1, column=3, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.minAltLabel, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.maxAltLabel, row=3, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.FilterStationAltitudesCkb, row=1, column=3, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.minAltLabel, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.maxAltLabel, row=3, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # min Altitude Entry
-        ge.guiPlaceWidget(self.stationMinAltEntry, row=2, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.stationMinAltEntry, row=2, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # max Altitude Entry
-        ge.guiPlaceWidget(self.stationMaxAltEntry, row=3, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.stationMaxAltEntry, row=3, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col 5+6    -  sampling height filter
         #  ##############################################################################
         # 
-        ge.guiPlaceWidget(self.FilterSamplingHghtCkb, row=1, column=5, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.minHghtLabel, row=2, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.maxHghtLabel, row=3, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.FilterSamplingHghtCkb, row=1, column=5, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.minHghtLabel, row=2, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.maxHghtLabel, row=3, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # min inlet height
-        ge.guiPlaceWidget(self.inletMinHghtEntry, row=2, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.inletMinHghtEntry, row=2, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # max inlet height
-        ge.guiPlaceWidget(self.inletMaxHghtEntry, row=3, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.inletMaxHghtEntry, row=3, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col7
         #  ##############################################################################
         # 
-        ge.guiPlaceWidget(self.ICOSstationsLabel, row=1, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.Pg2isICOSradioButton, row=2, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ICOSstationsLabel, row=1, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton, row=2, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         if(USE_TKINTER):
-            ge.guiPlaceWidget(self.Pg2isICOSradioButton2, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton2, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col_11
         #  ##############################################################################
         # 
-        ge.guiPlaceWidget(self.Pg2CancelButton, row=2, column=10, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg2CancelButton, row=2, column=10, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col_12
         #  ##############################################################################
         # GO! Button
-        ge.guiPlaceWidget(self.Pg2GoButton, row=3, column=10, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg2GoButton, row=3, column=10, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 4 title for individual entries
         #  ##############################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
-        ge.guiPlaceWidget(self.ColLabels, row=4, column=0, columnspan=11,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ColLabels, row=4, column=0, columnspan=11,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
    
 
@@ -1771,56 +1870,18 @@ if(USE_TKINTER):
 else:
     import guiElements_ipyWdg as ge
     from IPython.display import display, HTML,  clear_output
-    import ipywidgets as widgets
-    from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
+    import ipywidgets as wdg
+    # from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
 if(args.rcf is None):
     if(args.ymf is None):
-        title='Open existing LUMIA configuration file:'
-        filename=None
-        if(USE_TKINTER):
-            filetypes=[("YAML files", "*.yml")]
-        else:
-            filetypes='*.yml'
-        if(not USE_TKINTER):
-            selectFileDlg = ge.guiFileDialog(filetypes=filetypes, title=title)
-            selectFileDlg
-            display(selectFileDlg)
-            filenameTupl=None
-            start_time = datetime.now()
-            while((filenameTupl is None) or (len(filenameTupl)<1)):
-                selectFileDlg.observe(selectFileDlg, 'value')
-                filenameTupl = selectFileDlg.value
-                if ((datetime.now() - start_time).total_seconds() > 10): # check if 10 seconds passed
-                    break # break out of loop
-            if((filenameTupl is None) or (len(filenameTupl)>0)):
-                try:
-                    filename=filenameTupl[0]
-                except:
-                    pass
-        else:
-            filename = ge.guiFileDialog(filetypes=filetypes, title=title)
-        if(filename is None):
-            filename='./lumia-config-v6-tr-co2.yml'
-            #logger.error("LumiaGUI: Fatal error: no user configuration (yaml) file provided.")
-            #sys.exit(1)
-        ymlFile=filename
+        ymlFile=None
     else:
         ymlFile = args.ymf
 else:            
     ymlFile = args.rcf
-if (not os.path.isfile(ymlFile)):
-    logger.error(f"Fatal error in LumiaGUI: User specified configuration file {ymlFile} does not exist. Abort.")
-    sys.exit(-3)
 
-# Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
-thisScript='LumiaGUI'
-initialYmlFile=ymlFile
-(ymlFile, oldDiscoveredObservations)=hk.documentThisRun(initialYmlFile, thisScript,  args)  # from housekeepimg.py
-# Now the config.yml file has all the details for this particular run
 
-# no need to pass args.start or args.end because hk.documentThisRun() already took care of these.
-scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
 # Call the main method
-prepareCallToLumiaGUI(ymlFile,  initialYmlFile,  oldDiscoveredObservations, scriptDirectory, args.verbosity)
+prepareCallToLumiaGUI(ymlFile, args)
 
 

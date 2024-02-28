@@ -95,7 +95,7 @@ def guiOptionMenu(self, values:[], variable=None,  dropdown_fontName="Georgia", 
         raise RuntimeError('Attempt to create an OptionsMenu failed. At least one of the required parameters values or variable was not valid.')
     return(ctk.CTkOptionMenu(self, values=values, variable=variable, dropdown_font=(dropdown_fontName, dropdown_fontSize)))
 
-def guiPlaceWidget(widget, row, column, columnspan, rowspan=1,  padx=10,  pady=10,  sticky="ew"):
+def guiPlaceWidget(wdgGrid,  widget, row, column, columnspan, rowspan=1,  padx=10,  pady=10,  sticky="ew"):
    widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
 
 def guiRadioButton(rootFrame, text, fontName="Georgia",  fontSize=12, 

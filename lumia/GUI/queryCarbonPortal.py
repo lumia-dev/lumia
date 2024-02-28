@@ -442,8 +442,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     #df['dClass'] = np.where(df.dataSetLabel.str.contains("product", flags=re.IGNORECASE), int(2), df['dClass'] )
     #df['dClass'] = np.where(df.dataSetLabel.str.contains("NRT "), int(1), df['dClass'] )
     myCarbonPortalTools.printProgressBar(nObj, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
-    sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
-    df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
+    #sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
+    #df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
     if(nBadDataSets > 0):
         logger.warning(f'{nBadDataSets} of {i} data records failed to read correctly and had to be discarded.')
 
@@ -473,7 +473,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     logger.info(f"{nTotalStations2} observation sites remaining. {nObsDataRecords2} valid observational data records remaining.")
 
     dfq.sort_values(by = ['country','stationID', 'dClass', 'samplingHeight', 'productionTime'], inplace = True, ascending = [True, True, False, False, False])
-    dfq.to_csv(sTmpPrfx+'_dbg_dfValidObs.csv', mode='w', sep=',')
+    #dfq.to_csv(sTmpPrfx+'_dbg_dfValidObs.csv', mode='w', sep=',')
     dfqdd=dfq.drop_duplicates(['stationID', 'dClass', 'samplingHeight'], keep='first')  # discards older  'productionTime' datasets
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     # But we are still keeping all sampling heights.
