@@ -59,10 +59,10 @@ def verifyYmlFile(ymlFile):
     filename=ymlFile
     if(ymlFile is None):
         filetypes='*.yml'
-        filename = ge.doThis()
-        #filename = ge.guiFileDialog(filetypes=filetypes, title=title)
+        filename = ge.guiFileDialog(filetypes=filetypes, title=title)
+        #print(f'received file {filename}')
     ymlFile=filename
-    print(f'ymlFile={ymlFile}')
+    logger.info(f'User selected Lumia configuration file is the ymlFile {ymlFile}')
     if (not os.path.isfile(ymlFile)):
         logger.error(f"Fatal error in LumiaGUI: User specified configuration file {ymlFile} does not exist. Abort.")
         sys.exit(-3)
@@ -84,6 +84,7 @@ def prepareCallToLumiaGUI(ymlFile, args):
     @param ymlFile : the LUMIA YAML configuration file in yaml (or rc) data format (formatted text)
     @type string (file name)
     '''
+
     # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
     thisScript='LumiaGUI'
     # scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -771,7 +772,7 @@ class lumiaGuiApp:
     def guiPage1AsTopLv(self,  iVerbosityLv='INFO'):  # of lumiaGuiApp
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
         nCols=5 # sum of labels and entry fields per row
-        nRows=13 # number of rows in the GUI
+        nRows=14 # number of rows in the GUI
 
         if(USE_TKINTER):
             self.wdgGrid=None
@@ -782,7 +783,7 @@ class lumiaGuiApp:
         else:
             self.wdgGrid = wdg.GridspecLayout(n_rows=nRows, n_columns=nCols)
             if(self.guiPg1TpLv is None):
-                self.guiPg1TpLv = ge.guiToplevel(self,  nCols=5,  nRows=13) # ,  bg="cadet blue"
+                self.guiPg1TpLv = ge.guiToplevel() # ,  bg="cadet blue"
                 # self.guiPg1TpLv.configure(background='cadet blue')
 
         self.bSuggestOldDiscoveredObservations=False
