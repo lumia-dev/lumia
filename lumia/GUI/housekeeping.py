@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='b95f79be5d30d070ef54813884e86f99374b42da'
+LATESTGITCOMMIT_LumiaDA='1e0626ddc8b2c202feae6ec0a3ce22ad2a266fd7'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -155,11 +155,11 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         setKeyVal_Nested_CreateIfNecessary(ymlContents, ['model', 'options',  'serial'],   value=True, bNewValue=True)
     myCom=""
     # Get the local git hash so we have some clue of what version of LUMIA we may be using...
-    localRepo='UKNOWN    '
-    sLocalGitRepos='UKNOWN    '
-    branch='UKNOWN    '
-    repoUrl='UKNOWN    '
-    myCom='UKNOWN    '
+    localRepo='UNKNOWN    '
+    sLocalGitRepos='UNKNOWN    '
+    branch='UNKNOWN    '
+    repoUrl='UNKNOWN    '
+    myCom='UNKNOWN    '
     scriptName=sys.argv[0]
     script_directory = os.path.dirname(os.path.abspath(scriptName))
     scriptTail=scriptName[-6:]
@@ -207,11 +207,14 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
             logger.debug(f'Which you should also be able to get from : {remoteCommitUrl}')
             # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
         except:
-            remoteCommitUrl='UKNOWN    '
+            remoteCommitUrl='UNKNOWN    '
             logger.info('Cannot find information about the local git repository. \nGit information logged in the log files of this run relies on what was written into this source file by the programmers alone.')
     
     if(LATESTGITCOMMIT_LumiaDA not in myCom):
-        logger.error(f"\nError: There is a mismatch between the current local or remote git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this lumia.GUI.housekeeping.py file. \nPlease check if there is a newer version on github or whether you forgot to push your latest local commit to the remote github.\nPlease resolve the conflict before proceeding.")
+        if('UNKNOWN' in myCom):
+            logger.info(f"\nWarning: Cannot verify whether the present version of lumiaGUI with git commit hash \nLATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) taken from said variable at the top of this \nlumia.GUI.housekeeping.py file is actually the latest version or not due to a missing local .git info tree.")
+        else:                
+            logger.error(f"\nError: There is a mismatch between the current local or remote git commit hash ({myCom}) and \nthe LATESTGITCOMMIT_LumiaDA ({LATESTGITCOMMIT_LumiaDA}) variable at the top of this lumia.GUI.housekeeping.py file. \nPlease check if there is a newer version on github or whether you forgot to push your latest local commit to the remote github.\nPlease resolve the conflict before proceeding.")
         #sys.exit(-5)
 
     wrongOrMissingVersion=False

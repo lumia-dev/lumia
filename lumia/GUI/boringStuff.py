@@ -161,7 +161,7 @@ def cleanUp(bWriteStop=True,  ymlFile=''):  # of lumiaGuiApp
         hk.runSysCmd(sCmd)
 
 
-def displayGeometry(maxAspectRatio=1.778):  
+def displayGeometry(USE_TKINTER, maxAspectRatio=1.778):  
     '''
     Query the current monitor or viewport about its dimensions in pixels.
     @maxAspectRatio 1920/1080.0=1.778 is here to prevant silly things if one uses multiple screens....
@@ -193,8 +193,9 @@ def displayGeometry(maxAspectRatio=1.778):
             xoffset=1
             
     except:
-        logger.error('screeninfo.get_monitors() failed. Try installing the libxrandr2 library if missing. Setting display to 1080x960pxl')
-        screenWidth= int(1080)
+        if(USE_TKINTER):
+            logger.error('screeninfo.get_monitors() failed. Try installing the libxrandr2 library if missing. Setting display to 1080x960pxl')
+        screenWidth= int(1080) # not a drama since ipywidgets work on relative screen width
         screenHeight= int(960)
     # on Linux you can also run from commandline, but it may not be ideal if you encounter systems with multiple screens attached.
     # xrandr | grep '*'
@@ -276,7 +277,7 @@ def nestedKeyExists(element, *keys):
 
 # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
 def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):",  maxAspectRatio=1.2):
-    guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(maxAspectRatio=maxAspectRatio)
+    guiWindow.appWidth, guiWindow.appHeight,  guiWindow.xPadding, guiWindow.yPadding,  guiWindow.xoffset = displayGeometry(USE_TKINTER, maxAspectRatio=maxAspectRatio)
     wSpacer=2*guiWindow.xPadding
     guiWindow.vSpacer=2*guiWindow.yPadding
     likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]

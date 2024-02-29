@@ -182,16 +182,19 @@ def guiTextBox(frame, text='',  description='', width='18%',  height='20%',  fon
     return(box)
 
 #ge.guiTxtLabel(self.guiPg1TpLv, title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold")
-def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  width=None, description='' , style="normal"):
+def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  description='',  layout='',  width=0,  height=0 , style="normal"):
     placeholder='x'
-    if(width is None):
+    if(width==0):
         placeholder="123456789ABCDEF67890"
     else:
         for i in range(width):
             placeholder=placeholder+'x'
+    
     return(wdg.Text(
     value=text,
     placeholder=placeholder,
     description=description,
     disabled=False   
-    ))
+    )) 
+    #     label_layout =wdg.Layout(layout), 
+    # width='100px',height='30px'
