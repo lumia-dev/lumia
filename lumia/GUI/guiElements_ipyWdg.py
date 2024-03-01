@@ -82,7 +82,7 @@ def guiDataEntry(canvas,textvariable='', placeholder_text='', width:int=40):
 
 
                           
-def guiFileDialog(filetypes='', title='Open', multiple=False):
+def guiFileDialog(filetypes='', title='Open', multiple=False,  width=240):
     '''
     new lumiaGUI: ipywidgets can be a real pain in the butt. It seemed impossible to make execution wait until the user 
     has selected the input file using the fileUploader widget. And achieving this is indeed tricky and caused me lots of frustration 
@@ -109,7 +109,13 @@ def guiFileDialog(filetypes='', title='Open', multiple=False):
     
     # Create a button widget
     button = wdg.Button(description="Continue after file selection")
-    button.layout = {"width":"150px"}
+    #button.layout = {"width":"150px"}
+    if(width is None):
+        width=int(150)
+    else:
+        sWdth=f'{width}px'            
+    myLayout = {"width":sWdth}
+    button.layout = myLayout
     button.on_click(on_click)
     
     # Display the widget and button
@@ -139,12 +145,32 @@ def guiOptionMenu(self, values:[], variable=int(0),  dropdown_fontName="Georgia"
         disabled=False,
     ))
 
-def guiPlaceWidget(wdgGrid,  widget, row, column, columnspan, rowspan=1,  padx=10,  pady=10,  sticky="ew"):
-    #widget.wdgGrid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
+def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1,  width=240,  padx=10,  pady=10,  sticky="ew"):
+    # widgets that do not support a width layout must set nCols=0
+    '''
+    nCols=0, 
+    width=rowspan*width
+    if(width is None):
+        if(nCols>0):
+            iRelWdth=int(100*(columnspan*1.0/nCols))  # width in percent
+            sWdth=f'{iRelWdth}%%'
+            myLayout = {"width":sWdth}
+            widget.layout = myLayout
+    else:
+        sWdth=f'{width}px'            
+        myLayout = {"width":sWdth}
+        widget.layout = myLayout
+    '''
+    iHght=30*rowspan
+    sHght=f"{iHght}px"
+    myLayout = {"width":"auto",  "height":sHght,  "margin":"2px",  "padding":"2px"}
+    widget.layout = myLayout
+    # wdgGrid[1stRow:LstRow , 1stCol:LstCol] = widget  # with its layout setup beforehand
     rghtCol=column + columnspan
     btmRow=row+rowspan
-   
-    if((columnspan==1) and (rowspan==1)):
+    if(rowspan==6):
+        wdgGrid[3:7, 4] = widget
+    elif((columnspan==1) and (rowspan==1)):
         wdgGrid[row, column] = widget
     elif((columnspan > 1) and (rowspan==1)):
         wdgGrid[row, column:rghtCol] = widget
@@ -152,8 +178,6 @@ def guiPlaceWidget(wdgGrid,  widget, row, column, columnspan, rowspan=1,  padx=1
         wdgGrid[row:btmRow, column] = widget
     else:
         wdgGrid[row:btmRow, column:rghtCol] = widget
-    #widget
-    #display(widget)
 
 
 def guiRadioButton(options=[] , description='',  text='', preselected=None):
@@ -181,19 +205,27 @@ def guiTextBox(frame, text='',  description='', width='18%',  height='20%',  fon
     #box(layout=Layout(width=width, height=height))
     return(box)
 
-#ge.guiTxtLabel(self.guiPg1TpLv, title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold")
-def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  description='',  layout='',  width=0,  height=0 , style="normal"):
-    placeholder='x'
-    if(width==0):
-        placeholder="123456789ABCDEF67890"
+def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  description='', placeholder='',  width=None, nCols=0,  
+                            colwidth=1, style="normal"):
+    if(nCols==0):
+        return(wdg.Text(
+        value=text,
+        placeholder=placeholder,
+        description=description,
+        disabled=False   
+        ))
+    if(width is None):
+        iRelWdth=int(100*(colwidth*1.0/nCols))  # width in percent
+        sWdth=f'{iRelWdth}%%'
     else:
-        for i in range(width):
-            placeholder=placeholder+'x'
+        sWdth=f'{width}px'            
+    layout = widgets.Layout(width=sWdth)
     
     return(wdg.Text(
     value=text,
     placeholder=placeholder,
     description=description,
+    layout = layout, 
     disabled=False   
     )) 
     #     label_layout =wdg.Layout(layout), 

@@ -772,8 +772,10 @@ class lumiaGuiApp:
     def guiPage1AsTopLv(self,  iVerbosityLv='INFO'):  # of lumiaGuiApp
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
         nCols=5 # sum of labels and entry fields per row
-        nRows=14 # number of rows in the GUI
-
+        nRows=12 # number of rows in the GUI
+        self.nCols=nCols
+        self.nRows=nRows        
+        
         if(USE_TKINTER):
             self.wdgGrid=None
             if(self.guiPg1TpLv is None):
@@ -781,7 +783,7 @@ class lumiaGuiApp:
                 # self.guiPg1TpLv = tk.Toplevel(self.root,  bg="cadet blue")
                 self.guiPg1TpLv = ge.guiToplevel(self.root,  bg="cadet blue")
         else:
-            self.wdgGrid = wdg.GridspecLayout(n_rows=nRows, n_columns=nCols)
+            self.wdgGrid = wdg.GridspecLayout(n_rows=nRows, n_columns=nCols,  grid_gap="3px")
             if(self.guiPg1TpLv is None):
                 self.guiPg1TpLv = ge.guiToplevel() # ,  bg="cadet blue"
                 # self.guiPg1TpLv.configure(background='cadet blue')
@@ -914,7 +916,7 @@ class lumiaGuiApp:
             txt=f"Latitude (between {self.latMin.get()} and {self.latMax.get()} °North):" 
         else:
             txt=f"Latitude (between {self.latMin} and {self.latMax} °North):" 
-        self.Pg1LatitudeLabel = ge.guiTxtLabel(self.guiPg1TpLv,anchor="w", text=txt, width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.Pg1LatitudeLabel = ge.guiTxtLabel(self.guiPg1TpLv,anchor="w", text=txt, width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=2)
         self.Pg1Latitude0Entry = ge.guiDataEntry(self.guiPg1TpLv,textvariable=self.sLat0, placeholder_text=self.sLat0, width=self.root.colWidth)
         self.Pg1Latitude1Entry = ge.guiDataEntry(self.guiPg1TpLv,textvariable=self.sLat1, placeholder_text=self.sLat1, width=self.root.colWidth)
         # Row 5: Longitudes Entry Fields
@@ -923,14 +925,14 @@ class lumiaGuiApp:
             txt=f"Longitude (between {self.lonMin.get()} and {self.lonMax.get()} °East):" 
         else:
             txt=f"Longitude (between {self.lonMin} and {self.lonMax} °East):" 
-        self.Pg1LongitudeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=txt, anchor="w", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, width=self.root.colWidth)
+        self.Pg1LongitudeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=txt, anchor="w", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, width=self.root.colWidth, nCols=self.nCols,  colwidth=2)
         self.Pg1Longitude0Entry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.sLon0, placeholder_text=self.sLon0, width=self.root.colWidth)
         self.Pg1Longitude1Entry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.sLon1, placeholder_text=self.sLon1, width=self.root.colWidth)
         # Row 6:  Label for Tracer radiobutton (CO2/CH4)
         # ################################################################
-        self.Pg1TracerLabel = ge.guiTxtLabel(self.guiPg1TpLv,anchor="center", text="Tracer:   ", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
-        self.Pg1EmissionsLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w", text="       Emissions data (a priori)",  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
-        self.Pg1TuningParamLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="LUMIA may adjust:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="w")
+        self.Pg1TracerLabel = ge.guiTxtLabel(self.guiPg1TpLv,anchor="center", text="Tracer:   ", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
+        self.Pg1EmissionsLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w", text="       Emissions data (a priori)",  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE, nCols=self.nCols,  colwidth=2)
+        self.Pg1TuningParamLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="LUMIA may adjust:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="w", nCols=self.nCols,  colwidth=1)
         # Row 7: Emissions data (a prioris): Heading and Land/Vegetation choice
         # ################################################################
         if(USE_TKINTER):
@@ -941,16 +943,16 @@ class lumiaGuiApp:
                                        text="CH4", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                        variable=self.iTracerRbVal,  value=2, command=self.EvHdPg1SetTracer)
         else:
-            self.Pg1TracerRadioButton = ge.guiRadioButton(['CO2', 'CH4'], description='Tracer:')
+            self.Pg1TracerRadioButton = ge.guiRadioButton(['CO2', 'CH4'], description='')
         #       Emissions data (a prioris) : dyn.vegetation net exchange model
-        self.Pg1FossilEmisLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Fossil emissions:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e")
+        self.Pg1FossilEmisLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Fossil emissions:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         self.Pg1FossilEmisOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv, values=AVAIL_FOSSIL_EMISS_DATA, 
                                         variable=self.FossilEmisCkbVar, dropdown_fontName=self.root.myFontFamily, dropdown_fontSize=self.root.fsNORMAL)
         self.Pg1FossilCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Fossil (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                             variable=self.FossilCkbVar, onvalue=True, offvalue=False)                             
         # Row 8: Emissions data (a prioris) continued: fossil+ocean
         # ################################################################
-        self.Pg1NeeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Land/Vegetation NEE:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e")
+        self.Pg1NeeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Land/Vegetation NEE:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         #       Land/Vegetation Net Exchange combo box
         self.Pg1LandNetExchangeOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv,  values=AVAIL_LAND_NETEX_DATA, variable=self.LandNetExchangeModelCkbVar, 
                                                                                                         dropdown_fontName=self.root.myFontFamily, dropdown_fontSize=self.root.fsNORMAL)
@@ -959,25 +961,19 @@ class lumiaGuiApp:
         # Row 9: Obs data location radiobutton
         # ################################################################
         # Ocean Net Exchange combo box (a prioris)
-        self.Pg1OceanNetExchangeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Ocean net exchange:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e")
+        self.Pg1OceanNetExchangeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Ocean net exchange:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         self.Pg1OceanNetExchangeOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv, values=AVAIL_OCEAN_NETEX_DATA,
                                         variable=self.OceanNetExchangeCkbVar, dropdown_fontName=self.root.myFontFamily, dropdown_fontSize=self.root.fsNORMAL)
         self.Pg1OceanCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Ocean (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                             variable=self.OceanCkbVar, onvalue=True, offvalue=False)                            
+        #       Ignore ChkBx
+        self.Pg1ignoreWarningsCkb = ge.guiCheckBox(self.guiPg1TpLv,disabled=True, text="Ignore Warnings", fontName=self.root.myFontFamily,  
+                            fontSize=self.root.fsNORMAL, variable=self.bIgnoreWarningsCkbVar, onvalue=True, offvalue=False) # text_color='gray5',  text_color_disabled='gray70', 
         # Row 10: Obs data entries
         # ################################################################
         # Label for local  obs data path
         labelTxt=f'Observational \n{self.tracer} data'
-        self.Pg1ObsDataSourceLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=labelTxt, width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
-        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select File",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
-        if(USE_TKINTER): # TODO fix
-            ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
-            ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)
-        #       Ignore ChkBx
-        self.Pg1ignoreWarningsCkb = ge.guiCheckBox(self.guiPg1TpLv,disabled=True, text="Ignore Warnings", fontName=self.root.myFontFamily,  
-                            fontSize=self.root.fsNORMAL, variable=self.bIgnoreWarningsCkbVar, onvalue=True, offvalue=False) # text_color='gray5',  text_color_disabled='gray70', 
-        # Row 11:  Local Obs data filename entry and Cancel Button
-        # ################################################################
+        self.Pg1ObsDataSourceLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=labelTxt, width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         if(USE_TKINTER):
             self.Pg1ObsFileLocationCPortalRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
                                        text="from CarbonPortal", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
@@ -986,7 +982,11 @@ class lumiaGuiApp:
                                        text="from local file", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                        variable=self.iObservationsFileLocation,  value=1, command=self.EvHdPg1SetObsFileLocation)
         else:
-            self.Pg1ObsFileLocationLocalRadioButton = ge.guiRadioButton(['from local file','from CarbonPortal' ], description='Tracer')
+            self.Pg1ObsFileLocationLocalRadioButton = ge.guiRadioButton(['from local file','from CarbonPortal' ], description='')
+        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
+        if(USE_TKINTER): # TODO fix
+            ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
+            ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)
         # Entry for local  obs data file
         self.Pg1ObsFileLocationLocalEntry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.ObsFileLocationEntryVar, placeholder_text=self.ObsFileLocationEntryVar, width=self.root.colWidth)
         if(USE_TKINTER): # TODO fix
@@ -994,19 +994,18 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             # if textvariable is longer than entry box, i.e. the path spills over, it will be right-aligned, showing the end with the file name
             self.Pg1ObsFileLocationLocalEntry.xview_moveto(1)  
+        # Row 11:  Local Obs data filename entry and Cancel Button
+        # ################################################################
         # Cancel Button
         self.Pg1CancelButton = ge.guiButton(self.guiPg1TpLv, text="Cancel",  command=self.closeTopLv,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1CancelButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1CancelButton,  value='DarkOrange1', bFg_color=True) # in CTk this is the main button color (not the text color)
-        # Row 12 Go button
-        # ################################################################
+        #  Go button
         self.Pg1GoButton = ge.guiButton(self.guiPg1TpLv, text="PROCEED", command=self.EvHdPg1GotoPage2, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1GoButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1GoButton,  value='green3', bFg_color=True) # in CTk this is the main button color (not the text color)
-        # Row 13  chose what categories to adjust (checkboxes) and 'Go to page 2' button
-        # ################################################################
 
 
     def  placeAllPg1WidgetsOnCanvas(self, nCols,  nRows,  xPadding,  yPadding):
@@ -1031,7 +1030,7 @@ class lumiaGuiApp:
         # ################################################################
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1LatitudesLabel, row=3, column=0, columnspan=3,padx=xPadding, pady=yPadding, sticky="ew")
         #    Text Box for messages, warnings, etc
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=7, padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1displayBox, row=3, column=4, columnspan=1, rowspan=6, padx=xPadding, pady=yPadding, sticky="ew")
         # Row 4: Latitudes Entry Fields
         # ################################################################
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1LatitudeLabel, row=4, column=0, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
@@ -1049,7 +1048,11 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1TuningParamLabel, row=6, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 7: Emissions data (a prioris): Heading and Land/Vegetation choice
         # ################################################################
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TracerRadioButton, row=7, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="")
+        if(USE_TKINTER):
+            rbRowspan=1
+        else:
+            rbRowspan=2                
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1TracerRadioButton, row=7, column=0, columnspan=1, rowspan=rbRowspan,padx=xPadding, pady=yPadding, sticky="")
         #       Emissions data (a prioris) : dyn.vegetation net exchange model
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1FossilEmisLabel, row=7, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1FossilEmisOptionMenu, row=7, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
@@ -1065,29 +1068,29 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1LandVegCkb, row=8, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 9: Obs data location radiobutton
         # ################################################################
+        # Label for local  obs data path
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1OceanNetExchangeLabel, row=9, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1OceanNetExchangeOptionMenu, row=9, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1OceanCkb, row=9, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        #     Ignore ChkBx
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ignoreWarningsCkb, row=9, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 10: Obs data entries
         # ################################################################
-        # Label for local  obs data path
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsDataSourceLabel, row=11, column=0, columnspan=1,  rowspan=2, padx=xPadding, pady=yPadding, sticky="e")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsDataSourceLabel, row=10, column=0, columnspan=1,  rowspan=2, padx=xPadding, pady=yPadding, sticky="e")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalRadioButton, row=10, column=1, rowspan=rbRowspan, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # File selector widget for local file
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1FileSelectButton, row=10, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        #     Ignore ChkBx
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ignoreWarningsCkb, row=10, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # Entry field for local obs data file
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalEntry, row=10, column=3, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 11:  Obs data entries
         # ################################################################
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalRadioButton, row=11, column=1, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        # Entry field for local obs data file
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalEntry, row=11, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         # Row Cancel Button
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1CancelButton, row=11, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        # Row 12 GoButton
-        # ################################################################
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1CancelButton, row=11, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        #  GoButton 
         if(USE_TKINTER):
-            ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationCPortalRadioButton, row=12, column=1, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1GoButton, row=12, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationCPortalRadioButton, row=11, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg1GoButton, row=11, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        # ################################################################
         # ################################################################
         if(not USE_TKINTER):
             self.wdgGrid
@@ -1628,11 +1631,11 @@ class lumiaGuiApp:
         # ====================================================================
         # Row 0:  Title Label
         #  ##############################################################################
-        self.Pg2TitleLabel = ge.guiTxtLabel(rootFrame, self.Pg2title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold")
+        self.Pg2TitleLabel = ge.guiTxtLabel(rootFrame, self.Pg2title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold", nCols=self.nCols,  colwidth=self.nCols)
         # Row 1-4:  Header part with pre-selctions
         #  ##############################################################################
         # Ranking for Observation Files
-        self.RankingLabel = ge.guiTxtLabel(rootFrame, text="Obsdata Ranking", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.RankingLabel = ge.guiTxtLabel(rootFrame, text="Obsdata Ranking", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         self.ObsFileRankingBox = ge.guiTextBox(rootFrame,  text=self.ObsFileRankingBoxTxt,  width=self.root.colWidth,  height=(2.4*self.root.rowHeight+self.root.vSpacer),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL)
         # Col2
         #  ##############################################################################
@@ -1647,8 +1650,8 @@ class lumiaGuiApp:
         self.FilterStationAltitudesCkb = ge.guiCheckBox(rootFrame, text="Filter station altitudes", fontName=self.root.myFontFamily,  
                                                     fontSize=self.root.fsNORMAL, variable=self.FilterStationAltitudesCkbVar, onvalue=True, offvalue=False, 
                                                     command=self.EvHdPg2stationAltitudeFilterAction)
-        self.minAltLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
-        self.maxAltLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.minAltLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
+        self.maxAltLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         # min Altitude Entry
         self.stationMinAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.sStationMinAlt, placeholder_text=str(self.stationMinAlt), width=self.root.colWidth)
         # max Altitude Entry
@@ -1658,15 +1661,15 @@ class lumiaGuiApp:
         self.FilterSamplingHghtCkb = ge.guiCheckBox(rootFrame, text="Filter sampling heights", fontName=self.root.myFontFamily,  
                                                             fontSize=self.root.fsNORMAL, variable=self.FilterSamplingHghtCkbVar, onvalue=True, offvalue=False, 
                                                             command=self.EvHdPg2stationSamplingHghtAction)                             
-        self.minHghtLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
-        self.maxHghtLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.minHghtLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
+        self.maxHghtLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         # min inlet height
         self.inletMinHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.sInletMinHght, placeholder_text=str(self.inletMinHght), width=self.root.colWidth)
         # max inlet height
         self.inletMaxHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.sInletMaxHght, placeholder_text=str(self.inletMaxHght), width=self.root.colWidth)
         # Col7
         #  ##############################################################################
-        self.ICOSstationsLabel = ge.guiTxtLabel(rootFrame, text="ICOS stations", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.ICOSstationsLabel = ge.guiTxtLabel(rootFrame, text="ICOS stations", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         if(USE_TKINTER):
             self.Pg2isICOSradioButton = ge.guiRadioButton(rootFrame, text="Any station", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter)
@@ -1694,7 +1697,7 @@ class lumiaGuiApp:
         #  ##############################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
-        self.ColLabels = ge.guiTxtLabel(rootFrame, anchor="w", text=myLabels, fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
+        self.ColLabels = ge.guiTxtLabel(rootFrame, anchor="w", text=myLabels, fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=(self.nCols-1))
 
    
     def  placePg2staticWidgetsOnCanvas(self, nCols,  nRows,  xPadding,  yPadding):
