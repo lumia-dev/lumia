@@ -87,7 +87,7 @@ def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None
 def guiDataEntry(self, textvariable='',  placeholder_text='', width:int=40):
     return(ctk.CTkEntry(self,textvariable=textvariable, placeholder_text=placeholder_text, width=width))
 
-def guiFileDialog(filetypes=[("All", "*")],  title='Open local file'): 
+def guiFileDialog(filetypes=[("All", "*.yml")],  title='Open local file',  description="Select file", multiple=False,  width=240): 
     return(ctk.filedialog.askopenfilename(filetypes=filetypes,  title=title))
 
 def guiOptionMenu(self, values:[], variable=None,  dropdown_fontName="Georgia",  dropdown_fontSize=12):

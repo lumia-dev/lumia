@@ -82,7 +82,7 @@ def guiDataEntry(canvas,textvariable='', placeholder_text='', width:int=40):
 
 
                           
-def guiFileDialog(filetypes='', title='Open', multiple=False,  width=240):
+def guiFileDialogDoAll(filetypes='', title='Open', multiple=False,  width=240):
     '''
     new lumiaGUI: ipywidgets can be a real pain in the butt. It seemed impossible to make execution wait until the user 
     has selected the input file using the fileUploader widget. And achieving this is indeed tricky and caused me lots of frustration 
@@ -95,6 +95,7 @@ def guiFileDialog(filetypes='', title='Open', multiple=False,  width=240):
     Note that the first block is the original example and the second uses the fileUploader widget instead of a dropdown box.
     '''
     global button_clicked
+    
     filename=None
 
     # Create the file selector widget
@@ -135,6 +136,17 @@ def guiFileDialog(filetypes='', title='Open', multiple=False,  width=240):
     #    'last_modified': datetime.datetime(2024, 2, 27, 0, 12, 32, 459000, tzinfo=datetime.timezone.utc)}
     # print(f"Have uploaded {filename}. Continuing execution...")
     return filename
+
+
+
+def guiFileDialog(filetypes='', title='Open',  description="Select file", multiple=False,  width=240):
+    # Create the file selector widget
+    upload_btn = wdg.FileUpload(accept=filetypes,  description=description, multiple=False)
+    #upload_btn.on_click(on_click)
+    
+    # Display the widget and button
+    # display(upload_btn) # done by calling entity
+    return(upload_btn)
 
 
 def guiOptionMenu(self, values:[], variable=int(0),  dropdown_fontName="Georgia",  dropdown_fontSize=12):
@@ -182,12 +194,12 @@ def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1, 
 
 def guiRadioButton(options=[] , description='',  text='', preselected=None):
     if(preselected is None):
-        preselected=options[0]
+        preselected=0
     if(len(description)==0):
         description=text
     return(wdg.RadioButtons(
         options=options,
-        value=preselected, # Defaults to 'pineapple'
+        value=options[preselected],
     #    layout={'width': 'max-content'}, # If the items' names are long
         description=description,
         disabled=False
@@ -230,3 +242,63 @@ def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12,  des
     )) 
     #     label_layout =wdg.Layout(layout), 
     # width='100px',height='30px'
+
+def guiSetWidgetWidth(widget,  width=200):
+    if(width is None):
+        width=int(240)
+    else:
+        sWdth=f'{width}px'            
+    myLayout = {"width":sWdth}
+    widget.layout = myLayout
+    
+def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='',  myDescription="Continue after user selection",  myDescription2="Cancel", width=240):
+    '''
+    new lumiaGUI: ipywidgets can be a real pain in the butt. It seemed impossible to make execution wait until the user 
+    has selected the input file using the fileUploader widget. And achieving this is indeed tricky and caused me lots of frustration 
+    questioning my sanity. After lots of googling I found both an explanation why this is so hard to do and a solution to get 
+    around this. Look at these resources to know more about it: 
+    https://pypi.org/project/jupyter-ui-poll/  and  
+    https://stackoverflow.com/questions/76564282/how-to-get-an-ipywidget-to-wait-for-user-input-then-continue-running-your-scrip 
+    The current commit is the first test of getting this to work at all and is placed at the beginning of everything,
+    just because it is WORKING :)
+    Note that the first block is the original example and the second uses the fileUploader widget instead of a dropdown box.
+    '''
+    global button_clicked
+    button_clicked = False
+    whichButton=1 # which on ewas clicked?
+    
+    # Create a function to continue the execution
+    def on_click(b):
+        global button_clicked
+        button_clicked = True
+        on_click
+
+    def on_cancel(b):
+        whichButton=2
+    
+    watchedWidget.on_click(on_click)
+    if(watchedWidget2 is None):
+        pass
+    else:
+        watchedWidget2.on_click(on_cancel)
+    
+    # Display the widget and button
+    # display(watchedWidget)
+    
+    # Wait for user to press the button
+    with ui_events() as poll:
+        while button_clicked is False:
+            poll(10)          # React to UI events (upto 10 at a time)
+            time.sleep(0.1)
+
+    return (whichButton) 
+
+
+def guiWipeTextBox(txtBoxWidget, protect=True):
+    txtBoxWidget.value = ""
+    txtBoxWidget
+    
+def guiWriteIntoTextBox(txtBoxWidget, txt='', protect=True):    
+    txtBoxWidget.value = txt
+    txtBoxWidget
+    

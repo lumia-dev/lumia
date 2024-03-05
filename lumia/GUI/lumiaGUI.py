@@ -59,8 +59,24 @@ def verifyYmlFile(ymlFile):
     filename=ymlFile
     if(ymlFile is None):
         filetypes='*.yml'
-        filename = ge.guiFileDialog(filetypes=filetypes, title=title)
-        #print(f'received file {filename}')
+        if(USE_TKINTER):
+            ymlFile = ge.guiFileDialog(filetypes=filetypes, description="Select yml file") 
+        else:
+            ymlFileSelectButton = ge.guiFileDialog(filetypes=filetypes, description="Select yml file") 
+            ymlFileSelectButton
+            display(ymlFileSelectButton)
+            ContinueButton = ge.guiButton('None', text="Continue after file selection",  command='') 
+            ContinueButton
+            display(ContinueButton)
+            ge.guiWidgetsThatWait4UserInput(watchedWidget=ContinueButton,watchedWidget2=None, title='',  myDescription="Cancel",  myDescription2="Cancel", width=240)
+            rval=ymlFileSelectButton.value[0]
+            # filename = ge.guiFileDialogDoAll(filetypes=filetypes, title=title)
+            ymlFile=rval['name']
+        print(f'Name of initial Lumia config file={ymlFile}')
+    if (ymlFile is None):
+        logger.error("You need to provide an initial Lumia configuration .yml file. Try again when you have done your homework.")
+        sys.exit(-3)
+    return(ymlFile)
     ymlFile=filename
     logger.info(f'User selected Lumia configuration file is the ymlFile {ymlFile}')
     if (not os.path.isfile(ymlFile)):
@@ -214,21 +230,22 @@ class lumiaGuiApp:
     def EvHdPg1GotoPage2(self):
         bGo=False
         (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues()
-        if(USE_TKINTER): # TODO fix
-            ge.guiWipeTextBox(self.Pg1displayBox, protect=True) # delete all text
-            if((bErrors) and (bWarnings)):
-                # self.Pg1displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
-                ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg, protect=True)
-            elif(bErrors):
-                ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg, protect=True)
-            elif(bWarnings):
-                ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
+        ge.guiWipeTextBox(self.Pg1displayBox, protect=True) # delete all text
+        if((bErrors) and (bWarnings)):
+            # self.Pg1displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
+            ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg, protect=True)
+        elif(bErrors):
+            ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg, protect=True)
+        elif(bWarnings):
+            ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
+            if(USE_TKINTER):
                 if(self.bIgnoreWarningsCkbVar.get()):
                     bGo=True
-                if(USE_TKINTER):
-                    self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
             else:
-                bGo=True
+                if(self.bIgnoreWarningsCkbVar.value):
+                    bGo=True
+            if(USE_TKINTER):
+                self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
         else:
             bGo=True
         if(USE_TKINTER):
@@ -267,13 +284,18 @@ class lumiaGuiApp:
             self.Pg1ObsFileLocationLocalEntry.xview_moveto(1)  
 
     def EvHdPg1SetObsFileLocation(self):
-        if (self.iObservationsFileLocation.get()==1):
-           self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
+        if(USE_TKINTER):
+            if (self.iObservationsFileLocation.get()==0):
+               self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
+            else:
+                self.ymlContents['observations'][self.tracer]['file']['location'] = 'CARBONPORTAL'
         else:
-            self.ymlContents['observations'][self.tracer]['file']['location'] = 'CARBONPORTAL'
+            ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
+            print(f'..ObsFileLocation={ObsFileLocation}')
+            self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
 
     def EvHdPg1SetTracer(self):
-        if (self.iTracerRbVal.get()==1):
+        if (self.iTracerRbVal.get()==0):
            self.ymlContents['run']['tracers'] = 'co2'
         else:
             self.ymlContents['run']['tracers'] = 'ch4'
@@ -833,11 +855,11 @@ class lumiaGuiApp:
         # Get the currently selected tracer from the yml config file
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         # Set the Tracer radiobutton initial status in accordance with the (first) tracer extracted from the yml config file
-        self.iTracerRbVal= ge.guiIntVar(value=1)
+        self.iTracerRbVal= ge.guiIntVar(value=0)
         if(('ch4' in self.tracer) or ('CH4' in self.tracer)):
-            self.iTracerRbVal = ge.guiIntVar(value=2)
-        else:
             self.iTracerRbVal = ge.guiIntVar(value=1)
+        else:
+            self.iTracerRbVal = ge.guiIntVar(value=0)
         # Ranking of data records from CarbonPortal : populate the ObsFileRankingBoxTxt
         rankingList=self.ymlContents['observations'][self.tracer]['file']['ranking']
         self.ObsFileRankingBoxTxt=""
@@ -855,9 +877,9 @@ class lumiaGuiApp:
         global AVAIL_FOSSIL_EMISS_DATA      # FOSSIL Emissions data sets supported
         global AVAIL_OCEAN_NETEX_DATA     # Ocean Net Exchange combo box
         # Obs data location radiobutton variable (local vs carbon portal)
-        self.iObservationsFileLocation= ge.guiIntVar(value=1)
+        self.iObservationsFileLocation= ge.guiIntVar(value=0)
         if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
-            self.iObservationsFileLocation = ge.guiIntVar(value=2)
+            self.iObservationsFileLocation = ge.guiIntVar(value=1)
         #       Ignore ChkBx
         self.bIgnoreWarningsCkbVar = ge.guiBooleanVar(value=False) 
         # Filename of local obs data file
@@ -876,7 +898,18 @@ class lumiaGuiApp:
         # Place all widgets onto the first GUI page  -- part of lumiaGuiApp (toplevel window)
         # ====================================================================
         self.placeAllPg1WidgetsOnCanvas(nCols,  nRows,  xPadding,  yPadding)
-        
+        if not (USE_TKINTER): 
+            whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+            if(whichButton==2): 
+                self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2                
+            ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
+            
+            print(f'ObsFileLocation={ObsFileLocation}')
+            self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
+            tracer=self.Pg1TracerRadioButton.value
+            print(f'tracer={tracer}')
+            self.ymlContents['run']['tracers'] = tracer
+            self.EvHdPg1GotoPage2()
 
     def createAllPg1Widgets(self):
         # ====================================================================
@@ -904,7 +937,7 @@ class lumiaGuiApp:
                         text="Feedback (if any)", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL)
         # Row 3:  Geographical Region Heading & Message Box
         # ################################################################
-        self.Pg1LatitudesLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w", text="Geographical extent of the area modelled (in deg. North/East)",
+        self.Pg1LatitudesLabel = ge.guiTxtLabel(self.guiPg1TpLv, anchor="w", text="Geographical extent of the area modelled:",
                                                                     fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         #    Text Box for messages, warnings, etc
         self.Pg1displayBox = ge.guiTextBox(self.guiPg1TpLv, width=self.root.colWidth,  height=(4*self.root.rowHeight),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL, text_color="red") 
@@ -938,12 +971,12 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             self.Pg1TracerRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
                                        text="CO2", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
-                                       variable=self.iTracerRbVal,  value=1, command=self.EvHdPg1SetTracer)
+                                       variable=self.iTracerRbVal,  value=0, command=self.EvHdPg1SetTracer)
             self.Pg1TracerRadioButton2 = ge.guiRadioButton(self.guiPg1TpLv,
                                        text="CH4", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
-                                       variable=self.iTracerRbVal,  value=2, command=self.EvHdPg1SetTracer)
+                                       variable=self.iTracerRbVal,  value=1, command=self.EvHdPg1SetTracer)
         else:
-            self.Pg1TracerRadioButton = ge.guiRadioButton(['CO2', 'CH4'], description='')
+            self.Pg1TracerRadioButton = ge.guiRadioButton(['CO2', 'CH4'], preselected=self.iTracerRbVal,  description='')
         #       Emissions data (a prioris) : dyn.vegetation net exchange model
         self.Pg1FossilEmisLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Fossil emissions:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         self.Pg1FossilEmisOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv, values=AVAIL_FOSSIL_EMISS_DATA, 
@@ -975,14 +1008,14 @@ class lumiaGuiApp:
         labelTxt=f'Observational \n{self.tracer} data'
         self.Pg1ObsDataSourceLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=labelTxt, width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         if(USE_TKINTER):
-            self.Pg1ObsFileLocationCPortalRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
-                                       text="from CarbonPortal", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
-                                       variable=self.iObservationsFileLocation,  value=2, command=self.EvHdPg1SetObsFileLocation)
             self.Pg1ObsFileLocationLocalRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
                                        text="from local file", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
+                                       variable=self.iObservationsFileLocation,  value=0, command=self.EvHdPg1SetObsFileLocation)
+            self.Pg1ObsFileLocationCPortalRadioButton = ge.guiRadioButton(self.guiPg1TpLv,
+                                       text="from CarbonPortal", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                                        variable=self.iObservationsFileLocation,  value=1, command=self.EvHdPg1SetObsFileLocation)
         else:
-            self.Pg1ObsFileLocationLocalRadioButton = ge.guiRadioButton(['from local file','from CarbonPortal' ], description='')
+            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ], description='')
         self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
@@ -1077,7 +1110,10 @@ class lumiaGuiApp:
         # Row 10: Obs data entries
         # ################################################################
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsDataSourceLabel, row=10, column=0, columnspan=1,  rowspan=2, padx=xPadding, pady=yPadding, sticky="e")
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalRadioButton, row=10, column=1, rowspan=rbRowspan, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        if(USE_TKINTER):
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationLocalRadioButton, row=10, column=1, rowspan=rbRowspan, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        else:
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg1ObsFileLocationRadioButtons, row=10, column=1, rowspan=rbRowspan, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # File selector widget for local file
         ge.guiPlaceWidget(self.wdgGrid, self.Pg1FileSelectButton, row=10, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Entry field for local obs data file
@@ -1214,12 +1250,16 @@ class lumiaGuiApp:
             # hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'run',  'griddy2'],   value=griddy2, bNewValue=True)
 
         # ObservationsFileLocation
-        if (self.iObservationsFileLocation.get()==2):
+        if (self.iObservationsFileLocation.get()==1):
             self.ymlContents['observations'][self.tracer]['file']['location'] = 'CARBONPORTAL'
         else:
             self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
         # Get the name of the local obs data file. This is ignored, if (self.ymlContents['observations'][self.tracer]['file']['location'] == 'CARBONPORTAL')
-        fname=self.Pg1ObsFileLocationLocalEntry.get()
+        if(USE_TKINTER):
+            fname=self.Pg1ObsFileLocationLocalEntry.get()
+        else:
+            fname=self.Pg1ObsFileLocationLocalEntry.value
+            print(f'self.Pg1ObsFileLocationLocalEntry.value={fname}')
         self.ymlContents['observations'][self.tracer]['file']['path'] = fname
             
         # Emissions data (a prioris)
