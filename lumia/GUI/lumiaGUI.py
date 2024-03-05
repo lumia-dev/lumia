@@ -1152,8 +1152,9 @@ class lumiaGuiApp:
             strStartTime=self.Pg1TimeStartEntry.get()
             strEndTime=self.Pg1TimeEndEntry.get()
         else:
-            strStartTime='2018-01-01' # TODO fix
-            strEndTime='2018-01-02'
+            strStartTime=self.Pg1TimeStartEntry.value
+            strEndTime=self.Pg1TimeEndEntry.value
+            print(f'strStartTime={strStartTime},  strEndTime={strEndTime}')
         if (len(strStartTime)<10):
             bTimeError=True
             sErrorMsg+='Invalid Start Date entered.\n'
@@ -1206,11 +1207,11 @@ class lumiaGuiApp:
             Lon0=float(self.Pg1Longitude0Entry.get())
             Lon1=float(self.Pg1Longitude1Entry.get())
         else:
-            Lat0=self.lat0 # TODO fix
-            Lat1=self.lat1
-            Lon0=self.lon0
-            Lon1=self.lon1
-
+            Lat0=float(self.Pg1Latitude0Entry.value)
+            Lat1=float(self.Pg1Latitude1Entry.value)
+            Lon0=float(self.Pg1Longitude0Entry.value)
+            Lon1=float(self.Pg1Longitude1Entry.value)
+            print(f'Lat0={Lat0},  Lat1={Lat1},  Lon0={Lon0},  Lon1={Lon1}')
         if(USE_TKINTER): # TODO fix
             if(Lat0 < float(self.latMin.get())):
                 bLatLonError=True
@@ -1250,10 +1251,15 @@ class lumiaGuiApp:
             # hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'run',  'griddy2'],   value=griddy2, bNewValue=True)
 
         # ObservationsFileLocation
-        if (self.iObservationsFileLocation.get()==1):
+        if(USE_TKINTER):
+            sObservationsFileLocation=self.iObservationsFileLocation.get()
+        else:
+            sObservationsFileLocation=self.iObservationsFileLocation
+        if (sObservationsFileLocation==1):
             self.ymlContents['observations'][self.tracer]['file']['location'] = 'CARBONPORTAL'
         else:
             self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
+            print(f'sObservationsFileLocation={sObservationsFileLocation}')
         # Get the name of the local obs data file. This is ignored, if (self.ymlContents['observations'][self.tracer]['file']['location'] == 'CARBONPORTAL')
         if(USE_TKINTER):
             fname=self.Pg1ObsFileLocationLocalEntry.get()
@@ -1264,32 +1270,51 @@ class lumiaGuiApp:
             
         # Emissions data (a prioris)
         # Land/Vegetation Net Exchange combo box
-        sLandVegModel=self.Pg1LandNetExchangeOptionMenu.get()  # 'VPRM', 'LPJ-GUESS'
+        if(USE_TKINTER):
+            sLandVegModel=self.Pg1LandNetExchangeOptionMenu.get()  # 'VPRM', 'LPJ-GUESS'
+        else:
+            sLandVegModel=self.Pg1LandNetExchangeOptionMenu.value  # 'VPRM', 'LPJ-GUESS'
+            print(f'sLandVegModel={sLandVegModel}')
         self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['origin']=sLandVegModel
         # Fossil emissions combo box
-        sFossilEmisDataset = self.Pg1FossilEmisOptionMenu.get()  # "EDGARv4_LATEST")
+        if(USE_TKINTER):
+            sFossilEmisDataset = self.Pg1FossilEmisOptionMenu.get()  # "EDGARv4_LATEST")
+        else:
+            sFossilEmisDataset = self.Pg1FossilEmisOptionMenu.value
+            print(f'sFossilEmisDataset={sFossilEmisDataset}')
         self.ymlContents['emissions'][self.tracer]['categories']['fossil']['origin']=sFossilEmisDataset
         # Ocean Net Exchange combo box
-        sOceanNetExchangeDataset = self.Pg1OceanNetExchangeOptionMenu.get()  # "mikaloff01"
+        if(USE_TKINTER):
+            sOceanNetExchangeDataset = self.Pg1OceanNetExchangeOptionMenu.get()  # "mikaloff01"
+        else:
+            sOceanNetExchangeDataset = self.Pg1OceanNetExchangeOptionMenu.value
         self.ymlContents['emissions'][self.tracer]['categories']['ocean']['origin']=sOceanNetExchangeDataset
 
         # Get the adjust Land/Fossil/Ocean checkBoxes and do some sanity checks 
-        if((not self.Pg1LandVegCkb.get()) and  (not self.Pg1FossilCkb.get()) and (not self.Pg1OceanCkb.get())):
+        if(USE_TKINTER):
+            bAdjustLandVeg =self.Pg1LandVegCkb.get()
+            bAdjustFossilCkb =self.Pg1FossilCkb.get()
+            bAdjustOceanCkb =self.Pg1OceanCkb.get()
+        else:
+            bAdjustLandVeg =self.Pg1LandVegCkb.value
+            bAdjustFossilCkb =self.Pg1FossilCkb.value
+            bAdjustOceanCkb =self.Pg1OceanCkb.value
+        if((not bAdjustLandVeg) and  (not bAdjustFossilCkb) and (not bAdjustOceanCkb)):
             bErrors=True
             sErrorMsg+="Error: At least one of Land, Fossil or Ocean needs to be adjustable, preferably Land.\n"
-        elif(not self.Pg1LandVegCkb.get()):
+        elif(not bAdjustLandVeg):
             bWarnings=True
             sWarningsMsg+="Warning: It is usually a bad idea NOT to adjust the land/vegetation net exchange. Are you sure?!\n"
-        if(self.Pg1FossilCkb.get()):
+        if(bAdjustFossilCkb):
             bWarnings=True
             sWarningsMsg+="Warning: It is unusual wanting to adjust the fossil emissions in LUMIA. Are you sure?!\n"
-        if(self.Pg1OceanCkb.get()):
+        if(bAdjustOceanCkb):
             bWarnings=True
             sWarningsMsg+="Warning: It is unusual wanting to adjust the ocean net exchange in LUMIA. Are you sure?!\n"
         if(bErrors==False):
-            self.ymlContents['optimize']['emissions'][self.tracer]['biosphere']['adjust'] = self.Pg1LandVegCkb.get()
-            self.ymlContents['optimize']['emissions'][self.tracer]['fossil']['adjust'] = self.Pg1FossilCkb.get()
-            self.ymlContents['optimize']['emissions'][self.tracer]['ocean']['adjust'] = self.Pg1OceanCkb.get()                
+            self.ymlContents['optimize']['emissions'][self.tracer]['biosphere']['adjust'] = bAdjustLandVeg
+            self.ymlContents['optimize']['emissions'][self.tracer]['fossil']['adjust'] = bAdjustFossilCkb
+            self.ymlContents['optimize']['emissions'][self.tracer]['ocean']['adjust'] = bAdjustOceanCkb                
 
         # Can we suggest to the user to use the existing DiscoveredObservations.csv file?
         if(self.haveDiscoveredObs):
