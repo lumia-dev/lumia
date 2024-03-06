@@ -157,6 +157,7 @@ def prepareCallToLumiaGUI(ymlFile, args):
     lumiaGuiAppInst.sLogCfgPath = sLogCfgPath  # TODO: check if this is obsolete now
     lumiaGuiAppInst.initialYmlFile=initialYmlFile # the initial Lumia configuration file from which we started in case it needs to be restored
     lumiaGuiAppInst.ymlFile = ymlFile  # the current Lumia configuration file after pre-processing with housekeeping.py
+    lumiaGuiAppInst.fDiscoveredObservations=''
     lumiaGuiAppInst.ymlContents = ymlContents # the contents of the Lumia configuration file
     lumiaGuiAppInst.sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix'] # where to write output
     lumiaGuiAppInst.sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
@@ -208,12 +209,12 @@ class lumiaGuiApp:
         self.runPage2()  
 
     def closeApp(self, bWriteStop=True):  # of lumiaGuiApp
-        bs.cleanUp(bWriteStop=bWriteStop,  ymlFile=self.initialYmlFile)
+        bs.cleanUp(self,  bWriteStop=bWriteStop)
         logger.info("Closing the GUI...")
         if(USE_TKINTER):
             self.root.destroy()
         if(bWriteStop):
-            logger.info('lumiaGUI canceled by user.')
+            logger.info('LumiaGUI canceled by user. Closing LumiaGUI app.')
         else:
             # TODO: write the GO message to file
             sCmd=f'cp {self.ymlFile} {self.initialYmlFile}'
@@ -257,15 +258,15 @@ class lumiaGuiApp:
                                 message=self.ageOfExistingDiscoveredObservations)
                 else:
                     print('..suggest cached obs data...')
+                    self.wdgGrid4 = wdg.GridspecLayout(n_rows=2, n_columns=3,  grid_gap="5px")
                     self.Pg1cachedObsDataLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=self.ageOfExistingDiscoveredObservations,  width=600)
                     self.Pg1UseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Use cached Discovered-obs-data",  width=240)
                     self.Pg1DontUseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Hunt for latest data from the carbon portal",  width=300)
-                    self.Pg1cachedObsDataLabel
-                    self.Pg1UseCachedButton
-                    self.Pg1DontUseCachedButton
-                    display(self.Pg1cachedObsDataLabel)
-                    display(self.Pg1UseCachedButton)
-                    display(self.Pg1DontUseCachedButton)
+                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1cachedObsDataLabel, row=0,  column=0, columnspan=2, rowspan=1,  padx=10, pady=10, sticky='news')
+                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1UseCachedButton, row=1, column=0, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
+                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1DontUseCachedButton, row=1, column=1, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
+                    self.wdgGrid4
+                    display(self.wdgGrid4)
                     whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
                             title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
                     if(whichButton==1): 
@@ -954,6 +955,7 @@ class lumiaGuiApp:
         self.placeAllPg1WidgetsOnCanvas(nCols,  nRows,  xPadding,  yPadding)
         if not (USE_TKINTER): 
             whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+            print(f'obtained whichButton={whichButton}')
             if(whichButton==2): 
                 self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2                
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
@@ -1063,7 +1065,11 @@ class lumiaGuiApp:
                                        text="from CarbonPortal", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                                        variable=self.iObservationsFileLocation,  value=1, command=self.EvHdPg1SetObsFileLocation)
         else:
-            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ], description='')
+            if ('LOCAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+                preselected=0
+            else:
+                preselected=1
+            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ],  preselected=preselected, description='')
         self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
@@ -1620,6 +1626,7 @@ class lumiaGuiApp:
             rootFrame.configure(background='cadet blue')  # 'sienna1'
             rootFrame.grid(sticky='news')
             self.wdgGrid = None
+            self.wdgGrid3 = None
         else:
             rootFrame=ge.pseudoRootFrame()
             self.wdgGrid = wdg.GridspecLayout(n_rows=6, n_columns=nCols,  grid_gap="3px")

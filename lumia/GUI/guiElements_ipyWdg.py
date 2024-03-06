@@ -108,8 +108,9 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
 
 def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
+    # variable holds the initial state whether the CheckBox is selected (True) or not (False)
     return(wdg.Checkbox(
-        value=offvalue,
+        value=variable,
         description=text,
         disabled=disabled,
         indent=False
@@ -299,7 +300,9 @@ def guiSetWidgetWidth(widget,  width=200):
     myLayout = {"width":sWdth}
     widget.layout = myLayout
     
-def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='',  myDescription="Continue after user selection",  myDescription2="Cancel", width=240):
+    
+def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='',  
+            myDescription="Continue after user selection",  myDescription2="Cancel", width=240):
     '''
     new lumiaGUI: ipywidgets can be a real pain in the butt. It seemed impossible to make execution wait until the user 
     has selected the input file using the fileUploader widget. And achieving this is indeed tricky and caused me lots of frustration 
@@ -307,13 +310,11 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
     around this. Look at these resources to know more about it: 
     https://pypi.org/project/jupyter-ui-poll/  and  
     https://stackoverflow.com/questions/76564282/how-to-get-an-ipywidget-to-wait-for-user-input-then-continue-running-your-scrip 
-    The current commit is the first test of getting this to work at all and is placed at the beginning of everything,
-    just because it is WORKING :)
-    Note that the first block is the original example and the second uses the fileUploader widget instead of a dropdown box.
     '''
     global button_clicked
     button_clicked = False
-    whichButton=1 # which on ewas clicked?
+    global whichButton
+    whichButton=1 # which on was clicked?
     
     # Create a function to continue the execution
     def on_click(b):
@@ -322,7 +323,12 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
         on_click
 
     def on_cancel(b):
+        print('Cancel pressed')
+        global whichButton
         whichButton=2
+        global button_clicked
+        button_clicked = True
+        on_cancel
     
     watchedWidget.on_click(on_click)
     if(watchedWidget2 is None):
@@ -339,6 +345,7 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
             poll(10)          # React to UI events (upto 10 at a time)
             time.sleep(0.1)
 
+    print(f'returning whichButton={whichButton}')
     return (whichButton) 
 
 

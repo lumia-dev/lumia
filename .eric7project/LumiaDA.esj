@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-03-05, 01:28:41"
+    "saved": "2024-03-06, 04:21:58"
   },
   "MultiProject": "",
   "Project": "",
@@ -50,8 +50,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
       "Cursor": [
-        89,
-        43
+        45,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,8 +62,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
       "Cursor": [
-        253,
-        29
+        203,
+        16
       ],
       "Folds": [],
       "Zoom": 0,
@@ -74,8 +74,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        901,
-        52
+        614,
+        39
       ],
       "Folds": [],
       "Zoom": 0,
@@ -86,8 +86,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/oldLumiaGUI.py",
       "Cursor": [
-        0,
-        0
+        485,
+        120
       ],
       "Folds": [],
       "Zoom": -1,
@@ -182,7 +182,15 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
-      164,
+      208,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      314,
       "",
       false,
       true,
@@ -228,20 +236,28 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/boringStuff.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@31",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@36",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@41",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@13",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@25",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@33",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@44",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@52",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@19",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@254",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@302",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@26",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@189",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@230",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@1517",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@233",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@1582",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@87",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUInotebook.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/myCarbonPortalTools.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/oldLumiaGUI.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/oldLumiaGUI.py@@62",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/queryCarbonPortal.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/testPID.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/Tools",

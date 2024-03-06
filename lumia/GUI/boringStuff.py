@@ -1,6 +1,7 @@
 import re
 import tkinter as tk 
 import housekeeping as hk
+from os import path
 from loguru import logger
 from matplotlib import font_manager
 from screeninfo import get_monitors
@@ -152,13 +153,31 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
 
 
 
-def cleanUp(bWriteStop=True,  ymlFile=''):  # of lumiaGuiApp
+def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp
     if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+        ymlFile=self.initialYmlFile
         logger.info("LumiaGUI was canceled.")
         sCmd="touch LumiaGui.stop"
         hk.runSysCmd(sCmd)
         sCmd="cp "+ymlFile+'.bac '+ymlFile # recover from most recent backup file.
         hk.runSysCmd(sCmd)
+        # Delete junk files that just clutter up the storage space
+        junkFiles=[f'{self.sOutputPrfx}python-environment-pipLst.txt',  f'{self.sOutputPrfx}selected-ObsData-co2.csv', 
+                          f'{self.sOutputPrfx}selected-PIDs-co2.csv',  f'{self.fDiscoveredObservations}', 
+                          f'{self.ymlFile}',  f'{self.ymlFile}.bac', 
+                          f'{self.sTmpPrfx}_dbg_newDfObs.csv', f'{self.sTmpPrfx}_dbg_selectedObs.csv'
+                          ]
+        for jf in junkFiles:
+            if(path.isfile(jf)):  # if the file (already) exists:
+                sCmd="rm "+jf # delete this junk file
+                hk.runSysCmd(sCmd)
+        junkDirs=[self.sOutputPrfx, self.sTmpPrfx]
+        for sJD in junkDirs:
+            sDir = path.dirname(sJD)
+            sCmd="rmdir "+sDir
+            hk.runSysCmd(sCmd)
+        print('Finished cleaning up junk files.')
+        
 
 
 def displayGeometry(USE_TKINTER, maxAspectRatio=1.778):  

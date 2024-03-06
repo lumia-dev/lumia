@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='4ed93b5f319debb1af356967474ce6dd595c698f'
+LATESTGITCOMMIT_LumiaDA='1a11f11016cad5ad9a5c38becb00c24fa4485503'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -436,7 +436,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     rValue=os.system(sCmd)
 
     # Document the Python environment
-    sCmd=(f'pip list > {sOutputPrfx}-python-environment-pipLst.txt')
+    sCmd=(f'pip list > {sOutputPrfx}python-environment-pipLst.txt')
     rValue=0
     try:
         rValue=os.system(sCmd)
