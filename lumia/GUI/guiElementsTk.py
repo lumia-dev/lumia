@@ -43,6 +43,15 @@ class GridCTkOptionMenu(ctk.CTkOptionMenu):
         ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
         self.widgetGridID= myGridID
 
+
+def getVarValue(tkinterVar):
+    return tkinterVar.get()
+    
+    
+def getWidgetValue(widget):
+    return(widget.get())
+    
+
 def guiBooleanVar(value):
     return(tk.BooleanVar(value=value))
 
@@ -64,7 +73,7 @@ def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
     return(tk.messagebox.askokcancel(title="Quit", message="Is it OK to abort your Lumia run?",  icon=tk.messagebox.QUESTION))
     
 
-def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, style="normal"):
+def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, style="normal", width=200):
     return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize, style), text=text)
 )
 
@@ -89,6 +98,8 @@ def guiDataEntry(self, textvariable='',  placeholder_text='', width:int=40):
 
 def guiFileDialog(filetypes=[("All", "*.yml")],  title='Open local file',  description="Select file", multiple=False,  width=240): 
     return(ctk.filedialog.askopenfilename(filetypes=filetypes,  title=title))
+    
+    
 
 def guiOptionMenu(self, values:[], variable=None,  dropdown_fontName="Georgia",  dropdown_fontSize=12):
     if((variable is None) or (values is None)):
@@ -126,15 +137,12 @@ def guiTxtLabel(self, text,  anchor=None, fontName="Georgia",  fontSize=12, plac
 def guiToplevel(self,  bg="cadet blue"):
     return(tk.Toplevel(self,  bg=bg))
 
-def  updateWidget(widget,  value, bTextvar=False,  bText_color=False,  bFg_color=False,  bBg_color=False):
-    if(bTextvar):
-        widget.configure(textvariable=value)
-    elif(bText_color):  
-        widget.configure(text_color=value)
-    elif(bFg_color):   # in CTk this is the main button color (not the text color)
-        widget.configure(fg_color=value)
-    elif(bBg_color):   
-        widget.configure(bg_color=value)
+
+def guiSetCheckBox(myWidget, bSelected=False):
+        if(bSelected):
+            myWidget.select()
+        else:
+            myWidget.deselect()
 
 
 def guiWipeTextBox(TxtBox,  protect=False):
@@ -148,4 +156,15 @@ def guiWriteIntoTextBox( TxtBox,  text,  protect=False):
     TxtBox.insert("0.0", text)
     if(protect):
         TxtBox.configure(state=tk.DISABLED) 
+
+def  updateWidget(widget,  value, bTextvar=False,  bText_color=False,  bFg_color=False,  bBg_color=False):
+    if(bTextvar):
+        widget.configure(textvariable=value)
+    elif(bText_color):  
+        widget.configure(text_color=value)
+    elif(bFg_color):   # in CTk this is the main button color (not the text color)
+        widget.configure(fg_color=value)
+    elif(bBg_color):   
+        widget.configure(bg_color=value)
+
 

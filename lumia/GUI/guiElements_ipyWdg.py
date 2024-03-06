@@ -23,6 +23,47 @@ class guiToplevel:
         self.activeTextColor='gray10'
         self.inactiveTextColor='gray50'
 
+class pseudoRootFrame:
+    def __init__(self):
+        self.bg='cadet blue'
+        self.title='rootFrame'
+        self.activeTextColor='gray10'
+        self.inactiveTextColor='gray50'
+
+class GridCTkCheckBox(wdg.Checkbox):
+    def __init__(self, root, myGridID,  variable,  *args, **kwargs):
+        #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
+        self.widgetGridID= myGridID
+        wdg.Checkbox.__init__(self, 
+            value=variable,
+            description='',
+            disabled=False,
+            indent=False
+        )
+
+class GridCTkLabel(wdg.Text):
+    def __init__(self, root, myGridID, text,  *args, **kwargs):
+        self.widgetGridID= myGridID
+        sWdth='50%%'            
+        layout = widgets.Layout(width=sWdth)
+        wdg.Text.__init__(self, layout = layout, description=text,  value=text)
+
+
+class GridCTkOptionMenu(wdg.Dropdown):
+    def __init__(self, root, myGridID, values, *args, **kwargs):
+        self.widgetGridID= myGridID
+        #ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
+        wdg.Dropdown.__init__(self, options=values, description='', disabled=False) # value=0, 
+
+
+
+def getVarValue(tkinterVar):
+    return tkinterVar
+    
+    
+def getWidgetValue(widget):
+    return(widget.value)
+
 
 def guiBooleanVar(value):
     if(value):
@@ -50,15 +91,18 @@ def guiAskOkCancel(title="Untitled",  message="Is it ok?"):
     return(True)
 
 
-def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, ):
+def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=12, width=200):
+    sWdth=f'{width}px'            
+    layout = widgets.Layout(width=sWdth)
     return(wdg.Button(
     description=text,
     disabled=False,
     button_style='', # 'success', 'info', 'warning', 'danger' or ''
     tooltip='',
-    icon='check' # (FontAwesome names without the `fa-` prefix)
+    layout = layout, 
     )
     )
+    #icon='check' # (FontAwesome names without the `fa-` prefix)
     #return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize), text=text)
 
 
@@ -205,6 +249,10 @@ def guiRadioButton(options=[] , description='',  text='', preselected=None):
         disabled=False
     ))
 
+
+def guiSetCheckBox(myWidget, bSelected=False):
+        myWidget.value=bSelected
+        myWidget
 
 
 def guiTextBox(frame, text='',  description='', width='18%',  height='20%',  fontName="Georgia",  fontSize=12, text_color="black"):
