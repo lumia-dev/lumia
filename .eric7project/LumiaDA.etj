@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-03-06, 17:53:25"
+    "saved": "2024-03-07, 01:15:38"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -857,9 +857,9 @@
       "priority": 1,
       "lineno": 94,
       "completed": false,
-      "created": 1709744002.4072506,
+      "created": 1709770415.46302,
       "type": 1,
-      "uid": "{dc1eef1b-f90c-4efe-8ec6-9089e109eb3c}",
+      "uid": "{13f2128b-28e1-4585-aa50-c274a53e0bc6}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -870,9 +870,9 @@
       "priority": 1,
       "lineno": 157,
       "completed": false,
-      "created": 1709744002.411378,
+      "created": 1709770415.4668474,
       "type": 1,
-      "uid": "{0ad7a720-d5d7-4272-a3d5-9f214fa98ee1}",
+      "uid": "{0ae5443c-83cf-400f-b4d9-60724bb4dc29}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -883,9 +883,9 @@
       "priority": 1,
       "lineno": 219,
       "completed": false,
-      "created": 1709744002.4152465,
+      "created": 1709770415.4705114,
       "type": 1,
-      "uid": "{8072cab9-e18a-4966-8263-4726096b30a7}",
+      "uid": "{ef65514e-11ab-4eb4-a29e-c00c1324ec36}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -896,9 +896,9 @@
       "priority": 1,
       "lineno": 463,
       "completed": false,
-      "created": 1709744002.41924,
+      "created": 1709770415.4744825,
       "type": 1,
-      "uid": "{989c543b-1901-4513-815a-26fe05584f47}",
+      "uid": "{2a4731e4-5e19-4d70-861b-6547fa72b957}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -907,11 +907,11 @@
       "summary": "TODO: keep PIDs in sync!",
       "description": "",
       "priority": 1,
-      "lineno": 770,
+      "lineno": 765,
       "completed": false,
-      "created": 1709744002.4233484,
+      "created": 1709770415.478652,
       "type": 1,
-      "uid": "{4e0e850a-d32b-440f-98a4-c937c92e2454}",
+      "uid": "{3fd9afba-9a77-4bf7-b079-b29f8c5f59ac}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"
@@ -920,11 +920,11 @@
       "summary": "TODO: fix this",
       "description": "",
       "priority": 1,
-      "lineno": 832,
+      "lineno": 827,
       "completed": false,
-      "created": 1709744002.4274557,
+      "created": 1709770415.482589,
       "type": 1,
-      "uid": "{14358acc-d457-4a40-8680-31e3092689a0}",
+      "uid": "{d64cb956-8d74-4114-b449-dd07aaf89df8}",
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py"

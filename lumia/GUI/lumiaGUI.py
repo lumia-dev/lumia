@@ -525,12 +525,6 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID, obsDf)) 
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
-        '''
-        if(bSelected):
-            myWidgetSelect.select()
-        else:
-            myWidgetSelect.deselect()
-        '''
         if((countryInactive) or (stationInactive)):
             ge.guiSetCheckBox(myWidgetSelect, False) # myWidgetSelect.deselect()
         ge.guiPlaceWidget(self.wdgGrid3, myWidgetSelect, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
@@ -612,8 +606,9 @@ class lumiaGuiApp:
                                 +bs.formatMyString(str(row['dClass']), 8, '')\
                                 +'   '+row['dataSetLabel']
         myWidgetOtherLabels  = ge.GridCTkLabel(scrollableFrame4Widgets, gridID, text=myWidgetVar,text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                            font=("Georgia", fsNORMAL), textvariable=myWidgetVar, justify="right", anchor="e") 
-        ge.guiPlaceWidget(self.wdgGrid3, myWidgetOtherLabels, row=guiRow, column=colidx, columnspan=6, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
+                                                            font=("Georgia", fsNORMAL), textvariable="", justify="right", anchor="e") 
+        nRemaining=self.nCols-4  # spread the remaining info over the remaining width of the canvas.                                                       
+        ge.guiPlaceWidget(self.wdgGrid3, myWidgetOtherLabels, row=guiRow, column=colidx, columnspan=nRemaining, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
         #myWidgetOtherLabels.grid(row=guiRow, column=colidx, columnspan=6, padx=xPadding, pady=yPadding, sticky='nw')
         self.widgetsLst.append(myWidgetOtherLabels)
         gridRow.append(myWidgetVar)
@@ -1589,7 +1584,6 @@ class lumiaGuiApp:
         # ====================================================================
         # EventHandler for widgets of second GUI page  -- part of lumiaGuiApp (root window)
         # ====================================================================
-        print('Entering page 2...')
 
         # ====================================================================
         # body & brain of second GUI page  -- part of lumiaGuiApp (root window)
@@ -1599,7 +1593,7 @@ class lumiaGuiApp:
         # The obsData from the Carbon Portal is already known at this stage. This was done before the toplevel window was closed
 
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
-        nCols=11 # sum of labels and entry fields per row
+        nCols=8 # sum of labels and entry fields per row
         nRows=32 #5+len(self.newDf) # number of rows in the GUI - not so important - window is scrollable
         maxAspectRatio=16/9.0 # we need the full width of the sceen, so allow max screen width when checked against the max aspect ratio
         bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Obsdata Rankin",  maxAspectRatio=maxAspectRatio)
@@ -1657,8 +1651,13 @@ class lumiaGuiApp:
         self.sInletMinHght=ge.guiStringVar(value=f'{self.inletMinHght}')
         self.sInletMaxHght=ge.guiStringVar(value=f'{self.inletMaxHght}')
         self.isICOSRadioButtonVar = ge.guiIntVar(value=0)
+        self.bICOSonly=False
         if (self.ymlContents['observations']['filters']['ICOSonly']==True):
-            self.isICOSRadioButtonVar.set(1)
+            if(USE_TKINTER):
+                self.isICOSRadioButtonVar.set(1)
+            else:
+                self.isICOSRadioButtonVar=1
+            self.bICOSonly=True
         
         # ====================================================================
         # Creation of the static widgets of second GUI page  -- part of lumiaGuiApp (root window)
@@ -1673,7 +1672,8 @@ class lumiaGuiApp:
         if(not USE_TKINTER):
             self.wdgGrid
             display(self.wdgGrid)
-            self.wdgGrid3 = wdg.GridspecLayout(n_rows=128, n_columns=nCols,  grid_gap="3px")
+            self.nCols=10
+            self.wdgGrid3 = wdg.GridspecLayout(n_rows=128, n_columns=self.nCols,  grid_gap="3px")
 
 
         # ====================================================================
@@ -1755,7 +1755,7 @@ class lumiaGuiApp:
             if(whichButton==1): 
                 self.EvHdPg2GoBtnHit
             else:
-                self.closeApp # Abort run
+                self.closeApp(bWriteStop=True) # Abort run
 
 
     def createPg2staticWidgets(self, rootFrame):
@@ -1810,8 +1810,8 @@ class lumiaGuiApp:
             self.Pg2isICOSradioButton2 = ge.guiRadioButton(rootFrame, text="ICOS only", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                                                                variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter)
         else:
-            self.Pg2isICOSradioButton = ge.guiRadioButton(['Any station', 'ICOS only'], description='is ICOS station')
-        # Col_11
+            self.Pg2isICOSradioButton = ge.guiRadioButton(['Any station', 'ICOS only'], preselected=self.isICOSRadioButtonVar, description='')
+        # Col_11                
         #  ##############################################################################
         # Cancel Button
         #self.CancelButton = ctk.CTkButton(master=rootFrame, font=(self.root.myFontFamily, self.root.fsNORMAL), text="Cancel", fg_color='orange red', command=self.closeApp)
@@ -1830,7 +1830,9 @@ class lumiaGuiApp:
         # Row 4 title for individual entries
         #  ##############################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
-        myLabels=". Selected        Country         StationID       SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
+        myLabels="Selected            Country                StationID              SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
+        if(USE_TKINTER):
+            myLabels="Selected         Country         StationID       SamplingHeight     Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ge.guiTxtLabel(rootFrame, anchor="w", text=myLabels, fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=(self.nCols-1))
 
    
@@ -1842,7 +1844,7 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.Pg2TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.wdgGrid, self.RankingLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #self.RankingLabel.grid(row=1, column=0, columnspan=1, padx=xPadding, pady=yPadding, sticky="nw")
-        ge.guiPlaceWidget(self.wdgGrid, self.ObsFileRankingBox, row=2, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ObsFileRankingBox, row=2, column=0, columnspan=1,  rowspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ObsFileRankingBox.grid(row=2, column=0, columnspan=1, rowspan=2, padx=xPadding, pady=yPadding, sticky="nsew")
         # Col2
         #  ##############################################################################
@@ -1851,42 +1853,44 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.ObsOtherCkb, row=3, column=1, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col 3    Filtering of station altitudes
         #  ##############################################################################
-        ge.guiPlaceWidget(self.wdgGrid, self.FilterStationAltitudesCkb, row=1, column=3, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.wdgGrid, self.minAltLabel, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.wdgGrid, self.maxAltLabel, row=3, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.FilterStationAltitudesCkb, row=1, column=2, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.minAltLabel, row=2, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.maxAltLabel, row=3, column=2, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # min Altitude Entry
-        ge.guiPlaceWidget(self.wdgGrid, self.stationMinAltEntry, row=2, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.stationMinAltEntry, row=2, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # max Altitude Entry
-        ge.guiPlaceWidget(self.wdgGrid, self.stationMaxAltEntry, row=3, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.stationMaxAltEntry, row=3, column=3, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col 5+6    -  sampling height filter
         #  ##############################################################################
         # 
-        ge.guiPlaceWidget(self.wdgGrid, self.FilterSamplingHghtCkb, row=1, column=5, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.wdgGrid, self.minHghtLabel, row=2, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.wdgGrid, self.maxHghtLabel, row=3, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.FilterSamplingHghtCkb, row=1, column=4, columnspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.minHghtLabel, row=2, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.maxHghtLabel, row=3, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # min inlet height
-        ge.guiPlaceWidget(self.wdgGrid, self.inletMinHghtEntry, row=2, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.inletMinHghtEntry, row=2, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # max inlet height
-        ge.guiPlaceWidget(self.wdgGrid, self.inletMaxHghtEntry, row=3, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.inletMaxHghtEntry, row=3, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col7
         #  ##############################################################################
         # 
-        ge.guiPlaceWidget(self.wdgGrid, self.ICOSstationsLabel, row=1, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton, row=2, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ICOSstationsLabel, row=1, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         if(USE_TKINTER):
-            ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton2, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton, row=2, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton2, row=3, column=6, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        else:
+            ge.guiPlaceWidget(self.wdgGrid, self.Pg2isICOSradioButton, row=2, column=6, columnspan=1, rowspan=2 ,padx=xPadding, pady=yPadding, sticky="ew")
         # Col_11
         #  ##############################################################################
         # 
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg2CancelButton, row=2, column=10, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg2CancelButton, row=2, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col_12
         #  ##############################################################################
         # GO! Button
-        ge.guiPlaceWidget(self.wdgGrid, self.Pg2GoButton, row=3, column=10, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.Pg2GoButton, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 4 title for individual entries
         #  ##############################################################################
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
-        ge.guiPlaceWidget(self.wdgGrid, self.ColLabels, row=4, column=0, columnspan=11,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.ColLabels, row=4, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
    
 

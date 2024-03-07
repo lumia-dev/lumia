@@ -31,22 +31,30 @@ class pseudoRootFrame:
         self.inactiveTextColor='gray50'
 
 class GridCTkCheckBox(wdg.Checkbox):
-    def __init__(self, root, myGridID,  variable,  *args, **kwargs):
+    def __init__(self, root, myGridID,  variable, text='',  *args, **kwargs):
         #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
         wdg.Checkbox.__init__(self, 
             value=variable,
-            description='',
+            description=text,
             disabled=False,
             indent=False
         )
 
+
 class GridCTkLabel(wdg.Text):
-    def __init__(self, root, myGridID, text,  *args, **kwargs):
+    def __init__(self, root, myGridID, text='',  description='', *args, **kwargs):
         self.widgetGridID= myGridID
-        sWdth='50%%'            
+        sWdth="auto" # sWdth='55%%'            
         layout = widgets.Layout(width=sWdth)
-        wdg.Text.__init__(self, layout = layout, description=text,  value=text)
+        
+        wdg.Text.__init__(self, 
+        value=text, 
+        layout = layout, 
+        description=description,
+        disabled=False   
+        )
+
 
 
 class GridCTkOptionMenu(wdg.Dropdown):
@@ -345,7 +353,7 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
             poll(10)          # React to UI events (upto 10 at a time)
             time.sleep(0.1)
 
-    print(f'returning whichButton={whichButton}')
+    #print(f'returning whichButton={whichButton}')
     return (whichButton) 
 
 
