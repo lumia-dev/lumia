@@ -503,7 +503,7 @@ class lumiaGuiApp:
     # EventHandler and helper functions for widgets of the second GUI page  -- part of lumiaGuiApp (root window)
     # ====================================================================
     def guiPg2createRowOfObsWidgets(self, scrollableFrame4Widgets, num, rowidx, row, guiRow, sSamplingHeights, 
-                                                                    fsNORMAL, xPadding, yPadding, fsSMALL, obsDf):
+                                                                    fsNORMAL, xPadding, yPadding, fsSMALL):
         ''' draw all the widgets belonging to one observational data set corresponding to a single line on the GUI '''
         # There are 5 active widgets per ObsData entry or row: selected,  country,  stationID,  samplingHeight,  and 
         # one textLabel for the remaining info on station altitude, network, lat, lon, dataRanking and dataDescription
@@ -526,7 +526,7 @@ class lumiaGuiApp:
                                                             text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             onvalue=True, offvalue=False) 
         if(USE_TKINTER):
-            myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID, obsDf)) 
+            myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID)) 
         #ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  state=tk.DISABLED,  command=None,  text_color=None,  fg_color=None,  bg_color=None)
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
         if((countryInactive) or (stationInactive)):
@@ -547,9 +547,9 @@ class lumiaGuiApp:
             myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, variable=myWidgetVar, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
             #if(USE_TKINTER):
-            countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID, obsDf)
+            countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
                 #myWidgetCountry.configure(command=countryCkbEvtCommand) 
-                # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID, obsDf)) 
+                # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)) 
             ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
             if(countryInactive):
                 ge.guiSetCheckBox(myWidgetCountry, False) # myWidgetCountry.deselect()
@@ -570,8 +570,7 @@ class lumiaGuiApp:
         myWidgetStationid  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, variable=myWidgetVar, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
         if(USE_TKINTER):
-            myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetStationid.widgetGridID, 
-                                                            obsDf)) 
+            myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetStationid.widgetGridID)) 
         if(stationInactive):
             ge.guiSetCheckBox(myWidgetStationid, False) # myWidgetStationid.deselect()
         else:
@@ -590,7 +589,7 @@ class lumiaGuiApp:
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
         if(USE_TKINTER):
             myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, 
-                                                                                            obsDf, sSamplingHeights))  
+                                                                                            sSamplingHeights))  
         ge.guiPlaceWidget(self.wdgGrid3, myWidgetSamplingHeight, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
         #myWidgetSamplingHeight.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetSamplingHeight)
@@ -621,38 +620,38 @@ class lumiaGuiApp:
         # ###################################################
         # guiPg2createRowOfObsWidgets() completed
 
-    def EvHdPg2myCheckboxEvent(self, gridID, obsDf):
+    def EvHdPg2myCheckboxEvent(self, gridID):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
-        row=obsDf.iloc[ri]
+        row=self.newDf.iloc[ri]
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
         print(f'ri={ri},  ci={ci} in EvHdPg2myCheckboxEvent')
         bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
         if(self.widgetsLst[widgetID] is not None):
             if(ci==0):
                 if(bChkBxIsSelected):
-                    obsDf.at[(ri) ,  ('selected')] =True
+                    self.newDf.at[(ri) ,  ('selected')] =True
                     if(ri==33):
-                        bs=obsDf.at[(ri) ,  ('selected')]
-                        bc=obsDf.at[(ri) ,  ('includeCountry')]
-                        logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
-                        logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
+                        bs=self.newDf.at[(ri) ,  ('selected')]
+                        bc=self.newDf.at[(ri) ,  ('includeCountry')]
+                        logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
+                        logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
                     row.iloc[0]=True
                     ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='blue') # 'On'
                 else:
-                    obsDf.at[(ri) ,  ('selected')] =False
+                    self.newDf.at[(ri) ,  ('selected')] =False
                     if(ri==33):
-                        bs=obsDf.at[(ri) ,  ('selected')]
-                        bc=obsDf.at[(ri) ,  ('includeCountry')]
-                        logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
-                        logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
+                        bs=self.newDf.at[(ri) ,  ('selected')]
+                        bc=self.newDf.at[(ri) ,  ('includeCountry')]
+                        logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
+                        logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
                     row.iloc[0]=False
                     ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='green') # 'Off'
                 self.EvHdPg2updateRowOfObsWidgets(ri, row)
             elif(ci==1):  # Country
                 bSameCountry=True  # multiple rows may be affected
-                self.nRows=len(obsDf)
-                thisCountry=obsDf.at[(ri) ,  ('country')]
+                self.nRows=len(self.newDf)
+                thisCountry=self.newDf.at[(ri) ,  ('country')]
                 while((bSameCountry) and (ri<self.nRows)):
                     if(bChkBxIsSelected):
                         # Set 'selected' to True only if the station, AltOk & HghtOk are presently selected AND dClass is the highest available, else not
@@ -660,14 +659,14 @@ class lumiaGuiApp:
                             self.excludedCountriesList.remove(row['country'])
                         except:
                             pass
-                        obsDf.at[(ri) ,  ('includeCountry')] =True
+                        self.newDf.at[(ri) ,  ('includeCountry')] =True
                         if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
-                            obsDf.at[(ri) ,  ('selected')] =True
+                            self.newDf.at[(ri) ,  ('selected')] =True
                             row.iloc[0]=True
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                         else:
-                            obsDf.at[(ri) ,  ('selected')] =False
+                            self.newDf.at[(ri) ,  ('selected')] =False
                             row.iloc[0]=False
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
@@ -676,15 +675,15 @@ class lumiaGuiApp:
                         # Remove country from list of excluded countries
                         if(row['country'] not in self.excludedCountriesList):
                             self.excludedCountriesList.append(row['country'])
-                        obsDf.at[(ri) ,  ('includeCountry')] =False
-                        obsDf.at[(ri) ,  ('selected')] =False
+                        self.newDf.at[(ri) ,  ('includeCountry')] =False
+                        self.newDf.at[(ri) ,  ('selected')] =False
                         row.iloc[0]=False
                         row.iloc[13]=False  # 'includeCountry'
                         if(ri==33):
-                            bs=obsDf.at[(ri) ,  ('selected')]
-                            bc=obsDf.at[(ri) ,  ('includeCountry')]
-                            logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
-                            logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
+                            bs=self.newDf.at[(ri) ,  ('selected')]
+                            bc=self.newDf.at[(ri) ,  ('includeCountry')]
+                            logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
+                            logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
                         if(self.widgetsLst[widgetID] is not None):
                             ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                     self.EvHdPg2updateRowOfObsWidgets(ri, row)
@@ -692,13 +691,13 @@ class lumiaGuiApp:
                     widgetID+=self.nWidgetsPerRow
                     if(ri>=self.nRows):
                         break
-                    row=obsDf.iloc[ri]
+                    row=self.newDf.iloc[ri]
                     if (thisCountry not in row['country']) :
                         bSameCountry=False
             elif(ci==2):  # stationID
                 bSameStation=True  # multiple rows may be affected
-                self.nRows=len(obsDf)
-                thisStation=obsDf.at[(ri) ,  ('stationID')]
+                self.nRows=len(self.newDf)
+                thisStation=self.newDf.at[(ri) ,  ('stationID')]
                 #includeStationIdx=widgetID+2
                 while((bSameStation) and (ri<self.nRows)):
                     if(bChkBxIsSelected):
@@ -707,17 +706,17 @@ class lumiaGuiApp:
                         except:
                             pass
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], True) # self.widgetsLst[widgetID].select()
-                        if((obsDf.at[(ri) ,  ('includeCountry')]==True) and
-                            (obsDf.at[(ri) ,  ('altOk')]==True) and
-                            (obsDf.at[(ri) ,  ('HghtOk')]==True) and
+                        if((self.newDf.at[(ri) ,  ('includeCountry')]==True) and
+                            (self.newDf.at[(ri) ,  ('altOk')]==True) and
+                            (self.newDf.at[(ri) ,  ('HghtOk')]==True) and
                             (row['dClass']==4)):
-                            obsDf.at[(ri) ,  ('selected')] =True
+                            self.newDf.at[(ri) ,  ('selected')] =True
                             row.iloc[0]=True
-                            #obsDf.at[(ri) ,  ('includeStation')] =True
+                            #self.newDf.at[(ri) ,  ('includeStation')] =True
                         else:
-                            obsDf.at[(ri) ,  ('selected')] =False
+                            self.newDf.at[(ri) ,  ('selected')] =False
                             row.iloc[0]=False
-                        obsDf.at[(ri) ,  ('includeStation')] =True
+                        self.newDf.at[(ri) ,  ('includeStation')] =True
                         #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
                         row.iloc[14]=True # 'includeStation'
                         ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
@@ -725,9 +724,9 @@ class lumiaGuiApp:
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #  self.widgetsLst[widgetID].deselect()
                         if(row['stationID'] not in self.excludedStationsList):
                             self.excludedStationsList.append(row['stationID'])
-                        obsDf.at[(ri) ,  ('selected')] =False
+                        self.newDf.at[(ri) ,  ('selected')] =False
                         row.iloc[0]=False
-                        obsDf.at[(ri) ,  ('includeStation')] =False
+                        self.newDf.at[(ri) ,  ('includeStation')] =False
                         row.iloc[14]=False # 'includeStation'
                         ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                     self.EvHdPg2updateRowOfObsWidgets(ri, row)
@@ -735,12 +734,12 @@ class lumiaGuiApp:
                     widgetID+=self.nWidgetsPerRow
                     if(ri>=self.nRows):
                         break
-                    row=obsDf.iloc[ri]
+                    row=self.newDf.iloc[ri]
                     if (thisStation not in row['stationID']) :
                         bSameStation=False
  
 
-    def EvHdPg2myOptionMenuEvent(self, gridID, obsDf, sSamplingHeights):
+    def EvHdPg2myOptionMenuEvent(self, gridID, sSamplingHeights):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the widgetID to access the right widget in widgetsLst
@@ -760,12 +759,12 @@ class lumiaGuiApp:
                             for s in sSamplingHeights:
                                 f1=float(s)
                                 f.append(f1)
-                            obsDf.at[(ri) ,  ('samplingHeight')] =f
+                            self.newDf.at[(ri) ,  ('samplingHeight')] =f
                             # TODO: keep PIDs in sync!
-                            pids=obsDf.at[(ri) ,  ('pid')]
+                            pids=self.newDf.at[(ri) ,  ('pid')]
                             bs.swapListElements(pids, 0, nPos)
-                            obsDf.at[(ri) ,  ('pid')]=pids
-                            #print(f"new samplingHeights={obsDf.at[(ri) ,  ('samplingHeight')]}")
+                            self.newDf.at[(ri) ,  ('pid')]=pids
+                            #print(f"new samplingHeights={self.newDf.at[(ri) ,  ('samplingHeight')]}")
                             break
                         nPos+=1
                 except:
@@ -1732,7 +1731,7 @@ class lumiaGuiApp:
                 if(not sElement in sSamplingHeights):
                     sSamplingHeights.append(sElement)
             self.guiPg2createRowOfObsWidgets(scrollableFrame4Widgets, num,  rowidx, row,guiRow, sSamplingHeights, 
-                                                                        self.root.fsNORMAL, xPadding, yPadding, self.root.fsSMALL, obsDf=self.newDf)
+                                                                        self.root.fsNORMAL, xPadding, yPadding, self.root.fsSMALL)
             # After drawing the initial widgets, all entries of station and country are set to true unless they are on an exclusion list
             countryInactive=row['country'] in self.excludedCountriesList
             stationInactive=row['stationID'] in self.excludedStationsList

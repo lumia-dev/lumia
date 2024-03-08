@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='8cac90428acc3423e8cdcc029278b15ddbf043fa'
+LATESTGITCOMMIT_LumiaDA='c2c25cebe858207435f9032d6c049cb56d810cd8'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
