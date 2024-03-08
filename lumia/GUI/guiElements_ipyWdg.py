@@ -124,6 +124,37 @@ def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None
         indent=False
     ))
 
+
+def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=None,  text=None,  text_color=None, fg_color=None,  bg_color=None):
+#                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],  state=tk.DISABLED,  command=None,  text='On',  text_color='blue',  fg_color=None,  bg_color=None)
+    if(widget is None):
+        return
+    if not (state is None):
+        if (state):
+            widget.disabled
+    if not (disabled is None):
+        if (disabled):
+            widget.disabled=True
+        else:
+            widget.disabled=False
+    if not (command is None):
+        #widget.observe(value_changed, "value")
+        # myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID, obsDf)) 
+        widget.configure(command=command)
+    if not (text is None):
+        widget.text=text
+    if not (fg_color is None):
+        widget.style.button_color = fg_color
+    '''
+    if not (text_color is None):
+        widget.configure(text_color=text_color)
+    if not (bg_color is None):
+        widget.configure(bg_color=bg_color)
+    '''
+    widget
+
+
+
 # guiDataEntry(self.guiPg1TpLv,textvariable=self.sStartDate, placeholder_text=txt, width=self.root.colWidth)
 def guiDataEntry(canvas,textvariable='', placeholder_text='', width:int=40):
     return(wdg.Text(

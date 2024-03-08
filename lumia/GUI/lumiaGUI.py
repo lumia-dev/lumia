@@ -244,12 +244,15 @@ class lumiaGuiApp:
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
             if(ge.getVarValue(self.bIgnoreWarningsCkbVar)):
                 bGo=True
-            if(USE_TKINTER):
-                self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
+            #if(USE_TKINTER):
+            #    self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
+            ge.guiConfigureWdg(self, widget=self.Pg1ignoreWarningsCkb,  disabled=False)
+
         else:
             bGo=True
-        if(USE_TKINTER):
-            self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+        #if(USE_TKINTER):
+        #    self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+        ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  disabled=False)
         if(bGo):
             self.bUseCachedList=False
             if(self.bSuggestOldDiscoveredObservations):
@@ -524,6 +527,7 @@ class lumiaGuiApp:
                                                             onvalue=True, offvalue=False) 
         if(USE_TKINTER):
             myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID, obsDf)) 
+        #ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  state=tk.DISABLED,  command=None,  text_color=None,  fg_color=None,  bg_color=None)
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
         if((countryInactive) or (stationInactive)):
             ge.guiSetCheckBox(myWidgetSelect, False) # myWidgetSelect.deselect()
@@ -542,9 +546,11 @@ class lumiaGuiApp:
             myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
             myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, variable=myWidgetVar, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
-            if(USE_TKINTER):
-                myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID, 
-                                                        obsDf)) 
+            #if(USE_TKINTER):
+            countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID, obsDf)
+                #myWidgetCountry.configure(command=countryCkbEvtCommand) 
+                # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID, obsDf)) 
+            ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
             if(countryInactive):
                 ge.guiSetCheckBox(myWidgetCountry, False) # myWidgetCountry.deselect()
             else:
@@ -620,7 +626,7 @@ class lumiaGuiApp:
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=obsDf.iloc[ri]
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
-        
+        print(f'ri={ri},  ci={ci} in EvHdPg2myCheckboxEvent')
         bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
         if(self.widgetsLst[widgetID] is not None):
             if(ci==0):
@@ -632,8 +638,7 @@ class lumiaGuiApp:
                         logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
                         logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                     row.iloc[0]=True
-                    if(USE_TKINTER):
-                        self.widgetsLst[widgetID].configure(text_color='blue', text='On')
+                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='blue') # 'On'
                 else:
                     obsDf.at[(ri) ,  ('selected')] =False
                     if(ri==33):
@@ -642,8 +647,7 @@ class lumiaGuiApp:
                         logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
                         logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                     row.iloc[0]=False
-                    if(USE_TKINTER):
-                        self.widgetsLst[widgetID].configure(text_color='green', text='Off')
+                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='green') # 'Off'
                 self.EvHdPg2updateRowOfObsWidgets(ri, row)
             elif(ci==1):  # Country
                 bSameCountry=True  # multiple rows may be affected
@@ -661,14 +665,12 @@ class lumiaGuiApp:
                             obsDf.at[(ri) ,  ('selected')] =True
                             row.iloc[0]=True
                             if(self.widgetsLst[widgetID] is not None):
-                                if(USE_TKINTER):
-                                    self.widgetsLst[widgetID].configure(text_color=self.activeTextColor)
+                                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                         else:
                             obsDf.at[(ri) ,  ('selected')] =False
                             row.iloc[0]=False
                             if(self.widgetsLst[widgetID] is not None):
-                                if(USE_TKINTER):
-                                    self.widgetsLst[widgetID].configure(text_color=self.inactiveTextColor)
+                                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                         row.iloc[13]=True # 'includeCountry'
                     else:
                         # Remove country from list of excluded countries
@@ -684,8 +686,7 @@ class lumiaGuiApp:
                             logger.info(f"obsDf.at[(10) ,  (selected)]   set   to {bs}")
                             logger.info(f"obsDf.at[(10) ,(includeCountry)] set to {bc}")
                         if(self.widgetsLst[widgetID] is not None):
-                            if(USE_TKINTER):
-                                self.widgetsLst[widgetID].configure(text_color=self.inactiveTextColor)
+                            ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                     self.EvHdPg2updateRowOfObsWidgets(ri, row)
                     ri+=1
                     widgetID+=self.nWidgetsPerRow
@@ -719,8 +720,7 @@ class lumiaGuiApp:
                         obsDf.at[(ri) ,  ('includeStation')] =True
                         #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
                         row.iloc[14]=True # 'includeStation'
-                        if(USE_TKINTER):
-                            self.widgetsLst[widgetID].configure(text_color=self.activeTextColor)
+                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                     else:
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #  self.widgetsLst[widgetID].deselect()
                         if(row['stationID'] not in self.excludedStationsList):
@@ -729,8 +729,7 @@ class lumiaGuiApp:
                         row.iloc[0]=False
                         obsDf.at[(ri) ,  ('includeStation')] =False
                         row.iloc[14]=False # 'includeStation'
-                        if(USE_TKINTER):
-                            self.widgetsLst[widgetID].configure(text_color=self.inactiveTextColor)
+                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                     self.EvHdPg2updateRowOfObsWidgets(ri, row)
                     ri+=1
                     widgetID+=self.nWidgetsPerRow
@@ -786,27 +785,22 @@ class lumiaGuiApp:
             b=row['selected']
             if(b):
                 ge.guiSetCheckBox(self.widgetsLst[widgetID], True) # self.widgetsLst[widgetID].select()
-                if(USE_TKINTER):
-                    self.widgetsLst[widgetID].configure(text_color=self.activeTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                 if(self.widgetsLst[widgetID+1] is not None):
                     if(ge.getWidgetValue(self.widgetsLst[widgetID+1]) == True): # this Country is not excluded
                         if(USE_TKINTER):
                             self.widgetsLst[widgetID+1].configure(text_color=self.activeTextColor)
-                if(USE_TKINTER):
-                    self.widgetsLst[widgetID+2].configure(text_color=self.activeTextColor)
-                    self.widgetsLst[widgetID+3].configure(text_color=self.activeTextColor)
-                    self.widgetsLst[widgetID+4].configure(text_color=self.activeTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+2],text_color=self.activeTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+3],text_color=self.activeTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+4],text_color=self.activeTextColor)
             else:
                 ge.guiSetCheckBox(self.widgetsLst[widgetID], False) # self.widgetsLst[widgetID].deselect()
-                if(USE_TKINTER):
-                    self.widgetsLst[widgetID].configure(text_color=self.inactiveTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                 if(self.widgetsLst[widgetID+1] is not None):
-                    if(USE_TKINTER):
-                        self.widgetsLst[widgetID+1].configure(text_color=self.inactiveTextColor)
-                if(USE_TKINTER):
-                    self.widgetsLst[widgetID+2].configure(text_color=self.inactiveTextColor)
-                    self.widgetsLst[widgetID+3].configure(text_color=self.inactiveTextColor)
-                    self.widgetsLst[widgetID+4].configure(text_color=self.inactiveTextColor)
+                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+1],text_color=self.inactiveTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+2],text_color=self.inactiveTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+3],text_color=self.inactiveTextColor)
+                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID+4],text_color=self.inactiveTextColor)
  
         colidx+=1  # row['includeCountry']
         # ###################################################
@@ -992,8 +986,9 @@ class lumiaGuiApp:
                                                                     fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         #    Text Box for messages, warnings, etc
         self.Pg1displayBox = ge.guiTextBox(self.guiPg1TpLv, width=self.root.colWidth,  height=(4*self.root.rowHeight),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL, text_color="red") 
-        if(USE_TKINTER):
-            self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+        #if(USE_TKINTER):
+        #    self.Pg1displayBox.configure(state=tk.DISABLED)  # configure textbox to be read-only
+        ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  disabled=True)
         # Row 4: Latitudes Entry Fields
         # ################################################################
         txt=f"Latitude (between {self.latMin} and {self.latMax} °North):" 
@@ -1832,7 +1827,7 @@ class lumiaGuiApp:
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         myLabels="Selected            Country                StationID              SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         if(USE_TKINTER):
-            myLabels="Selected         Country         StationID       SamplingHeight     Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
+            myLabels="Selected     Country     StationID     SamplingHeight   Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ge.guiTxtLabel(rootFrame, anchor="w", text=myLabels, fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=(self.nCols-1))
 
    

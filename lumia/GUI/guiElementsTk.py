@@ -92,6 +92,28 @@ def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None
         return(ctk.CTkCheckBox(self,state=state, text=text, font=(fontName, fontSize), variable=variable, text_color='gray5',  
                                         command=command, text_color_disabled='gray70', onvalue=onvalue, offvalue=offvalue) )
 
+def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=None,  text=None,  text_color=None,  fg_color=None,  bg_color=None):
+#                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],  state=tk.DISABLED,  command=None,  text='On',  text_color='blue',  fg_color=None,  bg_color=None)
+    if(widget is None):
+        return
+    if not (state is None):
+        widget.configure(state=state)
+    if not (disabled is None):
+        if (disabled):
+            widget.configure(state=tk.DISABLED)
+        else:
+            widget.configure(state=tk.NORMAL)
+    if not (command is None):
+        # myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID, obsDf)) 
+        widget.configure(command=command)
+    if not (text is None):
+        widget.configure(text=text)
+    if not (text_color is None):
+        widget.configure(text_color=text_color)
+    if not (fg_color is None):
+        widget.configure(fg_color=fg_color)
+    if not (bg_color is None):
+        widget.configure(bg_color=bg_color)
 
 def guiDataEntry(self, textvariable='',  placeholder_text='', width:int=40):
     return(ctk.CTkEntry(self,textvariable=textvariable, placeholder_text=placeholder_text, width=width))
