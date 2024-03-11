@@ -544,13 +544,13 @@ class lumiaGuiApp:
         if((rowidx==0) or (row['includeCountry'] == True)):
             gridID=int((100*rowidx)+colidx)
             myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
-            myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, variable=myWidgetVar, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
+            myWidgetCountry  = ge.GridCTkCCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
                                                                 font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
             #if(USE_TKINTER):
-            countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
+            #countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
                 #myWidgetCountry.configure(command=countryCkbEvtCommand) 
                 # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)) 
-            ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
+            #ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
             if(countryInactive):
                 ge.guiSetCheckBox(myWidgetCountry, False) # myWidgetCountry.deselect()
             else:

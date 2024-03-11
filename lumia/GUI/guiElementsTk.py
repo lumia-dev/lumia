@@ -32,6 +32,13 @@ class GridCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID,  *args, **kwargs):
         ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
+        print(f'myGridID={myGridID}')
+
+class GridCTkCCheckBox(ctk.CTkCheckBox):
+    def __init__(self, root, myGridID, command=None,  *args, **kwargs):
+        self.widgetGridID= myGridID
+        ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
+        ctk.CTkCheckBox.__init__(self, root,  command=ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
 
 class GridCTkLabel(ctk.CTkLabel):
     def __init__(self, root, myGridID,  *args, **kwargs):

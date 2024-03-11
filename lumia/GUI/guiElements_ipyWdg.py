@@ -41,6 +41,19 @@ class GridCTkCheckBox(wdg.Checkbox):
             indent=False
         )
 
+class GridCCTkCheckBox(wdg.Checkbox):
+    def __init__(self, root, myGridID,  variable, text='',  *args, **kwargs):
+        self.widgetGridID= myGridID
+        countryCkbEvtCommand=lambda widgetID=self.widgetGridID : self.EvHdPg2myCheckboxEvent(self.widgetGridID)
+        guiConfigureWdg(self, widget=self,  command=countryCkbEvtCommand)
+        #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
+        wdg.Checkbox.__init__(self, 
+            value=variable,
+            description=text,
+            command=countryCkbEvtCommand, 
+            disabled=False,
+            indent=False
+        )
 
 class GridCTkLabel(wdg.Text):
     def __init__(self, root, myGridID, text='',  description='', *args, **kwargs):

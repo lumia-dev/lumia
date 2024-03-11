@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-03-07, 17:03:47"
+    "saved": "2024-03-08, 17:43:44"
   },
   "MultiProject": "",
   "Project": "",
@@ -50,11 +50,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
       "Cursor": [
-        94,
-        66
+        33,
+        0
       ],
       "Folds": [],
-      "Zoom": 4,
+      "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 3
@@ -62,8 +62,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
       "Cursor": [
-        151,
-        7
+        48,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -74,8 +74,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        639,
-        38
+        530,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -157,16 +157,24 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
     "Cursor": [
-      151,
-      7
+      530,
+      0
     ]
   },
   "Breakpoints": [
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/boringStuff.py",
-      157,
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
+      32,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
+      37,
       "",
       false,
       true,
@@ -174,7 +182,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      318,
+      525,
       "",
       false,
       true,
@@ -182,7 +190,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      626,
+      528,
       "",
       false,
       true,
@@ -190,7 +198,15 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      529,
+      570,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      547,
       "",
       false,
       true,
@@ -235,18 +251,20 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/boringStuff.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@31",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@36",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@41",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@31",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@42",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@47",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@25",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@44",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@33",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@45",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@60",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@58",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@73",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@13",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@19",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@342",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@356",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@26",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
