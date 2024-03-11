@@ -28,13 +28,13 @@ class LumiaTkFrame(tk.Frame):
         self.parent = parent
 
 
-class GridCTkCheckBox(ctk.CTkCheckBox):
+class GridOldCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID,  *args, **kwargs):
         ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
         print(f'myGridID={myGridID}')
 
-class GridCTkCCheckBox(ctk.CTkCheckBox):
+class GridCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID, command=None,  *args, **kwargs):
         self.widgetGridID= myGridID
         ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)

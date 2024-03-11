@@ -522,19 +522,16 @@ class lumiaGuiApp:
         # ###################################################
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
         myWidgetVar= ge.guiBooleanVar(value=row['selected'])
-        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, text="",font=("Georgia", fsNORMAL),
-                                                            text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                            onvalue=True, offvalue=False) 
-        if(USE_TKINTER):
-            myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID)) 
+        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=self.EvHdPg2myCheckboxEvent, 
+                                                text="",font=("Georgia", fsNORMAL), text_color=sTextColor, text_color_disabled=sTextColor, onvalue=True, offvalue=False) 
+        #if(USE_TKINTER):
+        #    myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID)) 
         #ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  state=tk.DISABLED,  command=None,  text_color=None,  fg_color=None,  bg_color=None)
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
         if((countryInactive) or (stationInactive)):
             ge.guiSetCheckBox(myWidgetSelect, False) # myWidgetSelect.deselect()
         ge.guiPlaceWidget(self.wdgGrid3, myWidgetSelect, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
-        #myWidgetSelect.grid(row=guiRow, column=colidx,
-        #                  columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
-        self.widgetsLst.append(myWidgetSelect) # colidx=1
+        self.widgetsLst.append(myWidgetSelect) 
 
         gridRow.append(row['selected'])   
         
@@ -544,8 +541,8 @@ class lumiaGuiApp:
         if((rowidx==0) or (row['includeCountry'] == True)):
             gridID=int((100*rowidx)+colidx)
             myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
-            myWidgetCountry  = ge.GridCTkCCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                                font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
+            myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
+                                                text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
             #if(USE_TKINTER):
             #countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
                 #myWidgetCountry.configure(command=countryCkbEvtCommand) 
@@ -567,10 +564,10 @@ class lumiaGuiApp:
         num+=1
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiBooleanVar(value=row['includeStation'])
-        myWidgetStationid  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, variable=myWidgetVar, text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, 
-                                                            font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
-        if(USE_TKINTER):
-            myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetStationid.widgetGridID)) 
+        myWidgetStationid  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
+                                                text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
+        #if(USE_TKINTER):
+        #    myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetStationid.widgetGridID)) 
         if(stationInactive):
             ge.guiSetCheckBox(myWidgetStationid, False) # myWidgetStationid.deselect()
         else:
