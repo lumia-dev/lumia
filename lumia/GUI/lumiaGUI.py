@@ -581,7 +581,7 @@ class lumiaGuiApp:
         # ###################################################
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
         myWidgetVar= ge.guiBooleanVar(value=row['selected'])
-        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=self.EvHdPg2myCheckboxEvent, 
+        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=lambda:self.EvHdPg2myCheckboxEvent, 
                                                 text="",font=("Georgia", fsNORMAL), text_color=sTextColor, text_color_disabled=sTextColor, onvalue=True, offvalue=False) 
         #if(USE_TKINTER):
         #    myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID)) 
@@ -589,7 +589,7 @@ class lumiaGuiApp:
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
         if((USE_TKINTER) and ((countryInactive) or (stationInactive))):
             ge.guiSetCheckBox(myWidgetSelect, False) # myWidgetSelect.deselect()
-        ge.guiPlaceWidget(self.wdgGrid3, myWidgetSelect, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
+        ge.guiPlaceWidget(self.wdgGrid3, myWidgetSelect, row=guiRow, column=colidx, columnspan=1, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetSelect) 
 
         gridRow.append(row['selected'])   
@@ -616,7 +616,7 @@ class lumiaGuiApp:
                 ge.guiSetCheckBox(myWidgetCountry, False) # myWidgetCountry.deselect()
             else:
                 ge.guiSetCheckBox(myWidgetCountry, True) # myWidgetCountry.select()
-            ge.guiPlaceWidget(self.wdgGrid3, myWidgetCountry, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
+            ge.guiPlaceWidget(self.wdgGrid3, myWidgetCountry, row=guiRow, column=colidx, columnspan=1, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx=xPadding, pady=yPadding, sticky='news')
             #myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
             self.widgetsLst.append(myWidgetCountry)
         else:
@@ -641,7 +641,7 @@ class lumiaGuiApp:
             ge.guiSetCheckBox(myWidgetStationid, False) # myWidgetStationid.deselect()
         else:
             ge.guiSetCheckBox(myWidgetStationid, True) # myWidgetStationid.select()
-        ge.guiPlaceWidget(self.wdgGrid3, myWidgetStationid, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
+        ge.guiPlaceWidget(self.wdgGrid3, myWidgetStationid, row=guiRow, column=colidx, columnspan=1, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx=xPadding, pady=yPadding, sticky='news')
         #myWidgetStationid.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetStationid)
         gridRow.append(row['stationID'])
@@ -655,7 +655,7 @@ class lumiaGuiApp:
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
         #if(USE_TKINTER):
         #    myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, sSamplingHeights))  
-        ge.guiPlaceWidget(self.wdgGrid3, myWidgetSamplingHeight, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
+        ge.guiPlaceWidget(self.wdgGrid3, myWidgetSamplingHeight, row=guiRow, column=colidx, columnspan=1, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx=xPadding, pady=yPadding, sticky='news')
         #myWidgetSamplingHeight.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetSamplingHeight)
         gridRow.append(row['samplingHeight'][0])
@@ -678,15 +678,21 @@ class lumiaGuiApp:
         myWidgetOtherLabels  = ge.GridCTkLabel(scrollableFrame4Widgets, gridID, text=myWidgetVar,text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), textvariable="", justify="right", anchor="e") 
         nRemaining=self.nCols-4  # spread the remaining info over the remaining width of the canvas.                                                       
-        ge.guiPlaceWidget(self.wdgGrid3, myWidgetOtherLabels, row=guiRow, column=colidx, columnspan=nRemaining, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
+        ge.guiPlaceWidget(self.wdgGrid3, myWidgetOtherLabels, row=guiRow, column=colidx, columnspan=nRemaining, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx=xPadding, pady=yPadding, sticky='news')
         #myWidgetOtherLabels.grid(row=guiRow, column=colidx, columnspan=6, padx=xPadding, pady=yPadding, sticky='nw')
         self.widgetsLst.append(myWidgetOtherLabels)
         gridRow.append(myWidgetVar)
         # ###################################################
         # guiPg2createRowOfObsWidgets() completed
 
-    def EvHdPg2myCheckboxEvent(self, gridID):
-        print('gotcha')
+    def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
+        print(f'gotcha wdgGridTxt={wdgGridTxt},  description={description}')
+        if not(gridID is None):
+            print(f'gridID={gridID}')
+        if not(value is None):
+            print(f'value={gridID}')
+        if((len(wdgGridTxt)>1) and (value is not None)):
+            gridID=self.widgetID_LUT['wdgGridTxt']
         print(f'gotcha gridID={gridID}')
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
@@ -1781,6 +1787,7 @@ class lumiaGuiApp:
         sLastCountry=''
         sLastStation=''
         num = 0  # index for 
+        self.widgetID_LUT={}  # wdgGrid3 assigns each widget a consecutive ID (a string) of style 'widget001', .. , 'widget488' for which we need a lookup table to convert into widgetGridID
         for rowidx, row in self.newDf.iterrows(): 
             guiRow=rowidx # startRow+rowidx
             if((rowidx==0) or (row['country'] not in sLastCountry)):
@@ -1815,6 +1822,7 @@ class lumiaGuiApp:
             # Set the scrollableCanvas scrolling region
             scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
         else: 
+            # print(f'widgetID_LUT={self.widgetID_LUT}')
             self.wdgGrid3
             display(self.wdgGrid3)
             whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 

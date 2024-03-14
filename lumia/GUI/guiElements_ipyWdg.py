@@ -36,7 +36,7 @@ class GridCTkCheckBox(wdg.Checkbox):
     def __init__(self, root, myGridID, command, variable, text='',  *args, **kwargs):
         #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
-        self.command=lambda: command(self.widgetGridID)
+        eventHandlerFunction=lambda: command(self.widgetGridID)
         wdg.Checkbox.__init__(self, 
             value=variable,
             description=text,
@@ -45,49 +45,51 @@ class GridCTkCheckBox(wdg.Checkbox):
         )
 
         def actOnCheckBoxChanges(change):
-            print(change)
+            # What we are most interested in is the grid_area='widget011' information contained in the change event that allows us 
+            # to identify which widget has fired the event. When initialised, layout.grid_area is None and then we don't want to fire.
+            # print(change)
             # {'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, 
             #     layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
             try:
-                owner=change['owner']
-                print(f'got owner={owner}')
+                #owner=change['owner']
+                #print(f'got owner={owner}')
                 description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
-                value=True
+                #value=True
                 try:
                     value=change['owner'].value  # True/False for check box now being selected or deselected
                 except:
                     print('Failed to extract the value')
-                print(f'got description={description},  value={value}')
+                #print(f'got description={description},  value={value}')
+                #try:
+                #    layout=change['owner'].layout
+                #    print(f'layout={layout}')
+                #except:
+                #    pass
                 try:
-                    layout=change['owner'].layout
-                    print(f'layout={layout}')
+                    wdgGridTxt=change['owner'].layout.grid_area
+                    #print(f'wdgGridTxt-1={wdgGridTxt}')
+                    if not (wdgGridTxt is None):
+                        print(f'CheckBox Change event with: wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
+                        try:
+                            print('running command')
+                            self.command
+                            print('ran command')
+                        except:
+                            pass
+                        try:
+                            print('running eventHandlerFunction')
+                            eventHandlerFunction(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
+                            print('ran eventHandlerFunction')
+                        except:
+                            pass
+                        try:
+                            print('running self.EvHdPg2myCheckboxEvent')
+                            self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
+                            print('ran self.EvHdPg2myCheckboxEvent')
+                        except:
+                            pass
                 except:
                     pass
-                height='unknown'
-                try:
-                    height=change['owner'].layout['height']
-                    print(f'height-1={height}')
-                except:
-                    height=change['owner'].layout.height
-                    print(f'height-2={height}')
-                try:
-                    wdgGridTxt=change['owner'].layout['grid_area']
-                    print(f'wdgGridTxt-1={wdgGridTxt}')
-                except:
-                    wdgGridTxt=change['owner'].layout.grid_area
-                    print(f'wdgGridTxt-2={wdgGridTxt}')
-                #description=change['owner'].description
-                #print(f'got owner.description={description}')
-            except:
-                pass
-            try:
-                layout=change['owner'].layout
-                print(f'got layout={layout}')
-            except:
-                pass
-            try:
-                self.command
-                print('ran command')
             except:
                 pass
 
@@ -320,29 +322,14 @@ def guiOptionMenu(self, values:[], variable=int(0),  dropdown_fontName="Georgia"
         disabled=False,
     ))
 
-def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1,  width=240,  padx=10,  pady=10,  sticky="ew"):
+def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1, widgetID_LUT={},  width=240,  padx=10,  pady=10,  sticky="ew"):
     # widgets that do not support a width layout must set nCols=0
-    '''
-    nCols=0, 
-    width=rowspan*width
-    if(width is None):
-        if(nCols>0):
-            iRelWdth=int(100*(columnspan*1.0/nCols))  # width in percent
-            sWdth=f'{iRelWdth}%%'
-            myLayout = {"width":sWdth}
-            widget.layout = myLayout
-    else:
-        sWdth=f'{width}px'            
-        myLayout = {"width":sWdth}
-        widget.layout = myLayout
-    '''
     iHght=30*rowspan
     sHght=f"{iHght}px"
     # It proved impossible to me to use our widget.gridID instead of the auto-generated one by the wdgGrid object
     # If I do change it, then wdgGrid cannot place the widget (or places is somwhere outside the visible screen)
     myLayout = {"width":"auto",  "height":sHght,  "margin":"2px",  "padding":"2px"}
     widget.layout = myLayout
-    # wdgGrid[1stRow:LstRow , 1stCol:LstCol] = widget  # with its layout setup beforehand
     rghtCol=column + columnspan
     btmRow=row+rowspan
     if(rowspan==6):
@@ -355,47 +342,20 @@ def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1, 
         wdgGrid[row:btmRow, column] = widget
     else:
         wdgGrid[row:btmRow, column:rghtCol] = widget
-    # Let's create a lookup table of sorts to convert grid_area gridIdx info into our gridID
-    try:  # only the dynamically created widgets do have a gridID assigned - if it exists, then we use our ID
+    try:  
+        # Let's create a lookup table to convert wdgGrid3.grid_area gridIdx (a string like 'widget001', 'widget488',..) info into our self.widgetGridID
+        # Only the dynamically created widgets do have a gridID assigned - if it exists, then we use our ID
         # else it gets too complicated because the number of widgets per row varies (country checkbox present or not)
         # hence we don't want to use the autogenerated grid_area value. And we do need the gridID for the
-        # checkbox event handler later on.
-        sGridID=str(widget.widgetGridID)
-        try:
-            print(f'PlaceWdg wdgGrid[row={row}, column={column}] layout widget={wdgGrid[row, column]}')
-            print(f'sGridID={sGridID}')
-            wdgGrid[row, column].widgetGridID=widget.widgetGridID
-            print(f'PlaceWdg wdgGrid[row={row}, column={column}].widgetGridID={wdgGrid[row, column].widgetGridID}')
-        except:
-            pass
-        #try:
-        #    print(f'PlaceWdg wdgGrid[row={row}, column={column}] layout widget={wdgGrid[row, column].layout}')
-        #except:
-        #    pass
-        try:
-            print(f'PlaceWdg wdgGrid[row={row}, column={column}] layout grididx/grid_area={wdgGrid[row, column].layout.grid_area}')
-        except:
-            pass
-            
-        # layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto'))
-        # layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto'))
+        # checkbox event handler later on. Hence we create a LUT for later use.
+            # wdgGrid[row, column].widgetGridID=widget.widgetGridID # we can do this, but it is to no use. A checkbox change event does not forward this info
+        myGridID=widget.widgetGridID
+        wdgGridTxtID=wdgGrid[row, column].layout.grid_area
+        # print(f'PlaceWdg Adding wdgGrid[row={row}, column={column}].txtID={wdgGridTxtID} ; widgetGridID={myGridID} to self.widgetID_LUT')
+        if (wdgGridTxtID not in widgetID_LUT):
+            widgetID_LUT[wdgGridTxtID]=myGridID
     except:
         pass
-    
-    if(0>1):
-        try:
-            sGridID=str(widget.widgetGridID)
-            print(f'PlaceWdg widget={widget}')
-            widget.layout = myLayout
-            try:
-                print(f'PlaceWdg reasigned layout widget={widget}')
-                print(f'PlaceWdg wdgGrid[row={row}, column={column}] layout widget={wdgGrid[row, column]}')
-                wdgGrid[row, column].layout = myLayout
-                print(f'PlaceWdg rereassigned layout wdgGrid[row={row}, column={column}] layout widget={wdgGrid[row, column]}')
-            except:
-                pass
-        except:
-            pass
 
 
 def guiRadioButton(options=[] , description='',  text='', preselected=None):
