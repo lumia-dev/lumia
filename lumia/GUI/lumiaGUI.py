@@ -163,6 +163,7 @@ def prepareCallToLumiaGUI(ymlFile, args):
     lumiaGuiAppInst.sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix'] 
     lumiaGuiAppInst.oldDiscoveredObservations=oldDiscoveredObservations
     lumiaGuiAppInst.iVerbosityLv=iVerbosityLv
+    #lumiaGuiAppInst.dbgHelper()
     guiPg1TpLv=lumiaGuiAppInst.guiPage1AsTopLv( iVerbosityLv=iVerbosityLv)  # the first of 2 pages of the GUI implemented as a toplevel window (init)
         #lumiaGuiAppInst.runPage2  # execute the central method of lumiaGuiApp
     if(USE_TKINTER):
@@ -183,7 +184,6 @@ def prepareCallToLumiaGUI(ymlFile, args):
 
 
 
-
 # =============================================================================
 # Tkinter solution for GUI
 # =============================================================================
@@ -195,7 +195,66 @@ class lumiaGuiApp:
             self.label1 = tk.Label(self.root, text="App main window - hosting the second GUI page.")
             self.root.protocol("WM_DELETE_WINDOW", self.closeApp)
         #self.label1.pack()
+ 
+    def dbgHelper(self):
+        self.bUseCachedList=False
+        self.bSuggestOldDiscoveredObservations=False
+        self.check4recentDiscoveredObservations(self.ymlContents)
+        if(self.haveDiscoveredObs):
+            self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
+        if(self.bSuggestOldDiscoveredObservations):
+            if(USE_TKINTER):
+                self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
+                            message=self.ageOfExistingDiscoveredObservations)
+            else:
+                print('..suggest cached obs data...')
+                self.wdgGrid4 = wdg.GridspecLayout(n_rows=2, n_columns=3,  grid_gap="5px")
+                self.Pg1cachedObsDataLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=self.ageOfExistingDiscoveredObservations,  width=600)
+                self.Pg1UseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Use cached Discovered-obs-data",  width=240)
+                self.Pg1DontUseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Hunt for latest data from the carbon portal",  width=300)
+                ge.guiPlaceWidget(self.wdgGrid4, self.Pg1cachedObsDataLabel, row=0,  column=0, columnspan=2, rowspan=1,  padx=10, pady=10, sticky='news')
+                ge.guiPlaceWidget(self.wdgGrid4, self.Pg1UseCachedButton, row=1, column=0, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
+                ge.guiPlaceWidget(self.wdgGrid4, self.Pg1DontUseCachedButton, row=1, column=1, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
+                self.wdgGrid4
+                display(self.wdgGrid4)
+                try:
+                    whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
+                            title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
+                except:
+                    whichButton=1
+                if(whichButton==1): 
+                    self.bUseCachedList = True
+                else:
+                    self.bUseCachedList = False
+        else:
+            print('no cached data on offer...')
+        if(USE_TKINTER):
+            self.guiPg1TpLv.iconify()
+        # Save  all details of the configuration and the version of the software used:
+        try:
+            with open(self.ymlFile, 'w') as outFile:
+                yaml.dump(self.ymlContents, outFile)
+        except:
+            sTxt=f"Fatal Error: Failed to write to text file {self.ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
+            logger.error(sTxt)
+            self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2
+        logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
         
+        # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
+        # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
+        self.huntAndGatherObsData()
+        # Get the currently selected tracer from the yml config file
+        self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
+        # Ranking of data records from CarbonPortal : populate the ObsFileRankingBoxTxt
+        rankingList=self.ymlContents['observations'][self.tracer]['file']['ranking']
+        self.ObsFileRankingBoxTxt=""
+        rank=4
+        for sEntry in  rankingList:
+            self.ObsFileRankingBoxTxt+=str(rank)+': '+sEntry+'\n'
+            rank=rank-1
+        self.runPage2() 
+    
+ 
     def closeTopLv(self, bWriteStop=True):  # of lumiaGuiApp
         if(USE_TKINTER):
             self.guiPg1TpLv.destroy()
@@ -528,7 +587,7 @@ class lumiaGuiApp:
         #    myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID)) 
         #ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  state=tk.DISABLED,  command=None,  text_color=None,  fg_color=None,  bg_color=None)
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
-        if((countryInactive) or (stationInactive)):
+        if((USE_TKINTER) and ((countryInactive) or (stationInactive))):
             ge.guiSetCheckBox(myWidgetSelect, False) # myWidgetSelect.deselect()
         ge.guiPlaceWidget(self.wdgGrid3, myWidgetSelect, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetSelect) 
@@ -541,14 +600,19 @@ class lumiaGuiApp:
         if((rowidx==0) or (row['includeCountry'] == True)):
             gridID=int((100*rowidx)+colidx)
             myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
-            myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
-                                                text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
+            try:
+                myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
+                                                    text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
+            except:
+                print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
             #if(USE_TKINTER):
             #countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
                 #myWidgetCountry.configure(command=countryCkbEvtCommand) 
                 # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)) 
             #ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
-            if(countryInactive):
+            #if not (USE_TKINTER):
+            #    myWidgetCountry.observe(myWidgetCountry.actOnCheckBoxChanges)
+            if((USE_TKINTER) and (countryInactive)):
                 ge.guiSetCheckBox(myWidgetCountry, False) # myWidgetCountry.deselect()
             else:
                 ge.guiSetCheckBox(myWidgetCountry, True) # myWidgetCountry.select()
@@ -564,11 +628,16 @@ class lumiaGuiApp:
         num+=1
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiBooleanVar(value=row['includeStation'])
-        myWidgetStationid  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
-                                                text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
+        try:
+            myWidgetStationid  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
+                                                    text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
+        except:
+            print(f'creation of widget myWidgetStationid with gridID {gridID} failed')
         #if(USE_TKINTER):
         #    myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetStationid.widgetGridID)) 
-        if(stationInactive):
+            #if not (USE_TKINTER):
+            #    myWidgetStationid.observe(myWidgetStationid.actOnCheckBoxChanges)
+        if((USE_TKINTER) and (stationInactive)):
             ge.guiSetCheckBox(myWidgetStationid, False) # myWidgetStationid.deselect()
         else:
             ge.guiSetCheckBox(myWidgetStationid, True) # myWidgetStationid.select()
@@ -581,12 +650,11 @@ class lumiaGuiApp:
         # ###################################################
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiStringVar(value=str(row['samplingHeight'][0])) 
-        myWidgetSamplingHeight  = ge.GridCTkOptionMenu(scrollableFrame4Widgets, gridID, values=sSamplingHeights,
-                                                            variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
+        myWidgetSamplingHeight  = ge.GridCTkOptionMenu(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myOptionMenuEvent, 
+                                                            values=sSamplingHeights, variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
-        if(USE_TKINTER):
-            myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, 
-                                                                                            sSamplingHeights))  
+        #if(USE_TKINTER):
+        #    myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, sSamplingHeights))  
         ge.guiPlaceWidget(self.wdgGrid3, myWidgetSamplingHeight, row=guiRow, column=colidx, columnspan=1, rowspan=1,  padx=xPadding, pady=yPadding, sticky='news')
         #myWidgetSamplingHeight.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetSamplingHeight)
@@ -618,6 +686,8 @@ class lumiaGuiApp:
         # guiPg2createRowOfObsWidgets() completed
 
     def EvHdPg2myCheckboxEvent(self, gridID):
+        print('gotcha')
+        print(f'gotcha gridID={gridID}')
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
@@ -940,7 +1010,7 @@ class lumiaGuiApp:
         self.placeAllPg1WidgetsOnCanvas(nCols,  nRows,  xPadding,  yPadding)
         if not (USE_TKINTER): 
             whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
-            print(f'obtained whichButton={whichButton}')
+            # print(f'obtained whichButton={whichButton}')
             if(whichButton==2): 
                 self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2                
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
@@ -1586,6 +1656,7 @@ class lumiaGuiApp:
         # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
         nCols=8 # sum of labels and entry fields per row
         nRows=32 #5+len(self.newDf) # number of rows in the GUI - not so important - window is scrollable
+        self.nCols=nCols
         maxAspectRatio=16/9.0 # we need the full width of the sceen, so allow max screen width when checked against the max aspect ratio
         bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Obsdata Rankin",  maxAspectRatio=maxAspectRatio)
         # this gives us self.root.colWidth self.root.rowHeight, self.myFontFamily, self.fontHeight, self.fsNORMAL & friends
@@ -1614,7 +1685,9 @@ class lumiaGuiApp:
             self.wdgGrid3 = None
         else:
             rootFrame=ge.pseudoRootFrame()
-            self.wdgGrid = wdg.GridspecLayout(n_rows=6, n_columns=nCols,  grid_gap="3px")
+            self.wdgGrid = wdg.GridspecLayout(n_rows=6, n_columns=self.nCols,  grid_gap="3px")
+            out = wdg.Output()
+            display(out)
         #self.deiconify()
             
 
@@ -1625,7 +1698,9 @@ class lumiaGuiApp:
         #rankingList=self.ymlContents['observations'][self.tracer]['file']['ranking']
         self.ObsFileRankingTbxVar = ge.guiStringVar(value="ObsPack")
         # ObservationsFileLocation
+        self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         self.iObservationsFileLocation= ge.guiIntVar(value=1) # Read observations from local file
+        self.tracer='co2'
         if ('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
             if(USE_TKINTER):
                 self.iObservationsFileLocation.set(1) # Read observations from CarbonPortal
@@ -1659,7 +1734,7 @@ class lumiaGuiApp:
         # Placement of the static widgets of the second GUI page  -- part of lumiaGuiApp (root window)
         # 1) Static widgets (top part)
         # ====================================================================
-        self.placePg2staticWidgetsOnCanvas(nCols,  nRows,  xPadding,  yPadding)
+        self.placePg2staticWidgetsOnCanvas(self.nCols,  nRows,  xPadding,  yPadding)
         if(not USE_TKINTER):
             self.wdgGrid
             display(self.wdgGrid)
@@ -1742,7 +1817,8 @@ class lumiaGuiApp:
         else: 
             self.wdgGrid3
             display(self.wdgGrid3)
-            whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+            whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 
+                                                                                            title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
             if(whichButton==1): 
                 self.EvHdPg2GoBtnHit
             else:
@@ -1761,7 +1837,10 @@ class lumiaGuiApp:
         #  ##############################################################################
         # Ranking for Observation Files
         self.RankingLabel = ge.guiTxtLabel(rootFrame, text="Obsdata Ranking", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
-        self.ObsFileRankingBox = ge.guiTextBox(rootFrame,  text=self.ObsFileRankingBoxTxt,  width=self.root.colWidth,  height=(2.4*self.root.rowHeight+self.root.vSpacer),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL)
+        try:
+            self.ObsFileRankingBox = ge.guiTextBox(rootFrame,  text=self.ObsFileRankingBoxTxt,  width=self.root.colWidth,  height=(2.4*self.root.rowHeight+self.root.vSpacer),  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL)
+        except:
+            self.ObsFileRankingBox=None
         # Col2
         #  ##############################################################################
         self.ObsLv1Ckb = ge.guiCheckBox(rootFrame, text="Level1", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
@@ -1835,7 +1914,8 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.Pg2TitleLabel, row=0, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.wdgGrid, self.RankingLabel, row=1, column=0, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         #self.RankingLabel.grid(row=1, column=0, columnspan=1, padx=xPadding, pady=yPadding, sticky="nw")
-        ge.guiPlaceWidget(self.wdgGrid, self.ObsFileRankingBox, row=2, column=0, columnspan=1,  rowspan=2,padx=xPadding, pady=yPadding, sticky="ew")
+        if not (self.ObsFileRankingBox is None):
+            ge.guiPlaceWidget(self.wdgGrid, self.ObsFileRankingBox, row=2, column=0, columnspan=1,  rowspan=2,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ObsFileRankingBox.grid(row=2, column=0, columnspan=1, rowspan=2, padx=xPadding, pady=yPadding, sticky="nsew")
         # Col2
         #  ##############################################################################

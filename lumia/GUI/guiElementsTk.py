@@ -32,13 +32,12 @@ class GridOldCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID,  *args, **kwargs):
         ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
-        print(f'myGridID={myGridID}')
 
 class GridCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID, command=None,  *args, **kwargs):
         self.widgetGridID= myGridID
         ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
-        ctk.CTkCheckBox.__init__(self, root,  command=ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
+        ctk.CTkCheckBox.__init__(self, root, command=ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
 
 class GridCTkLabel(ctk.CTkLabel):
     def __init__(self, root, myGridID,  *args, **kwargs):
@@ -46,9 +45,10 @@ class GridCTkLabel(ctk.CTkLabel):
         self.widgetGridID= tk.IntVar(value=myGridID)
 
 class GridCTkOptionMenu(ctk.CTkOptionMenu):
-    def __init__(self, root, myGridID, *args, **kwargs):
-        ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
+    def __init__(self, root, myGridID, command=None, values=None,  *args, **kwargs):
         self.widgetGridID= myGridID
+        ptrToEvHdPg2myOptionMenuEvent=lambda: command(self.widgetGridID,  values)
+        ctk.CTkOptionMenu.__init__(self, root, command=ptrToEvHdPg2myOptionMenuEvent, *args, **kwargs)
 
 
 def getVarValue(tkinterVar):
@@ -136,7 +136,14 @@ def guiOptionMenu(self, values:[], variable=None,  dropdown_fontName="Georgia", 
     return(ctk.CTkOptionMenu(self, values=values, variable=variable, dropdown_font=(dropdown_fontName, dropdown_fontSize)))
 
 def guiPlaceWidget(wdgGrid,  widget, row=0, column=0, columnspan=1, rowspan=1,  padx=10,  pady=10,  sticky="ew"):
-   widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
+    try:
+        print(f'widget={widget}')
+        sGridID=str(widget.widgetGridID)
+        print(f'sGridID={sGridID}')
+    except:
+        pass
+
+    widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
 
 def guiRadioButton(rootFrame, text, fontName="Georgia",  fontSize=12, 
                                    variable=None,  value=None,  command=None):
