@@ -32,15 +32,14 @@ class pseudoRootFrame:
 class GridCTkCheckBox(wdg.Checkbox):
     #bObserve=False
 
-    def __init__(self, root, myGridID, command, variable, text='',  *args, **kwargs):
+    def __init__(self, parent,  root, myGridID, command, variable, text='',  *args, **kwargs):
         #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
+        self.command=command
+        self.lumiaGuiApp=parent
         if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
             print(f'command={command},  self.widgetGridID={self.widgetGridID}')
-        self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
-        self.command=command
-        if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-            print(f'self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
+        #self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
         #self.eventHandlerFunction=lambda: command(self.widgetGridID)
         wdg.Checkbox.__init__(self, 
             value=variable,
@@ -50,57 +49,52 @@ class GridCTkCheckBox(wdg.Checkbox):
         )
 
         def actOnCheckBoxChanges(change):
-            # What we are most interested in is the grid_area='widget011' information contained in the change event that allows us 
-            # to identify which widget has fired the event. When initialised, layout.grid_area is None and then we don't want to fire.
-            # print(change)
-            # {'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, 
-            #     layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-            if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-                print('.')
-                print('Entered actOnCheckBoxChanges')
-                print(f'self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
             try:
-                #owner=change['owner']
-                #print(f'got owner={owner}')
-                description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
-                #value=True
-                try:
-                    value=change['owner'].value  # True/False for check box now being selected or deselected
-                except:
-                    print('Failed to extract the value')
-                #print(f'got description={description},  value={value}')
-                #try:
-                #    layout=change['owner'].layout
-                #    print(f'layout={layout}')
-                #except:
-                #    pass
-                try:
-                    wdgGridTxt=change['owner'].layout.grid_area
-                    #print(f'wdgGridTxt-1={wdgGridTxt}')
-                    if not (wdgGridTxt is None):
-                        print(f'CheckBox Change event with: wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
-                        try:
-                            ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
-                            print(f'running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            ptr2EvHdPg2myCheckboxEvent
-                            print('ran ptr2EvHdPg2myCheckboxEvent')
-                        except:
-                            pass
-                        try:
-                            print(f'running ptrToEvHdPg2myCheckboxEvent, self.widgetGridID={self.widgetGridID}')
-                            self.ptrToEvHdPg2myCheckboxEvent
-                            print('ran ptrToEvHdPg2myCheckboxEvent')
-                        except:
-                            pass
-                        #try:
-                        #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
-                        #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
-                        #    print('ran self.EvHdPg2myCheckboxEvent')
-                        #except:
-                        #    pass
-                except:
-                    pass
+                chName=change['name']
+                # we are only interested in events where there is a change in value selected/deselected True/False etc
+                # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
+                # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+                if('value' in chName):
+                    value=True
+                    description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                    try:
+                        value=change['owner'].value  # True/False for check box now being selected or deselected
+                    except:
+                        print('Failed to extract the value')
+                    try:
+                        wdgGridTxt=change['owner'].layout.grid_area
+                        if not (wdgGridTxt is None):
+                            #print(f'changeEvent={change}')
+
+                            # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
+                            # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
+
+                            if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
+                               print(f'CheckBox Change event with: self.widgetGridID={self.widgetGridID} wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
+                            self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=self.widgetGridID, wdgGridTxt=wdgGridTxt,value=value,description=description )
+ 
+                            #try:
+                            #    ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
+                            #    print(f'running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
+                            #    print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
+                            #    ptr2EvHdPg2myCheckboxEvent
+                            #    print('ran ptr2EvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                            #try:
+                            #    print(f'running ptrToEvHdPg2myCheckboxEvent, self.widgetGridID={self.widgetGridID}')
+                            #    self.ptrToEvHdPg2myCheckboxEvent
+                            #    print('ran ptrToEvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                            #try:
+                            #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
+                            #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
+                            #    print('ran self.EvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                    except:
+                        pass
             except:
                 pass
             return True

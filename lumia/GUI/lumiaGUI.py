@@ -212,7 +212,7 @@ class lumiaGuiApp:
         self.wdgGrid3 = wdg.GridspecLayout(n_rows=3, n_columns=self.nCols,  grid_gap="3px")
         myWidgetVar= ge.guiBooleanVar(value=True)
         try:
-            myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
+            myWidgetCountry  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
                                                 text='CH', text_color='gray10', text_color_disabled='gray50', font=("Georgia", 12), onvalue=True, offvalue=False)  
         except:
             print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
@@ -611,7 +611,7 @@ class lumiaGuiApp:
             self.widgetGridID= myGridID
             #if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
             #    print(f'L command={command},  self.widgetGridID={self.widgetGridID}')
-            self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
+            # self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
             self.command=command
             self.lumiaGuiApp=parent
             #if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
@@ -636,76 +636,42 @@ class lumiaGuiApp:
                 # print(change)
                 # {'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, 
                 #     layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-                if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-                    print('.L.')
-                    print('L Entered local actOnCheckBoxChanges')
-                    print(f'L self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
                 try:
                     #owner=change['owner']
                     #print(f'got owner={owner}')
-                    value=True
-                    description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
-                    #value=True
-                    try:
-                        value=change['owner'].value  # True/False for check box now being selected or deselected
-                    except:
-                        print('Failed to extract the value')
-                    #print(f'got description={description},  value={value}')
-                    #try:
-                    #    layout=change['owner'].layout
-                    #    print(f'layout={layout}')
-                    #except:
-                    #    pass
-                    try:
-                        wdgGridTxt=change['owner'].layout.grid_area
-                        #print(f'wdgGridTxt-1={wdgGridTxt}')
-                        if not (wdgGridTxt is None):
-                            print(f'changeEvent={change}')
-                            # print('Calling self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=99998)')
-                            # try:
-                            #     self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=99998,  wdgGridTxt='',  value=True,  description='Dummy')
-                            # except:
-                            #     pass
-                            # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
-                            # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
-
-                            print(f'CheckBox Change event with: self.widgetGridID={self.widgetGridID} wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
-                            self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=self.widgetGridID, wdgGridTxt=wdgGridTxt,value=value,description=description )
-                            
-                            # try:
-                            #     ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
-                            #     print(f'Not running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            #     print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            #     lambda self, widgetGridID=self.widgetGridID,  wdgGridTxt=wdgGridTxt, value=value,  description=description : self.command(self.widgetGridID, wdgGridTxt,value,description )
-                            #     ptr2EvHdPg2myCheckboxEvent
-                            #     print('ran ptr2EvHdPg2myCheckboxEvent')
-                            # except:
-                            #     pass
-                            # try:
-                            #     print(f'running command={command}, self.widgetGridID={self.widgetGridID}')
-                            #     #self.ptrToEvHdPg2myCheckboxEvent
-                            #     lambda widgetGridID=self.widgetGridID,  wdgGridTxt=wdgGridTxt, value=value,  description=description : command(self.widgetGridID, wdgGridTxt,value,description )
-                            #     print('ran ptrToEvHdPg2myCheckboxEvent')
-                            # except:
-                            #     pass
-                            # try:
-                            #     print(f'running command={command}')
-                                #self.ptrToEvHdPg2myCheckboxEvent
-                            #     lambda : command
-                            #     print('ran ptrToEvHdPg2myCheckboxEvent')
-                            # except:
-                            #     pass
-                            #try:
-                            #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
-                            #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
-                            #    print('ran self.EvHdPg2myCheckboxEvent')
-                            #except:
-                            #    pass
-                    except:
-                        pass
+                    chName=change['name']
+                    # we are only interested in events where there is a change in value selected/deselected True/False etc
+                    # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
+                    # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+                    if('value' in chName):
+                        value=True
+                        description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                        #value=True
+                        try:
+                            value=change['owner'].value  # True/False for check box now being selected or deselected
+                        except:
+                            print('Failed to extract the value')
+                        #print(f'got description={description},  value={value}')
+                        #try:
+                        #    layout=change['owner'].layout
+                        #    print(f'layout={layout}')
+                        #except:
+                        #    pass
+                        try:
+                            wdgGridTxt=change['owner'].layout.grid_area
+                            if not (wdgGridTxt is None):
+                                print(f'changeEvent={change}')
+    
+                                # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
+                                # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
+                                
+                                print(f'CheckBox Change event with: self.widgetGridID={self.widgetGridID} wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
+                                self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=self.widgetGridID, wdgGridTxt=wdgGridTxt,value=value,description=description )
+                        except:
+                            pass
+                    actOnCheckBoxChanges
                 except:
                     pass
-                actOnCheckBoxChanges
                 #display(actOnCheckBoxChanges)
 
             self.observe(actOnCheckBoxChanges)
@@ -739,7 +705,7 @@ class lumiaGuiApp:
         colidx=int(0)  # row['selected']
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
         myWidgetVar= ge.guiBooleanVar(value=row['selected'])
-        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=self.EvHdPg2myCheckboxEvent, 
+        myWidgetSelect  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=self.EvHdPg2myCheckboxEvent, 
                                                 text="",font=("Georgia", fsNORMAL), text_color=sTextColor, text_color_disabled=sTextColor, onvalue=True, offvalue=False) 
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
         if((USE_TKINTER) and ((countryInactive) or (stationInactive))):
@@ -756,7 +722,7 @@ class lumiaGuiApp:
             gridID=int((100*rowidx)+colidx)
             myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
             try:
-                myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
+                myWidgetCountry  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
                     text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
             except:
                 print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
@@ -844,28 +810,17 @@ class lumiaGuiApp:
         return True
 
     def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
-        print('Gotcha!')
-        print(f'gotcha wdgGridTxt={wdgGridTxt},  description={description}')
+        print(f'EvHdPg2myCheckboxEvent: gridID={gridID},  wdgGridTxt={wdgGridTxt},  description={description}')
         if not(value is None):
             print(f'value={value}')
-        print(f'gotcha gridID={gridID}')
         try:
-            print(f'self={self}')
-            print(f'self.EvHdPg2myCheckboxEvent={self.EvHdPg2myCheckboxEvent}')
-        except:
-            pass
-        try:
-            print(f'self.lumiaGuiApp={self.lumiaGuiApp}')
-            print(f'self.lumiaGuiApp.EvHdPg2myCheckboxEvent={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
+            #print(f'self.lumiaGuiApp={self.lumiaGuiApp}')
+            #print(f'self.lumiaGuiApp.EvHdPg2myCheckboxEvent={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
             if((len(wdgGridTxt)>1) and (value is not None)):
                 self=self.lumiaGuiApp # The callback from method guiElements_ipyWdg.GridCTkCheckBox.actOnCheckBoxChanges(change)
                #  to this method sends its widget's "self" but we need the "self" representing its parent, the lumiaGuiApp, as opposed to the checkboxe's identity.
         except:
             pass
-        if not(gridID is None):
-            print(f'gridID={gridID}')
-            if(gridID>99997):
-                return
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
