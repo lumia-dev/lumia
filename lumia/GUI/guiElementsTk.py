@@ -36,8 +36,10 @@ class GridOldCTkCheckBox(ctk.CTkCheckBox):
 class GridCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, root, myGridID, command=None,  *args, **kwargs):
         self.widgetGridID= myGridID
-        ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
-        ctk.CTkCheckBox.__init__(self, root, command=ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
+        print(f'command={command},  self.widgetGridID={self.widgetGridID}')
+        self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
+        print(f'self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
+        ctk.CTkCheckBox.__init__(self, root, command=self.ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
 
 class GridCTkLabel(ctk.CTkLabel):
     def __init__(self, root, myGridID,  *args, **kwargs):
@@ -135,13 +137,13 @@ def guiOptionMenu(self, values:[], variable=None,  dropdown_fontName="Georgia", 
         raise RuntimeError('Attempt to create an OptionsMenu failed. At least one of the required parameters values or variable was not valid.')
     return(ctk.CTkOptionMenu(self, values=values, variable=variable, dropdown_font=(dropdown_fontName, dropdown_fontSize)))
 
-def guiPlaceWidget(wdgGrid,  widget, row=0, column=0, columnspan=1, rowspan=1,  padx=10,  pady=10,  sticky="ew"):
-    try:
-        print(f'widget={widget}')
-        sGridID=str(widget.widgetGridID)
-        print(f'sGridID={sGridID}')
-    except:
-        pass
+def guiPlaceWidget(wdgGrid,  widget, row=0, column=0, columnspan=1, rowspan=1,  widgetID_LUT=None,  padx=10,  pady=10,  sticky="ew"):
+    #try:
+    #    print(f'widget={widget}')
+    #    sGridID=str(widget.widgetGridID)
+    #    print(f'sGridID={sGridID}')
+    #except:
+    #    pass
 
     widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
 

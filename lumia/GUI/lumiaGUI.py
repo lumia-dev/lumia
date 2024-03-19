@@ -8,10 +8,12 @@ import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
 import time
-from jupyter_ui_poll import ui_events
 import yaml
 import time
 import re
+import ipywidgets  as wdg
+import functools
+from jupyter_ui_poll import ui_events
 from pandas import to_datetime
 from loguru import logger
 import _thread
@@ -198,6 +200,40 @@ class lumiaGuiApp:
  
     def dbgHelper(self):
         self.bUseCachedList=False
+
+        scrollableFrame4Widgets = ge.pseudoRootFrame()
+        row=1
+        guiRow=1
+        gridID=int(102)
+        self.widgetsLst = [] # list to hold dynamically created widgets that are created for each dataset found.
+        self.widgetID_LUT={}  # wdgGrid3 assigns each widget a consecutive ID (a string) of style 'widget001', .. , 'widget488' for which we need a lookup table to convert into widgetGridID
+        colidx=2
+        self.nCols=5
+        self.wdgGrid3 = wdg.GridspecLayout(n_rows=3, n_columns=self.nCols,  grid_gap="3px")
+        myWidgetVar= ge.guiBooleanVar(value=True)
+        try:
+            myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
+                                                text='CH', text_color='gray10', text_color_disabled='gray50', font=("Georgia", 12), onvalue=True, offvalue=False)  
+        except:
+            print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
+        #if(USE_TKINTER):
+        #countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
+            #myWidgetCountry.configure(command=countryCkbEvtCommand) 
+            # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)) 
+        #ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
+        #if not (USE_TKINTER):
+        #    myWidgetCountry.observe(myWidgetCountry.actOnCheckBoxChanges)
+        ge.guiSetCheckBox(myWidgetCountry, True) # myWidgetCountry.select()
+        ge.guiPlaceWidget(self.wdgGrid3, myWidgetCountry, row=guiRow, column=colidx, columnspan=1, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx='10px', pady='10px', sticky='news')
+        #myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
+        self.widgetsLst.append(myWidgetCountry)
+        self.wdgGrid3
+        display(self.wdgGrid3)
+
+        title='Load my file'
+        filename = ge.guiFileDialogDoAll(filetypes='*', title=title)
+        print(f'filename={filename}')
+        return
         self.bSuggestOldDiscoveredObservations=False
         self.check4recentDiscoveredObservations(self.ymlContents)
         if(self.haveDiscoveredObs):
@@ -253,6 +289,7 @@ class lumiaGuiApp:
             self.ObsFileRankingBoxTxt+=str(rank)+': '+sEntry+'\n'
             rank=rank-1
         self.runPage2() 
+        return True
     
  
     def closeTopLv(self, bWriteStop=True):  # of lumiaGuiApp
@@ -266,6 +303,7 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             self.root.deiconify()
         self.runPage2()  
+        return True
 
     def closeApp(self, bWriteStop=True):  # of lumiaGuiApp
         bs.cleanUp(self,  bWriteStop=bWriteStop)
@@ -289,6 +327,7 @@ class lumiaGuiApp:
     # ====================================================================
     def EvHdPg1ExitWithSuccess(self):
         self.closeApp(bWriteStop=False)
+        return True
                 
     def EvHdPg1GotoPage2(self):
         bGo=False
@@ -353,6 +392,7 @@ class lumiaGuiApp:
             # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
             self.huntAndGatherObsData()
             self.closeTopLv(bWriteStop=False)
+        return True
             
     def EvHdPg1selectFile(self):
         filename = ge.guiFileDialog() 
@@ -365,6 +405,7 @@ class lumiaGuiApp:
         # if textvariable is longer than its entry box, i.e. the path spills over, it will be right-aligned, showing the end with the file name
         if(USE_TKINTER):
             self.Pg1ObsFileLocationLocalEntry.xview_moveto(1)  
+        return True
 
     def EvHdPg1SetObsFileLocation(self):
         
@@ -377,6 +418,7 @@ class lumiaGuiApp:
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
             print(f'..ObsFileLocation={ObsFileLocation}')
             self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
+        return True
 
     def EvHdPg1SetTracer(self):
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
@@ -388,6 +430,7 @@ class lumiaGuiApp:
             TracerRbVal=self.Pg1TracerRadioButton.value
             print(f'..TracerRbVal={TracerRbVal}')
             self.ymlContents['run']['tracers'] = TracerRbVal
+        return True
 
     def getFilters(self):
         self.bUseStationAltitudeFilter=self.ymlContents['observations']['filters']['bStationAltitude']
@@ -396,6 +439,7 @@ class lumiaGuiApp:
         self.stationMaxAlt = self.ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
         self.inletMinHght = self.ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
         self.inletMaxHght = self.ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
+        return True
 
     def check4recentDiscoveredObservations(self, ymlContents):
         # Do we have a DiscoveredObservations.csv file from a previous run that a user could use?
@@ -435,6 +479,7 @@ class lumiaGuiApp:
             except:
                 pass
             self.haveDiscoveredObs=True
+        return True
             
 
     def huntAndGatherObsData(self):
@@ -556,7 +601,118 @@ class lumiaGuiApp:
         except:
             pass
         self.newDf = newDf    
+        return True
 
+    class GridCTkCheckBox(wdg.Checkbox):
+        #bObserve=False
+    
+        def __init__(self, parent, root, myGridID, command, variable, text='',  *args, **kwargs):
+            #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
+            self.widgetGridID= myGridID
+            if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
+                print(f'L command={command},  self.widgetGridID={self.widgetGridID}')
+            self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
+            self.command=command
+            self.lumiaGuiApp=parent
+            if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
+                print(f'L self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
+            #self.eventHandlerFunction=lambda: command(self.widgetGridID)
+            wdg.Checkbox.__init__(self, 
+                value=variable,
+                description=text,
+                disabled=False,
+                indent=False
+            )
+
+            #modelname = "test"
+            #trainfolder = Path('Data/Segmentation/dataset/train')
+            #btn = widgets.Button(description="Run")
+            #btn.on_click(lambda self, trainfolder=trainfolder, modelname=modelname : segmentation_training(trainfolder,modelname))
+            #display(btn)
+    
+            def actOnCheckBoxChanges(change):
+                # What we are most interested in is the grid_area='widget011' information contained in the change event that allows us 
+                # to identify which widget has fired the event. When initialised, layout.grid_area is None and then we don't want to fire.
+                # print(change)
+                # {'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, 
+                #     layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+                if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
+                    print('.L.')
+                    print('L Entered local actOnCheckBoxChanges')
+                    print(f'L self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
+                try:
+                    #owner=change['owner']
+                    #print(f'got owner={owner}')
+                    description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                    #value=True
+                    try:
+                        value=change['owner'].value  # True/False for check box now being selected or deselected
+                    except:
+                        print('Failed to extract the value')
+                    #print(f'got description={description},  value={value}')
+                    #try:
+                    #    layout=change['owner'].layout
+                    #    print(f'layout={layout}')
+                    #except:
+                    #    pass
+                    try:
+                        wdgGridTxt=change['owner'].layout.grid_area
+                        #print(f'wdgGridTxt-1={wdgGridTxt}')
+                        if not (wdgGridTxt is None):
+                            print('Calling self.EvHdPg2myCheckboxEvent(gridID=99998)')
+                            try:
+                                self.EvHdPg2myCheckboxEvent(gridID=99998,  wdgGridTxt='',  value=True,  description='Dummy')
+                            except:
+                                pass
+                            print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp}')
+                            try:
+                                self.EvHdPg2myCheckboxEvent(gridID=99999,  wdgGridTxt='',  value=True,  description='Dummy')
+                            except:
+                                pass
+                            
+                            print(f'CheckBox Change event with: wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
+                            try:
+                                ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
+                                print(f'Not running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
+                                print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
+                                lambda self, widgetGridID=self.widgetGridID,  wdgGridTxt=wdgGridTxt, value=value,  description=description : self.command(self.widgetGridID, wdgGridTxt,value,description )
+                                ptr2EvHdPg2myCheckboxEvent
+                                print('ran ptr2EvHdPg2myCheckboxEvent')
+                            except:
+                                pass
+                            try:
+                                print(f'running command={command}, self.widgetGridID={self.widgetGridID}')
+                                #self.ptrToEvHdPg2myCheckboxEvent
+                                lambda widgetGridID=self.widgetGridID,  wdgGridTxt=wdgGridTxt, value=value,  description=description : command(self.widgetGridID, wdgGridTxt,value,description )
+                                print('ran ptrToEvHdPg2myCheckboxEvent')
+                            except:
+                                pass
+                            try:
+                                print(f'running command={command}')
+                                #self.ptrToEvHdPg2myCheckboxEvent
+                                lambda : command
+                                print('ran ptrToEvHdPg2myCheckboxEvent')
+                            except:
+                                pass
+                            #try:
+                            #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
+                            #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
+                            #    print('ran self.EvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                    except:
+                        pass
+                except:
+                    pass
+                actOnCheckBoxChanges
+                #display(actOnCheckBoxChanges)
+
+            self.observe(actOnCheckBoxChanges)
+            # Button click callbacks should take a single argument which will be the button widget that was clicked.  
+            # You don't have to use it, but the function must take that button as an argument.  
+            # Using a lambda that takes a single argument is also acceptable.
+            # button.on_click(lambda b: hello_world())
+            return 
 
     # ====================================================================
     # EventHandler and helper functions for widgets of the second GUI page  -- part of lumiaGuiApp (root window)
@@ -568,6 +724,8 @@ class lumiaGuiApp:
         # one textLabel for the remaining info on station altitude, network, lat, lon, dataRanking and dataDescription
         self.nWidgetsPerRow=5
         gridRow=[]
+        self.activeTextColor='gray10'
+        self.inactiveTextColor='gray50'
         
         bSelected=row['selected']
         if(bSelected):
@@ -578,14 +736,10 @@ class lumiaGuiApp:
         stationInactive=row['stationID'] in self.excludedStationsList
         
         colidx=int(0)  # row['selected']
-        # ###################################################
         gridID=int((100*rowidx)+colidx)  # encode row and column in the button's variable
         myWidgetVar= ge.guiBooleanVar(value=row['selected'])
-        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=lambda:self.EvHdPg2myCheckboxEvent, 
+        myWidgetSelect  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID,  variable=myWidgetVar, command=self.EvHdPg2myCheckboxEvent, 
                                                 text="",font=("Georgia", fsNORMAL), text_color=sTextColor, text_color_disabled=sTextColor, onvalue=True, offvalue=False) 
-        #if(USE_TKINTER):
-        #    myWidgetSelect.configure(command=lambda widgetID=myWidgetSelect.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetSelect.widgetGridID)) 
-        #ge.guiConfigureWdg(self, widget=self.Pg1displayBox,  state=tk.DISABLED,  command=None,  text_color=None,  fg_color=None,  bg_color=None)
         ge.guiSetCheckBox(myWidgetSelect, bSelected)
         if((USE_TKINTER) and ((countryInactive) or (stationInactive))):
             ge.guiSetCheckBox(myWidgetSelect, False) # myWidgetSelect.deselect()
@@ -602,7 +756,7 @@ class lumiaGuiApp:
             myWidgetVar= ge.guiBooleanVar(value=row['includeCountry'])
             try:
                 myWidgetCountry  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
-                                                    text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
+                    text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
             except:
                 print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
             #if(USE_TKINTER):
@@ -628,8 +782,10 @@ class lumiaGuiApp:
         num+=1
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiBooleanVar(value=row['includeStation'])
+        if((gridID==202) or (gridID==11802)):
+            print('.')
         try:
-            myWidgetStationid  = ge.GridCTkCheckBox(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
+            myWidgetStationid  = self.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
                                                     text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
         except:
             print(f'creation of widget myWidgetStationid with gridID {gridID} failed')
@@ -684,16 +840,20 @@ class lumiaGuiApp:
         gridRow.append(myWidgetVar)
         # ###################################################
         # guiPg2createRowOfObsWidgets() completed
+        return True
 
     def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
+        print('Gotcha!')
         print(f'gotcha wdgGridTxt={wdgGridTxt},  description={description}')
-        if not(gridID is None):
-            print(f'gridID={gridID}')
         if not(value is None):
             print(f'value={gridID}')
         if((len(wdgGridTxt)>1) and (value is not None)):
             gridID=self.widgetID_LUT['wdgGridTxt']
         print(f'gotcha gridID={gridID}')
+        if not(gridID is None):
+            print(f'gridID={gridID}')
+            if(gridID>99997):
+                return
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
@@ -810,6 +970,7 @@ class lumiaGuiApp:
                     row=self.newDf.iloc[ri]
                     if (thisStation not in row['stationID']) :
                         bSameStation=False
+        return True
  
 
     def EvHdPg2myOptionMenuEvent(self, gridID, sSamplingHeights):
@@ -842,6 +1003,7 @@ class lumiaGuiApp:
                         nPos+=1
                 except:
                     pass
+        return True
 
 
     def EvHdPg2updateRowOfObsWidgets(self, rowidx, row):
@@ -900,6 +1062,7 @@ class lumiaGuiApp:
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #self.widgetsLst[widgetID].deselect()
             except:
                 pass
+        return True
         
 
 
@@ -1027,6 +1190,7 @@ class lumiaGuiApp:
             print(f'tracer={tracer}')
             self.ymlContents['run']['tracers'] = tracer
             self.EvHdPg1GotoPage2()
+        return True
 
     def createAllPg1Widgets(self):
         # ====================================================================
@@ -1155,6 +1319,7 @@ class lumiaGuiApp:
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1GoButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1GoButton,  value='green3', bFg_color=True) # in CTk this is the main button color (not the text color)
+        return True
 
 
     def  placeAllPg1WidgetsOnCanvas(self, nCols,  nRows,  xPadding,  yPadding):
@@ -1247,6 +1412,7 @@ class lumiaGuiApp:
         if(not USE_TKINTER):
             self.wdgGrid
             display(self.wdgGrid)
+        return True
 
 
     # ====================================================================
@@ -1474,6 +1640,7 @@ class lumiaGuiApp:
             self.newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
             if((bSel != bS) and (int(row['dClass'])==4)): 
                 self.EvHdPg2updateRowOfObsWidgets(ri, row)
+        return True
                 
                 
 
@@ -1505,6 +1672,7 @@ class lumiaGuiApp:
             self.ymlContents['observations']['filters']['stationMaxAlt']=mxh
             self.ymlContents['observations']['filters']['stationMinAlt']=mnh
         self.applyFilterRulesPg2()                       
+        return True
         
     def EvHdPg2stationSamplingHghtAction(self):
         inletMinHeightCommonSense = 0    # in meters
@@ -1534,6 +1702,7 @@ class lumiaGuiApp:
             self.ymlContents['observations']['filters']['inletMaxHeight']=mxh
             self.ymlContents['observations']['filters']['inletMinHeight']=mnh
         self.applyFilterRulesPg2()
+        return True
     
     def EvHdPg2isICOSfilter(self):
         ge.getWidgetValue()
@@ -1552,6 +1721,7 @@ class lumiaGuiApp:
         print(f'isICOSrbValue={isICOSrbValue}')
         self.ymlContents['observations']['filters']['ICOSonly']=bICOSonly
         self.applyFilterRulesPg2()                       
+        return True
 
 
     def EvHdPg2GoBtnHit(self):
@@ -1641,6 +1811,7 @@ class lumiaGuiApp:
         # self.bPleaseCloseTheGui.set(True)
         global LOOP2_ACTIVE
         LOOP2_ACTIVE = False
+        return True
 
     
     # ====================================================================
@@ -1831,6 +2002,7 @@ class lumiaGuiApp:
                 self.EvHdPg2GoBtnHit
             else:
                 self.closeApp(bWriteStop=True) # Abort run
+        return True
 
 
     def createPg2staticWidgets(self, rootFrame):
@@ -1912,6 +2084,7 @@ class lumiaGuiApp:
         if(USE_TKINTER):
             myLabels="Selected     Country     StationID     SamplingHeight   Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         self.ColLabels = ge.guiTxtLabel(rootFrame, anchor="w", text=myLabels, fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=(self.nCols-1))
+        return True
 
    
     def  placePg2staticWidgetsOnCanvas(self, nCols,  nRows,  xPadding,  yPadding):
@@ -1971,6 +2144,7 @@ class lumiaGuiApp:
         # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         ge.guiPlaceWidget(self.wdgGrid, self.ColLabels, row=4, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
+        return True
    
 
 def  readMyYamlFile(ymlFile):
