@@ -34,7 +34,7 @@ class GridOldCTkCheckBox(ctk.CTkCheckBox):
         self.widgetGridID= myGridID
 
 class GridCTkCheckBox(ctk.CTkCheckBox):
-    def __init__(self, root, myGridID, command=None,  *args, **kwargs):
+    def __init__(self, parent, root, myGridID, command=None,  *args, **kwargs):
         self.widgetGridID= myGridID
         print(f'command={command},  self.widgetGridID={self.widgetGridID}')
         self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
@@ -47,7 +47,7 @@ class GridCTkLabel(ctk.CTkLabel):
         self.widgetGridID= tk.IntVar(value=myGridID)
 
 class GridCTkOptionMenu(ctk.CTkOptionMenu):
-    def __init__(self, root, myGridID, command=None, values=None,  *args, **kwargs):
+    def __init__(self, parent,  root, myGridID, command=None, values=None,  *args, **kwargs):
         self.widgetGridID= myGridID
         ptrToEvHdPg2myOptionMenuEvent=lambda: command(self.widgetGridID,  values)
         ctk.CTkOptionMenu.__init__(self, root, command=ptrToEvHdPg2myOptionMenuEvent, *args, **kwargs)

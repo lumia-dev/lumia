@@ -36,9 +36,10 @@ class GridCTkCheckBox(wdg.Checkbox):
         #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
         self.command=command
+        # command=self.EvHdPg2myCheckboxEvent
         self.lumiaGuiApp=parent
-        if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-            print(f'command={command},  self.widgetGridID={self.widgetGridID}')
+        #if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
+        #    print(f'command={command},  self.widgetGridID={self.widgetGridID}')
         #self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
         #self.eventHandlerFunction=lambda: command(self.widgetGridID)
         wdg.Checkbox.__init__(self, 
@@ -116,20 +117,6 @@ Event triggered in GridCTkCheckBox(self.widgetGridID=202)
             layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}            
 """
 
-class GridCCTkCheckBox(wdg.Checkbox):
-    def __init__(self, root, myGridID,  variable, text='',  *args, **kwargs):
-        self.widgetGridID= myGridID
-        countryCkbEvtCommand=lambda widgetID=self.widgetGridID : self.EvHdPg2myCheckboxEvent(self.widgetGridID)
-        guiConfigureWdg(self, widget=self,  command=countryCkbEvtCommand)
-        #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
-        wdg.Checkbox.__init__(self, 
-            value=variable,
-            description=text,
-            command=countryCkbEvtCommand, 
-            disabled=False,
-            indent=False
-        )
-
 class GridCTkLabel(wdg.Text):
     def __init__(self, root, myGridID, text='',  description='', *args, **kwargs):
         self.widgetGridID= myGridID
@@ -146,10 +133,67 @@ class GridCTkLabel(wdg.Text):
 
 
 class GridCTkOptionMenu(wdg.Dropdown):
-    def __init__(self, root, myGridID, values, *args, **kwargs):
+    def __init__(self, parent, root, myGridID, command, values, *args, **kwargs):
         self.widgetGridID= myGridID
+        self.command=command
+        self.lumiaGuiApp=parent
+        # command=self.EvHdPg2myOptionMenuEvent
         #ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
         wdg.Dropdown.__init__(self, options=values, description='', disabled=False) # value=0, 
+
+        def actOnOptionMenuChanges(change):
+            try:
+                chName=change['name']
+                # we are only interested in events where there is a change in value selected/deselected True/False etc
+                # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
+                # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+                if('value' in chName):
+                    value=True
+                    #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                    try:
+                        value=change['owner'].value  # True/False for check box now being selected or deselected
+                    except:
+                        print('Failed to extract the value')
+                    try:
+                        wdgGridTxt=change['owner'].layout.grid_area
+                        if not (wdgGridTxt is None):
+                            print(f'changeEvent={change}')
+
+                            # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
+                            # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
+
+                            if((self.widgetGridID==3) or (self.widgetGridID==203) or (self.widgetGridID==11803)):
+                               print(f'OptionMenu Change event with: self.widgetGridID={self.widgetGridID},  value={value},  wdgGridTxt={wdgGridTxt},  sSamplingHeights={self.options}')
+                            self.lumiaGuiApp.EvHdPg2myOptionMenuEvent(gridID=self.widgetGridID, sSamplingHeights=self.options, selectedValue=value)
+ 
+                            #try:
+                            #    ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
+                            #    print(f'running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
+                            #    print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
+                            #    ptr2EvHdPg2myCheckboxEvent
+                            #    print('ran ptr2EvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                            #try:
+                            #    print(f'running ptrToEvHdPg2myCheckboxEvent, self.widgetGridID={self.widgetGridID}')
+                            #    self.ptrToEvHdPg2myCheckboxEvent
+                            #    print('ran ptrToEvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                            #try:
+                            #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
+                            #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
+                            #    print('ran self.EvHdPg2myCheckboxEvent')
+                            #except:
+                            #    pass
+                    except:
+                        pass
+            except:
+                pass
+            return True
+
+        self.observe(actOnOptionMenuChanges)
+        return
 
 
 
@@ -203,17 +247,117 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     return True
 
 
-def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
+class guiCheckBox(wdg.Checkbox):
+    def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=False, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
-    # variable holds the initial state whether the CheckBox is selected (True) or not (False)
-    return(wdg.Checkbox(
-        value=variable,
-        description=text,
-        disabled=disabled,
-        indent=False
-    ))
-    return True
+        self.command=command
+        self.lumiaGuiApp=parent
+        #@def   guiCheckBox:
+        # variable holds the initial state whether the CheckBox is selected (True) or not (False)
+        wdg.Checkbox.__init__(self, 
+            value=variable,
+            description=text,
+            disabled=disabled,
+            indent=False
+        )
 
+        def actOnCheckBoxChange(change):
+            try:
+                chName=change['name']
+                # we are only interested in events where there is a change in value selected/deselected True/False etc
+                # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
+                # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+                if('value' in chName):
+                    value=True
+                    #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                    try:
+                        value=change['owner'].value  # True/False for check box now being selected or deselected
+                    except:
+                        print('Failed to extract the value')
+                    print(f'changeEvent={change}')
+                    print(f'command={self.command}')
+                    if(command is None):
+                        pass
+                    elif(isinstance(self.command, str)):
+                        if ('EvHdPg2stationAltitudeFilterAction' in self.command):
+                            print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
+                            self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
+                        if ('EvHdPg2stationSamplingHghtAction' in self.command):
+                            print('calling EvHdPg2stationSamplingHghtAction')
+                            self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
+                    else:
+                        self.command
+            except:
+                pass
+            return True
+        
+        #btn.on_click(lambda self, trainfolder=trainfolder, modelname=modelname : segmentation_training(trainfolder,modelname))
+        #self.observe(lambda actOnOptionMenuChanges)
+        
+        #self.observe(lambda self=self.lumiaGuiApp,  value=self.value : self.command(self, self.value))
+        self.observe(actOnCheckBoxChange)
+        return
+
+
+class guiCheckBox2(wdg.Checkbox):
+    def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None, 
+                             fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
+        self.command=command
+        self.lumiaGuiApp=parent
+        self.nameOfEvtHd=nameOfEvtHd
+        #@def   guiCheckBox:
+        # variable holds the initial state whether the CheckBox is selected (True) or not (False)
+        wdg.Checkbox.__init__(self, 
+            value=variable,
+            description=text,
+            disabled=disabled,
+            indent=False
+        )
+        self.observe(self.actOnCheckBoxChange)
+        return
+
+    def actOnCheckBoxChange(self, change):
+        try:
+            chName=''
+            print(f'changeEvent={change}')
+        except:
+            pass
+        try:
+            chName=change['name']
+        except:
+            chName=''
+        print(f'chName={chName}')
+        # we are only interested in events where there is a change in value selected/deselected True/False etc
+        # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
+        # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+        if('value' in chName):
+            value=True
+            #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+            try:
+                value=change['owner'].value  # True/False for check box now being selected or deselected
+            except:
+                print('Failed to extract the value')
+                value=True
+            print(f'command={self.command}')
+            if(self.command is None):
+                pass
+            elif((self.nameOfEvtHd is not None) and (len(self.nameOfEvtHd)>3)):
+                if ('EvHdPg2stationAltitudeFilterAction' in self.nameOfEvtHd):
+                    print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
+                    self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
+                    print('trying with lambda...')
+                    self.command
+                if ('EvHdPg2stationSamplingHghtAction' in self.nameOfEvtHd):
+                    print('calling EvHdPg2stationSamplingHghtAction')
+                    self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
+            else:
+                self.command
+        return 
+        
+        #btn.on_click(lambda self, trainfolder=trainfolder, modelname=modelname : segmentation_training(trainfolder,modelname))
+        #self.observe(lambda actOnOptionMenuChanges)
+        
+        #self.observe(lambda self=self.lumiaGuiApp,  value=self.value : self.command(self, self.value))
 
 def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=None,  text=None,  text_color=None, fg_color=None,  bg_color=None):
 #                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],  state=tk.DISABLED,  command=None,  text='On',  text_color='blue',  fg_color=None,  bg_color=None)

@@ -1,7 +1,7 @@
 import re
 import tkinter as tk 
 import housekeeping as hk
-from os import path
+import os
 from loguru import logger
 from matplotlib import font_manager
 from screeninfo import get_monitors
@@ -155,6 +155,7 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
 
 def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp
     if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
+        print('cleanUp: Removing junk.')
         ymlFile=self.initialYmlFile
         logger.info("LumiaGUI was canceled.")
         sCmd="touch LumiaGui.stop"
@@ -168,15 +169,13 @@ def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp
                           f'{self.sTmpPrfx}_dbg_newDfObs.csv', f'{self.sTmpPrfx}_dbg_selectedObs.csv'
                           ]
         for jf in junkFiles:
-            if(path.isfile(jf)):  # if the file (already) exists:
-                sCmd="rm "+jf # delete this junk file
-                hk.runSysCmd(sCmd)
+            if(os.path.isfile(jf)):  # if the file (already) exists:
+                os.remove(jf) #sCmd="rm "+jf # delete this junk file #hk.runSysCmd(sCmd)
         junkDirs=[self.sOutputPrfx, self.sTmpPrfx]
         for sJD in junkDirs:
-            sDir = path.dirname(sJD)
-            sCmd="rmdir "+sDir
-            hk.runSysCmd(sCmd)
-        print('Finished cleaning up junk files.')
+            sDir = os.path.dirname(sJD)
+            os.rmdir(sDir)  # sCmd="rmdir "+sDir #hk.runSysCmd(sCmd)
+        print('cleanUp: Finished cleaning up junk files.')
         
 
 

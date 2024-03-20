@@ -209,8 +209,6 @@ class obsdb(obsdb):
                     logger.debug(f'{dftest}')
                 except:
                     pass
-                if('PXBNgmAH-PG5_AYXDl4fu2se'in pid):
-                    print('.')
                 # logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
                 availColNames = list(obsData1site.columns.values)
                 if ('Site' not in availColNames):

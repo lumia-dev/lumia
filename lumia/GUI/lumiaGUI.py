@@ -116,11 +116,9 @@ def prepareCallToLumiaGUI(ymlFile, args):
     # remove old message files - these are only relevant if LumiaGUI is used in an automated workflow as they signal
     # success or failure of this step in the workflow
     if(os.path.isfile("LumiaGui.stop")):
-        sCmd="rm LumiaGui.stop"
-        hk.runSysCmd(sCmd,  ignoreError=True)
+        os.remove('LumiaGui.stop') # sCmd="rm LumiaGui.stop" #hk.runSysCmd(sCmd,  ignoreError=True)
     if(os.path.isfile("LumiaGui.go")):
-        sCmd="rm LumiaGui.go"
-        hk.runSysCmd(sCmd,  ignoreError=True)
+        os.remove('LumiaGui.go') # sCmd="rm LumiaGui.go" #hk.runSysCmd(sCmd,  ignoreError=True)
 
     # ensure we have a display connected
     myDsp=os.environ.get('DISPLAY','')
@@ -603,83 +601,10 @@ class lumiaGuiApp:
         self.newDf = newDf    
         return True
 
-    class GridCTkCheckBox(wdg.Checkbox):
-        #bObserve=False
-    
-        def __init__(self, parent, root, myGridID, command, variable, text='',  *args, **kwargs):
-            #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
-            self.widgetGridID= myGridID
-            #if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-            #    print(f'L command={command},  self.widgetGridID={self.widgetGridID}')
-            # self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
-            self.command=command
-            self.lumiaGuiApp=parent
-            #if((self.widgetGridID==202) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-            #    print(f'L self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
-            #self.eventHandlerFunction=lambda: command(self.widgetGridID)
-            wdg.Checkbox.__init__(self, 
-                value=variable,
-                description=text,
-                disabled=False,
-                indent=False
-            )
-
-            #modelname = "test"
-            #trainfolder = Path('Data/Segmentation/dataset/train')
-            #btn = widgets.Button(description="Run")
-            #btn.on_click(lambda self, trainfolder=trainfolder, modelname=modelname : segmentation_training(trainfolder,modelname))
-            #display(btn)
-    
-            def actOnCheckBoxChanges(change):
-                # What we are most interested in is the grid_area='widget011' information contained in the change event that allows us 
-                # to identify which widget has fired the event. When initialised, layout.grid_area is None and then we don't want to fire.
-                # print(change)
-                # {'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, 
-                #     layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-                try:
-                    #owner=change['owner']
-                    #print(f'got owner={owner}')
-                    chName=change['name']
-                    # we are only interested in events where there is a change in value selected/deselected True/False etc
-                    # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
-                    # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-                    if('value' in chName):
-                        value=True
-                        description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
-                        #value=True
-                        try:
-                            value=change['owner'].value  # True/False for check box now being selected or deselected
-                        except:
-                            print('Failed to extract the value')
-                        #print(f'got description={description},  value={value}')
-                        #try:
-                        #    layout=change['owner'].layout
-                        #    print(f'layout={layout}')
-                        #except:
-                        #    pass
-                        try:
-                            wdgGridTxt=change['owner'].layout.grid_area
-                            if not (wdgGridTxt is None):
-                                print(f'changeEvent={change}')
-    
-                                # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
-                                # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
-                                
-                                print(f'CheckBox Change event with: self.widgetGridID={self.widgetGridID} wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
-                                self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=self.widgetGridID, wdgGridTxt=wdgGridTxt,value=value,description=description )
-                        except:
-                            pass
-                    actOnCheckBoxChanges
-                except:
-                    pass
-                #display(actOnCheckBoxChanges)
-
-            self.observe(actOnCheckBoxChanges)
-            # Button click callbacks should take a single argument which will be the button widget that was clicked.  
-            # You don't have to use it, but the function must take that button as an argument.  
-            # Using a lambda that takes a single argument is also acceptable.
-            # button.on_click(lambda b: hello_world())
-            return 
+# Button click callbacks should take a single argument which will be the button widget that was clicked.  
+# You don't have to use it, but the function must take that button as an argument.  
+# Using a lambda that takes a single argument is also acceptable.
+# button.on_click(lambda b: hello_world())
 
     # ====================================================================
     # EventHandler and helper functions for widgets of the second GUI page  -- part of lumiaGuiApp (root window)
@@ -749,10 +674,8 @@ class lumiaGuiApp:
         num+=1
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiBooleanVar(value=row['includeStation'])
-        if((gridID==202) or (gridID==11802)):
-            print('.')
         try:
-            myWidgetStationid  = self.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
+            myWidgetStationid  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
                                                     text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
         except:
             print(f'creation of widget myWidgetStationid with gridID {gridID} failed')
@@ -773,7 +696,7 @@ class lumiaGuiApp:
         # ###################################################
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiStringVar(value=str(row['samplingHeight'][0])) 
-        myWidgetSamplingHeight  = ge.GridCTkOptionMenu(scrollableFrame4Widgets, gridID, command=self.EvHdPg2myOptionMenuEvent, 
+        myWidgetSamplingHeight  = ge.GridCTkOptionMenu(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myOptionMenuEvent, 
                                                             values=sSamplingHeights, variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
         #if(USE_TKINTER):
@@ -825,7 +748,7 @@ class lumiaGuiApp:
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
-        print(f'ri={ri},  ci={ci} in EvHdPg2myCheckboxEvent')
+        #print(f'ri={ri},  ci={ci} in EvHdPg2myCheckboxEvent')
         bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
         if(self.widgetsLst[widgetID] is not None):
             if(ci==0):
@@ -836,7 +759,9 @@ class lumiaGuiApp:
                         bc=self.newDf.at[(ri) ,  ('includeCountry')]
                         logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
                         logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
-                    row.iloc[0]=True
+                    #row.iloc[0]=True
+                    #self.newDf.iloc[ri, 0]=True
+                    row=self.newDf.iloc[ri]
                     ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='blue') # 'On'
                 else:
                     self.newDf.at[(ri) ,  ('selected')] =False
@@ -845,7 +770,9 @@ class lumiaGuiApp:
                         bc=self.newDf.at[(ri) ,  ('includeCountry')]
                         logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
                         logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
-                    row.iloc[0]=False
+                    #row.iloc[0]=False
+                    #self.newDf.iloc[ri, 0]=False
+                    row=self.newDf.iloc[ri]
                     ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='green') # 'Off'
                 self.EvHdPg2updateRowOfObsWidgets(ri, row)
             elif(ci==1):  # Country
@@ -862,23 +789,32 @@ class lumiaGuiApp:
                         self.newDf.at[(ri) ,  ('includeCountry')] =True
                         if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
                             self.newDf.at[(ri) ,  ('selected')] =True
-                            row.iloc[0]=True
+                            #row.iloc[0]=True
+                            #self.newDf.iloc[ri, 0]=True
+                            row=self.newDf.iloc[ri]
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                         else:
                             self.newDf.at[(ri) ,  ('selected')] =False
-                            row.iloc[0]=False
+                            #row.iloc[0]=False
+                            #self.newDf.iloc[ri, 0]=False
+                            row=self.newDf.iloc[ri]
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
-                        row.iloc[13]=True # 'includeCountry'
+                        #row.iloc[13]=True # 'includeCountry'
+                        self.newDf.iloc[ri, 13]=True
+                        row=self.newDf.iloc[ri]
                     else:
                         # Remove country from list of excluded countries
                         if(row['country'] not in self.excludedCountriesList):
                             self.excludedCountriesList.append(row['country'])
                         self.newDf.at[(ri) ,  ('includeCountry')] =False
                         self.newDf.at[(ri) ,  ('selected')] =False
-                        row.iloc[0]=False
-                        row.iloc[13]=False  # 'includeCountry'
+                        #row.iloc[0]=False
+                        #row.iloc[13]=False  # 'includeCountry'
+                        #self.newDf.iloc[ri, 0]=False
+                        #self.newDf.iloc[ri, 13]=False
+                        row=self.newDf.iloc[ri]
                         if(ri==33):
                             bs=self.newDf.at[(ri) ,  ('selected')]
                             bc=self.newDf.at[(ri) ,  ('includeCountry')]
@@ -911,23 +847,31 @@ class lumiaGuiApp:
                             (self.newDf.at[(ri) ,  ('HghtOk')]==True) and
                             (row['dClass']==4)):
                             self.newDf.at[(ri) ,  ('selected')] =True
-                            row.iloc[0]=True
+                            #row.iloc[0]=True
+                            #self.newDf.iloc[ri, 0]=True
+                            row=self.newDf.iloc[ri]
                             #self.newDf.at[(ri) ,  ('includeStation')] =True
                         else:
                             self.newDf.at[(ri) ,  ('selected')] =False
-                            row.iloc[0]=False
+                            #row.iloc[0]=False
+                            #self.newDf.iloc[ri, 0]=False
+                            row=self.newDf.iloc[ri]
                         self.newDf.at[(ri) ,  ('includeStation')] =True
                         #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
-                        row.iloc[14]=True # 'includeStation'
+                        #row.iloc[14]=True # 'includeStation'
+                        #self.newDf.iloc[ri, 14]=True
+                        row=self.newDf.iloc[ri]
                         ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                     else:
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #  self.widgetsLst[widgetID].deselect()
                         if(row['stationID'] not in self.excludedStationsList):
                             self.excludedStationsList.append(row['stationID'])
                         self.newDf.at[(ri) ,  ('selected')] =False
-                        row.iloc[0]=False
+                        #row.iloc[0]=False
                         self.newDf.at[(ri) ,  ('includeStation')] =False
-                        row.iloc[14]=False # 'includeStation'
+                        #row.iloc[14]=False # 'includeStation'
+                        #self.newDf.iloc[ri, 14]=False
+                        row=self.newDf.iloc[ri]
                         ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                     self.EvHdPg2updateRowOfObsWidgets(ri, row)
                     ri+=1
@@ -940,15 +884,19 @@ class lumiaGuiApp:
         return True
  
 
-    def EvHdPg2myOptionMenuEvent(self, gridID, sSamplingHeights):
+    def EvHdPg2myOptionMenuEvent(self, gridID, sSamplingHeights,  selectedValue=None):
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the widgetID to access the right widget in widgetsLst
         #print(f"OptionMenuEventHandler: (ri={ri}, ci4={ci}, widgetID={widgetID}, gridID={gridID})")
         if(self.widgetsLst[widgetID] is not None):
-            if(ci==4):  # SamplingHeight
-                nsh=ge.getWidgetValue(self.widgetsLst[widgetID])
-                print(f'nsh={nsh}')
+            print(f'EvHdPg2myOptionMenuEvent: widgetID={widgetID},  ri={ri},  ci={ci},  sSamplingHeights={sSamplingHeights}')
+            if(ci==3):  # SamplingHeight
+                if(selectedValue is None):
+                    nsh=ge.getWidgetValue(self.widgetsLst[widgetID])
+                else:
+                    nsh=selectedValue
+                print(f'selected sampling height={nsh}')
                 newSamplingHeight=nsh # a string var 
                 nPos=0
                 try:
@@ -965,7 +913,7 @@ class lumiaGuiApp:
                             pids=self.newDf.at[(ri) ,  ('pid')]
                             bs.swapListElements(pids, 0, nPos)
                             self.newDf.at[(ri) ,  ('pid')]=pids
-                            #print(f"new samplingHeights={self.newDf.at[(ri) ,  ('samplingHeight')]}")
+                            print(f"new samplingHeights={self.newDf.at[(ri) ,  ('samplingHeight')]}")
                             break
                         nPos+=1
                 except:
@@ -1224,7 +1172,7 @@ class lumiaGuiApp:
         self.Pg1FossilEmisLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Fossil emissions:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         self.Pg1FossilEmisOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv, values=AVAIL_FOSSIL_EMISS_DATA, 
                                         variable=self.FossilEmisCkbVar, dropdown_fontName=self.root.myFontFamily, dropdown_fontSize=self.root.fsNORMAL)
-        self.Pg1FossilCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Fossil (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
+        self.Pg1FossilCkb = ge.guiCheckBox(self.guiPg1TpLv, parent=self, text="Fossil (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                             variable=self.FossilCkbVar, onvalue=True, offvalue=False)                             
         # Row 8: Emissions data (a prioris) continued: fossil+ocean
         # ################################################################
@@ -1232,7 +1180,7 @@ class lumiaGuiApp:
         #       Land/Vegetation Net Exchange combo box
         self.Pg1LandNetExchangeOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv,  values=AVAIL_LAND_NETEX_DATA, variable=self.LandNetExchangeModelCkbVar, 
                                                                                                         dropdown_fontName=self.root.myFontFamily, dropdown_fontSize=self.root.fsNORMAL)
-        self.Pg1LandVegCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Land/Vegetation", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
+        self.Pg1LandVegCkb = ge.guiCheckBox(self.guiPg1TpLv, parent=self, text="Land/Vegetation", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                              variable=self.LandVegCkbVar, onvalue=True, offvalue=False)
         # Row 9: Obs data location radiobutton
         # ################################################################
@@ -1240,10 +1188,10 @@ class lumiaGuiApp:
         self.Pg1OceanNetExchangeLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Ocean net exchange:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         self.Pg1OceanNetExchangeOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv, values=AVAIL_OCEAN_NETEX_DATA,
                                         variable=self.OceanNetExchangeCkbVar, dropdown_fontName=self.root.myFontFamily, dropdown_fontSize=self.root.fsNORMAL)
-        self.Pg1OceanCkb = ge.guiCheckBox(self.guiPg1TpLv, text="Ocean (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
+        self.Pg1OceanCkb = ge.guiCheckBox(self.guiPg1TpLv, parent=self,  text="Ocean (off)", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                             variable=self.OceanCkbVar, onvalue=True, offvalue=False)                            
         #       Ignore ChkBx
-        self.Pg1ignoreWarningsCkb = ge.guiCheckBox(self.guiPg1TpLv,disabled=True, text="Ignore Warnings", fontName=self.root.myFontFamily,  
+        self.Pg1ignoreWarningsCkb = ge.guiCheckBox(self.guiPg1TpLv,parent=self, disabled=True, text="Ignore Warnings", fontName=self.root.myFontFamily,  
                             fontSize=self.root.fsNORMAL, variable=self.bIgnoreWarningsCkbVar, onvalue=True, offvalue=False) # text_color='gray5',  text_color_disabled='gray70', 
         # Row 10: Obs data entries
         # ################################################################
@@ -1389,6 +1337,7 @@ class lumiaGuiApp:
     # checkGuiValues gathers all the selected options and text from the available entry
     # fields and boxes and then generates a prompt using them
     def checkGuiValues(self):
+        print('Entered checkGuiValues')
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -1611,7 +1560,10 @@ class lumiaGuiApp:
                 
                 
 
-    def EvHdPg2stationAltitudeFilterAction(self):
+    def EvHdPg2stationAltitudeFilterAction(self, actualSelf=None, value=None):
+        if((value is not None) and (actualSelf is not None)):
+            print(f'EvHdPg2stationAltitudeFilterAction called with value={value}')
+            self=actualSelf 
         stationMinAltCommonSense= -100 #m Dead Sea
         stationMaxAltCommonSense= 9000 #m Himalaya
         bStationFilterActive= ge.getWidgetValue(self.FilterStationAltitudesCkb)
@@ -1640,8 +1592,12 @@ class lumiaGuiApp:
             self.ymlContents['observations']['filters']['stationMinAlt']=mnh
         self.applyFilterRulesPg2()                       
         return True
+
         
-    def EvHdPg2stationSamplingHghtAction(self):
+    def EvHdPg2stationSamplingHghtAction(self, actualSelf=None, value=None):
+        if((value is not None) and (actualSelf is not None)):
+            print(f'EvHdPg2stationSamplingHghtAction called with value={value}')
+            self=actualSelf 
         inletMinHeightCommonSense = 0    # in meters
         inletMaxHeightCommonSense = 850 # in meters World's heighest buildings
         sErrorMsg=""
@@ -1671,7 +1627,9 @@ class lumiaGuiApp:
         self.applyFilterRulesPg2()
         return True
     
-    def EvHdPg2isICOSfilter(self):
+    def EvHdPg2isICOSfilter(self,  value=None):
+        if(value is not None):
+            print(f'EvHdPg2isICOSfilter called with value={value}')
         ge.getWidgetValue()
         ge.getVarValue()
         bICOSonly=True
@@ -1968,6 +1926,7 @@ class lumiaGuiApp:
             if(whichButton==1): 
                 self.EvHdPg2GoBtnHit
             else:
+                print('User abort.')
                 self.closeApp(bWriteStop=True) # Abort run
         return True
 
@@ -1990,17 +1949,17 @@ class lumiaGuiApp:
             self.ObsFileRankingBox=None
         # Col2
         #  ##############################################################################
-        self.ObsLv1Ckb = ge.guiCheckBox(rootFrame, text="Level1", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
+        self.ObsLv1Ckb = ge.guiCheckBox(rootFrame, self, text="Level1", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                 variable=self.ObsLv1CkbVar, onvalue=True, offvalue=False)                             
-        self.ObsNRTCkb = ge.guiCheckBox(rootFrame, text="NRT", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
+        self.ObsNRTCkb = ge.guiCheckBox(rootFrame, self, text="NRT", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                 variable=self.ObsNRTCkbVar, onvalue=True, offvalue=False)                             
-        self.ObsOtherCkb = ge.guiCheckBox(rootFrame, text="Other", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
+        self.ObsOtherCkb = ge.guiCheckBox(rootFrame, self, text="Other", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                 variable=self.ObsOtherCkbVar, onvalue=True, offvalue=False)                             
         # Col 3    Filtering of station altitudes
         #  ##############################################################################
-        self.FilterStationAltitudesCkb = ge.guiCheckBox(rootFrame, text="Filter station altitudes", fontName=self.root.myFontFamily,  
+        self.FilterStationAltitudesCkb = ge.guiCheckBox2(rootFrame, self, text="Filter station altitudes", fontName=self.root.myFontFamily,  
                                                     fontSize=self.root.fsNORMAL, variable=self.FilterStationAltitudesCkbVar, onvalue=True, offvalue=False, 
-                                                    command=self.EvHdPg2stationAltitudeFilterAction)
+                                                    command=self.EvHdPg2stationAltitudeFilterAction, nameOfEvtHd='EvHdPg2stationAltitudeFilterAction') 
         self.minAltLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         self.maxAltLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         # min Altitude Entry
@@ -2009,7 +1968,7 @@ class lumiaGuiApp:
         self.stationMaxAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.sStationMaxAlt, placeholder_text=str(self.stationMaxAlt), width=self.root.colWidth)
         # Col 5    -  sampling height filter
         #  ##############################################################################
-        self.FilterSamplingHghtCkb = ge.guiCheckBox(rootFrame, text="Filter sampling heights", fontName=self.root.myFontFamily,  
+        self.FilterSamplingHghtCkb = ge.guiCheckBox(rootFrame, self, text="Filter sampling heights", fontName=self.root.myFontFamily,  
                                                             fontSize=self.root.fsNORMAL, variable=self.FilterSamplingHghtCkbVar, onvalue=True, offvalue=False, 
                                                             command=self.EvHdPg2stationSamplingHghtAction)                             
         self.minHghtLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
