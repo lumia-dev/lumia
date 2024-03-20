@@ -12,7 +12,7 @@ import yaml
 import time
 import re
 import ipywidgets  as wdg
-import functools
+from functools import partial
 from jupyter_ui_poll import ui_events
 from pandas import to_datetime
 from loguru import logger
@@ -748,7 +748,6 @@ class lumiaGuiApp:
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
-        #print(f'ri={ri},  ci={ci} in EvHdPg2myCheckboxEvent')
         bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
         if(self.widgetsLst[widgetID] is not None):
             if(ci==0):
@@ -757,10 +756,6 @@ class lumiaGuiApp:
                     if(ri==33):
                         bs=self.newDf.at[(ri) ,  ('selected')]
                         bc=self.newDf.at[(ri) ,  ('includeCountry')]
-                        logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
-                        logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
-                    #row.iloc[0]=True
-                    #self.newDf.iloc[ri, 0]=True
                     row=self.newDf.iloc[ri]
                     ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='blue') # 'On'
                 else:
@@ -768,10 +763,6 @@ class lumiaGuiApp:
                     if(ri==33):
                         bs=self.newDf.at[(ri) ,  ('selected')]
                         bc=self.newDf.at[(ri) ,  ('includeCountry')]
-                        logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
-                        logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
-                    #row.iloc[0]=False
-                    #self.newDf.iloc[ri, 0]=False
                     row=self.newDf.iloc[ri]
                     ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='green') # 'Off'
                 self.EvHdPg2updateRowOfObsWidgets(ri, row)
@@ -789,19 +780,14 @@ class lumiaGuiApp:
                         self.newDf.at[(ri) ,  ('includeCountry')] =True
                         if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
                             self.newDf.at[(ri) ,  ('selected')] =True
-                            #row.iloc[0]=True
-                            #self.newDf.iloc[ri, 0]=True
                             row=self.newDf.iloc[ri]
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                         else:
                             self.newDf.at[(ri) ,  ('selected')] =False
-                            #row.iloc[0]=False
-                            #self.newDf.iloc[ri, 0]=False
                             row=self.newDf.iloc[ri]
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
-                        #row.iloc[13]=True # 'includeCountry'
                         self.newDf.iloc[ri, 13]=True
                         row=self.newDf.iloc[ri]
                     else:
@@ -810,10 +796,6 @@ class lumiaGuiApp:
                             self.excludedCountriesList.append(row['country'])
                         self.newDf.at[(ri) ,  ('includeCountry')] =False
                         self.newDf.at[(ri) ,  ('selected')] =False
-                        #row.iloc[0]=False
-                        #row.iloc[13]=False  # 'includeCountry'
-                        #self.newDf.iloc[ri, 0]=False
-                        #self.newDf.iloc[ri, 13]=False
                         row=self.newDf.iloc[ri]
                         if(ri==33):
                             bs=self.newDf.at[(ri) ,  ('selected')]
@@ -834,7 +816,6 @@ class lumiaGuiApp:
                 bSameStation=True  # multiple rows may be affected
                 self.nRows=len(self.newDf)
                 thisStation=self.newDf.at[(ri) ,  ('stationID')]
-                #includeStationIdx=widgetID+2
                 while((bSameStation) and (ri<self.nRows)):
                     if(bChkBxIsSelected):
                         try:
@@ -847,19 +828,11 @@ class lumiaGuiApp:
                             (self.newDf.at[(ri) ,  ('HghtOk')]==True) and
                             (row['dClass']==4)):
                             self.newDf.at[(ri) ,  ('selected')] =True
-                            #row.iloc[0]=True
-                            #self.newDf.iloc[ri, 0]=True
                             row=self.newDf.iloc[ri]
-                            #self.newDf.at[(ri) ,  ('includeStation')] =True
                         else:
                             self.newDf.at[(ri) ,  ('selected')] =False
-                            #row.iloc[0]=False
-                            #self.newDf.iloc[ri, 0]=False
                             row=self.newDf.iloc[ri]
                         self.newDf.at[(ri) ,  ('includeStation')] =True
-                        #row.iloc[2]=True  !! is not boolean, is the station 3-letter code. use iloc[14] for this
-                        #row.iloc[14]=True # 'includeStation'
-                        #self.newDf.iloc[ri, 14]=True
                         row=self.newDf.iloc[ri]
                         ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                     else:
@@ -867,10 +840,7 @@ class lumiaGuiApp:
                         if(row['stationID'] not in self.excludedStationsList):
                             self.excludedStationsList.append(row['stationID'])
                         self.newDf.at[(ri) ,  ('selected')] =False
-                        #row.iloc[0]=False
                         self.newDf.at[(ri) ,  ('includeStation')] =False
-                        #row.iloc[14]=False # 'includeStation'
-                        #self.newDf.iloc[ri, 14]=False
                         row=self.newDf.iloc[ri]
                         ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
                     self.EvHdPg2updateRowOfObsWidgets(ri, row)
@@ -1627,9 +1597,10 @@ class lumiaGuiApp:
         self.applyFilterRulesPg2()
         return True
     
-    def EvHdPg2isICOSfilter(self,  value=None):
-        if(value is not None):
+    def EvHdPg2isICOSfilter(self, actualSelf=None, value=None):
+        if((value is not None) and (actualSelf is not None)):
             print(f'EvHdPg2isICOSfilter called with value={value}')
+            self=actualSelf 
         ge.getWidgetValue()
         ge.getVarValue()
         bICOSonly=True
@@ -1957,7 +1928,7 @@ class lumiaGuiApp:
                                                                 variable=self.ObsOtherCkbVar, onvalue=True, offvalue=False)                             
         # Col 3    Filtering of station altitudes
         #  ##############################################################################
-        self.FilterStationAltitudesCkb = ge.guiCheckBox2(rootFrame, self, text="Filter station altitudes", fontName=self.root.myFontFamily,  
+        self.FilterStationAltitudesCkb = ge.guiCheckBox(rootFrame, self, text="Filter station altitudes", fontName=self.root.myFontFamily,  
                                                     fontSize=self.root.fsNORMAL, variable=self.FilterStationAltitudesCkbVar, onvalue=True, offvalue=False, 
                                                     command=self.EvHdPg2stationAltitudeFilterAction, nameOfEvtHd='EvHdPg2stationAltitudeFilterAction') 
         self.minAltLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
@@ -1970,7 +1941,7 @@ class lumiaGuiApp:
         #  ##############################################################################
         self.FilterSamplingHghtCkb = ge.guiCheckBox(rootFrame, self, text="Filter sampling heights", fontName=self.root.myFontFamily,  
                                                             fontSize=self.root.fsNORMAL, variable=self.FilterSamplingHghtCkbVar, onvalue=True, offvalue=False, 
-                                                            command=self.EvHdPg2stationSamplingHghtAction)                             
+                                                            command=self.EvHdPg2stationSamplingHghtAction, nameOfEvtHd='EvHdPg2stationSamplingHghtAction')                             
         self.minHghtLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         self.maxHghtLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         # min inlet height

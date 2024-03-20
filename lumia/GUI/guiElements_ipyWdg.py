@@ -2,6 +2,7 @@
 import ipywidgets  as wdg
 from loguru import logger
 import time
+from functools import partial
 from jupyter_ui_poll import ui_events
 #from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
 
@@ -247,7 +248,7 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     return True
 
 
-class guiCheckBox(wdg.Checkbox):
+class guiOldCheckBox(wdg.Checkbox):
     def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=False, 
                             text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
         self.command=command
@@ -299,7 +300,7 @@ class guiCheckBox(wdg.Checkbox):
         return
 
 
-class guiCheckBox2(wdg.Checkbox):
+class guiCheckBox(wdg.Checkbox):
     def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None, 
                              fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
         self.command=command
@@ -339,14 +340,17 @@ class guiCheckBox2(wdg.Checkbox):
                 print('Failed to extract the value')
                 value=True
             print(f'command={self.command}')
+            # There ought to be a more elegant way using lambda or functool.partial(), but I could not get this to work.
+            # self.command points to the right memory address where that function resides, but seemingly nothing happens...
+            # lambda actualSelf=self.lumiaGuiApp, value=value : self.command(actualSelf, value)
+            # functool.partial(self.command, actualSelf=self.lumiaGuiApp, value=value)
+            # ...but then again a good programmer can program in FORTRAN in any programming language....speed is no issue here, it is only ugly
             if(self.command is None):
                 pass
             elif((self.nameOfEvtHd is not None) and (len(self.nameOfEvtHd)>3)):
                 if ('EvHdPg2stationAltitudeFilterAction' in self.nameOfEvtHd):
                     print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
                     self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
-                    print('trying with lambda...')
-                    self.command
                 if ('EvHdPg2stationSamplingHghtAction' in self.nameOfEvtHd):
                     print('calling EvHdPg2stationSamplingHghtAction')
                     self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
@@ -354,10 +358,6 @@ class guiCheckBox2(wdg.Checkbox):
                 self.command
         return 
         
-        #btn.on_click(lambda self, trainfolder=trainfolder, modelname=modelname : segmentation_training(trainfolder,modelname))
-        #self.observe(lambda actOnOptionMenuChanges)
-        
-        #self.observe(lambda self=self.lumiaGuiApp,  value=self.value : self.command(self, self.value))
 
 def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=None,  text=None,  text_color=None, fg_color=None,  bg_color=None):
 #                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],  state=tk.DISABLED,  command=None,  text='On',  text_color='blue',  fg_color=None,  bg_color=None)
