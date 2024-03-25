@@ -19,8 +19,8 @@ p.add_argument('--gradtest', default=False, action='store_true', dest='gradtest'
 p.add_argument('--noobs', default=False, action='store_true', help="Run without an observations database, on the basis of the footprints available.")
 p.add_argument('--optimize', default=False, action='store_true')
 p.add_argument('--prepare_emis', default=False, action='store_true', dest='emis', help="Use this command to prepare an emission file without actually running the transport model or an inversion.")
-p.add_argument('--start', default=None, help="Start of the simulation. Overwrites the value in the rc-file")
-p.add_argument('--end', default=None, help="End of the simulation. Overwrites the value in the rc-file")
+p.add_argument('--start', default=None, help="Start of the simulation in format YYYY-MM-DD. Overwrites the value in the rc-file")
+p.add_argument('--end', default=None, help="End of the simulation in format YYYY-MM-DD. Overwrites the value in the rc-file")
 # p.add_argument('--gui', dest='gui', default=False, action='store_true',  help="An optional graphical user interface is called at the start of Lumia to ease its configuration.")
 p.add_argument('--setkey', action='append', help="use to override some rc-keys (ignored by the GUI)")
 p.add_argument('--tag', default='')
@@ -99,7 +99,7 @@ defaults = {
     'transport.output.steps': ['forward']
 }
 
-# for tr in rcf.rcfGet('run.tracers', tolist='force'):
+# for tr in rcf.rcfGet('run.tracers', tolist='force'): 
 LLst=rcf['run']['tracers']
 for tr in LLst: 
 #for tr in list(rcf['run']['tracers']):      # or  list(rcf.rcfGet('run.tracers'))
@@ -111,13 +111,13 @@ if args.start is None :
 else :
     start = Timestamp(args.start)
     sstart= start.strftime('%Y,%m,%d')
-    rcf.setkey('run.time.start', start+' 00:00:00.000Z')  # start.strftime('%Y,%m,%d')
+    rcf.setkey('run.time.start', sstart+' 00:00:00.000')  # start.strftime('%Y,%m,%d')
 if args.end is None :
     end = Timestamp(rcf.rcfGet('run.time.end'))
 else :
     end = Timestamp(args.end)
     send= end.strftime('%Y,%m,%d')
-    rcf.setkey('run.time.end', end+' 23:59:59.000Z')  #end.strftime('%Y,%m,%d'))
+    rcf.setkey('run.time.end', send+' 23:59:59.000')  #end.strftime('%Y,%m,%d'))
 
 if (0>1): # for testing - moving away from mixtures of start/end date representations 
     from pandas import date_range

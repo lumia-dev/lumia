@@ -9,6 +9,7 @@ from screeninfo import get_monitors
 from PIL import  ImageFont  #, ImageDraw
 #from Pillow import ImageFont, ImageDraw
 
+
 MIN_SCREEN_WIDTH=1920 # pxl - just in case querying screen size fails for whatever reason...
 MIN_SCREEN_HEIGHT=1080 # pxl - just in case querying screen size fails for whatever reason...
 
@@ -150,7 +151,6 @@ def calculateEstheticFontSizes(sFontFamily,  iAvailWidth,  iAvailHght, sLongestT
     bSuccess=True
     logger.debug(f"fsSMALL={fsSMALL},fsNORMAL={fsNORMAL},fsLARGEL={fsLARGE},fsHUGE={fsHUGE}")
     return(bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC, fontHeight, bWeMustStack, bSuccess)
-
 
 
 def cleanUp(self,  bWriteStop=True):  # of lumiaGuiApp

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import tkinter as tk    
 import customtkinter as ctk
 from tkinter import messagebox as mb
@@ -40,6 +39,7 @@ class GridCTkCheckBox(ctk.CTkCheckBox):
         self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
         print(f'self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
         ctk.CTkCheckBox.__init__(self, root, command=self.ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
+
 
 class GridCTkLabel(ctk.CTkLabel):
     def __init__(self, root, myGridID,  *args, **kwargs):
@@ -86,8 +86,9 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize, style), text=text)
 )
 
-def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=None, 
-                            text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
+
+def   guiCheckBox(self, root=None, parent=None,disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None,
+                                    fontSize=12, variable=None, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
     if(disabled):
         state=tk.DISABLED
     else:
@@ -100,6 +101,7 @@ def   guiCheckBox(self,disabled=False, text='', fontName="Georgia", command=None
     else:
         return(ctk.CTkCheckBox(self,state=state, text=text, font=(fontName, fontSize), variable=variable, text_color='gray5',  
                                         command=command, text_color_disabled='gray70', onvalue=onvalue, offvalue=offvalue) )
+
 
 def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=None,  text=None,  text_color=None,  fg_color=None,  bg_color=None):
 #                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],  state=tk.DISABLED,  command=None,  text='On',  text_color='blue',  fg_color=None,  bg_color=None)

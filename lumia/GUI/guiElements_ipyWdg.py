@@ -5,7 +5,6 @@ import time
 from functools import partial
 from jupyter_ui_poll import ui_events
 #from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
-
 from IPython.display import display
 
 
@@ -132,7 +131,6 @@ class GridCTkLabel(wdg.Text):
         )
 
 
-
 class GridCTkOptionMenu(wdg.Dropdown):
     def __init__(self, parent, root, myGridID, command, values, *args, **kwargs):
         self.widgetGridID= myGridID
@@ -158,7 +156,7 @@ class GridCTkOptionMenu(wdg.Dropdown):
                     try:
                         wdgGridTxt=change['owner'].layout.grid_area
                         if not (wdgGridTxt is None):
-                            print(f'changeEvent={change}')
+                            #print(f'changeEvent={change}')
 
                             # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
                             # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
@@ -320,14 +318,14 @@ class guiCheckBox(wdg.Checkbox):
     def actOnCheckBoxChange(self, change):
         try:
             chName=''
-            print(f'changeEvent={change}')
+            #print(f'changeEvent={change}')
         except:
             pass
         try:
             chName=change['name']
         except:
             chName=''
-        print(f'chName={chName}')
+        #print(f'chName={chName}')
         # we are only interested in events where there is a change in value selected/deselected True/False etc
         # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
         # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
@@ -339,7 +337,7 @@ class guiCheckBox(wdg.Checkbox):
             except:
                 print('Failed to extract the value')
                 value=True
-            print(f'command={self.command}')
+            #print(f'command={self.command}')
             # There ought to be a more elegant way using lambda or functool.partial(), but I could not get this to work.
             # self.command points to the right memory address where that function resides, but seemingly nothing happens...
             # lambda actualSelf=self.lumiaGuiApp, value=value : self.command(actualSelf, value)

@@ -1,31 +1,27 @@
 #!/usr/bin/env python3
 
-
 import os
 import sys
 import housekeeping as hk
 import pandas as pd
 import argparse
 from datetime import datetime,  timedelta
-import time
+#import time
 import yaml
-import time
-import re
-import ipywidgets  as wdg
-from functools import partial
-from jupyter_ui_poll import ui_events
+#import re
 from pandas import to_datetime
 from loguru import logger
-import _thread
+#import _thread
 from queryCarbonPortal import discoverObservationsOnCarbonPortal
 
 global AVAIL_LAND_NETEX_DATA  # Land/vegetation net exchange model emissions that are supported
 AVAIL_LAND_NETEX_DATA=["LPJ-GUESS","VPRM"]
 global AVAIL_FOSSIL_EMISS_DATA      # FOSSIL Emissions data sets supported
-AVAIL_FOSSIL_EMISS_DATA=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"]
+AVAIL_FOSSIL_EMISS_DATA=["EDGARv4_LATEST","EDGARv4.3_BP2021_CO2_EU2_2023","EDGARv4.3_BP2021_CO2_EU2_2020","EDGARv4.3_BP2021_CO2_EU2_2019", "EDGARv4.3_BP2021_CO2_EU2_2018"]
 global AVAIL_OCEAN_NETEX_DATA      # Ocean Net Exchange data sets supported
 AVAIL_OCEAN_NETEX_DATA=["mikaloff01"]
-        # Fossil emissions combo box.  Latest version at time of writing: https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3
+        # Fossil emissions combo box.  Latest version at time of writing: https://meta.icos-cp.eu/collections/KUbfPUVytev3qR_guM_-ir5a  (2023)
+        # https://meta.icos-cp.eu/collections/GP-qXikmV7VWgG4G2WxsM1v3 (2023) https://commons.datacite.org/doi.org/10.18160/RFJD-QV8J
         #  https://hdl.handle.net/11676/Ce5IHvebT9YED1KkzfIlRwDi (2022) https://doi.org/10.18160/RFJD-QV8J EDGARv4.3 and BP statistics 2023
         # https://hdl.handle.net/11676/6i-nHIO0ynQARO3AIbnxa-83  EDGARv4.3_BP2021_CO2_EU2_2020.nc  
         # https://hdl.handle.net/11676/ZU0G9vak8AOz-GprC0uY-HPM  EDGARv4.3_BP2021_CO2_EU2_2019.nc
@@ -233,35 +229,37 @@ class lumiaGuiApp:
         print(f'filename={filename}')
         return
         self.bSuggestOldDiscoveredObservations=False
-        self.check4recentDiscoveredObservations(self.ymlContents)
-        if(self.haveDiscoveredObs):
-            self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
-        if(self.bSuggestOldDiscoveredObservations):
-            if(USE_TKINTER):
-                self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
-                            message=self.ageOfExistingDiscoveredObservations)
-            else:
-                print('..suggest cached obs data...')
-                self.wdgGrid4 = wdg.GridspecLayout(n_rows=2, n_columns=3,  grid_gap="5px")
-                self.Pg1cachedObsDataLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=self.ageOfExistingDiscoveredObservations,  width=600)
-                self.Pg1UseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Use cached Discovered-obs-data",  width=240)
-                self.Pg1DontUseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Hunt for latest data from the carbon portal",  width=300)
-                ge.guiPlaceWidget(self.wdgGrid4, self.Pg1cachedObsDataLabel, row=0,  column=0, columnspan=2, rowspan=1,  padx=10, pady=10, sticky='news')
-                ge.guiPlaceWidget(self.wdgGrid4, self.Pg1UseCachedButton, row=1, column=0, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
-                ge.guiPlaceWidget(self.wdgGrid4, self.Pg1DontUseCachedButton, row=1, column=1, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
-                self.wdgGrid4
-                display(self.wdgGrid4)
-                try:
-                    whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
-                            title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
-                except:
-                    whichButton=1
-                if(whichButton==1): 
-                    self.bUseCachedList = True
+        self.haveDiscoveredObs=False
+        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+            self.check4recentDiscoveredObservations(self.ymlContents)
+            if(self.haveDiscoveredObs):
+                self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
+            if(self.bSuggestOldDiscoveredObservations):
+                if(USE_TKINTER):
+                    self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
+                                message=self.ageOfExistingDiscoveredObservations)
                 else:
-                    self.bUseCachedList = False
-        else:
-            print('no cached data on offer...')
+                    print('..suggest cached obs data...')
+                    self.wdgGrid4 = wdg.GridspecLayout(n_rows=2, n_columns=3,  grid_gap="5px")
+                    self.Pg1cachedObsDataLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=self.ageOfExistingDiscoveredObservations,  width=600)
+                    self.Pg1UseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Use cached Discovered-obs-data",  width=240)
+                    self.Pg1DontUseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Hunt for latest data from the carbon portal",  width=300)
+                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1cachedObsDataLabel, row=0,  column=0, columnspan=2, rowspan=1,  padx=10, pady=10, sticky='news')
+                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1UseCachedButton, row=1, column=0, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
+                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1DontUseCachedButton, row=1, column=1, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
+                    self.wdgGrid4
+                    display(self.wdgGrid4)
+                    try:
+                        whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
+                                title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
+                    except:
+                        whichButton=1
+                    if(whichButton==1): 
+                        self.bUseCachedList = True
+                    else:
+                        self.bUseCachedList = False
+            else:
+                print('no cached data on offer...')
         if(USE_TKINTER):
             self.guiPg1TpLv.iconify()
         # Save  all details of the configuration and the version of the software used:
@@ -274,9 +272,10 @@ class lumiaGuiApp:
             self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2
         logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
         
-        # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
-        # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
-        self.huntAndGatherObsData()
+        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):        
+            # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
+            # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
+            self.huntAndGatherObsData()
         # Get the currently selected tracer from the yml config file
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         # Ranking of data records from CarbonPortal : populate the ObsFileRankingBoxTxt
@@ -388,7 +387,8 @@ class lumiaGuiApp:
             
             # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
             # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
-            self.huntAndGatherObsData()
+            if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+                self.huntAndGatherObsData()
             self.closeTopLv(bWriteStop=False)
         return True
             
@@ -491,6 +491,7 @@ class lumiaGuiApp:
         timeStep=self.ymlContents['run']['time']['timestep']
         
         # discoverObservationsOnCarbonPortal()
+        tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         if(self.bUseCachedList):
             # re-use the existing DiscoveredObservations.csv file, i.e. do not hunt for available data on the carbon portal
             self.badPidsLst=[] 
@@ -502,7 +503,6 @@ class lumiaGuiApp:
             self.fDiscoveredObservations=os.path.join(sOutDir,  fname)
             sCmd=f'cp {self.oldDiscoveredObservations} {self.fDiscoveredObservations}'
             hk.runSysCmd(sCmd)
-            tracer=hk.getTracer(self.ymlContents['run']['tracers'])
             hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', tracer,  'file',  'dicoveredObsData'],   
                                                                         value=self.fDiscoveredObservations, bNewValue=True)
         else:
@@ -975,7 +975,11 @@ class lumiaGuiApp:
                 # self.guiPg1TpLv.configure(background='cadet blue')
 
         self.bSuggestOldDiscoveredObservations=False
-        self.check4recentDiscoveredObservations(self.ymlContents)
+        self.haveDiscoveredObs=False
+        # Get the currently selected tracer from the yml config file
+        self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
+        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+            self.check4recentDiscoveredObservations(self.ymlContents)
         bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):")
         # this gives us self.root.colWidth self.root.rowHeight, self.myFontFamily, self.fontHeight, self.fsNORMAL & friends
         xPadding=self.root.xPadding
@@ -1632,38 +1636,39 @@ class lumiaGuiApp:
         except:
             pass
         '''
-        try:
+        try: 
             self.newDf.to_csv(self.sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
         except:
             logger.error(f"Fatal Error: Failed to write to file {self.sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc.")
             self.closeApp
         '''
-        try:
-            dfq['pid2'] = dfq['pid'].apply(bs.grabFirstEntryFromList)
-            dfq['samplingHeight2'] = dfq['samplingHeight'].apply(bs.grabFirstEntryFromList)
-            #,selected,country,stationID,altOk,altitude,HghtOk,samplingHeight[Lst],isICOS,latitude,longitude,dClass,dataSetLabel,includeCountry,includeStation,pid[Lst],pid2,samplingHeight2
-            dfq.drop(columns='pid',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
-            dfq.drop(columns='samplingHeight',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
-            dfq.drop(columns='selected',inplace=True)
-            dfq.drop(columns='altOk',inplace=True)
-            dfq.drop(columns='HghtOk',inplace=True)
-            dfq.drop(columns='includeCountry',inplace=True)
-            dfq.drop(columns='includeStation',inplace=True)
-            dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
-            self.ymlContents['observations'][self.tracer]['file']['selectedObsData']=sOutputPrfx+"selected-ObsData-"+self.tracer+".csv"
-            dfq.to_csv(self.ymlContents['observations'][self.tracer]['file']['selectedObsData'], mode='w', sep=',')
-            dfPids=dfq['pid']
-            self.ymlContents['observations'][self.tracer]['file']['selectedPIDs']=sOutputPrfx+"selected-PIDs-"+self.tracer+".csv"
-            selectedPidLst = dfPids.iloc[1:].tolist()
-            sFOut=self.ymlContents['observations'][self.tracer]['file']['selectedPIDs']
-            # dfPids.to_csv(self.ymlContents['observations'][self.tracer]['file']['selectedPIDs'], mode='w', sep=',')
-            with open( sFOut, 'w') as fp:
-                for item in selectedPidLst:
-                    fp.write("%s\n" % item)
-            
-        except:
-            logger.error(f"Fatal Error: Failed to write to file {sOutputPrfx}-selected-ObsData-{self.tracer}.csv. Please check your write permissions and possibly disk space etc.")
-            self.closeApp
+        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']): # else ther is no dfq dataframe
+            try:
+                dfq['pid2'] = dfq['pid'].apply(bs.grabFirstEntryFromList)
+                dfq['samplingHeight2'] = dfq['samplingHeight'].apply(bs.grabFirstEntryFromList)
+                #,selected,country,stationID,altOk,altitude,HghtOk,samplingHeight[Lst],isICOS,latitude,longitude,dClass,dataSetLabel,includeCountry,includeStation,pid[Lst],pid2,samplingHeight2
+                dfq.drop(columns='pid',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
+                dfq.drop(columns='samplingHeight',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
+                dfq.drop(columns='selected',inplace=True)
+                dfq.drop(columns='altOk',inplace=True)
+                dfq.drop(columns='HghtOk',inplace=True)
+                dfq.drop(columns='includeCountry',inplace=True)
+                dfq.drop(columns='includeStation',inplace=True)
+                dfq.rename(columns={'pid2': 'pid', 'samplingHeight2': 'samplingHeight'},inplace=True)
+                self.ymlContents['observations'][self.tracer]['file']['selectedObsData']=sOutputPrfx+"selected-ObsData-"+self.tracer+".csv"
+                dfq.to_csv(self.ymlContents['observations'][self.tracer]['file']['selectedObsData'], mode='w', sep=',')
+                dfPids=dfq['pid']
+                self.ymlContents['observations'][self.tracer]['file']['selectedPIDs']=sOutputPrfx+"selected-PIDs-"+self.tracer+".csv"
+                selectedPidLst = dfPids.iloc[1:].tolist()
+                sFOut=self.ymlContents['observations'][self.tracer]['file']['selectedPIDs']
+                # dfPids.to_csv(self.ymlContents['observations'][self.tracer]['file']['selectedPIDs'], mode='w', sep=',')
+                with open( sFOut, 'w') as fp:
+                    for item in selectedPidLst:
+                        fp.write("%s\n" % item)
+                
+            except:
+                logger.error(f"Fatal Error: Failed to write to file {sOutputPrfx}-selected-ObsData-{self.tracer}.csv. Please check your write permissions and possibly disk space etc.")
+                self.closeApp
         try:
             nC=len(self.excludedCountriesList)
             nS=len(self.excludedStationsList)
@@ -1814,84 +1819,87 @@ class lumiaGuiApp:
             self.nCols=10
             self.wdgGrid3 = wdg.GridspecLayout(n_rows=128, n_columns=self.nCols,  grid_gap="3px")
 
-
-        # ====================================================================
-        # Create a scrollable Frame within the rootFrame of the second GUI page to receive the dynamically created 
-        #             widgets from the obsDataSets  -- part of lumiaGuiApp (root window)
-        # ====================================================================
-        if(USE_TKINTER):
-            # Create a scrollable frame onto which to place the many widgets that represent all valid observations found
-            #  ##################################################################
-            # Create a frame for the canvas with non-zero row&column weights
-            rootFrameCanvas = tk.Frame(rootFrame)
-            rootFrameCanvas.configure(background='thistle1') # 'OliveDrab1')
-            rootFrameCanvas.grid(row=5, column=0,  columnspan=11,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-            rootFrameCanvas.grid_rowconfigure(0, weight=2) # the weight>0 effectively moves the scrollbar to the far right though there may be better ways to achieve this
-            rootFrameCanvas.grid_columnconfigure(0, weight=2)
-            cWidth = appWidth - xPadding
-            cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
-            cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
-            logger.debug(f'requested dimensions for scrollableCanvas: w={cWidth} h={cHeight}. GuiApp w={self.root.appWidth} h={self.root.appHeight}')
-            if (cWidth > self.root.appWidth):
-                cWidth = self.root.appWidth-1
-            # Add a scrollableCanvas in that frame
-            scrollableCanvas = tk.Canvas(rootFrameCanvas, width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
-            scrollableCanvas.configure(background='CadetBlue3')  # 'cadet blue')
-            scrollableCanvas.grid(row=0, column=0,  columnspan=11,  rowspan=10, sticky="news")
-            # Link a scrollbar to the scrollableCanvas
-            vsb = tk.Scrollbar(rootFrameCanvas, orient="vertical", command=scrollableCanvas.yview)
-            vsb.grid(row=0, column=1, sticky='ns')
-            scrollableCanvas.configure(yscrollcommand=vsb.set)
-            # Create a frame to contain the widgets for all obs data sets found following initial user criteria
-            scrollableFrame4Widgets = tk.Frame(scrollableCanvas) #, bg="#82d0d2") #  slightly lighter than "cadet blue"
-            scrollableFrame4Widgets.configure(background='#82d0d2')  # 'orchid1')
-            scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
-        else:
-            scrollableFrame4Widgets = ge.pseudoRootFrame()
-            rootFrameCanvas = ge.pseudoRootFrame()
-
-        # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
-        sLastCountry=''
-        sLastStation=''
-        num = 0  # index for 
-        self.widgetID_LUT={}  # wdgGrid3 assigns each widget a consecutive ID (a string) of style 'widget001', .. , 'widget488' for which we need a lookup table to convert into widgetGridID
-        for rowidx, row in self.newDf.iterrows(): 
-            guiRow=rowidx # startRow+rowidx
-            if((rowidx==0) or (row['country'] not in sLastCountry)):
-                # when the widgets are created,  row['includeCountry'] is used to indicate whether a CheckBox
-                # is painted for that row - only the first row of each country will have this
-                # Once the CheckBox was created, row['includeCountry'] is used to track wether the Country has been
-                # selected or deselected by the user. At start (in this subroutine) all Countries are selected.
-                row['includeCountry'] = True
-                sLastCountry=row['country'] 
+        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+            # ====================================================================
+            # Create a scrollable Frame within the rootFrame of the second GUI page to receive the dynamically created 
+            #             widgets from the obsDataSets  -- part of lumiaGuiApp (root window)
+            # ====================================================================
+            if(USE_TKINTER):
+                # Create a scrollable frame onto which to place the many widgets that represent all valid observations found
+                #  ##################################################################
+                # Create a frame for the canvas with non-zero row&column weights
+                rootFrameCanvas = tk.Frame(rootFrame)
+                rootFrameCanvas.configure(background='thistle1') # 'OliveDrab1')
+                rootFrameCanvas.grid(row=5, column=0,  columnspan=11,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
+                rootFrameCanvas.grid_rowconfigure(0, weight=2) # the weight>0 effectively moves the scrollbar to the far right though there may be better ways to achieve this
+                rootFrameCanvas.grid_columnconfigure(0, weight=2)
+                cWidth = appWidth - xPadding
+                cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
+                cHeight = appHeight - (7*self.root.rowHeight) - (3*yPadding)
+                logger.debug(f'requested dimensions for scrollableCanvas: w={cWidth} h={cHeight}. GuiApp w={self.root.appWidth} h={self.root.appHeight}')
+                if (cWidth > self.root.appWidth):
+                    cWidth = self.root.appWidth-1
+                # Add a scrollableCanvas in that frame
+                scrollableCanvas = tk.Canvas(rootFrameCanvas, width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
+                scrollableCanvas.configure(background='CadetBlue3')  # 'cadet blue')
+                scrollableCanvas.grid(row=0, column=0,  columnspan=11,  rowspan=10, sticky="news")
+                # Link a scrollbar to the scrollableCanvas
+                vsb = tk.Scrollbar(rootFrameCanvas, orient="vertical", command=scrollableCanvas.yview)
+                vsb.grid(row=0, column=1, sticky='ns')
+                scrollableCanvas.configure(yscrollcommand=vsb.set)
+                # Create a frame to contain the widgets for all obs data sets found following initial user criteria
+                scrollableFrame4Widgets = tk.Frame(scrollableCanvas) #, bg="#82d0d2") #  slightly lighter than "cadet blue"
+                scrollableFrame4Widgets.configure(background='#82d0d2')  # 'orchid1')
+                scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
             else:
-                row['includeCountry']=False
-            if((rowidx==0) or (row['stationID'] not in sLastStation)):
-                row['includeStation']=True
-                sLastStation=row['stationID']
-            else:
-                row['includeStation']=False
-            sSamplingHeights=[str(row['samplingHeight'][0])] 
-            for element in row['samplingHeight']:
-                sElement=str(element)
-                if(not sElement in sSamplingHeights):
-                    sSamplingHeights.append(sElement)
-            self.guiPg2createRowOfObsWidgets(scrollableFrame4Widgets, num,  rowidx, row,guiRow, sSamplingHeights, 
-                                                                        self.root.fsNORMAL, xPadding, yPadding, self.root.fsSMALL)
-            # After drawing the initial widgets, all entries of station and country are set to true unless they are on an exclusion list
-            countryInactive=row['country'] in self.excludedCountriesList
-            stationInactive=row['stationID'] in self.excludedStationsList
-            self.newDf.at[(rowidx) ,  ('includeCountry')] = (not countryInactive)
-            self.newDf.at[(rowidx) ,  ('includeStation')] =(not stationInactive)
-        if(USE_TKINTER):
-            # Update buttons frames idle tasks to let tkinter calculate buttons sizes
-            scrollableFrame4Widgets.update_idletasks()
-            # Set the scrollableCanvas scrolling region
-            scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
-        else: 
-            # print(f'widgetID_LUT={self.widgetID_LUT}')
-            self.wdgGrid3
-            display(self.wdgGrid3)
+                scrollableFrame4Widgets = ge.pseudoRootFrame()
+                rootFrameCanvas = ge.pseudoRootFrame()
+    
+            # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+            sLastCountry=''
+            sLastStation=''
+            num = 0  # index for 
+            self.widgetID_LUT={}  # wdgGrid3 assigns each widget a consecutive ID (a string) of style 'widget001', .. , 'widget488' for which we need a lookup table to convert into widgetGridID
+            for rowidx, row in self.newDf.iterrows(): 
+                guiRow=rowidx # startRow+rowidx
+                if((rowidx==0) or (row['country'] not in sLastCountry)):
+                    # when the widgets are created,  row['includeCountry'] is used to indicate whether a CheckBox
+                    # is painted for that row - only the first row of each country will have this
+                    # Once the CheckBox was created, row['includeCountry'] is used to track wether the Country has been
+                    # selected or deselected by the user. At start (in this subroutine) all Countries are selected.
+                    row['includeCountry'] = True
+                    sLastCountry=row['country'] 
+                else:
+                    row['includeCountry']=False
+                if((rowidx==0) or (row['stationID'] not in sLastStation)):
+                    row['includeStation']=True
+                    sLastStation=row['stationID']
+                else:
+                    row['includeStation']=False
+                sSamplingHeights=[str(row['samplingHeight'][0])] 
+                for element in row['samplingHeight']:
+                    sElement=str(element)
+                    if(not sElement in sSamplingHeights):
+                        sSamplingHeights.append(sElement)
+                self.guiPg2createRowOfObsWidgets(scrollableFrame4Widgets, num,  rowidx, row,guiRow, sSamplingHeights, 
+                                                                            self.root.fsNORMAL, xPadding, yPadding, self.root.fsSMALL)
+                # After drawing the initial widgets, all entries of station and country are set to true unless they are on an exclusion list
+                countryInactive=row['country'] in self.excludedCountriesList
+                stationInactive=row['stationID'] in self.excludedStationsList
+                self.newDf.at[(rowidx) ,  ('includeCountry')] = (not countryInactive)
+                self.newDf.at[(rowidx) ,  ('includeStation')] =(not stationInactive)
+            if(USE_TKINTER):
+                # Update buttons frames idle tasks to let tkinter calculate buttons sizes
+                scrollableFrame4Widgets.update_idletasks()
+                # Set the scrollableCanvas scrolling region
+                scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
+            else: 
+                # print(f'widgetID_LUT={self.widgetID_LUT}')
+                self.wdgGrid3
+                display(self.wdgGrid3)
+        #else:
+        #    self.update_idletasks()
+        if(not USE_TKINTER):
             whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 
                                                                                             title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
             if(whichButton==1): 
@@ -2094,11 +2102,13 @@ if(args.noTkinter):
 if(USE_TKINTER):
     import guiElementsTk as ge
     import tkinter as tk    
-    import customtkinter as ctk
+    #import customtkinter as ctk
 else:
+    import ipywidgets  as wdg
+    #from jupyter_ui_poll import ui_events
+    #from functools import partial
     import guiElements_ipyWdg as ge
-    from IPython.display import display, HTML,  clear_output
-    import ipywidgets as wdg
+    from IPython.display import display #, HTML,  clear_output
     # from ipywidgets import  Dropdown, Output, Button, FileUpload, SelectMultiple, Text, HBox, IntProgress
 if(args.rcf is None):
     if(args.ymf is None):

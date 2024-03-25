@@ -28,7 +28,7 @@ emissions:
         error_min: 0
         is_ocean: false
         optimize: false
-        origin: EDGARv4.3_BP2019
+        origin: EDGARv4.3_BP2023
         tcorr: ${optimize.emissions.co2.fossil.temporal_correlation}
         unit: PgC
       ocean:

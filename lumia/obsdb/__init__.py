@@ -28,8 +28,8 @@ class obsdb:
             
             # self.observations.loc[:, 'time'] = self.observations.time.astype('datetime64[ns]')
             self.files = DataFrame(columns=['filename'])
-            self.start = Timestamp(start) if start is not None else None
-            self.end = Timestamp(end) if end is not None else None
+            self.start = Timestamp(start)  #gibberish  if start is not None else None  -- if start was not given on the commandline, then start is None and it needs to come from the yml file
+            self.end = Timestamp(end) # if end is not None else None
             self.setup = False
             self.io = {
                 'observations': {
@@ -79,6 +79,7 @@ class obsdb:
                     self.start = self.observations.time.min()
             except:
                 self.start = self.observations.time.min()
+            logger.debug(f'obsdb__ini__: self.start ={self.start}')
             try:
                 if self.end is None:
                     self.end = self.observations.time.max()
@@ -115,17 +116,39 @@ class obsdb:
         db2 = footprintdb(db1)           # this will expand the initial "db1" object with methods from the "footprintdb"
                                          # class, which is a derived class of obsdb
         :param db:
-        :return:
+        :return: 
         """
         self.observations = db.observations
         self.sites = db.sites
         self.files = db.files
 
     def SelectTimes(self, tmin=None, tmax=None, copy=True):
+        selobsTmin = self.observations.time.min() 
+        try:
+            print(f'selobsTmin={selobsTmin}')
+        except:
+            pass
+        try:
+            print(f'tmin={tmin},  tmax={tmax}')
+        except:
+            pass
+        try:
+            print(f'self.start={self.start}')
+        except:
+            pass
         tmin = self.start if tmin is None else tmin
         tmax = self.end if tmax is None else tmax
+        try:
+            print(f'tmin={tmin},  tmax={tmax}')
+
+        except:
+            pass
         tmin = self.observations.time.min() if tmin is None else tmin
         tmax = self.observations.time.max() if tmax is None else tmax
+        try:
+            print(f'selobsTmin={selobsTmin},  tmin={tmin},  tmax={tmax}')
+        except:
+            pass
         observations = self.observations.loc[(
                 (self.observations.time >= tmin) &
                 (self.observations.time <= tmax)
