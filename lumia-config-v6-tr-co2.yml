@@ -194,4 +194,4 @@ transport:
 var4d:
   communication:
     file: ./tmp/LumiaDA-2024-01-22T20_39/LumiaDA-2024-01-22T20_39-congrad.nc
-  max_iter: 333
+  max_iter: 256

@@ -65,24 +65,23 @@ class Minimizer:
         #copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
         #copy_file(os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out'), path)
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         sTmpDir=os.path.dirname(sTmpPrfx)
         sDbgFName=os.path.join(sTmpDir, 'congrad_debug.out')
         bCopied=True
         try:
             (dest_name, bCopied)=copy_file(sTmpPrfx+'congrad.nc', sOutputPrfx+'congrad.nc')
         except:
-            logger.error(f'Failed to copy {sTmpPrfx}congrad.nc to {sOutputPrfx}congrad.nc. You might be able to recover it from the {os.path.dirname(sTmpPrfx)} directory')
+            bCopied=False 
+        bCopied2=True
         if(not bCopied):
-            logger.error(f'Failed to copy {sTmpPrfx}congrad.nc to {sOutputPrfx}congrad.nc. You might be able to recover it from the {os.path.dirname(sTmpPrfx)} directory')
-        bCopied=True
-        try:
-            (dest_name, bCopied)=copy_file(sDbgFName, sOutputPrfx+'congrad_debug.out')
-        except:
-            logger.error(f'Failed to copy {sDbgFName} to {sOutputPrfx}congrad_debug.out. You might be able to recover it from the {sTmpDir} directory')
-        if(not bCopied):
-            logger.error(f'Failed to copy {sDbgFName} to {sOutputPrfx}congrad_debug.out. You might be able to recover it from the {sTmpDir} directory')
-
+            try:
+                (dest_name, bCopied2)=copy_file(sDbgFName, sOutputPrfx+'congrad_debug.out')
+            except:
+                bCopied2=False
+        if((not bCopied) and (not bCopied2)):
+            logger.error(f'Failed to copy congrad_debug.out to {sOutputPrfx}congrad_debug.out. You might be able to recover it from the {sTmpDir} directory,  if you are lucky.')
+            
     def iter_states(self):
         traject = self.commfile.read_traject()
         for istate in range(traject.shape[1]):
