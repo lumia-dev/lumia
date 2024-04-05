@@ -6,14 +6,20 @@ from datetime import timedelta
 from numpy import zeros, sqrt
 import rctools
 import tarfile
-import yaml
+#import yaml
 import xarray as xr
 from lumia.obsdb import obsdb
 from lumia.formatters.cdoWrapper import ensureReportedTimeIsStartOfMeasurmentInterval
+import lumia.GUI.boringStuff as bs
+import lumia.GUI.myCarbonPortalTools
+import lumia.GUI.housekeeping as hk
+from icoscp_core.icos import meta as iccMeta
+from icoscp_core.icos import data as iccData
+
 from multiprocessing import Pool
 from loguru import logger
 from typing import Union
-from pandas import DataFrame, to_datetime, concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
+from pandas import DataFrame, to_datetime, concat , read_csv, offsets  # , Timestamp, Timedelta, read_hdf, Series  #, read_hdf, Series
 from pandas.api.types import is_float_dtype
 # from rctools import RcFile
 # from icoscp.cpb import metadata as meta
@@ -50,15 +56,7 @@ class obsdb(obsdb):
             - filekey (optional): name of the section containing the file path and relevant keys
 
         """
-        tracer='co2'
-        try:
-            if (isinstance(rcf['run']['tracers'], str)):
-                tracer=rcf['run']['tracers']
-            else:
-                trac=rcf['run']['tracers']
-                tracer=trac[0]
-        except:
-            tracer='co2'
+        tracer=hk.getTracer(rcf['run']['tracers'])
         db = cls(
             rcf['observations'][ tracer][filekey]['path'], 
             start=rcf.rcfGet('observations.start', default=None), 
@@ -76,14 +74,12 @@ class obsdb(obsdb):
 
         # If no "tracer" column in the observations file, it can also be provided through the rc-file (observations.file.tracer key)
         if "tracer" not in db.observations.columns:
-            # TODO: thew whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble
+            # TODO: the whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble
             # jumble code has only been tested for one tracer. However, in order to read rcf['observations'][tracer][filekey]['tracer'] we 
             # require prior knowledge of said tracer in order to read that key.... and thus the tracer name really needs to be handed down 
             # from the calling function. For now, a hot fix picking the first tracer just so it works at least with one tracer
-            tracers = rcf.rcfGet('run.tracers',  default=['CO2'])
-            #tracer = rcf['observations']['tracer'][filekey]['tracer']
-            tracer = tracers[0]
-            logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
+            tracer=hk.getTracer(rcf['run']['tracers'])
+            #logger.warning(f'No "tracer" column provided. Attributing all observations to tracer {tracer}')
             db.observations.loc[:, 'tracer'] = tracer
         logger.debug(f'from_CPortal() completed successfully. Return value is db={db}')
         return db
@@ -127,36 +123,26 @@ class obsdb(obsdb):
         self.rcf = rcf
         CrudeErrorEstimate="1.5" # 1.5 ppm
         timeStep=self.rcf['run']['time']['timestep']
-        tracer='co2'
-        try:
-            if (isinstance(rcf['run']['tracers'], str)):
-                tracer=rcf['run']['tracers']
-            else:
-                trac=rcf['run']['tracers']
-                tracer=trac[0]
-        except:
-            tracer='co2'
+        tracer=hk.getTracer(rcf['run']['tracers'])
         # sLocation=rcf['observations'][tracer]['file']['location']
         # if ('CARBONPORTAL' in sLocation):
         # We need to provide the contents of "observations.csv" and "sites.csv". "files.csv" is (always) empty - thus unimportant - and so is the data frame resulting from it.
         # bFromCarbonportal=True
         bFirstDf=True
         nDataSets=0
-        # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is executed on the carbon portal itself
+        # we attempt to locate and read the tracer observations directly from the carbon portal - given that this code is meant to be executed on the carbon portal itself
         # discoverObservationsOnCarbonPortal(sKeyword=None, tracer='CO2', pdTimeStart=None, pdTimeEnd=None, year=0,  sDataType=None,  iVerbosityLv=1)
         # cpDir=/data/dataAppStorage/asciiAtcProductTimeSer/
         # cpDir=rcf['observations'][tracer]['file']['cpDir']
         #remapObsDict=rcf['observations'][tracer]['file']['renameCpObs']
         #if self.start is None:
-        sStart=self.rcf['observations']['start']    # should be a string like start: '2018-01-01 00:00:00'
+        sStart=self.rcf['observations']['start']    # should be a string like start: '2018-01-01 00:00:00' 
         sEnd=self.rcf['observations']['end']
-        # self.start = self.observations.time.min()
-        # if self.end is None:
-        # self.end = self.observations.time.max()
-        pdTimeStart = to_datetime(sStart, format="%Y-%m-%d %H:%M:%S")
-        pdTimeStart=pdTimeStart.tz_localize('UTC')
-        pdTimeEnd = to_datetime(sEnd, format="%Y-%m-%d %H:%M:%S")
-        pdTimeEnd=pdTimeEnd.tz_localize('UTC')
+
+        print(f'sStart={sStart},  sEnd={sEnd} which are of type ',  flush=True)
+        print(type(sStart),  flush=True)
+        pdTimeStart=bs.getPdTime(sStart,  tzUT=True)
+        pdTimeEnd=bs.getPdTime(sEnd,  tzUT=True)
         # create a datetime64 version of these so we can extract the time interval needed from the pandas data frame
         pdSliceStartTime=pdTimeStart.to_datetime64()
         pdSliceEndTime=pdTimeEnd.to_datetime64()
@@ -191,24 +177,25 @@ class obsdb(obsdb):
             # pid="6k8ll2WBSqYqznUbTaVLsJy9" # TRN 180m - same as in observations.tar.gz - for testing
             # mdata=meta.get("https://meta.icos-cp.eu/objects/"+pid)  # mdata is available as part of dob (dob.meta)
             pidUrl="https://meta.icos-cp.eu/objects/"+pid
-            logger.info(f"pidUrl={pidUrl}")
+            logger.debug(f"Next I shall try to read the observed co2 data from pidUrl={pidUrl}")
+            try:
+                dobjMeta = iccMeta.get_dobj_meta(pidUrl)
+                dobj_arrays = iccData.get_columns_as_arrays(dobjMeta) #, ['TIMESTAMP', 'co2'])
+                logger.info('dobj_arrays data retrieved successfully.')
+                logger.debug(f'dobj_arrays={dobj_arrays}')
+                obsData1site = DataFrame(dobj_arrays)
+                logger.info(f"I have read the observed co2 data successfully from: PID={pid} dobjMeta={dobjMeta}") # station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
+                obsData1site.iloc[:512, :].to_csv('_dbg_icc_'+pid+'-obsData1site-obsCPortalDbL188.csv', mode='w', sep=',')  
+            except:
+                obsData1site=None
             try:
                 dob = Dobj(pidUrl)
-                logger.info(f"Reading observed co2 data from: PID={pid} station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
                 # logger.debug(f"dobj: {dob}")
-                obsData1site = dob.get()
+                if(obsData1site is None):
+                    obsData1site = dob.get()
+                    obsData1site.iloc[:512, :].to_csv('_dbg_get_'+pid+'-obsData1site-obsCPortalDbL188.csv', mode='w', sep=',')  
+                logger.info(f"I have read the observed co2 data successfully from: PID={pid} station={dob.station['org']['name']}, located at station latitude={dob.lat},  longitude={dob.lon},  altitude={dob.alt},  elevation={dob.elevation}")
                 # obsData1site.iloc[:100, :].to_csv(sTmpPrfx+'_dbg_'+pid+'-obsData1site-obsPortalDbL188.csv', mode='w', sep=',')  
-
-                # sCols=obsData1site.columns
-                # logger.debug(f'{sCols}')
-                # logger.debug('default obtained with obsData1site = dob.get():')
-                # logger.debug(f'{obsData1site}')
-                try:
-                    dftest = dob.meta()
-                    logger.debug('default obtained with dob.meta():')
-                    logger.debug(f'{dftest}')
-                except:
-                    pass
                 # logger.info(f"samplingHeight={dob.meta['specificInfo']['acquisition']['samplingHeight']}")
                 availColNames = list(obsData1site.columns.values)
                 if ('Site' not in availColNames):
@@ -218,31 +205,17 @@ class obsdb(obsdb):
                     # what ends up in the pandas dataframe is only the hour of the day without date....
                     # Let's read the netcdf file ourselves then... for each PID there are 2 files, one without extension (the netcdf file) and one with .cpb extension
                     # example for an ObsPack Lv 2 data set: fn='/data/dataAppStorage/netcdfTimeSeries/bALaWpparMpY6_N-zW2Cia9a'
-                    datafileFound=False
-                    fn='/data/dataAppStorage/netcdfTimeSeries/'+pid
-                    if(os.path.exists(fn)):
-                        datafileFound=True
-                    else:
-                        fn='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-                        if(os.path.exists(fn)):
-                            datafileFound=True
-                        else:
-                            fn='/data/dataAppStorage/asciiAtcTimeSer/'+pid
-                            if(os.path.exists(fn)):
-                                datafileFound=True
-                            #else:
-                            #    fn='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-                            #    if(os.path.exists(fn)):
-                            #        datafileFound=True
-                    if(datafileFound==False):
-                        logger.warning(f"Suspicious data object {pidUrl}  :")
-                        logger.warning("This data set might be an ObsPack, but I cannot locate the file on the server.")
+                    fn=lumia.GUI.myCarbonPortalTools.getPidFname(pid)
+                    if(fn is None):
+                        #datafileFound=False
+                        logger.error("Failed to locate the file for data object {pidUrl} on the server. Make sure that the carbon portal file system is mounted at /data/dataAppStorage/")
                         # Remove this pid from the list of used data sets: pid in selectedDobjLst                
                         selectedDobjLst[:] = [x for x in selectedDobjLst if pid not in x]
                         nBadies+=1 
                     else:
                         ds = xr.open_dataset(fn)
                         df = ds.to_dataframe()
+                        df.iloc[:512, :].to_csv('_dbg_dfRaw_'+pid+'-obsData1site-obsCPortalDbL188.csv', mode='w', sep=',')  
                         availColNames = list(df.columns.values)
                         if ('Site' not in availColNames):
                             df.loc[:,'Site'] = dob.station['id'].lower()
@@ -256,6 +229,7 @@ class obsdb(obsdb):
                                 df.drop(columns=['TIMESTAMP'], inplace=True) # rename(columns={'TIMESTAMP':'timeStmp'}, inplace=True)
                             df.rename(columns={'start_time':'time'}, inplace=True)
                         df.rename(columns={'value':'obs','value_std_dev':'stddev', 'nvalue':'NbPoints'}, inplace=True)
+                        df.iloc[:512, :].to_csv('_dbg_dfFinal_'+pid+'-obsData1site-obsCPortalDbL188.csv', mode='w', sep=',')  
                         obsData1site=df
                         if(is_float_dtype(obsData1site['obs'])==False):
                             obsData1site['obs']=obsData1site['obs'].astype(float)
@@ -392,6 +366,7 @@ class obsdb(obsdb):
                         logger.info(f"Available columns in the file with pid= {pid} are: {availColNames}")
                         logger.error(f"Data from pid={pid} is discarded.")
             except:
+                nBadies+=1
                 logger.error(f"Error: reading of the Dobj failed for pidUrl={pidUrl}.")
         
         if(nBadies>0):

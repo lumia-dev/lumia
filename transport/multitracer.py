@@ -142,7 +142,7 @@ if __name__ == '__main__':
     p.add_argument('--footprints', '-p', help="Path where the footprints are stored")
     p.add_argument('--check-footprints', action='store_true', help='Determine which footprint file correspond to each observation')
     p.add_argument('--copy-footprints', default=None, help="Path where the footprints should be copied during the run (default is to read them directly from the path given by the '--footprints' argument")
-    p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
+    p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform an adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--tmp', default='/tmp', help='Path to a temporary directory where (big) files can be written')
     p.add_argument('--ncpus', '-n', default=os.cpu_count())
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     bTryagain=True
 
    
-    # I have seen this goofing up without producing a proper error - better safe than sorry....
+    # I have seen this goofing up without producing a proper error - sometimes the first argument seems to contain unwanted information - try chucking these out...
     iSkip=0
     while((bTryagain) and (iSkip<5)):
         try:
@@ -166,7 +166,8 @@ if __name__ == '__main__':
     if((bTryagain) or (iSkip>4)):
         logger.error('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjtest transport model was NOT run.')
         raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst model was NOT run.')
-
+    else:
+        logger.info('If you got the error >>multitracer.py: error: the following arguments are required: --obs<< but no CRITICAL ERROR, then you can ignore it safely. If you read this, then the contingency plan worked.')
     # Set the verbosity in the logger (loguru quirks ...)
     logger.remove()
     logger.add(sys.stderr, level=args.verbosity)
@@ -222,6 +223,8 @@ if __name__ == '__main__':
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
     emis = Emissions.read(args.emis)  # goes to lumia.transport.emis.init_.read() and reads  self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']+emissions.nc
     if args.forward:
+        logger.debug(f'lumia.transport.multitracer.main model.run_forward(obs, emis) with obs={obs} ')
+        logger.debug(f'lumia.transport.multitracer.main model.run_forward(obs, emis) with emis={emis} ')
         obs = model.run_forward(obs, emis)  # goes to lumiatransport.core.model.run_forward() -> run() -> run_tracer() 
         logger.debug(f'lumia.transport.multitracer.main writing obs = model.run_forward(obs, emis) via obs.write({args.obs}) ')
         obs.write(args.obs)

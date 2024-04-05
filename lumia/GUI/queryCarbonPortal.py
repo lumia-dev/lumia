@@ -10,7 +10,15 @@ from loguru import logger
 import numpy as np
 from pandas import DataFrame  #, concat
 # from icoscp.sparql import sparqls, runsparql
-import myCarbonPortalTools
+try:
+    import myCarbonPortalTools
+except:
+    try:
+        import lumia.GUI.myCarbonPortalTools as myCarbonPortalTools
+    except:
+        logger.error('Failed to import lumia.GUI.myCarbonPortalTools.py')
+        sys.exit(1)
+    
 from icoscp.sparql.runsparql import RunSparql
 from icoscp.cpb.dobj import Dobj
 from icoscp.collection import collection
@@ -249,26 +257,6 @@ def extractFnamesFromDobj(dobj, iVerbosityLv=1):
                         bGrabNextUrl=False
                         #  /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
                         fNameLst.append(sPID)
-                        '''
-                        if(1==0): # Let's disable this for now. We use the icoscp library that read the file via the pid and we may easily miss a valid file location here.
-                            # TODO: observational data is in a different path copmpared to level3 netcdf files....
-                            # https://meta.icos-cp.eu/objects/LLz6BZr6LCt1Pt0w-U_DLxWZ
-                            # /data/dataAppStorage/asciiAtcProductTimeSer/LLz6BZr6LCt1Pt0w-U_DLxWZ.cpb
-                            cpDir=None # may get this from the config.yml file
-                            if (cpDir is None):
-                                cpDir=/data/dataAppStorage/asciiAtcProductTimeSer/
-                            sFileNameOnCarbonPortal = cpDir+sPID+'.cpb'
-                            try:
-                                # Make sure this file actually exists and is accessible on the portal
-                                f=open(sFileNameOnCarbonPortal, 'rb')
-                                f.close()
-                                if(iVerbosityLv>0):
-                                    logger.info(f"Found ICOS co2 observations data file on the portal at {sFileNameOnCarbonPortal}")
-                                fNameLst.append(sPID)
-                            except:
-                                logger.error('The file '+sFileNameOnCarbonPortal+' cannot be read or does not exist on the Carbon Portal or you are not running this script on the Carbon Portal. Please check first of all the directory you provided for observations.file.cpDir in your .yml resource file.')
-                                # sys.exit(-1)   /data/dataAppStorage/asciiAtcProductTimeSer/ZZb1E_dJQtRICzobwg0ib86C
-                        '''
     except:
         logger.error("No valid observational data found in SPARQL query dobj=")
         logger.error(f"{dobj}")
@@ -346,10 +334,10 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
         myCarbonPortalTools.printProgressBar(0, nObj, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
     nBadDataSets=0
     badPids=[]
-    icosStationLut=myCarbonPortalTools.createIcosStationLut()
+    # icosStationLut=myCarbonPortalTools.createIcosStationLut()
     for n, pid in enumerate(finalDobjLst):
         url="https://meta.icos-cp.eu/objects/"+pid
-        (mdata, bDataSuccessfullyRead)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid,  icosStationLut)
+        (mdata, bDataSuccessfullyRead)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid)
         '''
         returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
                 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
@@ -412,9 +400,10 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                 sUrl=pidMetadata['accessUrl']
                 fileName=pidMetadata['fileName']
                 dataSetLabel=pidMetadata['specification']['self']['label']  
+                stationName=
                 '''
                 columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
-                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel', 'stationName'] 
                 if(len(columnNames)==len(data)):
                     df=DataFrame(data=[data], columns=columnNames)
                 else:

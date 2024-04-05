@@ -1,14 +1,18 @@
 import re
 import tkinter as tk 
-import housekeeping as hk
+try:
+    import housekeeping as hk
+except:
+    import lumia.GUI.housekeeping as hk
 import os
+import sys
 from loguru import logger
 from matplotlib import font_manager
 from screeninfo import get_monitors
 # from PIL import Image
 from PIL import  ImageFont  #, ImageDraw
 #from Pillow import ImageFont, ImageDraw
-
+from pandas import to_datetime
 
 MIN_SCREEN_WIDTH=1920 # pxl - just in case querying screen size fails for whatever reason...
 MIN_SCREEN_HEIGHT=1080 # pxl - just in case querying screen size fails for whatever reason...
@@ -265,6 +269,26 @@ def formatMyString(inString, minLen, units=""):
     return(outStr+units)
 
 
+def getPdTime(timeStr,  tzUT=False):
+    timeStr=removeQuotesFromString(timeStr)
+    pdTime=None
+    if('.000' in timeStr[-5:]):  # strip microseconds
+        timeStr=timeStr[:-4]
+    try:
+        pdTime = to_datetime(timeStr, format="%Y-%m-%d %H:%M:%S")
+    except:
+        try:
+            pdTime = to_datetime(timeStr, format="%Y,%m,%d %H:%M:%S") # sStart=2018,01,01 00:00:00.000
+        except:
+            try:
+                pdTime = to_datetime(timeStr, format="%Y,%m,%d %H,%M,%S") # sStart=2018,01,01 00,00,00.000
+            except:
+                logger.error(f'Failed to extract a meaningful pd.to_datetime from string timeStr={timeStr}.')
+                sys.exit(-73)
+    if(tzUT):
+        pdTime=pdTime.tz_localize('UTC')
+    return(pdTime)
+
 
 def grabFirstEntryFromList(myList):
   try:
@@ -291,7 +315,18 @@ def nestedKeyExists(element, *keys):
             return False
     return True
 
-
+def removeQuotesFromString(str):
+    snglquote="'"
+    idx = str.find(snglquote)    
+    while(idx >-1):
+        if (idx==0):
+            str=str[1:]
+        elif(idx==len(str)-1):
+            str=str[:-1]
+        else:
+            str=str[:idx-1]+str[idx+1:]
+        idx = str.find(snglquote)
+    return(str)
 
 # Plan the layout of the GUI - get screen dimensions, choose a reasonable font size for it, xPadding, etc.
 def stakeOutSpacesAndFonts(guiWindow, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):",  maxAspectRatio=1.2):

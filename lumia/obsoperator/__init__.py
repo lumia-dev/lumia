@@ -36,7 +36,7 @@ class transport(object):
     def setupObs(self, obsdb):
         self.db = obsdb
 
-        # Just to ensure that calcDepartures work even if no obs err has been provided
+        # Just to ensure that calcDepartures works even if no obs err has been provided
         if ('err' not in self.db.observations) :
             logger.warning("The observations provided do not contain an 'err' column. You may want to check this.")
             self.db.observations.loc[:, 'err'] = None
@@ -160,7 +160,7 @@ class transport(object):
         
         logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
 
-        # Run the model
+        # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
         sCmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
 
         if self.serial or serial:

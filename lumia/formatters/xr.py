@@ -238,7 +238,10 @@ class TracerEmis(xr.Dataset):
         if attrs is None:
             attrs = {}
         attrs['tracer'] = self.tracer
-        self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
+        #self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
+        self[name] = xr.DataArray(value, sizes=['time', 'lat', 'lon'], attrs=attrs)
+            # TODO: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent 
+            # with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
         self.attrs['categories'].append(name)
         return(self.shape)
 

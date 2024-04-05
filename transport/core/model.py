@@ -148,16 +148,23 @@ class Forward(BaseTransport):
         obslist = shared_memory.obs
         obslist = obslist.loc[obslist.footprint == filename, ['obsid',]]
         emis = shared_memory.emis
-        with shared_memory.footprint_class(filename) as fpf :
-
+        logger.debug(f'footprint_class(filename={filename})')
+        with shared_memory.footprint_class(filename) as fpf :    
             # Align the coordinates
-            # logger.info(f"emis.grid={emis.grid}")
+            logger.debug(f"emis.grid={emis.grid}")
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
-
+            logger.debug(f'emis.grid={emis.grid},  emis.times.timestep={emis.times.timestep},  emis.times.min={emis.times.min}')
+            nitems=0
             for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
-                fp = fpf.get(obs)
-                for cat in emis.categories :
-                    obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
+                if(nitems>1415):  # TODO crude debug statement - replace hard number with shape time info from emis object
+                    logger.error(f'iobs out of bounds. Time  axis (1st pandas df column) exceeds the dimension of 1416 (0 to 1415) entries. nitems={nitems} iobs={iobs}')
+                else:
+                    fp = fpf.get(obs)
+                    for cat in emis.categories :
+                        obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
+                nitems+=1
+                if(nitems>1425):
+                    break
         return obslist
 
 
@@ -205,9 +212,11 @@ class Adjoint(BaseTransport):
         return adjemis
 
     def run_files_serial(self, filenames: List[str]) -> List[str]:
+        logger.debug(f'Running lumia.transport.core.model.run_files_serial with filenames={filenames}')
         return [self.run_subset(filenames, silent=self.silent)]
 
     def run_files_mp(self, filenames: List[str]) -> List[str]:
+        logger.debug(f'Running lumia.transport.core.model.run_files_mp with filenames={filenames}')
         # TODO: for debugging - force single cpu as opposed to multi-threading  - however, that is not working as expected
         # logger.info("Entering multi-threaded mode. ")
         return [self.run_subset(filenames, silent=self.silent)]
@@ -232,7 +241,7 @@ class Adjoint(BaseTransport):
         #observations = shared_memory.obs
         times = shared_memory.time
         grid = shared_memory.grid
-        # logger.info(f"size of times dimension={times.nt}")
+        logger.info(f"size of times dimension={times.nt}")
         adj_emis = zeros((times.nt, grid.nlat, grid.nlon))
         nWanted=(times.nt) * grid.nlat*grid.nlon # number of data point we want to receive
         nPtsRead=0  # number of footprint space-time data points read
@@ -248,13 +257,14 @@ class Adjoint(BaseTransport):
                 desc=fpf.filename
                 # logger.info(f" desc={desc}")
                 total=observations.shape[0]
-                # logger.info(f"total={total}")
+                logger.debug(f" desc={desc},  total={total}")
                 bFirst=True
                 for obs in tqdm(observations.itertuples(), desc=fpf.filename, total=observations.shape[0], disable=silent):
                     fp = fpf.get(obs.obsid)
                     # logger.info(f"(pool_id({pool_id})): fp={fp}")
                     if(bFirst):
-                        logger.info(f"obs={obs}")
+                        logger.info(f"fp={fp}") 
+                        logger.info(f"obs={obs}") # logger.debug(f" fp={fp},  total={total}") 
                         logger.info(f"desc={desc},  obs.__dir__()=")
                         print(obs.__dir__(),  flush=True)
                         # logger.info(f" obs.mix_background={obs.mix_background}")

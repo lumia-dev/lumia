@@ -27,6 +27,8 @@ class LumiaFootprintFile(FootprintFile):
         except Exception :
             print(self.filename)
             raise RuntimeError
+        s=self.ds.attrs['start']
+        logger.debug(f'self.ds.attrs[start]={s}')
         self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
         self.dt = timedelta(seconds=self.ds.attrs['tres'])
 

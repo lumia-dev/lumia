@@ -30,13 +30,12 @@ def createIcosStationLut():
     return(icosStationLut)
 
 
-def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut,  suppressHugeCompilations=True):
+def  getMetaDataFromPid_via_icoscp_core(pid, suppressHugeCompilations=True):
     '''
     Function getMetaDataFromPid_via_icoscp_core
 
     @param pid persistent identifier of a data record held on the carbon portal 
     @type string (fixed length)
-    @param icosStationLut LookupTable of the level of certification as an ICOS station. Stations not listed are not affiliated with ICOS
     @type dictionary with the 3-letter station codes (Atmospheric stations only) as keys and the ICOS class as a one-letter string. 
     @param suppressHugeCompilations if set to True (default) then the return value of bAcceptable is set to false for
                 any data records that represent a "European Obspack compilation" which is a collection over ALL ICOS stations
@@ -53,7 +52,6 @@ def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut,  suppressHugeCompil
         # if it fails, metadata.get(url) from the icoscp.cpb package is used as a fallback. If set to False, the order is reversed.
     bAcceptable=True  
     url="https://meta.icos-cp.eu/objects/"+pid
-    sid='   '
     try:
         # Try the first method, e.g. the the low-level icscp-core library to query the metadata
         pidMetadata =  coreMeta.get_dobj_meta(url) if (bCoreLib) else metadata.get(url)
@@ -69,8 +67,9 @@ def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut,  suppressHugeCompil
 
     # 'stationID'
     try:
-        d=pidMetadata.specificInfo.acquisition.station.id  if (bCoreLib) else  pidMetadata['specificInfo']['acquisition']['station']['id']
-        sid=d[:3]
+        d=pidMetadata.specificInfo.acquisition.station.id  if (bCoreLib) \
+            else  pidMetadata['specificInfo']['acquisition']['station']['id']
+        d=d[:3]
     except:
         d=''
         ndr+=1
@@ -87,14 +86,14 @@ def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut,  suppressHugeCompil
     mdata.append(d)
     # 'isICOS'
     try:
-        #       projectUrl=pidMetadata.specification.project.self.uri 
-        # is the station an ICOS station? values are {'1','2','A','no'} class 1, 2, or A(ssociated) or else 'no' meaning it is not an ICOS station
         d='no'
-        value=icosStationLut[sid]  
-        d=value
+        try:
+            d=pidMetadata.specificInfo.acquisition.station.specificInfo.stationClass  if (bCoreLib) \
+                else  pidMetadata['specificInfo']['acquisition']['station']['specificInfo']['stationClass']
+        except:
+            pass  # if the key does not exist, then it is not an ICOS station, hence d='no'
     except:
         ndr+=1
-        #logger.debug(f'Station {sid} is not an ICOS station it seems, because it is not listed in the icosStationLut.')
     mdata.append(d)
     # 'latitude'
     try:
@@ -225,6 +224,14 @@ def  getMetaDataFromPid_via_icoscp_core(pid, icosStationLut,  suppressHugeCompil
         bAcceptable=False
     mdata.append(d2)
     mdata.append(d)
+    try:
+        d=pidMetadata.specificInfo.acquisition.station.org.name  if (bCoreLib) \
+            else  pidMetadata['specificInfo']['acquisition']['station']['org']['name']
+    except:
+        d=''
+        ndr+=1
+        logger.debug('Failed to read full station name from metadata')
+    mdata.append(d) # sFullStationName=dob.station['org']['name']
 
     if(ndr>1):
         bAcceptable=False
@@ -248,20 +255,22 @@ def  getPidFname(pid):
     '''
     if(pid is None):
         return(None)
+    datafileFound=False
+    # /data/dataAppStorage/netcdfTimeSeries/QeqT9ATwpxrCvd159Djt2eFr
     fNamePid='/data/dataAppStorage/netcdfTimeSeries/'+pid
-    if(os.path.exists(fNamePid)):
+    if(os.path.isfile(fNamePid)):
         datafileFound=True
     else:
         fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-        if(os.path.exists(fNamePid)):
+        if(os.path.isfile(fNamePid)):
             datafileFound=True
         else:
             fNamePid='/data/dataAppStorage/asciiAtcTimeSer/'+pid
-            if(os.path.exists(fNamePid)):
+            if(os.path.isfile(fNamePid)):
                 datafileFound=True
             else:
                 fNamePid='/data/dataAppStorage/asciiAtcProductTimeSer/'+pid
-                if(os.path.exists(fNamePid)):
+                if(os.path.isfile(fNamePid)):
                     datafileFound=True
     if(datafileFound):
         return(fNamePid)

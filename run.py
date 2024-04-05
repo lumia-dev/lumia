@@ -109,15 +109,15 @@ for tr in LLst:
 if args.start is None :
     start = Timestamp(rcf.rcfGet('run.time.start'))
 else :
-    start = Timestamp(args.start)
-    sstart= start.strftime('%Y,%m,%d')
-    rcf.setkey('run.time.start', sstart+' 00:00:00.000')  # start.strftime('%Y,%m,%d')
+    start = Timestamp(args.start) # should be a string like start: '2018-01-01 00:00:00' or 2018,01,01 00:00:00.000
+    sStart= start.strftime('%Y-%m-%d')
+    rcf.setkey('run.time.start', sStart+' 00:00:00.000')  # start.strftime('%Y,%m,%d')
 if args.end is None :
     end = Timestamp(rcf.rcfGet('run.time.end'))
 else :
     end = Timestamp(args.end)
-    send= end.strftime('%Y,%m,%d')
-    rcf.setkey('run.time.end', send+' 23:59:59.000')  #end.strftime('%Y,%m,%d'))
+    sEnd= end.strftime('%Y-%m-%d')
+    rcf.setkey('run.time.end', sEnd+' 23:59:59.000')  #end.strftime('%Y,%m,%d'))
 
 if (0>1): # for testing - moving away from mixtures of start/end date representations 
     from pandas import date_range
@@ -200,18 +200,7 @@ if args.noobs :
     from lumia.obsdb.runflex import obsdb
     db = obsdb(rcf.rcfGet('paths.footprints'), start, end)
 elif args.forward or args.optimize or args.adjtest or args.gradtest or args.adjtestmod:
-    try:
-        tracer='co2'
-        try:
-            if (isinstance(rcf['run']['tracers'], str)):
-                tracer=rcf['run']['tracers']
-            else:
-                trac=rcf['run']['tracers']
-                tracer=trac[0]
-        except:
-            tracer='co2'
-    except:
-        logger.error('Key run.tracers not retrievable from stated yaml config file')
+    tracer=hk.getTracer(rcf['run']['tracers'],  abortOnError=True)
     sLocation=rcf['observations'][tracer]['file']['location']
     # Create a proper output filename for all the combined observations. Need tracer and output directory etc.
     try:
@@ -256,6 +245,8 @@ if args.forward :
 # Setup uncertainties if needed:
 if args.optimize or args.gradtest :
     if rcf.rcfGet('observations.uncertainty.frequency') == 'dyn':
+        dims=emis['Dimensions']['time']
+        print(f'nHourlyEntries in Emis={dims}')
         logger.info(f" run_args.optimize_dyn(): before calling .calcDepartures(emis, apri) with emis={emis}")
         model.calcDepartures(emis, 'apri')   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
         db.setup_uncertainties_dynamic(

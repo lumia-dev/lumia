@@ -5,419 +5,27 @@ import sys
 import argparse
 import time
 import platform
+import traceback
 import _thread
 from loguru import logger
-from pandas import DataFrame,  read_csv  #, to_datetime, concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
-#from icoscp.cpb.dobj import Dobj
+from pandas import DataFrame,  read_csv, concat , to_datetime #, concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
+from pandas.api.types import is_float_dtype
+import xarray as xr
+
+from icoscp_core.icos import auth as iccAuth
+from icoscp.cpauth.authentication import Authentication , init_auth      
 from icoscp.cpb import metadata
-from icoscp_core.icos import meta as coreMeta
-from screeninfo import get_monitors
+from icoscp.cpb.dobj import Dobj
+from icoscp_core.icos import meta as iccMeta
+from icoscp_core.icos import data as iccData
+from icoscp_core.icos import bootstrap as iccBootstrap
+
 import myCarbonPortalTools
 import housekeeping as hk
-from ipywidgets import widgets
+#from ipywidgets import widgets
 
-USE_TKINTER=True
 scriptName=sys.argv[0]
-if('.ipynb' in scriptName[-6:]):
-    USE_TKINTER=False
-USE_TKINTER=False
-if(USE_TKINTER):
-    import guiElementsTk as ge
-    import tkinter as tk    
-    import customtkinter as ctk
-else:
-    import guiElements_ipyWdg as ge
-    from IPython.display import display, HTML,  clear_output
 import boringStuff as bs
-MIN_SCREEN_RES=480 # pxl - just in case querying screen size fails for whatever reason...
-
-def testGui():
-    scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
-    myDsp=os.environ.get('DISPLAY','')
-    if (myDsp == ''):
-        logger.warning('DISPLAY not listed in os.environ. On simple systems DISPLAY is usually :0.0  ...so I will give that one a shot. Proceeding with fingers crossed...')
-        os.environ.__setitem__('DISPLAY', ':0.0')
-    else:
-        logger.info(f'found Display {myDsp}')
-    if(USE_TKINTER):
-        ctk.set_appearance_mode("System")  
-        # background color (R,G,B)=(13,57,64)  = #0D3940
-        # Sets the color of the widgets in the window
-        # Supported themes : green, dark-blue, blue   
-        # ctk.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
-        ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json") 
-        root=ctk.CTk()
-        root.title('LUMIA - the Lund University Modular Inversion Algorithm')  
-        # rootFrame.geometry(f"{maxW+1}x{maxH+1}")   
-        ctk.set_appearance_mode("System")  
-        ctk.set_default_color_theme(scriptDirectory+"/doc/lumia-dark-theme.json")
-    #appWidth, appHeight,  xPadding, yPadding = displayGeometry() 
-    widgetsLst = []
-    sLogCfgPath=""
-    if(0<1):
-        if(USE_TKINTER):
-            rootFrame = tk.Frame(root, bg="cadet blue")
-            rootFrame.grid(sticky='news')
-            FrameCanvas1 = tk.Frame(rootFrame)
-            guiPage1=LumiaGui(FrameCanvas1,  root) 
-            # query the CarbonPortal for suitable data sets that match the requests defined in the config.yml file and the latest GUI choices
-            #root.withdraw()
-            guiPage1.attributes('-topmost', 'true')
-        else:
-            guiPage1=LumiaGui(None,  None) 
-            root=None
-        rVal=guiPage1.run(root, sLogCfgPath) 
-        # root.wait_window(guiPage1)
-        if(rVal):
-            guiPage1.show()
-    else:
-        rVal=True
-    rVal=False
-    if(rVal):
-        rootFrame2 = tk.Frame(root, bg="cadet blue")
-        rootFrame2.grid(sticky='news')
-        FrameCanvas2 = tk.Frame(rootFrame2)
-        #guiPage2=RefineObsSelectionGUI(root,  widgetsLst=widgetsLst) 
-        #guiPage2.run(root, sLogCfgPath) 
-        guiPage2=RefineObsSelectionGUI(FrameCanvas2, root) #,  widgetsLst=widgetsLst) 
-        guiPage2.run(FrameCanvas2, sLogCfgPath) 
-        guiPage2.show()
-    # root.mainloop()
-    return
-
-def displayGeometry(maxAspectRatio=1.778):  
-    '''
-    maxAspectRatio 1920/1080.0=1.778 is here to prevant silly things if one uses multiple screens....
-    '''
-    # Get the screen resolution
-    # m may return a string like
-    # Monitor(x=0, y=0, width=1920, height=1080, width_mm=1210, height_mm=680, name='HDMI-1', is_primary=True)
-    try:
-        monitors=get_monitors()  # may require apt install -y libxrandr2  on some ubuntu systems
-        screenWidth=0
-        for screen in monitors:
-            try:
-                useThisOne=screen.is_primary
-            except:
-                useThisOne=True # 'isprimary' entry may not be present on simple systems, then it is the only one
-            if(useThisOne):
-                try:
-                    screenWidth = screen.width
-                    screenHeight =screen.height
-                except:
-                    pass
-        if (screenWidth < MIN_SCREEN_RES):
-            screenWidth=MIN_SCREEN_RES
-            screenHeight=MIN_SCREEN_RES
-    except:
-        logger.error('screeninfo.get_monitors() failed. Try installing the libxrandr2 library if missing. Setting display to 1080x960pxl')
-        screenWidth= int(1080)
-        screenHeight= int(960)
-    # on Linux you can also run from commandline, but it may not be ideal if you encounter systems with multiple screens attached.
-    # xrandr | grep '*'
-    #    1920x1080     60.00*+  50.00    59.94    30.00    25.00    24.00    29.97    23.98  
-    # Use the screen resolution to scale the GUI in the smartest way possible...
-    # screenWidth = rootFrame.winfo_screenwidth()
-    # screenHeight = rootFrame.winfo_screenheight()
-    logger.debug(f'screeninfo.get_monitors.screenwidth()={screenWidth},  screenheight()={screenHeight} (primary screen)')
-    if((screenWidth/screenHeight) > (1920/1080.0)):  # multiple screens?
-        screenWidth=int(screenHeight*(1920/1080.0))
-    logger.debug(f'self.winfo_screenwidth()={screenWidth},   self.winfo_screenheight()={screenHeight},  multiple screen correction')
-    maxW = int(0.92*screenWidth)
-    maxH = int(0.92*screenHeight)
-    if(maxW > 1.2*maxH):
-        maxW = int((1.2*maxH)+0.5)
-        logger.debug(f'maxW={maxW},  maxH={maxH},  max aspect ratio fix.')
-    # Sets the dimensions of the window to something reasonable with respect to the user's screren properties
-    xPadding=int(0.008*maxW)
-    yPadding=int(0.008*maxH)
-    return(maxW, maxH, xPadding, yPadding)
-
-
-
-# LumiaGui Class =============================================================
-class LumiaGui():  #ctk.CTkToplevel  ctk.CTk):
-    # =====================================================================
-    # The layout of the window will be written
-    # in the init function itself
-    def __init__(self, root, parent):  # *args, **kwargs):
-        if(USE_TKINTER):
-            self.__init__(self, root)
-            self.parent = parent #root
-        # Get the screen resolution to scale the GUI in the smartest way possible...
-        if(os.path.isfile("LumiaGui.stop")):
-            sCmd="rm LumiaGui.stop"
-            hk.runSysCmd(sCmd,  ignoreError=True)
-        if(os.path.isfile("LumiaGui.go")):
-            sCmd="rm LumiaGui.go"
-            hk.runSysCmd(sCmd,  ignoreError=True)
-
-    def run(self, root,  sLogCfgPath): 
-        notify_output = widgets.Output()
-        display(notify_output)
-        self.appWidth, self.appHeight,  self.xPadding, self.yPadding = displayGeometry(maxAspectRatio=1.2)
-        xPadding=self.xPadding
-        wSpacer=2*self.xPadding
-        yPadding=self.yPadding
-        vSpacer=2*self.yPadding
-        if(USE_TKINTER):
-            root.grid_rowconfigure(0, weight=1)
-            root.columnconfigure(0, weight=1)
-        nCols=5 # sum of labels and entry fields per row
-        nRows=13 # number of rows in the GUI
-        likedFonts=["Georgia", "Liberation","Arial", "Microsoft","Ubuntu","Helvetica"]
-        sLongestTxt="Start date (00:00h):"  # "Latitude (≥33°N):"
-        for myFontFamily in likedFonts:
-            (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
-                bs.calculateEstheticFontSizes(myFontFamily,  self.appWidth,  self.appHeight, sLongestTxt, nCols, nRows, xPad=xPadding, 
-                                                            yPad=yPadding, maxFontSize=20, USE_TKINTER=USE_TKINTER, bWeCanStackColumns=False)
-            if(bFontFound):
-                break
-        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
-        vDeadSpace=2*yPadding #vSpacer+(nRows*yPadding*2)+vSpacer
-        colWidth=int((self.appWidth - hDeadSpace)/(nCols*1.0))
-        rowHeight=int((self.appHeight - vDeadSpace)/(nRows*1.0))
-        # Dimensions of the window
-        appWidth, appHeight = self.appWidth, self.appHeight
-        #activeTextColor='gray10'
-        #inactiveTextColor='gray50'
-        #self.lonMin = ge.guiDoubleVar(value=-25.0)
-        #self.lonMax = ge.guiDoubleVar(value=45.0)
-        #self.latMin = ge.guiDoubleVar(value=23.0)
-        #self.latMax = ge.guiDoubleVar(value=83.0)
-        
-        def CloseTheGUI(bAskUser=True,  bWriteStop=True):
-            if(bAskUser):  # only happens if the GUI window was closed brutally
-                if ge.guiAskOkCancel(title="Quit?",  message="Is it OK to abort your Lumia run?"):  # tk.messagebox.askokcancel("Quit", "Is it OK to abort your Lumia run?"):
-                    if(bWriteStop):
-                        #self.iconify()
-                        logger.info("LumiaGUI was canceled.")
-                        sCmd="touch LumiaGui.stop"
-                        hk.runSysCmd(sCmd)
-            else:  # the user clicked Cancel or Go
-                if(bWriteStop): # the user selected Cancel - else the LumiaGui.go message has already been written
-                    #self.iconify()
-                    logger.info("LumiaGUI was canceled.")
-                    sCmd="touch LumiaGui.stop"
-                    hk.runSysCmd(sCmd)
-                global LOOP_ACTIVE
-                LOOP_ACTIVE = False
-                # self.iconify()
-                logger.info("Closing the GUI...")
-                try:
-                    self.after(100, self.event_generate("<Destroy>"))
-                except:
-                    pass
-            if(USE_TKINTER):
-                self.protocol("WM_DELETE_WINDOW", CloseTheGUI)
-        
-        def CancelAndQuit(): 
-            #logger.info("LumiaGUI was canceled.")
-            #sCmd="touch LumiaGui.stop"
-            #hk.runSysCmd(sCmd)
-            CloseTheGUI(bAskUser=False,  bWriteStop=True)
-            #global LOOP_ACTIVE
-            #LOOP_ACTIVE = False
-
-        if(USE_TKINTER):
-            # Sets the title of the window to "LumiaGui"
-            self.title("LUMIA run configuration")  
-            # Sets the dimensions of the window to 800x900
-            self.geometry(f"{appWidth}x{appHeight}")   
-        # Row 12
-        # ################################################################
-        # Cancel Button
-        if(USE_TKINTER):
-            self.CancelButton = ge.guiButton(self, text="Cancel",  command=CancelAndQuit,  fontName="Georgia",  fontSize=fsLARGE) 
-            self.CancelButton.grid(row=12, column=4,
-                                        columnspan=1, padx=xPadding,
-                                        pady=yPadding, sticky="ew")
-        else:
-            @notify_output.capture()
-            def popup(text):
-                clear_output()
-                display(HTML("<script>alert('{}');</script>".format(text)))
-            
-            def clickme(b):
-                popup('Hello World!')
-            
-            CancelButton = ge.guiButton(self, text="Cancel",  command=CancelAndQuit,  fontName="Georgia",  fontSize=fsLARGE) 
-            #btn_clickme = widgets.Button(description='Cancel')
-            CancelButton.on_click(CancelAndQuit)  # clickme)
-            
-            display(CancelButton)
-            #self.CancelButton.on_click(CancelAndQuit)
-            #self.CancelButton
-
-        # Row 0:  Title Label
-        # ################################################################
-
-        self.LatitudesLabel = ge.guiTxtLabel(self, "LUMIA  --  Configure your next LUMIA run",  
-                                                                    fontName="Arial MT Extra Bold", fontSize=fsGIGANTIC)
-        if(USE_TKINTER):
-            self.LatitudesLabel.grid(row=0, column=0,
-                            columnspan=8,padx=xPadding, pady=yPadding,
-                            sticky="ew")
-        else:
-            self.LatitudesLabel
-
-        def loop_function():
-            global LOOP_ACTIVE
-            LOOP_ACTIVE = True
-            while LOOP_ACTIVE:
-                time.sleep(3)
-            logger.info("Closing the GUI...")
-            try:
-                self.after(100, self.event_generate("<Destroy>"))
-            except:
-                pass
-                #logger.error('Failed to destroy the first page of the GUI for whatever reason...')
-
-        if(not USE_TKINTER):
-            toolbar_widget = widgets.VBox()
-            toolbar_widget.children = [
-                self.LatitudesLabel, 
-                CancelButton
-            ]
-            toolbar_widget   
-            display(toolbar_widget) 
-        _thread.start_new_thread(loop_function, ())
-        #root.mainloop()
-        return(True)
-
-    def show(self):
-        if(USE_TKINTER):
-            self.wm_protocol("WM_DELETE_WINDOW", self.destroy)
-            self.wait_window(self)
-        return 
-
-
-# LumiaGui Class =============================================================
-class RefineObsSelectionGUI(): # ctk.CTk
-    # =====================================================================
-    # The layout of the window is now written
-    # in the init function itself
-    def __init__(self, root,  parent):  # *args, **kwargs):
-        ctk.CTk.__init__(self, root)
-        self.parent = parent #root
-
-    def run(self, rootFrame,  sLogCfgPath):
-        nWidgetsPerRow=5
-        #cpDir=ymlContents['observations'][tracer]['file']['cpDir']
-        # sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-        nCols=12 # sum of labels and entry fields per row
-        nRows=32 #5+len(newDf) # number of rows in the GUI - not so important - window is scrollable
-        self.appWidth, self.appHeight,  self.xPadding, self.yPadding = displayGeometry() 
-        #self.title("LUMIA: Refine the selection of observations to be used")
-        xPadding=self.xPadding
-        wSpacer=2*self.xPadding
-        yPadding=self.yPadding
-        vSpacer=2*self.yPadding
-        myFontFamily="Georgia"
-        sLongestTxt="Latitude NN :"
-        (bFontFound, fsTINY,  fsSMALL,  fsNORMAL,  fsLARGE,  fsHUGE,  fsGIGANTIC,  bWeMustStackColumns, bSuccess)= \
-            bs.calculateEstheticFontSizes(myFontFamily,  self.appWidth,  self.appHeight, sLongestTxt, nCols, nRows, xPad=xPadding, 
-                                                        yPad=yPadding, maxFontSize=20,  bWeCanStackColumns=False)
-        hDeadSpace=wSpacer+(nCols*xPadding*2)+wSpacer
-        vDeadSpace=2*yPadding 
-        colWidth=int((self.appWidth - hDeadSpace)/(nCols*1.0))
-        rowHeight=int((self.appHeight - vDeadSpace)/(nRows*1.0))
-        activeTextColor='gray10'
-        inactiveTextColor='gray50'
-        nRows=int(0)
-        #rootFrame = tk.Frame(root, bg="cadet blue")
-        rootFrame.grid(sticky='news')
-        rootFrameCanvas = rootFrame # tk.Frame(rootFrame)
-        rootFrameCanvas.grid(row=5, column=0,  columnspan=12,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-        rootFrameCanvas.grid_rowconfigure(0, weight=8)
-        rootFrameCanvas.grid_columnconfigure(0, weight=8)
-        # run through the first page of the GUI so we select the right time interval, region, emissions files etc
-        # Now we venture to make the root scrollable....
-        #main_frame = tk.Frame(root)
-
-        # Create a scrollable frame onto which to place the many widgets that represent all valid observations found
-        #  ##################################################################
-        # Create a frame for the canvas with non-zero row&column weights
-        
-        #rootFrame.update() # above widgets are drawn and we can get column width measures
-        #x, y, width, height = rootFrame.grid_bbox()
-
-        #rootFrameCanvas = tk.Frame(rootFrame)
-        #rootFrameCanvas.grid(row=5, column=0,  columnspan=12,  rowspan=20, pady=(5, 0), sticky='nw') #, columnspan=11,  rowspan=10
-        #rootFrameCanvas.grid_rowconfigure(0, weight=8)
-        #rootFrameCanvas.grid_columnconfigure(0, weight=8)
-        # Set grid_propagate to False to allow 5-by-5 buttons resizing later
-        #rootFrameCanvas.grid_propagate(False)
-        cWidth = self.appWidth - xPadding
-        cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
-        cHeight = self.appHeight - (7*rowHeight) - (3*yPadding)
-        
-        # Add a scrollableCanvas in that frame
-        scrollableCanvas = tk.Canvas(rootFrameCanvas, bg="cadet blue", width=cWidth, height=cHeight, borderwidth=0, highlightthickness=0)
-        scrollableCanvas.grid(row=0, column=0,  columnspan=12,  rowspan=10, sticky="news")
-        
-        # Link a scrollbar to the scrollableCanvas
-        vsb = tk.Scrollbar(rootFrameCanvas, orient="vertical", command=scrollableCanvas.yview)
-        vsb.grid(row=0, column=1, sticky='ns')
-        scrollableCanvas.configure(yscrollcommand=vsb.set)
-        
-        # Create a frame to contain the widgets for all obs data sets found following initial user criteria
-        scrollableFrame4Widgets = tk.Frame(scrollableCanvas, bg="#82d0d2") #  slightly lighter than "cadet blue"
-        scrollableCanvas.create_window((0, 0), window=scrollableFrame4Widgets, anchor='nw')
-        # scrollableFrame4Widgets.grid_rowconfigure(0, weight=1,uniform = 999)
-
-        self.LatitudesLabel = ctk.CTkLabel(rootFrame,
-                                text="LUMIA  --  Refine the selection of observations to be used",  font=("Arial MT Extra Bold",  fsGIGANTIC))
-        self.LatitudesLabel.grid(row=0, column=0,
-                            columnspan=8,padx=xPadding, pady=yPadding,
-                            sticky="nw")
-        self.iObservationsFileLocation= ge.guiIntVar(value=1)
-        #iObservationsFileLocation.set(1) # Read observations from local file
-        self.RankingLabel = ge.guiTxtLabel(rootFrame,
-                                   text="Obsdata Ranking", fontName="Georgia",  fontSize=fsNORMAL)
-        self.RankingLabel.grid(row=1, column=0,
-                                  columnspan=1, padx=xPadding, pady=yPadding,
-                                  sticky="nw")
-        def CancelAndQuit(): 
-            logger.info("LumiaGUI was canceled.")
-            sCmd="touch LumiaGui.stop"
-            hk.runSysCmd(sCmd)
-            global LOOP2_ACTIVE
-            LOOP2_ACTIVE = False
-
-        # Cancel Button
-        self.CancelButton = ctk.CTkButton(master=rootFrame, font=("Georgia", fsNORMAL), text="Cancel",
-            fg_color='orange red', command=CancelAndQuit)
-        self.CancelButton.grid(row=2, column=11,
-                                        columnspan=1, padx=xPadding,
-                                        pady=yPadding, sticky="nw")
-
-        # Update buttons frames idle tasks to let tkinter calculate buttons sizes
-        #scrollableFrame4Widgets.update_idletasks()
-              
-        # Set the scrollableCanvas scrolling region
-        #scrollableCanvas.config(scrollregion=scrollableCanvas.bbox("all"))
-
-            
-        def loop_function():
-            global LOOP2_ACTIVE
-            LOOP2_ACTIVE = True
-            while LOOP2_ACTIVE:
-                time.sleep(1)
-            logger.info("Closing the GUI...")
-            try:
-                root.after(1000, root.event_generate("<Destroy>"))  # Wait 1 sec so the the main thread can meanwhile be exited before the GUI is destroyed
-            except:
-                pass
-                
-        _thread.start_new_thread(loop_function, ())
-        #root.mainloop()
-        return
-
-    def show(self):
-        self.wm_protocol("WM_DELETE_WINDOW", self.destroy)
-        self.wait_window(self)
-        return 
 
 
 def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
@@ -428,7 +36,7 @@ def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
     sid='   '
     try:
         # first try the low-level icscp-core library to query the metadata
-        pidMetadataCore =  coreMeta.get_dobj_meta(url)
+        pidMetadataCore =  iccMeta.get_dobj_meta(url)
         #columnNames=['pid', 'dobjMeta.ok', 'icoscpMeta.ok', 'file.ok', 'metafName', 'fName','url', 
         # 'stationID', 'country', 'latitude','longitude','altitude','samplingHeight','is-ICOS','size', 'nRows','dataLevel',
         # 'obsStart','obsStop','productionTime','accessUrl','fileName','dataSetLabel'] 
@@ -480,10 +88,11 @@ def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
             # is the station an ICOS station? values are {'1','2','A','no'} class 1, 2, or A(ssociated) or else 'no' meaning it is not an ICOS station
             d='no'
             try:
-                value=icosStationLut[sid]
-                d=value
+                #value=icosStationLut[sid]
+                #d=value
+                d=pidMetadataCore.specificInfo.acquisition.station.specificInfo.stationClass
             except:
-                pass
+                pass  # if the key does not exist, then it is not an ICOS station, hence d='no'
         except:
             ndr+=1
             logger.debug('Failed to read ICOS flag from metadata')
@@ -549,13 +158,21 @@ def  getMetaDataFromPid_via_icosCore(pid, icosStationLut):
             ndr+=1
             logger.debug('Failed to read data label from metadata')
         mdata.append(d)
+        try:
+            d=pidMetadataCore.specificInfo.acquisition.station.name
+        except:
+            d=''
+            ndr+=1
+            logger.debug('Failed to read full station name from metadata')
+        mdata.append(d) # sFullStationName=dob.station['org']['name']
     except:
-        print(f'Failed to get the metadata using icoscp_core.icos.coreMeta.get_dobj_meta(url) for url={url}')
+        print(f'Failed to get the metadata using icoscp_core.icos.iccMeta.get_dobj_meta(url) for url={url}')
         return(None,  False)  # Tell the calling parent routine that things went south...
 
     if(ndr>1):
         bAcceptable=False
     return (mdata, bAcceptable)
+
 
 def  getMetaDataFromPid_via_icoscp(pid, icosStationLut):
     mdata=[]
@@ -618,6 +235,7 @@ def  getMetaDataFromPid_via_icoscp(pid, icosStationLut):
             d='no'
             try:
                 value=icosStationLut[sid]
+                pidMetadata['specificInfo']['acquisition']['station']['specificInfo']['stationClass']
                 d=value
             except:
                 pass
@@ -695,6 +313,13 @@ def  getMetaDataFromPid_via_icoscp(pid, icosStationLut):
             ndr+=1
             logger.debug('Failed to read data label from metadata')
         mdata.append(d)
+        try:
+            d=pidMetadata['specificInfo']['acquisition']['station']['org']['name']
+        except:
+            d=''
+            ndr+=1
+            logger.debug('Failed to read full station name from metadata')
+        mdata.append(d) # sFullStationName=dob.station['org']['name']
     except:
         print(f'Failed to get the metadata using icoscp.cpb.metadata.get(url) for url={url}')
         return(None,  False)  # Tell the calling parent routine that things went south...
@@ -710,21 +335,33 @@ def testPID(pidLst, sOutputPrfx=''):
     nTotal=0
     nGoodPIDs=0
     nBadIcoscpMeta=0
-    icosStationLut=myCarbonPortalTools.createIcosStationLut()   
+    nNoTempCov=0
+    # icosStationLut=myCarbonPortalTools.createIcosStationLut()   
     #print(f'statClassLookup={statClassLookup}')
     #station_basic_meta_lookup = {s.uri: s for s in meta.list_stations()}
     #print(f'station_basic_meta_lookup={station_basic_meta_lookup}')
     nLst=len(pidLst)
     step=int((nLst/10.0)+0.5)
-    bPrintProgress=True
+    bPrintProgress=False #True
+    sStart='2018-01-01 00:00:00'
+    sEnd='2018-02-01 23:59:59'
+    pdSliceStartTime=bs.getPdTime(sStart) #,  tzUT=True)
+    pdSliceEndTime=bs.getPdTime(sEnd) #,  tzUT=True)
+    bFirstDf=True
+    CrudeErrorEstimate="1.5" # 1.5 ppm
+    #errorEstimate=CrudeErrorEstimate
+    nDataSets=0
+    #printonce=True
+    noTemporalCoverageLst=[]
     for pid in pidLst:
         fileOk='failed'
+        badDataSet=False
         fNamePid='data record not found'
         metaDataRetrieved=True
         datafileFound=False
         icosMetaOk=False
         url="https://meta.icos-cp.eu/objects/"+pid
-        (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid,  icosStationLut)
+        (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid)
         if(mdata is None):
             logger.error(f'Failed: Obtaining the metadata for data object {url} was unsuccessful. Thus this data set cannot be used.')
         if(mdata is None):
@@ -733,30 +370,32 @@ def testPID(pidLst, sOutputPrfx=''):
             icoscpMetaOk='   yes'
         else:
             icoscpMetaOk='    no'
-
+        bAllImportantColsArePresent=False
         fNamePid=myCarbonPortalTools.getPidFname(pid)
         fileOk='   yes'
+        datafileFound=True
         if(fNamePid is None):
             fileOk='    no'
+            datafileFound=False
         data=[pid,icoscpMetaOk,  fileOk, fNamePid]+mdata
         if((datafileFound) and (metaDataRetrieved) and(icosMetaOk)):
             if(nGoodPIDs==0):
                 '''
                 returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
-                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                        'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel','stationName'] 
                 '''
                 columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
                     'country','is-ICOS', 'latitude','longitude','altitude','samplingHeight','size', 'nRows','dataLevel',\
-                    'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                    'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel', 'stationName'] 
                 dfgood=DataFrame(data=[data], columns=columnNames)
             else:
                 dfgood.loc[len(dfgood)] = data
             nGoodPIDs+=1
         else:
-            if(nBadies==0):
+            if(nBadies==0): 
                 columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
                     'country','is-ICOS', 'latitude','longitude','altitude','samplingHeight','size', 'nRows','dataLevel',\
-                    'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
+                    'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel', 'stationName'] 
                 dfbad=DataFrame(data=[data], columns=columnNames)
                 print(f'Data records with some issues:\r\n{columnNames}')
             else:
@@ -766,11 +405,201 @@ def testPID(pidLst, sOutputPrfx=''):
         nTotal+=1
         if((bPrintProgress) and (nTotal % step ==0)):
             myCarbonPortalTools.printProgressBar(nTotal, nLst, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
+        try:
+            pidUrl="https://meta.icos-cp.eu/objects/"+pid
+            logger.info(f"pidUrl={pidUrl}")
+            dobjMeta = iccMeta.get_dobj_meta(pidUrl)
+            #logger.debug(f'dobjMeta={dobjMeta}')
+            logger.info('dobjMeta data retrieved successfully.')
+            dobj_arrays = iccData.get_columns_as_arrays(dobjMeta) 
+            logger.info('dobj_arrays data retrieved successfully.')
+            logger.debug(f'dobj_arrays={dobj_arrays}')
+            obsData1site = DataFrame(dobj_arrays)
+            obsData1site.iloc[:512, :].to_csv('_dbg_icc_'+pid+'-obsData1site-obsPortalDbL188.csv', mode='w', sep=',')  
+
+            availColNames = list(obsData1site.columns.values)
+            if((any('start_time' in entry for entry in availColNames)) and (any('time' in entry for entry in availColNames))):
+                obsData1site.drop(columns=['time'], inplace=True)   #  rename(columns={'time':'halftime'}, inplace=True)
+            if(any('start_time' in entry for entry in availColNames)):
+                if(any('TIMESTAMP' in entry for entry in availColNames)):
+                    obsData1site.drop(columns=['TIMESTAMP'], inplace=True) # rename(columns={'TIMESTAMP':'timeStmp'}, inplace=True)
+                obsData1site.rename(columns={'start_time':'time'}, inplace=True)
+            if (any('value' in entry for entry in availColNames)) :
+                    obsData1site.rename(columns={'value':'obs'}, inplace=True)
+            if (any('value_std_dev' in entry for entry in availColNames)) :
+                    obsData1site.rename(columns={'value_std_dev':'stddev'}, inplace=True)
+            if (any('nvalue' in entry for entry in availColNames)) :
+                    obsData1site.rename(columns={'nvalue':'NbPoints'}, inplace=True)
+            if (any('TIMESTAMP' in entry for entry in availColNames)) :
+                    obsData1site.rename(columns={'TIMESTAMP':'time'}, inplace=True)
+            if (any('Flag' in entry for entry in availColNames)):
+                obsData1site.rename(columns={'Flag':'icos_flag'}, inplace=True)
+            if (any('Stdev' in entry for entry in availColNames)):
+                obsData1site.rename(columns={'Stdev':'stddev'}, inplace=True)
+            if (any('co2' in entry for entry in availColNames)):
+                obsData1site.rename(columns={'co2':'obs'}, inplace=True)
+            availColNames = list(obsData1site.columns.values)    
+            if ( (any('time' in entry for entry in availColNames))  and (any('obs' in entry for entry in availColNames)) and (any('stddev' in entry for entry in availColNames)) ): #  and (any('icos_flag' in entry for entry in availColNames))
+                bAllImportantColsArePresent=True
+                for col in [ 'icos_LTR','icos_SMR','icos_STTB','qc_flag','calendar_components','dim_concerns','datetime','time_components','solartime_components','instrument','icos_datalevel','obs_flag','assimilation_concerns']:
+                   if (any(col in entry for entry in availColNames)): 
+                        obsData1site.drop(columns=[col], inplace=True)
+            try:
+                dob = Dobj(pidUrl)
+                # logger.debug(f'dob={dob}')
+                # obsData1site = dob.get()   # much less reliable than icoscp_core routines
+                SiteID = dob.station['id'].lower() # site name/code is in capitals, but needs conversion to lower case:
+                #fn=dob.info['fileName']
+                fLatitude=dob.lat
+                fLongitude=dob.lon
+                fStationAltitude=dob.alt
+                fSamplingHeight=dob.meta['specificInfo']['acquisition']['samplingHeight']
+                sAccessUrl=dob.meta['accessUrl'] 
+                sFileNameOnCarbonPortal = dob.meta['fileName']
+                sFullStationName=dob.station['org']['name']
+            except:
+                SiteID = mdata[0].lower()
+                fLatitude=mdata[3]
+                fLongitude=mdata[4]
+                fStationAltitude=mdata[5]
+                fSamplingHeight=mdata[6]
+                sAccessUrl=mdata[13]
+                sFileNameOnCarbonPortal = mdata[14]
+                sFullStationName=mdata[17]
+            bHaveDataForSelectedPeriod=True
+            if(bAllImportantColsArePresent==True):
+                # grab only the time interval needed. This reduces the amount of data drastically if it is an obspack.
+                # Extract data between two dates
+                availColNames = list(obsData1site.columns.values)
+                #if('T20l411eiXcWzSrTbbit9aCC' in pid):  # has a data gap from 2017-07-05 to 2018-02-20
+                #    obsData1site.to_csv('_dbg_icc_'+pid+'-obsData1site-allTimes.csv', mode='w', sep=',')  
+                if(any('NbPoints' in entry for entry in availColNames)):
+                    obsData1siteTimed =obsData1site.loc[
+                                                            (obsData1site['time'] >= pdSliceStartTime) & 
+                                                            (obsData1site['time'] < pdSliceEndTime) &  
+                                                            (obsData1site['NbPoints'] > 0)]
+                else:
+                    obsData1siteTimed =obsData1site[
+                                                            (obsData1site['time'] >= pdSliceStartTime) & 
+                                                            (obsData1site['time'] < pdSliceEndTime) ].copy()
+                    #obsData1siteTimed =obsData1site.loc[
+                    #                                        (obsData1site['time'] >= pdSliceStartTime) & 
+                    #                                        (obsData1site['time'] < pdSliceEndTime) ]
+                if(obsData1siteTimed.empty == True):
+                    logger.warning(f"ObsData for SiteID={SiteID} pidUrl={pidUrl} has no data during the selected time period.")
+                    bHaveDataForSelectedPeriod=False
+                    ntData=[pid, pidUrl,  SiteID, sFullStationName, sStart, sEnd]
+                    if(nNoTempCov==0): 
+                        columnNames=['pid', 'pidUrl','stationID','stationName', 'Requested_StartDate', 'EndDate'] 
+                        dfNoTempCov=DataFrame(data=[ntData], columns=columnNames)
+                    else:
+                        dfNoTempCov.loc[len(dfNoTempCov)] = ntData
+                    nNoTempCov+=1
+                else:
+                    logger.info(f"obsData1siteTimed= {obsData1siteTimed}")
+                    
+                #obsData1siteTimed.iloc[:786, :].to_csv('_dbg_icc_'+pid+'-obsData1siteTimed-obsPortalDbL310.csv', mode='w', sep=',')  
+                
+                # obsData1siteTimed.to_csv(sTmpPrfx+'_dbg_obsData1siteTimed-obsPortalDbL310.csv', mode='w', sep=',')  
+                
+                # TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local
+                # observations.tar.gz file, that is not the case and while e.g.uncertainties are being set up, the name of 'err' is assumed 
+                # for the name of the column  containing the observational error in that dataframe and is only being renamed later.
+                # Hence I decided to mimic the behaviour of a local observations.tar.gz file
+                # Parameters like site-code, latitude, longitude, elevation, and sampling height are not present as data columns, but can be 
+                # extracted from the header, which really is written as a comment. Thus the following columns need to be created: 
+                if(bHaveDataForSelectedPeriod):
+                    logger.debug('Adding columns for site, lat, lon, alt, sHeight')
+                    # obsData1siteTimed.loc[:,'code'] = dob.station['id'].lower()
+                    if ('site' not in availColNames):
+                        obsData1siteTimed.loc[:,'site'] = SiteID
+                    #fn=dob.info['fileName']
+                    obsData1siteTimed.loc[:,'lat']=fLatitude
+                    obsData1siteTimed.loc[:,'lon']=fLongitude
+                    obsData1siteTimed.loc[:,'alt']=fStationAltitude
+                    obsData1siteTimed.loc[:,'height']=fSamplingHeight
+                    logger.info(f"Observational data for chosen tracer read successfully: PID={pid} station={SiteID},  StationName={sFullStationName}, located at station latitude={fLatitude},  longitude={fLongitude},  stationAltitude={fStationAltitude},  samplingHeight={fSamplingHeight}")
+                    # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
+                    # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
+                    # I tried to pull my hair out converting the series into a timestamp object or similar and format the output,
+                    # but that is not necessary. When reading a local tar file with all observations, it is also a pandas series object, 
+                    # (not a timestamp type variable) and since I'm reading the data here directly into the dataframe, and not 
+                    # elsewhere, no further changes are required.
+                    logger.info(f"obsData1siteTimed2= {obsData1siteTimed}")
+                    obsData1siteTimed.iloc[:786, :].to_csv('_dbg_icc_'+pid+'-obsData1siteTimed2-obsPortalDbL188.csv', mode='w', sep=',')  
+                    logger.debug(f"columns present:{obsData1siteTimed.columns}")
+                    availColNames = list(obsData1siteTimed.columns.values)
+                    if ('obs' in availColNames):
+                        if(bFirstDf):
+                            allObsDfs= obsData1siteTimed.copy()
+                        else:
+                            allObsDfs= concat([allObsDfs, obsData1siteTimed])
+                        # Now let's create the list of sites and store it in self....
+                        # The example I have from the observations.tar.gz files looks like this:
+                        # site,code,name,lat,lon,alt,height,mobile,file,sitecode_CSR,err
+                        # trn,trn,Trainou,47.9647,2.1125,131.0,180.0,,/proj/inversion/LUMIA/observations/eurocom2018/rona/TRN_180m_air.hdf.all.COMBI_Drought2018_20190522.co2,dtTR4i,1.5
+                        # sFileNameOnCarbonPortal = ICOS_ATC_L2_L2-2022.1_TOH_147.0_CTS_CO2.zip
+                        logger.info(f"station ID      : {SiteID}")
+                        logger.info(f"PID             : {pid}")
+                        logger.info(f"file name (csv) : {sFileNameOnCarbonPortal}")
+                        logger.info(f"access url      : {sAccessUrl}")
+                        # logger.info(f"mobile flag: {}")
+                        mobileFlag=None
+                        #scCSR=getSitecodeCsr(dob.station['id'].lower())
+                        #logger.info(f"sitecode_CSR: {scCSR}")
+                        # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)                    
+                        data =( {
+                          "site":SiteID.lower() ,
+                          "name": sFullStationName,
+                          "lat": fLatitude,
+                          "lon":fLongitude ,
+                          "alt": fStationAltitude,
+                          "height": fSamplingHeight,
+                          "mobile": mobileFlag,
+                          "pid":pid, 
+                          "dataObject": pidUrl ,
+                          "fnameUrl": sAccessUrl,
+                          "fileName":sFileNameOnCarbonPortal, 
+                          "filePath": fNamePid
+                        })
+                        #  "sitecode_CSR": scCSR,
+                        df = DataFrame([data])                    
+                        #if(bFirstDf):
+                        #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='w')
+                        #else:
+                        #    df.to_csv('mySites.csv', encoding='utf-8', sep=',', mode='a', header=False)
+                        if(bFirstDf):
+                            allSitesDfs = df.copy()
+                            bFirstDf=False
+                        else:
+                            allSitesDfs = concat([allSitesDfs, df])
+                        nDataSets+=1
+                    else:
+                        logger.error("Houston we have a problem. This datafame has no column by the name of >>obs<<. Please check (all) your dry mole fraction observational files for the selected tracer.")
+                        logger.info(f"Available columns in the file with pid= {pid} are: {availColNames}")
+                        logger.error(f"Data from pid={pid} is discarded.")
+                else:
+                    badDataSet=True
+        except:
+            logger.error(f"Error: reading of the Dobj failed for pidUrl={pidUrl}.")
+            traceback.print_exc()
+            badDataSet=True
+    if(badDataSet):
+        nBadies+=1
+        #badiesLst.append(pidUrl)
+    if(nNoTempCov > 0):
+        # noTemporalCoverageLst
+        logger.warning(f"A total of {nNoTempCov} PIDs out of {nTotal} data objects had no temporal overlap with the time period requested.")
+        dfNoTempCov.to_csv(sOutputPrfx+'noTempCov-obsDataSetsWithInsufficientTemporalCoverage.csv', encoding='utf-8', mode='w', sep=',')
+        logger.info(f'PIDs with insufficient temporal coverage (no data) have been written to {sOutputPrfx}noTimCov-obsDataSetsWithInsufficientTemporalCoverage.csv')
     if(nBadies > 0):
         logger.warning(f"A total of {nBadies} PIDs out of {nTotal} data objects had some issues,  thereof {nBadMeta} had bad dobjMetaData and {nBadIcoscpMeta} had bad icoscMetaData.")
         dfbad.to_csv(sOutputPrfx+'bad-PIDs-testresult.csv', encoding='utf-8', mode='w', sep=',')
+        #badiesLst.to_csv(sOutputPrfx+'badiesLst-obsDataSetsThatCouldNotBeRead.csv', encoding='utf-8', mode='w', sep=',')
         logger.info(f'Bad PIDs with some issues have been written to {sOutputPrfx}bad-PIDs-testresult.csv')
     if(nGoodPIDs > 0):
+        allObsDfs.to_csv('_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')  
+        allSitesDfs.to_csv('_dbg_icc_successfullyReadObsDataSets.csv', mode='w', sep=',')  
         dfgood.to_csv(sOutputPrfx+'good-PIDs-testresult.csv', encoding='utf-8', mode='w', sep=',')
         logger.info(f'Good PIDs ()with all queried properties found) have been written to {sOutputPrfx}good-PIDs-testresult.csv')
         
@@ -785,7 +614,86 @@ def readLstOfPids(pidFile):
     return(selectedDobjLst)
 
 
+def verifyCpauth():
+    # cpauth
+    # https://icos-carbon-portal.github.io/pylib/modules/#authentication
+    from icoscp.cpauth.authentication import Authentication , init_auth      
+    from icoscp.cpb.dobj import Dobj    
+    needNewCpauth=False
+    try:
+        dobj = Dobj('11676/pDBSKn2D8ic5ttUCpxyaf2pj')
+    except:
+        needNewCpauth=True   
+        logger.debug('We need a new authentication token for cpauth.icos-cp.eu (1)') 
+    if(dobj is None) :
+        needNewCpauth=True
+        logger.debug('We need a new authentication token for cpauth.icos-cp.eu (2)') 
+    else:
+        rtnValue=init_auth()
+        logger.debug(f'icoscp.cpauth.authentication.init_auth() returned {rtnValue}')
+        logger.debug(f'Successfully read test data object from carbn portal dobj.data.head={dobj.data.head()}')
+        return(True)
+    if(needNewCpauth):
+        cp_auth = Authentication()
+        logger.debug(f'icoscp.cpauth.authentication.Authentication returned {cp_auth}')
+    try:
+        dobj = Dobj('11676/pDBSKn2D8ic5ttUCpxyaf2pj')
+    except:
+        logger.debug('We still need a new authentication token for cpauth.icos-cp.eu. Trying init_auth() instead') 
+        rtnValue=init_auth()
+        logger.debug(f'icoscp.cpauth.authentication.init_auth() returned {rtnValue}')
+    if(dobj is None) :
+        logger.debug('We still need a new authentication token for cpauth.icos-cp.eu. Trying init_auth() instead (2)') 
+        rtnValue=init_auth()
+        logger.debug(f'icoscp.cpauth.authentication.init_auth() returned {rtnValue}')
+    else:
+        logger.debug(f'Successfully read test data object from carbn portal dobj.data.head={dobj.data.head()}')
+        return(True)
+    logger.error('Abort. Unable to obtain a valid user authentication against the carbon portal. Please visit https://icos-carbon-portal.github.io/pylib/modules/#authentication for more information.')
+    return(False)
+ 
+
+def verifyCpCoreAuth():
+    # cpauth
+    # https://github.com/ICOS-Carbon-Portal/data/tree/master/src/main/python/icoscp_core#authentication
+    
+    needNewCpauth=False
+    try:
+        dobj = Dobj('11676/pDBSKn2D8ic5ttUCpxyaf2pj')
+    except:
+        needNewCpauth=True   
+        logger.debug('We need a new authentication token for cpauth.icos-cp.eu (1)') 
+    if(dobj is None) :
+        needNewCpauth=True
+        logger.debug('We need a new authentication token for cpauth.icos-cp.eu (2)') 
+    else:
+        rtnValue=init_auth()
+        logger.debug(f'icoscp.cpauth.authentication.init_auth() returned {rtnValue}')
+        logger.debug(f'Successfully read test data object from carbn portal dobj.data.head={dobj.data.head()}')
+        return(True)
+    if(needNewCpauth):
+        cp_auth = iccAuth.init_config_file()
+        logger.debug(f'icoscp.cpauth.authentication.Authentication returned {cp_auth}')
+    try:
+        dobj = Dobj('11676/pDBSKn2D8ic5ttUCpxyaf2pj')
+    except:
+        logger.debug('We still need a new authentication token for cpauth.icos-cp.eu. Trying init_auth() instead') 
+        rtnValue=init_auth()
+        logger.debug(f'icoscp.cpauth.authentication.init_auth() returned {rtnValue}')
+    if(dobj is None) :
+        logger.debug('We still need a new authentication token for cpauth.icos-cp.eu. Trying init_auth() instead (2)') 
+        rtnValue=init_auth()
+        logger.debug(f'icoscp.cpauth.authentication.init_auth() returned {rtnValue}')
+    else:
+        logger.debug(f'Successfully read test data object from carbn portal dobj.data.head={dobj.data.head()}')
+        return(True)
+    logger.error('Abort. Unable to obtain a valid user authentication against the carbon portal. Please visit https://icos-carbon-portal.github.io/pylib/modules/#authentication for more information.')
+    return(False)
+  
+    
 def runPidTest(pidFile, sOutputPrfx):
+    #if (not verifyCpauth()):
+    #    sys.exit(-1)
     if('.csv'==pidFile[-4:]):
         dfs = read_csv (pidFile)
         try:
@@ -802,6 +710,12 @@ def runPidTest(pidFile, sOutputPrfx):
     testPID(pidLst, sOutputPrfx)
     print('Done. testPID task completed.')
 
+'''
+2024-03-28 12:32:28.520 | ERROR    | lumia.obsdb.obsCPortalDb:gatherObs_fromCPortal:407 - Error: reading of the Dobj failed for pidUrl=https://meta.icos-cp.eu/objects/QeqT9ATwpxrCvd159Djt2eFr. 
+2024-03-28 12:32:40.182 | ERROR    | lumia.obsdb.obsCPortalDb:gatherObs_fromCPortal:407 - Error: reading of the Dobj failed for pidUrl=https://meta.icos-cp.eu/objects/FPidg1GxfRN-xBbP-BBRGSqf.
+2024-03-28 12:32:41.909 | ERROR    | lumia.obsdb.obsCPortalDb:gatherObs_fromCPortal:407 - Error: reading of the Dobj failed for pidUrl=https://meta.icos-cp.eu/objects/WqyL0AmwwqhaRLYCZuDHH1Ln.
+
+'''
 
 p = argparse.ArgumentParser()
 p.add_argument('--pidLst', default=None,  help='Name of a text file listing the carbon portal PIDs (as a single column) that you wish to test.')
@@ -820,11 +734,12 @@ myPlatformFlavour=platform.version() #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
 print(f'node={myMachine}')
 print(f'platform={myPlatformCore}')
 print(f'platformFlavour={myPlatformFlavour}')
-testGui()
-sys.exit(0)
+#testGui()
+#sys.exit(0)
 
 if(args.pidLst is None):
-    logger.error("LumiaGUI: Fatal error: no user configuration (yaml) file provided.")
+    #logger.error("testPID: Fatal error: no user configuration (yaml) file provided.")
+    logger.error("testPID: Fatal error: no csv /PID file provided.")
     sys.exit(1)
 else:
     pidFile = args.pidLst

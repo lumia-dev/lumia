@@ -138,8 +138,8 @@ def ensureCorrectGrid(sExistingFile:str=None, grid: Grid = None):
 
 def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = None,  checkGrid = True,  tim0=None):
     '''  
-    ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value non-equal zero (undesired)
-                             or zero (as it should). Normally the netcdf header should provide whether the times reported
+    ensureReportedTimeIsStartOfMeasurmentInterval() checks whether the first time dimension value is non-equal zero 
+                             ·or zero (as it should). Normally the netcdf header should provide whether the times reported
                              refer to the start of the time step, the middle or the end. VPRM files do, EDGAR4.3 files don't.
                              Hence we cannot rely on the header info and we use a primitive and brutal approach with zero
                              elegance: if the first time step starts at one, then measurments are assumed to be reported at the
@@ -288,7 +288,7 @@ def ensureReportedTimeIsStartOfMeasurmentInterval(sExistingFile, grid: Grid = No
         logger.debug(f'Executing: {sCmd}')
         rvalue=os.system(sCmd)
         if(rvalue!=0):
-            logger.error(f'Unable to adjust the time axis of the background concentration file {sExistingFile} to start of measurment and to a full hour. Please try to fix this file before attempting to run Lumia again.')
+            logger.error(f'Fatal error: Unable to adjust the time axis of the background concentration file {sExistingFile} to start of measurment and to a full hour. Please try to fix this file before attempting to run Lumia again.')
             sys.exit(-23)
         sCmd='rm '+sExistingFile+'.dump2'
         os.system(sCmd)

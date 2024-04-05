@@ -191,102 +191,6 @@ class lumiaGuiApp:
             self.label1 = tk.Label(self.root, text="App main window - hosting the second GUI page.")
             self.root.protocol("WM_DELETE_WINDOW", self.closeApp)
         #self.label1.pack()
- 
-    def dbgHelper(self):
-        self.bUseCachedList=False
-
-        scrollableFrame4Widgets = ge.pseudoRootFrame()
-        row=1
-        guiRow=1
-        gridID=int(102)
-        self.widgetsLst = [] # list to hold dynamically created widgets that are created for each dataset found.
-        self.widgetID_LUT={}  # wdgGrid3 assigns each widget a consecutive ID (a string) of style 'widget001', .. , 'widget488' for which we need a lookup table to convert into widgetGridID
-        colidx=2
-        self.nCols=5
-        self.wdgGrid3 = wdg.GridspecLayout(n_rows=3, n_columns=self.nCols,  grid_gap="3px")
-        myWidgetVar= ge.guiBooleanVar(value=True)
-        try:
-            myWidgetCountry  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
-                                                text='CH', text_color='gray10', text_color_disabled='gray50', font=("Georgia", 12), onvalue=True, offvalue=False)  
-        except:
-            print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
-        #if(USE_TKINTER):
-        #countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
-            #myWidgetCountry.configure(command=countryCkbEvtCommand) 
-            # myWidgetCountry.configure(command=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)) 
-        #ge.guiConfigureWdg(self, widget=myWidgetCountry,  command=countryCkbEvtCommand)
-        #if not (USE_TKINTER):
-        #    myWidgetCountry.observe(myWidgetCountry.actOnCheckBoxChanges)
-        ge.guiSetCheckBox(myWidgetCountry, True) # myWidgetCountry.select()
-        ge.guiPlaceWidget(self.wdgGrid3, myWidgetCountry, row=guiRow, column=colidx, columnspan=1, rowspan=1, widgetID_LUT=self.widgetID_LUT, padx='10px', pady='10px', sticky='news')
-        #myWidgetCountry.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding,sticky='news')
-        self.widgetsLst.append(myWidgetCountry)
-        self.wdgGrid3
-        display(self.wdgGrid3)
-
-        title='Load my file'
-        filename = ge.guiFileDialogDoAll(filetypes='*', title=title)
-        print(f'filename={filename}')
-        return
-        self.bSuggestOldDiscoveredObservations=False
-        self.haveDiscoveredObs=False
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
-            self.check4recentDiscoveredObservations(self.ymlContents)
-            if(self.haveDiscoveredObs):
-                self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
-            if(self.bSuggestOldDiscoveredObservations):
-                if(USE_TKINTER):
-                    self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
-                                message=self.ageOfExistingDiscoveredObservations)
-                else:
-                    print('..suggest cached obs data...')
-                    self.wdgGrid4 = wdg.GridspecLayout(n_rows=2, n_columns=3,  grid_gap="5px")
-                    self.Pg1cachedObsDataLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=self.ageOfExistingDiscoveredObservations,  width=600)
-                    self.Pg1UseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Use cached Discovered-obs-data",  width=240)
-                    self.Pg1DontUseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Hunt for latest data from the carbon portal",  width=300)
-                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1cachedObsDataLabel, row=0,  column=0, columnspan=2, rowspan=1,  padx=10, pady=10, sticky='news')
-                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1UseCachedButton, row=1, column=0, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
-                    ge.guiPlaceWidget(self.wdgGrid4, self.Pg1DontUseCachedButton, row=1, column=1, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
-                    self.wdgGrid4
-                    display(self.wdgGrid4)
-                    try:
-                        whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
-                                title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
-                    except:
-                        whichButton=1
-                    if(whichButton==1): 
-                        self.bUseCachedList = True
-                    else:
-                        self.bUseCachedList = False
-            else:
-                print('no cached data on offer...')
-        if(USE_TKINTER):
-            self.guiPg1TpLv.iconify()
-        # Save  all details of the configuration and the version of the software used:
-        try:
-            with open(self.ymlFile, 'w') as outFile:
-                yaml.dump(self.ymlContents, outFile)
-        except:
-            sTxt=f"Fatal Error: Failed to write to text file {self.ymlFile} in local run directory. Please check your write permissions and possibly disk space etc."
-            logger.error(sTxt)
-            self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2
-        logger.info("Done. LumiaGui part-1 completed successfully. Config file updated.")
-        
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):        
-            # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
-            # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
-            self.huntAndGatherObsData()
-        # Get the currently selected tracer from the yml config file
-        self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
-        # Ranking of data records from CarbonPortal : populate the ObsFileRankingBoxTxt
-        rankingList=self.ymlContents['observations'][self.tracer]['file']['ranking']
-        self.ObsFileRankingBoxTxt=""
-        rank=4
-        for sEntry in  rankingList:
-            self.ObsFileRankingBoxTxt+=str(rank)+': '+sEntry+'\n'
-            rank=rank-1
-        self.runPage2() 
-        return True
     
  
     def closeTopLv(self, bWriteStop=True):  # of lumiaGuiApp
@@ -457,6 +361,8 @@ class lumiaGuiApp:
             self.oldLon1=ymlContents['run']['region']['lon1']   #35.0
             sStart=self.ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
             sEnd=self.ymlContents['run']['time']['end']
+            sStart=bs.removeQuotesFromString(sStart)
+            sEnd=bs.removeQuotesFromString(sEnd)
             self.oldpdTimeStart = to_datetime(sStart[:19], format="%Y-%m-%d %H:%M:%S")
             self.oldpdTimeStart=self.oldpdTimeStart.tz_localize('UTC')
             self.oldpdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
@@ -484,6 +390,8 @@ class lumiaGuiApp:
         # prowl through the carbon portal for any matching data sets in accordance with the choices from the first gui page.
         sStart=self.ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
         sEnd=self.ymlContents['run']['time']['end']
+        sStart=bs.removeQuotesFromString(sStart)
+        sEnd=bs.removeQuotesFromString(sEnd)
         pdTimeStart = to_datetime(sStart[:19], format="%Y-%m-%d %H:%M:%S")
         pdTimeStart=pdTimeStart.tz_localize('UTC')
         pdTimeEnd = to_datetime(sEnd[:19], format="%Y-%m-%d %H:%M:%S")
@@ -1626,23 +1534,21 @@ class lumiaGuiApp:
 
     def EvHdPg2GoBtnHit(self):
         sOutputPrfx=self.ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-        try:
-            nObs=len(self.newDf)
-            filtered = ((self.newDf['selected'] == True))
-            dfq= self.newDf[filtered]
-            nSelected=len(dfq)
-            logger.info(f"There are {nObs} valid data sets in the selected geographical region ingoring multiple sampling heights.")
-            logger.info(f"Thereof {nSelected} are presently selected.")
-        except:
-            pass
-        '''
-        try: 
-            self.newDf.to_csv(self.sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
-        except:
-            logger.error(f"Fatal Error: Failed to write to file {self.sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc.")
-            self.closeApp
-        '''
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']): # else ther is no dfq dataframe
+        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']): # else there is no dfq dataframe
+            try:
+                nObs=len(self.newDf)
+                filtered = ((self.newDf['selected'] == True))
+                dfq= self.newDf[filtered]
+                nSelected=len(dfq)
+                logger.info(f"There are {nObs} valid data sets in the selected geographical region ingoring multiple sampling heights.")
+                logger.info(f"Thereof {nSelected} are presently selected.")
+            except:
+                pass
+            #try: 
+            #    self.newDf.to_csv(self.sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
+            #except:
+            #    logger.error(f"Fatal Error: Failed to write to file {self.sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc.")
+            #    self.closeApp
             try:
                 dfq['pid2'] = dfq['pid'].apply(bs.grabFirstEntryFromList)
                 dfq['samplingHeight2'] = dfq['samplingHeight'].apply(bs.grabFirstEntryFromList)
@@ -1669,32 +1575,32 @@ class lumiaGuiApp:
             except:
                 logger.error(f"Fatal Error: Failed to write to file {sOutputPrfx}-selected-ObsData-{self.tracer}.csv. Please check your write permissions and possibly disk space etc.")
                 self.closeApp
-        try:
-            nC=len(self.excludedCountriesList)
-            nS=len(self.excludedStationsList)
-            if(nS==0):
-                logger.info("No observation stations were rejected")
-            else:
-                s=""
-                for element in self.excludedStationsList:
-                    s=s+element+', '
-                logger.info(f"{nS} observation stations ({s[:-2]}) were rejected")
-            hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations',  'filters',  'StationsExcluded'],   
-                                                                        value=self.excludedStationsList, bNewValue=True)
-            if(nC==0):
-                logger.info("No countries were rejected")
-            else:
-                s=""
-                for element in self.excludedCountriesList:
-                    s=s+element+', '
-                logger.info(f"{nC} countries ({s[:-2]}) were rejected")
-            hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations',  'filters',  'CountriesExcluded'],   
-                                                                        value=self.excludedCountriesList, bNewValue=True)
-        except:
-            pass
-        # Save  all details of the configuration and the version of the software used:
-        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations',  'filters',  'ICOSonly'],   
-                                                                    value=self.ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
+            try:
+                nC=len(self.excludedCountriesList)
+                nS=len(self.excludedStationsList)
+                if(nS==0):
+                    logger.info("No observation stations were rejected")
+                else:
+                    s=""
+                    for element in self.excludedStationsList:
+                        s=s+element+', '
+                    logger.info(f"{nS} observation stations ({s[:-2]}) were rejected")
+                hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations',  'filters',  'StationsExcluded'],   
+                                                                            value=self.excludedStationsList, bNewValue=True)
+                if(nC==0):
+                    logger.info("No countries were rejected")
+                else:
+                    s=""
+                    for element in self.excludedCountriesList:
+                        s=s+element+', '
+                    logger.info(f"{nC} countries ({s[:-2]}) were rejected")
+                hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations',  'filters',  'CountriesExcluded'],   
+                                                                            value=self.excludedCountriesList, bNewValue=True)
+            except:
+                pass
+            # Save  all details of the configuration and the version of the software used:
+            hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations',  'filters',  'ICOSonly'],   
+                                                                        value=self.ymlContents['observations']['filters']['ICOSonly'], bNewValue=True)
         
         # sOutputPrfx=self.ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
         self.ymlContents['observations'][self.tracer]['file']['discoverData']=False # lumiaGUI has already hunted down and documented all user obsData selections
@@ -1702,7 +1608,7 @@ class lumiaGuiApp:
             with open(self.ymlFile, 'w') as outFile:
                 yaml.dump(self.ymlContents, outFile)
         except:
-            logger.error(f"Fatal Error: Failed to write to text file {self.ymlFile} in local run directory. Please check your write permissions and possibly disk space etc.")
+            logger.error(f"Fatal Error: Failed to write to text file {self.ymlFile}. Please check your write permissions in the output directory and possibly disk space etc.")
             self.closeApp
             return
         self.closeApp(bWriteStop=False)

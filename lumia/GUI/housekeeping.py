@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='91d4f470677a6efca22821889e426e612e5b83a7'
+LATESTGITCOMMIT_LumiaDA='4d4db557c12cdfd2f820b6e506f0e01c8ac40dc2'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -10,6 +10,7 @@ import platform
 import pathlib
 import re
 import yaml
+#import ruamel.yaml
 from datetime import datetime
 from pandas import  Timestamp  # , to_datetime
 from loguru import logger
@@ -44,7 +45,7 @@ def runSysCmd(sCmd,  ignoreError=False):
     return True
 
 
-def getTracer(ymlEntryTracer):
+def getTracer(ymlEntryTracer,  abortOnError=False):
     # Find out the first (only) tracer being used
     tracer='co2'
     try:
@@ -54,7 +55,12 @@ def getTracer(ymlEntryTracer):
             trac=ymlEntryTracer
             tracer=trac[0]
     except:
+        logger.error('Key run.tracers not retrievable from stated yaml config file. Please make sure your config file has the key run.tracers set to co2 or ch4.')
         tracer='co2'
+        if(abortOnError):
+            sys.exit(-7)
+        else:
+            logger.warning('Proceeding with the assumption tracer==co2')
     return(tracer)
 
 
@@ -102,7 +108,6 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
         sys.exit(-2)
     # Save  all details of the configuration and the version of the software used:
 
-
     # Determine start/end times
     if args.start is None :
         try:            
@@ -118,10 +123,9 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
                 logger.error(f'No valid start time found in the keys run.time.start nor observations.start nor time.start of your yml file {ymlFile}. Please fix or use the commandline option --start.')
     else:
         start= Timestamp(args.start)
-    sStart= start.strftime('%Y-%m-%d')+' 00:00:00Z'
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'start'],   value= str(sStart), bNewValue=True)
+    sStart= start.strftime('%Y-%m-%d')+' 00:00:00'
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'start'],   value= sStart, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'start'],   value='${run.time.start}', bNewValue=True)
-        
     if args.end is None :
         try:            
             end=Timestamp(ymlContents['run']['time']['end'])
@@ -135,7 +139,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
                     logger.error(f'No valid end time found in the keys run.time.end nor observations.end nor time.end of your yml file {ymlFile}. Please fix or use the commandline option --end.')
     else:
         end= Timestamp(args.end)
-    sEnd= end.strftime('%Y-%m-%d')+' 23:59:59Z'
+    sEnd= end.strftime('%Y-%m-%d')+' 23:59:59'
     #ymlContents['observations']['end'] = sEnd+'%Y-%m-%d 23:59:59Z'
     #ymlContents['run']['time']['end'] = sEnd+'%Y-%m-%d 23:59:59Z'
     try:
@@ -249,6 +253,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     #sysReleaseVersion=platform.release()  # 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
     myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35
     myPlatformFlavour=platform.version() #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
+    if('#' in myPlatformFlavour[:1]): # A literal 'hash' in this string can cause unnecessary problems in the yaml file
+        myPlatformFlavour=myPlatformFlavour[1:] # as it might be interpreted as a comment. Best be ridd of it
     # All output is written into  subdirectories named after the run.thisRun.uniqueIdentifierDateTime key
     # Create these subdirectories. This also ensures early on that we can write to the intended locations
     try:
@@ -314,7 +320,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'tag'],   value=os.path.join('/output', args.tag), bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication',  'file'],   value='congrad.nc', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward', bNewValue=False)
@@ -328,7 +334,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueTmpPrefix'],   value=sTmpPrfx, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'username'],   value=sUsername, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformCore' ],   value=myPlatformCore, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformFlavour' ],   value=myPlatformFlavour[2:-1], bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformFlavour' ],   value=myPlatformFlavour, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'PythonVersion' ],   value=pyVersion, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'hostName' ],   value=myMachine, bNewValue=True)
     # Lumia version
@@ -421,7 +427,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     except:
         logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
         sys.exit(-19)
-    sNewYmlFileName=f'{sOutputPrfx}v{nVers}.{nSubVers}-{tracer}-config.yml'
+    sNewYmlFileName=f'{sOutputPrfx}config.yml' # v{nVers}.{nSubVers}-{tracer}
     sCmd=f'cp {ymlFile} {sNewYmlFileName}'
     rValue=0
     try:
