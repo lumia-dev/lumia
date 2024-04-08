@@ -8,7 +8,7 @@ import platform
 import traceback
 import _thread
 from loguru import logger
-from pandas import DataFrame,  read_csv, concat , to_datetime #, concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
+from pandas import DataFrame,  read_csv, concat , to_datetime #,  timedelta , concat , read_csv, Timestamp, Timedelta, offsets  #, read_hdf, Series  #, read_hdf, Series
 from pandas.api.types import is_float_dtype
 import xarray as xr
 
@@ -352,7 +352,7 @@ def testPID(pidLst, sOutputPrfx=''):
     #errorEstimate=CrudeErrorEstimate
     nDataSets=0
     #printonce=True
-    noTemporalCoverageLst=[]
+    #noTemporalCoverageLst=[]
     for pid in pidLst:
         fileOk='failed'
         badDataSet=False
@@ -540,10 +540,10 @@ def testPID(pidLst, sOutputPrfx=''):
                         # trn,trn,Trainou,47.9647,2.1125,131.0,180.0,,/proj/inversion/LUMIA/observations/eurocom2018/rona/TRN_180m_air.hdf.all.COMBI_Drought2018_20190522.co2,dtTR4i,1.5
                         # sFileNameOnCarbonPortal = ICOS_ATC_L2_L2-2022.1_TOH_147.0_CTS_CO2.zip
                         logger.info(f"station ID      : {SiteID}")
-                        logger.info(f"PID             : {pid}")
-                        logger.info(f"file name (csv) : {sFileNameOnCarbonPortal}")
+                        #logger.info(f"PID             : {pid}")
+                        logger.info(f"file name       : {sFileNameOnCarbonPortal}")
                         logger.info(f"access url      : {sAccessUrl}")
-                        # logger.info(f"mobile flag: {}")
+                        logger.info(f"filePath        : {fNamePid}")
                         mobileFlag=None
                         #scCSR=getSitecodeCsr(dob.station['id'].lower())
                         #logger.info(f"sitecode_CSR: {scCSR}")
@@ -598,11 +598,15 @@ def testPID(pidLst, sOutputPrfx=''):
         #badiesLst.to_csv(sOutputPrfx+'badiesLst-obsDataSetsThatCouldNotBeRead.csv', encoding='utf-8', mode='w', sep=',')
         logger.info(f'Bad PIDs with some issues have been written to {sOutputPrfx}bad-PIDs-testresult.csv')
     if(nGoodPIDs > 0):
-        allObsDfs.to_csv('_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')  
         allSitesDfs.to_csv('_dbg_icc_successfullyReadObsDataSets.csv', mode='w', sep=',')  
         dfgood.to_csv(sOutputPrfx+'good-PIDs-testresult.csv', encoding='utf-8', mode='w', sep=',')
         logger.info(f'Good PIDs ()with all queried properties found) have been written to {sOutputPrfx}good-PIDs-testresult.csv')
-        
+        # co2 dry mole frac obs data is reported at the middle of the time step, while Lumia expects the start
+        # of the time step to be listed. Hence we need to shift the time axis by 30 minutes
+        allObsDfs.rename(columns={'time':'timeMOTS'}, inplace=True)  # time@middle of time step
+        allObsDfs['time']=allObsDfs['timeMOTS'].transform(lambda x: x.replace(minute=0, second=0))
+        allObsDfs.to_csv('_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')  
+        allObsDfs.drop(columns=['timeMOTS'], inplace=True) 
 
 def readLstOfPids(pidFile):
     with open(pidFile) as file:
