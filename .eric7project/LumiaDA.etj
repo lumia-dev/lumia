@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric tasks file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-04-08, 11:12:02"
+    "saved": "2024-04-08, 11:51:28"
   },
   "ProjectScanFilter": "",
   "Tasks": [
@@ -813,84 +813,6 @@
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py"
     },
     {
-      "summary": "TODO: check. should not be needed",
-      "description": "",
-      "priority": 1,
-      "lineno": 67,
-      "completed": false,
-      "created": 1712567438.8112006,
-      "type": 1,
-      "uid": "{8c7f6c9b-e336-4f3e-94f5-ca11fd606288}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
-    },
-    {
-      "summary": "TODO: the whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble",
-      "description": "",
-      "priority": 1,
-      "lineno": 77,
-      "completed": false,
-      "created": 1712567438.814874,
-      "type": 1,
-      "uid": "{e7fdf2d4-cb24-4033-9afb-ce10a6400831}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
-    },
-    {
-      "summary": "TODO: This needs to be changed to file name pattern and YEAR",
-      "description": "",
-      "priority": 1,
-      "lineno": 102,
-      "completed": false,
-      "created": 1712567438.8184996,
-      "type": 1,
-      "uid": "{44230e6a-fe22-406e-9a7b-379bf7e482db}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
-    },
-    {
-      "summary": "TODO: \u00b7errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the",
-      "description": "",
-      "priority": 1,
-      "lineno": 117,
-      "completed": false,
-      "created": 1712567438.8222992,
-      "type": 1,
-      "uid": "{96ab9969-ccdc-478e-9799-d349284880fa}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
-    },
-    {
-      "summary": "TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local",
-      "description": "",
-      "priority": 1,
-      "lineno": 327,
-      "completed": false,
-      "created": 1712567438.8264122,
-      "type": 1,
-      "uid": "{a79296d0-dbe8-4440-bdd6-8ea29780a848}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
-    },
-    {
-      "summary": "TODO: TypeError: self.rcf.keys  is not iterable",
-      "description": "",
-      "priority": 1,
-      "lineno": 815,
-      "completed": false,
-      "created": 1712567438.830635,
-      "type": 1,
-      "uid": "{8c98390d-bb9e-4064-beed-9786c5c4d45f}",
-      "parent_uid": "",
-      "expanded": false,
-      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
-    },
-    {
       "summary": "TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local",
       "description": "",
       "priority": 1,
@@ -902,6 +824,84 @@
       "parent_uid": "",
       "expanded": false,
       "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/testPID.py"
+    },
+    {
+      "summary": "TODO: check. should not be needed",
+      "description": "",
+      "priority": 1,
+      "lineno": 67,
+      "completed": false,
+      "created": 1712569886.0617359,
+      "type": 1,
+      "uid": "{61844fe2-10d9-4ca5-882e-5f686a9c995a}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
+    },
+    {
+      "summary": "TODO: the whole obsdata file reading needs to be reviewed in case we deal with 2 or more tracers. All this mumble",
+      "description": "",
+      "priority": 1,
+      "lineno": 77,
+      "completed": false,
+      "created": 1712569886.06559,
+      "type": 1,
+      "uid": "{650f97ca-7fef-4760-95a0-db067cfac1a9}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
+    },
+    {
+      "summary": "TODO: This needs to be changed to file name pattern and YEAR",
+      "description": "",
+      "priority": 1,
+      "lineno": 102,
+      "completed": false,
+      "created": 1712569886.0694764,
+      "type": 1,
+      "uid": "{eca0cb19-abd5-4b39-ba81-43a5195ceffb}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
+    },
+    {
+      "summary": "TODO: \u00b7errorEstimate: it may be better to set this to be calculated dynamically in the yml file by setting the",
+      "description": "",
+      "priority": 1,
+      "lineno": 117,
+      "completed": false,
+      "created": 1712569886.0732849,
+      "type": 1,
+      "uid": "{d6beb5e3-f732-49a2-b774-bc8a4fd91f1c}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
+    },
+    {
+      "summary": "TODO: one might argue that 'err' should be named 'err_obs' straight away, but in the case of using a local",
+      "description": "",
+      "priority": 1,
+      "lineno": 327,
+      "completed": false,
+      "created": 1712569886.077307,
+      "type": 1,
+      "uid": "{033dcd56-9b22-4d4e-b813-8692b128b9ad}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
+    },
+    {
+      "summary": "TODO: TypeError: self.rcf.keys  is not iterable",
+      "description": "",
+      "priority": 1,
+      "lineno": 771,
+      "completed": false,
+      "created": 1712569886.08156,
+      "type": 1,
+      "uid": "{e30b393b-30b3-49a4-a510-3211b3b2c532}",
+      "parent_uid": "",
+      "expanded": false,
+      "filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py"
     }
   ]
 }

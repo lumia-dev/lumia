@@ -436,61 +436,17 @@ class obsdb(obsdb):
             allObsDfs.rename(columns={'time':'timeMOTS'}, inplace=True)  # time@middle of time step
             allObsDfs['time']=allObsDfs['timeMOTS'].transform(lambda x: x.replace(minute=0, second=0))
             allObsDfs.drop(columns=['timeMOTS'], inplace=True) 
-            allObsDfs.to_csv(sTmpPrfx+'_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')
-            allSitesDfs.to_csv(sTmpPrfx+'_dbg_icc_successfullyReadObsDataSets.csv', mode='w', sep=',')
+            #allObsDfs.to_csv(sTmpPrfx+'_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')
             dfgood.to_csv(sOutputPrfx+'good-PIDs-successfullyReadObsDataSets.csv', encoding='utf-8', mode='w', sep=',')
             logger.info(f'Good PIDs ()with all queried properties found) have been written to {sOutputPrfx}good-PIDs-successfullyReadObsDataSets.csv')
-            fileOk='failed'
-            badDataSet=False
-            fNamePid='data record not found'
-            metaDataRetrieved=True
-            datafileFound=False
-            icosMetaOk=False
-            url="https://meta.icos-cp.eu/objects/"+pid
-            (mdata, icosMetaOk)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid)
-            if(mdata is None):
-                logger.error(f'Failed: Obtaining the metadata for data object {url} was unsuccessful. Thus this data set cannot be used.')
-            if(mdata is None):
-                metaDataRetrieved=False
-            if(icosMetaOk):
-                icoscpMetaOk='   yes'
-            else:
-                icoscpMetaOk='    no'
-            bAllImportantColsArePresent=False
-            fNamePid=myCarbonPortalTools.getPidFname(pid)
-            fileOk='   yes'
-            datafileFound=True
-            if(fNamePid is None):
-                fileOk='    no'
-                datafileFound=False
-            data=[pid,icoscpMetaOk,  fileOk, fNamePid]+mdata
-            if((datafileFound) and (metaDataRetrieved) and(icosMetaOk)):
-                if(nGoodPIDs==0):
-                    '''
-                    returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size',
-                            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel','stationName']
-                    '''
-                    columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
-                        'country','is-ICOS', 'latitude','longitude','altitude','samplingHeight','size', 'nRows','dataLevel',\
-                        'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel', 'stationName']
-                    dfgood=DataFrame(data=[data], columns=columnNames)
-                else:
-                    dfgood.loc[len(dfgood)] = data
-                nGoodPIDs+=1
-            else:
-                if(nBadies==0):
-                    columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
-                        'country','is-ICOS', 'latitude','longitude','altitude','samplingHeight','size', 'nRows','dataLevel',\
-                        'obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel', 'stationName']
-                    dfbad=DataFrame(data=[data], columns=columnNames)
-                    print(f'Data records with some issues:\r\n{columnNames}')
-                else:
-                    dfbad.loc[len(dfbad)] = data
-                print(f'{data}')
-                nBadies+=1
-            nTotal+=1
-            if((bPrintProgress) and (nTotal % step ==0)):
-                myCarbonPortalTools.printProgressBar(nTotal, nLst, prefix = 'Gathering meta data progress:', suffix = 'Done', length = 50)
+            setattr(self, 'sites', allSitesDfs)
+            allObsDfs.to_csv(sTmpPrfx+'_dbg_obsData-NoBkgnd.csv', encoding='utf-8', mode='w', sep=',')
+            allSitesDfs.to_csv(sTmpPrfx+'_dbg_mySitesWithUsableData.csv', encoding='utf-8', sep=',', mode='w')
+            logger.debug(f'gatherObs_fromCPortal() completed successfully. Returning allObsDfs and {sTmpPrfx}_dbg_obsData-NoBkgnd.csv')
+            return(self,  allObsDfs,  sTmpPrfx+'_dbg_obsData-NoBkgnd.csv')
+        else:
+            logger.error('No usable observational data could be read from the carbon portal. Please review your choices on locations, time etc. and make sure you have proper file access.')
+            sys.exit(-62)
 
    
     
