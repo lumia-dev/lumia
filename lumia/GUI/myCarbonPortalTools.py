@@ -42,7 +42,7 @@ def  getMetaDataFromPid_via_icoscp_core(pid, suppressHugeCompilations=True):
                 The intended use of this method is for obtaining metadata from data records from any particular ICOS site.
     @type boolean
     @return a list of agreed values extracted from the metadata of the PID provided
-                values are returned for these keys: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                values are returned for these keys: ['stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
                                         'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
     @rtype list of mostly strings and 2 integers
     '''
@@ -84,16 +84,19 @@ def  getMetaDataFromPid_via_icoscp_core(pid, suppressHugeCompilations=True):
         ndr+=1
         logger.debug('Failed to read countryCode from metadata')
     mdata.append(d)
-    # 'isICOS'
+    # 'IcosClass'
     try:
         d='no'
         try:
             d=pidMetadata.specificInfo.acquisition.station.specificInfo.stationClass  if (bCoreLib) \
                 else  pidMetadata['specificInfo']['acquisition']['station']['specificInfo']['stationClass']
         except:
-            pass  # if the key does not exist, then it is not an ICOS station, hence d='no'
+            d='no'
     except:
         ndr+=1
+        d='no'
+    if(d is None):
+        d='no'
     mdata.append(d)
     # 'latitude'
     try:
@@ -155,7 +158,9 @@ def  getMetaDataFromPid_via_icoscp_core(pid, suppressHugeCompilations=True):
         if((n<4) and (n>0)):
             dL=n
     except:
-        pass
+        dL=int(0)
+    if(d is None):
+        d=int(0)
     # 'dataLevel'
     try:
         d=pidMetadata.specification.dataLevel  if (bCoreLib) \

@@ -339,7 +339,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
         url="https://meta.icos-cp.eu/objects/"+pid
         (mdata, bDataSuccessfullyRead)=myCarbonPortalTools.getMetaDataFromPid_via_icoscp_core(pid)
         '''
-        returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+        returns a list of these objects: ['stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
                 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
         '''
         
@@ -384,7 +384,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                 '''
                 stationID=pidMetadata['specificInfo']['acquisition']['station']['id']
                 country=pidMetadata['specificInfo']['acquisition']['station']['countryCode']
-                isICOS: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
+                ICOSclass: keyWrds (any 'ICOS' 'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
                 # Tracer: keyWrds (any  'CO2'/'CH4'   in pidMetadata['specification']['keywords'] / pidMetadata['references']['keywords'] (List)  
                 lon=pidMetadata['coverageGeo']['geometry']['coordinates'][0]
                 lat=pidMetadata['coverageGeo']['geometry']['coordinates'][1]
@@ -402,7 +402,7 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                 dataSetLabel=pidMetadata['specification']['self']['label']  
                 stationName=
                 '''
-                columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                columnNames=['pid', 'selected','stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
                         'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel', 'stationName'] 
                 if(len(columnNames)==len(data)):
                     df=DataFrame(data=[data], columns=columnNames)
@@ -435,7 +435,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     #df.to_csv(sTmpPrfx+'_dbg_dfValidObsUnsorted.csv', mode='w', sep=',')
     if(nBadDataSets > 0):
         logger.warning(f'{nBadDataSets} of {i} data records failed to read correctly and had to be discarded.')
-
+    sTmpPrfx=ymlContents[ 'run']['thisRun']['uniqueTmpPrefix']
+    df.to_csv(sTmpPrfx+'_dbg_collectedObs.csv', mode='w', sep=',')
     dfCountStations=df.drop_duplicates(['stationID'], keep='first') 
     nObsDataRecords = len(df)
     nTotalStations=len(dfCountStations)

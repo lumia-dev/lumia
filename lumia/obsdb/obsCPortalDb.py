@@ -203,7 +203,7 @@ class obsdb(obsdb):
             if((datafileFound) and (metaDataRetrieved) and(icosMetaOk)):
                 if(nGoodPIDs==0):
                     '''
-                    returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size',
+                    returns a list of these objects: ['stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size',
                             'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel','stationName']
                     '''
                     columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
@@ -343,6 +343,8 @@ class obsdb(obsdb):
                         # obsData1siteTimed.loc[:,'code'] = dob.station['id'].lower()
                         if ('site' not in availColNames):
                             obsData1siteTimed.loc[:,'site'] = SiteID
+                        if ('code' not in availColNames):  # used in background matching
+                            obsData1siteTimed.loc[:,'code'] = SiteID                            
                         #fn=dob.info['fileName']
                         obsData1siteTimed.loc[:,'lat']=fLatitude
                         obsData1siteTimed.loc[:,'lon']=fLongitude
@@ -600,7 +602,8 @@ class obsdb(obsdb):
         # obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)
         # the above line works n the test code, but not here, as the index is not named or reset here. Just leave it unformatted for now.
 
-        obsDfWthBg['NbPoints'] = obsDfWthBg['NbPoints'].map(lambda x: '%3d' % x)
+        if 'NbPoints' in obsDfWthBg.columns:
+            obsDfWthBg['NbPoints'] = obsDfWthBg['NbPoints'].map(lambda x: '%3d' % x)
         obsDfWthBg['background'] = obsDfWthBg['background'].map(lambda x: '%10.5f' % x)
         obsDfWthBg['obs'] = obsDfWthBg['obs'].map(lambda x: '%10.5f' % x)
         obsDfWthBg['err'] = obsDfWthBg['err'].map(lambda x: '%8.5f' % x)

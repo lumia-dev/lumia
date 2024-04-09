@@ -427,7 +427,7 @@ class lumiaGuiApp:
                     fp.write("%s\n" % item)
         # re-organise the self.fDiscoveredObservations dataframe,
         # It is presently sorted by country, station, dataRanking (dClass), productionTime and samplingHeight -- in that order
-        #   columnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+        #   columnNames=['pid', 'selected','stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
         #                 'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
         # 
         # 1) Set the first dataset for each station, highest dClass and heighest samplingHeight to selected and all other ones to not-selected 
@@ -439,10 +439,10 @@ class lumiaGuiApp:
         bCreateDf=True
         bTrue=True
         isDifferent=True
-        #AllObsColumnNames=['pid', 'selected','stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+        #AllObsColumnNames=['pid', 'selected','stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
         #            'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
         self.getFilters()
-        newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+        newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'IcosClass', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         logger.debug(f'reading the listing of all discovered obs data sets from file {self.fDiscoveredObservations}')
         dfAllObs = pd.read_csv (self.fDiscoveredObservations)
         for index, row in dfAllObs.iterrows():
@@ -454,7 +454,7 @@ class lumiaGuiApp:
             bSamplHghtOk = (((row['samplingHeight'] >= self.inletMinHght) &
                                 (row['samplingHeight'] <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
             newRow=[bTrue,row['country'], row['stationID'], bStationAltOk, row['altitude'],  
-                            bSamplHghtOk, hLst, row['isICOS'], row['latitude'], row['longitude'], row['dClass'], row['dataSetLabel'],  pidLst, True,  True]
+                            bSamplHghtOk, hLst, row['IcosClass'], row['latitude'], row['longitude'], row['dClass'], row['dataSetLabel'],  pidLst, True,  True]
             
             if(bCreateDf):
                 newDf=pd.DataFrame(data=[newRow], columns=newColumnNames)     
@@ -526,6 +526,8 @@ class lumiaGuiApp:
         gridRow=[]
         self.activeTextColor='gray10'
         self.inactiveTextColor='gray50'
+        sOptMenuTextColor='snow'
+        sOptMenuInactiveTextColor='gray20'
         
         bSelected=row['selected']
         if(bSelected):
@@ -602,10 +604,25 @@ class lumiaGuiApp:
 
         colidx+=1 # =3  row['samplingHeight']
         # ###################################################
+        if(bSelected):
+            sTextColor=sOptMenuTextColor
+            state="normal"
+        else:
+            sTextColor=sOptMenuInactiveTextColor
+            state="disabled"
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiStringVar(value=str(row['samplingHeight'][0])) 
-        myWidgetSamplingHeight  = ge.GridCTkOptionMenu(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myOptionMenuEvent, 
-                                                            values=sSamplingHeights, variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
+        #def __init__(self, parent,  root, myGridID, command=None, values=None,  *args, **kwargs):
+        if(USE_TKINTER):
+            myWidgetSamplingHeight  = ge.oldGridCTkOptionMenu(scrollableFrame4Widgets, gridID, values=sSamplingHeights,
+                                                            variable=myWidgetVar, text_color=sOptMenuTextColor, text_color_disabled=sOptMenuInactiveTextColor,
+                                                            font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL), state=state) 
+            myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, 
+                                                                                            sSamplingHeights))  
+            
+        else:
+            myWidgetSamplingHeight  = ge.GridCTkOptionMenu(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myOptionMenuEvent, 
+                                                            values=sSamplingHeights, variable=myWidgetVar, text_color=sOptMenuTextColor, text_color_disabled=sTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
         #if(USE_TKINTER):
         #    myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, sSamplingHeights))  
@@ -613,13 +630,17 @@ class lumiaGuiApp:
         #myWidgetSamplingHeight.grid(row=guiRow, column=colidx, columnspan=1, padx=xPadding, pady=yPadding, sticky='news')
         self.widgetsLst.append(myWidgetSamplingHeight)
         gridRow.append(row['samplingHeight'][0])
+        if(bSelected):
+            sTextColor=self.activeTextColor
+        else:
+            sTextColor=self.inactiveTextColor
 
         colidx+=1 # =4  Remaining Labels in one string
         # ###################################################
         gridID=int((100*rowidx)+colidx)
-        affiliationICOS=row['isICOS'] #"ICOS"
+        affiliationICOS=row['IcosClass'] #"ICOS"
         affiliationICOS=str(affiliationICOS)
-        #if('no' in row['isICOS']):
+        #if('no' in row['IcosClass']):
         #    affiliationICOS="non-ICOS"
         sLat="{:.2f}".format(row['latitude'])
         sLon="{:.2f}".format(row['longitude'])
@@ -628,7 +649,7 @@ class lumiaGuiApp:
                                 +bs.formatMyString((sLat), 11, '°N')\
                                 +bs.formatMyString((sLon), 10, '°E')\
                                 +bs.formatMyString(str(row['dClass']), 8, '')\
-                                +'   '+row['dataSetLabel']
+                                +bs.formatMyString(str(row['dataSetLabel']), 34, '')
         myWidgetOtherLabels  = ge.GridCTkLabel(scrollableFrame4Widgets, gridID, text=myWidgetVar,text_color=sTextColor, text_color_disabled=sTextColor, 
                                                             font=("Georgia", fsNORMAL), textvariable="", justify="right", anchor="e") 
         nRemaining=self.nCols-4  # spread the remaining info over the remaining width of the canvas.                                                       
@@ -808,6 +829,7 @@ class lumiaGuiApp:
         colidx=int(0)  # row['selected']
         # ###################################################
         widgetID=(ri*self.nWidgetsPerRow)+colidx  # calculate the corresponding index to access the right widget in widgetsLst
+        b=False
         if(self.widgetsLst[widgetID] is not None):
             b=row['selected']
             if(b):
@@ -853,6 +875,23 @@ class lumiaGuiApp:
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], True) #self.widgetsLst[widgetID].select()
                     else:
                         ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #self.widgetsLst[widgetID].deselect()
+            except:
+                pass
+        colidx+=1  # row['samplingHeight'] 
+        # ###################################################
+        widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
+        sOptMenuTextColor='snow'
+        sOptMenuInactiveTextColor='gray20'
+        if(self.widgetsLst[widgetID] is not None):
+            try:  
+                if(b):
+                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=sOptMenuTextColor, disabled=False)
+                    sTextColor=self.activeTextColor
+                    #ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], disabled=False)
+                else:
+                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=sOptMenuInactiveTextColor,disabled=True )
+                    sTextColor=self.inactiveTextColor
+                    #ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],disabled=True )
             except:
                 pass
         return True
@@ -901,7 +940,7 @@ class lumiaGuiApp:
             sufficentHeight=int(((nRows+1)*self.root.fontHeight*1.88)+0.5)
             if(sufficentHeight < appHeight):
                 appHeight=sufficentHeight
-            self.guiPg1TpLv.geometry(f"{appWidth}x{appHeight}")
+            self.guiPg1TpLv.geometry(f"{appWidth+50}x{appHeight}")
 
         # ====================================================================
         # Creation of all widgets of first GUI page  -- part of lumiaGuiApp (toplevel window)
@@ -1093,7 +1132,7 @@ class lumiaGuiApp:
             else:
                 preselected=1
             self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ],  preselected=preselected, description='')
-        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
+        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL) 
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)
@@ -1419,7 +1458,7 @@ class lumiaGuiApp:
                 sH=float(row['samplingHeight'])
             row['HghtOk'] = (((sH >= self.inletMinHght) &
                                             (sH <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
-            icosStatus=row['isICOS'] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
+            icosStatus=row['IcosClass'] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
             bIcosOk=((bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
             bSel=False
             countryInactive=row['country'] in self.excludedCountriesList
@@ -1761,7 +1800,7 @@ class lumiaGuiApp:
                 scrollableFrame4Widgets = ge.pseudoRootFrame()
                 rootFrameCanvas = ge.pseudoRootFrame()
     
-            # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+            # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'IcosClass', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
             sLastCountry=''
             sLastStation=''
             num = 0  # index for 
@@ -1890,7 +1929,7 @@ class lumiaGuiApp:
             ge.updateWidget(self.Pg2GoButton,  value='green3', bFg_color=True) # in CTk this is the main button color (not the text color)
         # Row 4 title for individual entries
         #  ##############################################################################
-        # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+        # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'IcosClass', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         myLabels="Selected            Country                StationID              SamplingHeight    Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
         if(USE_TKINTER):
             myLabels="Selected     Country     StationID     SamplingHeight   Stat.altitude  ICOS-affil. Latitude Longitude  DataRanking DataDescription"
@@ -1952,7 +1991,7 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.Pg2GoButton, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Row 4 title for individual entries
         #  ##############################################################################
-        # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'isICOS', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
+        # newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'IcosClass', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         ge.guiPlaceWidget(self.wdgGrid, self.ColLabels, row=4, column=0, columnspan=nCols,padx=xPadding, pady=yPadding, sticky="ew")
         #self.ColLabels.grid(row=4, column=0, columnspan=10, padx=2, pady=yPadding, sticky="nw")
         return True

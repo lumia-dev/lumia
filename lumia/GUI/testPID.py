@@ -381,7 +381,7 @@ def testPID(pidLst, sOutputPrfx=''):
         if((datafileFound) and (metaDataRetrieved) and(icosMetaOk)):
             if(nGoodPIDs==0):
                 '''
-                returns a list of these objects: ['stationID', 'country', 'isICOS','latitude','longitude','altitude','samplingHeight','size', 
+                returns a list of these objects: ['stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
                         'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel','stationName'] 
                 '''
                 columnNames=['pid', 'icoscpMeta.ok', 'file.ok',  'fNamePid','stationID', \
@@ -605,8 +605,8 @@ def testPID(pidLst, sOutputPrfx=''):
         # of the time step to be listed. Hence we need to shift the time axis by 30 minutes
         allObsDfs.rename(columns={'time':'timeMOTS'}, inplace=True)  # time@middle of time step
         allObsDfs['time']=allObsDfs['timeMOTS'].transform(lambda x: x.replace(minute=0, second=0))
-        allObsDfs.to_csv('_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')  
         allObsDfs.drop(columns=['timeMOTS'], inplace=True) 
+        allObsDfs.to_csv('_dbg_icc_-allSitesTimedObsDfs.csv', mode='w', sep=',')  
 
 def readLstOfPids(pidFile):
     with open(pidFile) as file:

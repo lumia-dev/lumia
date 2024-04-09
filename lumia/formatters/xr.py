@@ -238,8 +238,8 @@ class TracerEmis(xr.Dataset):
         if attrs is None:
             attrs = {}
         attrs['tracer'] = self.tracer
-        #self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
-        self[name] = xr.DataArray(value, sizes=['time', 'lat', 'lon'], attrs=attrs)
+        self[name] = xr.DataArray(value, dims=['time', 'lat', 'lon'], attrs=attrs)
+        #self[name] = xr.DataArray(value, sizes=['time', 'lat', 'lon'], attrs=attrs)
             # TODO: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent 
             # with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
         self.attrs['categories'].append(name)
@@ -972,9 +972,9 @@ def load_preprocessed(
             logger.info(f"Reading contents from flux file {fname}")
             em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
             logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
-            logger.debug(em1Data)
+            # logger.debug(em1Data)
             df = em1Data.to_dataframe()
-            df.to_csv('em1Data.csv')
+            #df.to_csv('em1Data.csv')
             emData.append(em1Data)
             # data.append(xr.load_dataarray(fname, engine="netcdf4", decode_times=True))
         except:
@@ -988,19 +988,19 @@ def load_preprocessed(
     if freq is not None :
         times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
         logger.info(f'times_dest={times_dest}')
-        logger.debug(f'emData={emData}')
+        # logger.debug(f'emData={emData}')
         try:
             logger.debug(f'emData.columns={emData.columns}')  # fails
         except:
             pass
         try:
-            logger.debug(f'emData.time={emData.time}')  # bug: contains only one time value!!
+            logger.debug(f'emData.time={emData.time}')  
         except:
             pass
-        try:
-            logger.debug(f'emData.time.data={emData.time.data}')
-        except:
-            pass
+        #try:
+        #    logger.debug(f'emData.time.data={emData.time.data}')
+        #except:
+        #    pass
         df = emData.to_dataframe()
         df.to_csv('emData.csv')
         try:

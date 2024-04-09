@@ -35,9 +35,9 @@ class GridOldCTkCheckBox(ctk.CTkCheckBox):
 class GridCTkCheckBox(ctk.CTkCheckBox):
     def __init__(self, parent, root, myGridID, command=None,  *args, **kwargs):
         self.widgetGridID= myGridID
-        print(f'command={command},  self.widgetGridID={self.widgetGridID}')
+        #print(f'command={command},  self.widgetGridID={self.widgetGridID}')
         self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
-        print(f'self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
+        #print(f'self.ptrToEvHdPg2myCheckboxEvent={self.ptrToEvHdPg2myCheckboxEvent},  self.widgetGridID={self.widgetGridID}')
         ctk.CTkCheckBox.__init__(self, root, command=self.ptrToEvHdPg2myCheckboxEvent, *args, **kwargs) 
 
 
@@ -52,6 +52,10 @@ class GridCTkOptionMenu(ctk.CTkOptionMenu):
         ptrToEvHdPg2myOptionMenuEvent=lambda: command(self.widgetGridID,  values)
         ctk.CTkOptionMenu.__init__(self, root, command=ptrToEvHdPg2myOptionMenuEvent, *args, **kwargs)
 
+class oldGridCTkOptionMenu(ctk.CTkOptionMenu):
+    def __init__(self, root, myGridID, *args, **kwargs):
+            ctk.CTkOptionMenu.__init__(self, root, *args, **kwargs)
+            self.widgetGridID= myGridID
 
 def getVarValue(tkinterVar):
     return tkinterVar.get()

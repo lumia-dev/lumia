@@ -195,7 +195,6 @@ class GridCTkOptionMenu(wdg.Dropdown):
         return
 
 
-
 def getVarValue(tkinterVar):
     return tkinterVar
     
