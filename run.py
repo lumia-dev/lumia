@@ -245,10 +245,10 @@ if args.forward :
 # Setup uncertainties if needed:
 if args.optimize or args.gradtest :
     if rcf.rcfGet('observations.uncertainty.frequency') == 'dyn':
-        dims=emis['Dimensions']['time']
-        print(f'nHourlyEntries in Emis={dims}')
+        #dims=emis['Dimensions']['time']
+        #print(f'nHourlyEntries in Emis={dims}')
         logger.info(f" run_args.optimize_dyn(): before calling .calcDepartures(emis, apri) with emis={emis}")
-        model.calcDepartures(emis, 'apri')   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
+        model.calcDepartures(emis, 'apri', isUncertaintyCalc=True )   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
         db.setup_uncertainties_dynamic(
             'mix_apri',
             rcf.rcfGet('observations.uncertainty.dyn.freq', default='7D'),

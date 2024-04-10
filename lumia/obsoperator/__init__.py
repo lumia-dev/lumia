@@ -65,13 +65,14 @@ class transport(object):
         db = obsdb.from_hdf(dbf)
         db.save_tar(os.path.join(self.outputdir, f'observations.{step}.tar.gz'))
 
-    def calcDepartures(self, struct, step=None, serial=False):
+    def calcDepartures(self, struct, step=None, serial=False, isUncertaintyCalc=False ):
         # self.db.observations should contain both the co2 observational data as well as the emissions for biosphere, fossil, ocean and the backgroundCO2.
-        logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
+        if(isUncertaintyCalc):
+            logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
-        emf, dbf = self.runForward(struct, step, serial)
+        emf, dbf = self.runForward(struct, step, serial,  isUncertaintyCalc=isUncertaintyCalc)
         logger.info(f'in calcDepartures() reading db from file dbf={dbf}')
         db = obsdb.from_hdf(dbf, rcFile=self.rcf)
         logger.debug(f'{db}')
@@ -105,7 +106,7 @@ class transport(object):
         if self.rcf.rcfGet('model.split_categories', default=True): # if self.rcf.getAlt('model','split_categories', default=True):
             import time
             time.sleep(5)
-            logger.debug("obsoperator._init_.calcDepartures() self=")
+            # logger.debug("obsoperator._init_.calcDepartures() self=")
             # self.db.observations(f'{self}')
             logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations={self.db.observations}')
             logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations.columns={self.db.observations.columns}')
@@ -129,8 +130,12 @@ class transport(object):
             if(is_float_dtype(db.observations.loc[:, key].values)==False):
                 db.observations.loc[:, key].values=db.observations.loc[:, key].values.astype(float)
             self.db.observations.loc[:, key] = db.observations.loc[:, key].values
-
+        
+        n=len(self.db.observations)
+        logger.debug(f'n.db.observations(obs)={n}')
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
+        n=len(self.db.observations)
+        logger.debug(f'n.db.observations.dropna(obs)={n}')
 
         # Output if needed:
         if step not in self.rcf.rcfGet('model.no_output', default=['var4d']):
@@ -139,13 +144,13 @@ class transport(object):
         # Return model-data mismatches
         return self.db.observations.loc[:, ('mismatch', 'err')]
 
-    def runForward(self, struct, step=None, serial=False, observations: obsdb = None):
+    def runForward(self, struct, step=None, serial=False, observations: obsdb = None,  isUncertaintyCalc=False):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly. struct can hold the emissions on a lat/lon grid for ocean, anthropogenic and biosphere-model       
         """
 
-        logger.info('Entering obsoperator.init.runForward()')
+        logger.debug('Entering obsoperator.init.runForward()')
         # Write model inputs:
         if observations is None :
             observations = self.db
@@ -178,8 +183,13 @@ class transport(object):
         p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
         logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')
         
+        if(isUncertaintyCalc):
+            logger.info('run forward model to calculate the uncertainties.')
         if(emf is None):
-            logger.warning('Warning: obsoperator.init.runForward(): emf is None. That is a problem unless perhaps it is the first call or an evaluation of uncertainties...')
+            if(isUncertaintyCalc):
+                logger.info('obsoperator.init.runForward(): emf is None. This is typical when calculating of the dyn uncertainties.')
+            else:
+                logger.warning('Warning: obsoperator.init.runForward(): emf is None. That can be an issue...')
         else:
             logger.info(f'obsoperator.init.runForward(): emf2={emf}')
         logger.info('obsoperator.init.runForward(): dbf2=')

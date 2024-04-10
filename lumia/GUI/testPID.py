@@ -518,6 +518,22 @@ def testPID(pidLst, sOutputPrfx=''):
                     obsData1siteTimed.loc[:,'lon']=fLongitude
                     obsData1siteTimed.loc[:,'alt']=fStationAltitude
                     obsData1siteTimed.loc[:,'height']=fSamplingHeight
+                    # Scale co2 concentrations to ppm
+                    i=0
+                    mulfac=1.0
+                    obsIdx=obsData1siteTimed.columns.get_loc('obs')
+                    v=obsData1siteTimed.iat[i,obsIdx]
+                    print(f'v={v}')
+                    while((obsData1siteTimed.iat[i,obsIdx] is None) or
+                            (obsData1siteTimed.iat[i,obsIdx]  < 0.0) or
+                            (obsData1siteTimed.iat[i,obsIdx] > 1000.0)) and (i<len(obsData1siteTimed)):
+                                i+=1
+                    if(i<len(obsData1siteTimed)):
+                        while(mulfac*obsData1siteTimed.iat[i,obsIdx]  < 200):
+                            mulfac=mulfac *1000
+                    obsData1siteTimed['obs'] = obsData1siteTimed['obs'].astype(float).multiply(mulfac,axis = 'index')     
+                    obsData1siteTimed['stddev'] = obsData1siteTimed['stddev'].astype(float).multiply(mulfac,axis = 'index')
+                    
                     logger.info(f"Observational data for chosen tracer read successfully: PID={pid} station={SiteID},  StationName={sFullStationName}, located at station latitude={fLatitude},  longitude={fLongitude},  stationAltitude={fStationAltitude},  samplingHeight={fSamplingHeight}")
                     # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
                     # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
@@ -594,7 +610,7 @@ def testPID(pidLst, sOutputPrfx=''):
         logger.info(f'PIDs with insufficient temporal coverage (no data) have been written to {sOutputPrfx}noTimCov-obsDataSetsWithInsufficientTemporalCoverage.csv')
     if(nBadies > 0):
         logger.warning(f"A total of {nBadies} PIDs out of {nTotal} data objects had some issues,  thereof {nBadMeta} had bad dobjMetaData and {nBadIcoscpMeta} had bad icoscMetaData.")
-        dfbad.to_csv(sOutputPrfx+'bad-PIDs-testresult.csv', encoding='utf-8', mode='w', sep=',')
+        #dfbad.to_csv(sOutputPrfx+'bad-PIDs-testresult.csv', encoding='utf-8', mode='w', sep=',')
         #badiesLst.to_csv(sOutputPrfx+'badiesLst-obsDataSetsThatCouldNotBeRead.csv', encoding='utf-8', mode='w', sep=',')
         logger.info(f'Bad PIDs with some issues have been written to {sOutputPrfx}bad-PIDs-testresult.csv')
     if(nGoodPIDs > 0):

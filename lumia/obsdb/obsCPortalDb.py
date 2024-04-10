@@ -350,6 +350,21 @@ class obsdb(obsdb):
                         obsData1siteTimed.loc[:,'lon']=fLongitude
                         obsData1siteTimed.loc[:,'alt']=fStationAltitude
                         obsData1siteTimed.loc[:,'height']=fSamplingHeight
+                        # Scale co2 concentrations to ppm  (from mol/mol)
+                        i=0
+                        mulfac=1.0
+                        obsIdx=obsData1siteTimed.columns.get_loc('obs')
+                        v=obsData1siteTimed.iat[i,obsIdx]
+                        print(f'v={v}')
+                        while((obsData1siteTimed.iat[i,obsIdx] is None) or
+                                (obsData1siteTimed.iat[i,obsIdx]  < 0.0) or
+                                (obsData1siteTimed.iat[i,obsIdx] > 1000.0)) and (i<len(obsData1siteTimed)):
+                                    i+=1
+                        if(i<len(obsData1siteTimed)):
+                            while(mulfac*obsData1siteTimed.iat[i,obsIdx]  < 200):
+                                mulfac=mulfac *1000
+                        obsData1siteTimed['obs'] = obsData1siteTimed['obs'].astype(float).multiply(mulfac,axis = 'index')     
+                        obsData1siteTimed['stddev'] = obsData1siteTimed['stddev'].astype(float).multiply(mulfac,axis = 'index')
                         logger.info(f"Observational data for chosen tracer read successfully: PID={pid} station={SiteID},  StationName={sFullStationName}, located at station latitude={fLatitude},  longitude={fLongitude},  stationAltitude={fStationAltitude},  samplingHeight={fSamplingHeight}")
                         # and the Time format has to change from "2018-01-02 15:00:00" to "20180102150000"
                         # Note that the ['TIMESTAMP'] column is a pandas.series at this stage, not a Timestamp nor a string
@@ -833,8 +848,16 @@ class obsdb(obsdb):
 
             # 3) Calculate the standard deviation of the residuals model-data mismatches. Store it in sites dataframe for info.
             sigma = (resid_obs - resid_mod).values.std()
-            self.sites.loc[self.sites.code == code, 'err'] = sigma
-            logger.info(f'Model uncertainty for site {code} set to {sigma:.2f}')
+            try:
+                self.sites.loc[self.sites.code == code, 'err'] = sigma
+                logger.info(f'Model uncertainty for site {code} set to {sigma:.2f}')
+            except:
+                try:
+                    self.sites.loc[self.sites.site == code, 'err'] = sigma
+                    logger.info(f'Model uncertainty for site {code} set to {sigma:.2f}')
+                except:
+                    logger.error(f'self.sites.code == code failed with code={code} and self.sites={self.sites}')
+                    sys.exit(-24)
 
             # 4) Get the measurement uncertainties and calculate the error inflation
 #            s_obs = self.observations.loc[:, err_obs].values

@@ -45,6 +45,17 @@ def  getMetaDataFromPid_via_icoscp_core(pid, suppressHugeCompilations=True):
                 values are returned for these keys: ['stationID', 'country', 'IcosClass','latitude','longitude','altitude','samplingHeight','size', 
                                         'nRows','dataLevel','obsStart','obsStop','productionTime','accessUrl','fileName','dClass','dataSetLabel'] 
     @rtype list of mostly strings and 2 integers
+    
+    pidMetadata.specificInfo.acquisition.station.specificInfo.documentation.timeZoneOffset
+    pidMetadata.specificInfo.columns[0].valueType:
+        ValueType(self=UriResource(uri='http://meta.icos-cp.eu/resources/cpmeta/timeStamp', 
+        label='time instant, UTC', comments=[]), quantityKind=None, unit=None)
+    pidMetadata.specificInfo.columns[1].valueType:
+        ValueType(self=UriResource(uri='http://meta.icos-cp.eu/resources/cpmeta/co2MixingRatioMolMol', label='CO2 (dry air mole fraction)', comments=[]), quantityKind=UriResource(uri='http://meta.icos-cp.eu/resources/cpmeta/portion', label='portion', comments=['Magnitude of a part of a whole. Can be measured in percent, or be a number between 0 and maximum (inclusive).']), 
+        unit='mol mol-1')
+    pidMetadata.specificInfo.columns[4].valueType:
+        ValueType(self=UriResource(uri='http://meta.icos-cp.eu/resources/cpmeta/gasMoleFractionSd', label='standard deviation of gas mole fraction', comments=[]), quantityKind=UriResource(uri='http://meta.icos-cp.eu/resources/cpmeta/portion', label='portion', comments=['Magnitude of a part of a whole. 
+        Can be measured in percent, or be a number between 0 and maximum (inclusive).']), unit='a.u.')
     '''
     mdata=[]
     ndr=0
