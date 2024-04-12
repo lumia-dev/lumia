@@ -125,8 +125,8 @@ class obsdb(obsdb):
         The calculation is done for each site code, so if two sites share the same code (e.g. sampling at the same location by two data providers), they will have the same observation uncertainty.
         """
 
-        # Ensure that all observations have a measurement error:
-        sel = self.observations.loc[:, err_obs] <= 0
+        # Ensure that all observations have a measurement error (if not, set to one percent):
+        sel = self.observations.loc[:, err_obs] <= 0.0001
         self.observations.loc[sel, err_obs] = self.observations.loc[sel, 'obs'] * err_min / 100.
 
         for code in self.observations.code.drop_duplicates():

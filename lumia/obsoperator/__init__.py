@@ -69,30 +69,43 @@ class transport(object):
         # self.db.observations should contain both the co2 observational data as well as the emissions for biosphere, fossil, ocean and the backgroundCO2.
         if(isUncertaintyCalc):
             logger.info(f"Dbg: self.db.observations ENTERING_calcDepartures: {self.db.observations}") # TODO: there are some nans in the 'background' column
-        sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+        #sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_ENTERING_calcDepartures_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
-        emf, dbf = self.runForward(struct, step, serial,  isUncertaintyCalc=isUncertaintyCalc)
-        logger.info(f'in calcDepartures() reading db from file dbf={dbf}')
+        # struct is a netcdf file read into memory with the emissions for fossil emissions , land exchange and ocean exchange fluxes organised by time, lat, long
+        emf, dbf = self.runForward(struct, step, serial)
+
+        logger.info(f'emf={emf} is the emissions netcdf file created from struct and dbf={dbf} is a hdf file that contains self.db.observations ')
+        logger.info('runForward called multitracer.py, which (hopefully) calculated the differences to the observations and updates/adds to the observations.hdf file')
+        logger.info(f'in calcDepartures(): reading the updated obsDb from file dbf={dbf}')
         db = obsdb.from_hdf(dbf, rcFile=self.rcf)
-        logger.debug(f'{db}')
-        logger.debug("db.columns=")
-        logger.debug(f'{db.columns}')
+        logger.debug(f'{db.observations}')
+        logger.debug("db.observations.columns=")
+        logger.debug(f'{db.observations.columns}')
+        logger.debug(f"Dbg: After forward run checking db_obsdb.hdf= {self.db.observations}")
+        # TODO: check also the latest write operation time on the dbf before and after calling the forward calculation to detect any failure of the
+        # the call to the external program multitracer.py so it does not go unnoticed.
         if('mix_fossil' in self.db.observations.columns):
-            logger.info('mix_fossil column present in self.db.observations.columns. That is good.')
+            logger.debug('mix_fossil column present in self.db.observations.columns. That is good.')
+            self.db.observations.to_csv(sTmpPrfx+'_dbg_obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         else:
-            logger.info('mix_fossil column NOT present in self.db.observations.columns. That is very bad and something goofed up. It is meaningless to proceed until this error is fixed.')
-            # sys.exit(-13)
-        logger.debug(f"Dbg: db_obsdb.from_hdf() AfterFWD: {self.db.observations}")
-        self.db.observations.to_csv(sTmpPrfx+'_dbg_obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
-        logger.debug(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
-        self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+            if(isUncertaintyCalc):
+                logger.info('mix_fossil column NOT present in self.db.observations.columns. This is normal behaviour while calculating the dyn errors.')
+                self.db.observations.to_csv(sTmpPrfx+'_dbg_obs_hdf_init_calcDepartures_AfterFWD_dynErrCalc_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
+            else:
+                s=sTmpPrfx+'_dbg_suspicious_obs_hdf_init_calcDepartures_AfterFWD_self-db-observations.csv'
+                logger.error(f'mix_fossil column NOT present in self.db.observations.columns. That is very bad at this stage and something goofed up. It is expected that the observations file dbf={dbf} is updated by multitracer.py that does the forward calculations, but the hdf file was not updated, suggesting that the external call failed somehow. Look for the sCmd = log entry above and run that process separately in a debugger or check the log file for multitracer.py. It is meaningless to proceed until this error is fixed.')
+                logger.info(f'A copy of the offending hdf file is being written into the following .csv file for easier analysis: {s}')
+                self.db.observations.to_csv(s, encoding='utf-8', sep=',', mode='w')
+                sys.exit(-13)
+        #logger.debug(f"Dbg: self.db.observations AfterFWD: {self.db.observations}")
+        #self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='w')
         # db = db.reset_index(drop=True)
-        logger.debug('in calcDepartures() db=')
-        logger.debug(f'{db}')
-        logger.debug(f'in calcDepartures() emf={emf}')
-        logger.debug('in calcDepartures() self.db.observations=')
-        logger.debug(f'{self.db.observations}')
+        #logger.debug('in calcDepartures() dbf=')
+        #logger.debug(f'{dbf}')
+        #logger.debug(f'in calcDepartures() emf={emf}')
+        #logger.debug('in calcDepartures() self.db.observations=')
+        #logger.debug(f'{self.db.observations}')
         logger.debug(f'Columns present in db.sites.columns: {db.sites.columns}')
         #  We need to ensure that all columns containing float values are perceived as such and not as object or string dtypes -- or havoc rages down the line
         knownColumns=['stddev', 'obs','err_obs', 'err', 'lat', 'lon', 'alt', 'height', 'background', 'mix_fossil', 'mix_biosphere', 'mix_ocean', 'mix_background', 'mix']
@@ -105,9 +118,7 @@ class transport(object):
         # if DEBUG: self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator_init_calcDepartures_AfterFWD_self-db-observations.csv', encoding='utf-8', sep=',', mode='a')
         if self.rcf.rcfGet('model.split_categories', default=True): # if self.rcf.getAlt('model','split_categories', default=True):
             import time
-            time.sleep(5)
-            # logger.debug("obsoperator._init_.calcDepartures() self=")
-            # self.db.observations(f'{self}')
+            time.sleep(1)
             logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations={self.db.observations}')
             logger.debug(f'obsoperator._init_.calcDepartures() self.db.observations.columns={self.db.observations.columns}')
             for cat in struct.transported_categories:
@@ -130,7 +141,7 @@ class transport(object):
             if(is_float_dtype(db.observations.loc[:, key].values)==False):
                 db.observations.loc[:, key].values=db.observations.loc[:, key].values.astype(float)
             self.db.observations.loc[:, key] = db.observations.loc[:, key].values
-        
+        self.db.observations.to_csv(sTmpPrfx+'_dbg_obsoperator.init.L144.self.db.observations-with-nans.csv')
         n=len(self.db.observations)
         logger.debug(f'n.db.observations(obs)={n}')
         self.db.observations.dropna(subset=['mismatch'], inplace=True)
@@ -142,9 +153,10 @@ class transport(object):
             self.save(tag=step, structf=emf)
 
         # Return model-data mismatches
-        return self.db.observations.loc[:, ('mismatch', 'err')]
+        return self.db.observations.loc[:, ('mismatch', 'err')]  # TODO: carbonportal results in err being zero - probably unrealistic. Check!
 
-    def runForward(self, struct, step=None, serial=False, observations: obsdb = None,  isUncertaintyCalc=False):
+
+    def runForward(self, struct, step=None, serial=False, observations: obsdb = None):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
         The eventual parallelization is handled by the subprocess directly. struct can hold the emissions on a lat/lon grid for ocean, anthropogenic and biosphere-model       
@@ -162,12 +174,17 @@ class transport(object):
         emf = self.writeStruct(struct, path=sTmpPrfx+'emissions.nc', zlib=compression, only_transported=True)
         del struct
         dbf = observations.to_hdf(sTmpPrfx+'observations.hdf')
-        
-        logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
+        if(dbf is None):
+            logger.warning('Warning: obsoperator.init.runForward(): dbf is None. That may cause trouble...')
+        else:
+            logger.info(f'obsoperator.init.runForward(): dbf={dbf}')
 
         # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
-        sCmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
+        sCmd = [sys.executable, '-u', self.executable, '--forward', '--obs', dbf, '--emis', emf, '--footprints', self.footprint_path, '--check-footprints --tmp', self.tempdir,  '--outpPathPrfx',  sOutputPrfx]
 
+        # when calculating the dyn uncertainties, the external call to multitracer.py seems to update the dbf  (obs database file)
+        # ./tmp/LumiaDA-2024-04-11T09_10/LumiaDA-2024-04-11T09_10-LumiaDA-2024-04-11T09_10-observations.hdf
+        
         if self.serial or serial:
             sCmd.append('--serial')
             
@@ -179,24 +196,8 @@ class transport(object):
         # creates normally: sCmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
         logger.debug(f'Starting ForwardRun in subprocess with cmd={sCmd}')
         
-        # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
         p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
         logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')
-        
-        if(isUncertaintyCalc):
-            logger.info('run forward model to calculate the uncertainties.')
-        if(emf is None):
-            if(isUncertaintyCalc):
-                logger.info('obsoperator.init.runForward(): emf is None. This is typical when calculating of the dyn uncertainties.')
-            else:
-                logger.warning('Warning: obsoperator.init.runForward(): emf is None. That can be an issue...')
-        else:
-            logger.info(f'obsoperator.init.runForward(): emf2={emf}')
-        logger.info('obsoperator.init.runForward(): dbf2=')
-        if(dbf is None):
-            logger.info('Error: obsoperator.init.runForward(): dbf is None. That is hinting at a possible problem...')
-        else:
-            print(dbf)
 
         # Retrieve results :
         return emf, dbf

@@ -110,7 +110,7 @@ observations:
       freq: 7D
     frequency: dyn
     model: 1.5
-    obs_field: err
+    obs_field: err_obs
     setup: false
     systematicErrEstim: 0.5
   validation_file: false

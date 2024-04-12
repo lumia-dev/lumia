@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
 from loguru import logger
+from pandas import Timedelta, Timestamp # , to_numeric
+from pandas.api.types import is_float_dtype
 from transport.core import Model
 from transport.emis import Emissions
 #from transport.observations import Observations
@@ -8,8 +10,6 @@ from observations import Observations
 import h5py
 from typing import List
 from types import SimpleNamespace
-from pandas import Timedelta, Timestamp # , to_numeric
-from pandas.api.types import is_float_dtype
 from gridtools import Grid
 from numpy import inf
 from dataclasses import asdict
@@ -211,14 +211,19 @@ if __name__ == '__main__':
         if col in obs.columns:
             if(is_float_dtype(obs[col])==False):
                 obs[col]=obs[col].astype(float)
-                # cf=obs[col]
-                # print(cf)
     
     # Set the max time limit for footprints:
     LumiaFootprintFile.maxlength = args.max_footprint_length
 
+    sOutpPrfx=args.outpPathPrfx
     if args.check_footprints or 'footprint' not in obs.columns:
-        obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints,  sOutpPrfx=args.outpPathPrfx)
+        obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints,  sOutpPrfx=sOutpPrfx)
+    
+        #if(os.path.isfile(sOutpPrfx+"missing-footprint-files.csv")):
+            # Call runflex to create the missing footprint files
+            
+            # Discover the newly created footprint files
+            #obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints,  sOutpPrfx=sOutpPrfx)
 
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
     emis = Emissions.read(args.emis)  # goes to lumia.transport.emis.init_.read() and reads  self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']+emissions.nc

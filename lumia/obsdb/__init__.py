@@ -335,7 +335,7 @@ class obsdb:
             if df.loc[:, col].dtype == 'O' and isinstance(df.loc[:, col].iloc[0], bool):
                 logger.warning(f"Converting column {col} from {df.loc[:, col].dtype} to {bool}")
                 df.loc[:, col] = df.loc[:, col].astype(bool)
-
+        df.to_csv( sTmpPrfx+'_dbg_init_obsdb_'+fname[:-4]+'.csv', encoding='utf-8', mode='w', sep=',')
         # TODO:  /home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py:250: PerformanceWarning: 
         # your performance may suffer as PyTables will pickle object types that it cannot
         # map directly to c-types [inferred_type->mixed,key->block3_values] [items->Index(['icos_flag', 'site', 'code', 'tracer', 'sitecode_CSR', 'fnameUrl',

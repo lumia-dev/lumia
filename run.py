@@ -245,14 +245,21 @@ if args.forward :
 # Setup uncertainties if needed:
 if args.optimize or args.gradtest :
     if rcf.rcfGet('observations.uncertainty.frequency') == 'dyn':
-        #dims=emis['Dimensions']['time']
-        #print(f'nHourlyEntries in Emis={dims}')
         logger.info(f" run_args.optimize_dyn(): before calling .calcDepartures(emis, apri) with emis={emis}")
         model.calcDepartures(emis, 'apri', isUncertaintyCalc=True )   # goes via obsoperator_init() -> obsoperator.calcDepartures() -> obsoperator.runForward()
+        nameOfObsErrColumn=rcf.rcfGet('observations.uncertainty.obs_field', default='err_obs')
+        if not (any(nameOfObsErrColumn in entry for entry in db.observations.columns)):
+            if (any('err_obs' in entry for entry in db.observations.columns)):
+                nameOfObsErrColumn='err_obs'
+            else:
+                logger.error(f'The name of the column containing the observational error stated in your yaml file configuration file \
+                in key observations.uncertainty.obs_field (default if not set is err_obs) is not to be found in the file \
+                containing your observations Db (any of {sTmpPrfx}observations.hdf or {sOutputPrfx}observations.apri.tar.gz). \
+                If you enable debugging, a human readable csv file of your obsDb is created at {sTmpPrfx}_dbg_AllObsData-withBg-{tracer}.csv')
         db.setup_uncertainties_dynamic(
             'mix_apri',
             rcf.rcfGet('observations.uncertainty.dyn.freq', default='7D'),
-            rcf.rcfGet('observations.uncertainty.obs_field', default='err_obs')
+            nameOfObsErrColumn
         )
     else :
         db.setup_uncertainties()
