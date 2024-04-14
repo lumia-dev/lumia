@@ -628,7 +628,7 @@ class obsdb(obsdb):
         obsDfWthBg['lon'] = obsDfWthBg['lon'].map(lambda x: '%8.4f' % x)
         obsDfWthBg['alt'] = obsDfWthBg['alt'].map(lambda x: '%6.1f' % x)
         obsDfWthBg['height'] = obsDfWthBg['height'].map(lambda x: '%6.1f' % x)
-        obsDfWthBg.to_csv(sOutputPrfx+'_finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
+        obsDfWthBg.to_csv(sOutputPrfx+'finalObsDfWthBg.csv', encoding='utf-8', mode='w', sep=',', float_format="%.5f")
         # setattr('observations', newDf)
         logger.debug('combineObsAndBgnd() completed successfully. Returning finalObsDfWthBg.csv')
         return(obsDfWthBg)

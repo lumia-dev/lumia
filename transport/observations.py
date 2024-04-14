@@ -40,7 +40,6 @@ class Observations(DataFrame):
         logger.debug(f'observations.write filename={filename} via self.to_hdf(filename, key=observations)')
         try:
             sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-            print(sOutputPrfx)
         except:
             pass
         self.to_hdf(filename, key='observations')
@@ -57,7 +56,7 @@ class Observations(DataFrame):
             local = archive
         fnames_archive = archive + '/' + self.footprint
         fnames_local = local + '/' + self.footprint
-        logger.info(f"Hunting for these footprints,  either archived: \n{fnames_archive} \n or local:\n{fnames_local}")
+        #logger.info(f"Hunting for these footprints,  either archived: \n{fnames_archive} \n or local:\n{fnames_local}")
         # 3) retrieve the files from archive if needed:
         exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
         self.loc[:, 'footprint'] = fnames_local
@@ -67,10 +66,13 @@ class Observations(DataFrame):
             logger.error("No valid footprints found. Exiting ...")
             raise RuntimeError("No valid footprints found")
         missingFootprintsRaw= self[self['ftprintExists'] == False]
-        missingFootprints=missingFootprintsRaw['footprint'].drop_duplicates()
+        missingFootprintsRaw.to_csv(sOutpPrfx+"missing-footprint-files-raw.csv")
+        missingFootprintsTmp.missingFootprintsRaw[['site', 'code', 'lat', 'lon', 'alt', 'height', 'footprint']].copy()
+        missingFootprints=missingFootprintsTmp.drop_duplicates(subset=['footprint']) #loc[(missingFootprintsTmp['footprint'].duplicated(keep='First') == False), :] #groupby('footprint', as_index=True).max() #drop_duplicates(subset='footprint', keep="first")
+        # )missingFootprints=missingFootprints.reset_index()
         try:
-            if(missingFootprints.empty==False):
-                missingFootprints['footprint'].to_csv(sOutpPrfx+"missing-footprint-files.csv")
+            missingFootprintsTmp.to_csv(sOutpPrfx+"missingFootprintsTmp.csv")
+            missingFootprints['footprint'].to_csv(sOutpPrfx+"missing-footprint-files.csv")
         except:
             pass
         self.drop(columns='ftprintExists', inplace=True)
@@ -104,9 +106,9 @@ class Observations(DataFrame):
             #print(f'{fname}')
             with cls(fname) as fpf:
                 footprints.extend(fpf.footprints)
-        with open("requested-footprint-files.txt", "w") as output:
-            for fname in fnames:
-                output.write(fname+'\n')
+        #with open("requested-footprint-files.txt", "w") as output:
+        #    for fname in fnames:
+        #        output.write(fname+'\n')
         self.loc[~self.obsid.isin(footprints), 'footprint'] = nan
 
 

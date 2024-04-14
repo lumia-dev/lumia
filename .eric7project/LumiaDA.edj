@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric debugger properties file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-04-11, 14:42:16"
+    "saved": "2024-04-13, 18:27:28"
   },
   "debug_properties": {
     "VIRTUALENV": "skuggfaxe2",
@@ -12,7 +12,7 @@
     "REMOTEDEBUGGER": true,
     "REMOTEHOST": "skuggfaxe2",
     "REMOTECOMMAND": "ssh ",
-    "REMOTEDEBUGCLIENT": "/opt/conda3.10/envs/lumia/lib/python3.11/site-packages/eric7/DebugClients/Python/DebugClient.py",
+    "REMOTEDEBUGCLIENT": "/opt/conda3.10/envs/lumia/lib/python3.10/site-packages/eric7/DebugClients/Python/DebugClient.py",
     "PATHTRANSLATION": true,
     "REMOTEPATH": "/home/arndt/dev/lumia/lumiaDA/lumia",
     "LOCALPATH": "/home/arndt/dev/lumia/lumiaDA/lumia",

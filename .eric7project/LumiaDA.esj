@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-04-12, 17:09:23"
+    "saved": "2024-04-13, 19:33:32"
   },
   "MultiProject": "",
   "Project": "",
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
       "Cursor": [
-        2,
-        65
+        12,
+        0
       ],
       "Folds": [],
       "Zoom": 0,
@@ -122,7 +122,7 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
       "Cursor": [
-        1,
+        4,
         0
       ],
       "Folds": [],
@@ -204,81 +204,19 @@
       "Editorindex": 15
     }
   ],
-  "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-    "Cursor": [
-      72,
-      44
-    ]
-  },
+  "ActiveWindow": {},
   "Breakpoints": [
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
-      6,
+      13,
       "",
       false,
       true,
       0
     ],
     [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/__init__.py",
-      338,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/footprints.py",
-      136,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-      60,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-      95,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-      103,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
-      220,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-      107,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
-      46,
+      "/home/arndt/dev/flex/runflex/runflex/observations.py",
+      185,
       "",
       false,
       true,
