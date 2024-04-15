@@ -47,35 +47,27 @@ class Observations(DataFrame):
         fnames = self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
         self.loc[:, 'footprint'] = fnames
 
-    
-    def find_footprint_files(self, archive: str, local: str=None, sOutpPrfx='./') -> None:
-        # 2) Append file names, both for local and archive
-        if local is None:
-            local = archive
-        fnames_archive = archive + '/' + self.footprint
-        fnames_local = local + '/' + self.footprint
-        #logger.info(f"Hunting for these footprints,  either archived: \n{fnames_archive} \n or local:\n{fnames_local}")
-        # 3) retrieve the files from archive if needed:
-        exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
-        self.loc[:, 'footprint'] = fnames_local
-        self.loc[:, 'ftprintExists'] = exists
 
-        if not exists.any():
-            logger.error("No valid footprints found. Exiting ...")
-            raise RuntimeError("No valid footprints found")
-        missingFootprintsRaw= self[self['ftprintExists'] == False]
+    def identifyMissingFootprints(self,  missingFootprintsRaw, sOutpPrfx=''):
+        # missingFootprintsRaw is a pandas dataframe with obs entries that have no existing footprint file
         if (missingFootprintsRaw.empty == True):
             logger.info('We have all the footprints that are required. That is good.')
+            return(missingFootprintsRaw,None)
         else:
             #missingFootprintsRaw.to_csv(sOutpPrfx+"missing-footprint-files-raw.csv")
             availColNames = list(missingFootprintsRaw.columns.values)
             if not (any('code' in entry for entry in availColNames)):    #  
                 missingFootprintsRaw.rename(columns={'site':'code'}, inplace=True)
             missingFootprintsTmp=missingFootprintsRaw[[ 'time','lat', 'lon', 'alt', 'height', 'code', 'footprint']].copy()
+            myMissingFootprints=missingFootprintsTmp.copy() # for all these entries we need to create footprints
+            
+            # What follows is a brief log file so we see quickly which sites and months are affected
             missingFootprintsTmp.rename(columns={'footprint':'missingFootprintFilename'}, inplace=True)
             #missingFootprintsTmp.to_csv(sOutpPrfx+"missing-footprint-files-tmp.csv")
             missingFootprintsTmp.drop_duplicates(subset=['missingFootprintFilename'], keep='last',inplace=True, ignore_index=True) 
+            fObsWithoutFootprints=sOutpPrfx+"obs-without-footprints.csv"
             try:
+                myMissingFootprints.to_csv(fObsWithoutFootprints)
                 missingFootprintsTmp.to_csv(sOutpPrfx+"missing-footprint-files-tmp.csv")
             except:
                 pass
@@ -100,6 +92,32 @@ class Observations(DataFrame):
         missingFootprints.drop(columns='dtTime', inplace=True)
         # create a missing-footprint-files.csv file that can be handed to runflex to create these missing footprints
         missingFootprints.to_csv(sOutpPrfx+"missing-footprint-files.csv")
+        return(myMissingFootprints,  fObsWithoutFootprints)
+
+    
+    def find_footprint_files(self, archive: str, local: str=None, sOutpPrfx='./') -> None:
+        # 2) Append file names, both for local and archive
+        if local is None:
+            local = archive
+        fnames_archive = archive + '/' + self.footprint
+        fnames_local = local + '/' + self.footprint
+        #logger.info(f"Hunting for these footprints,  either archived: \n{fnames_archive} \n or local:\n{fnames_local}")
+        # 3) retrieve the files from archive if needed:
+        exists = array([check_migrate(arc, loc) for (arc, loc) in tqdm(zip(fnames_archive, fnames_local), desc='Migrate footprint files', total=len(fnames_local), leave=False)])
+        self.loc[:, 'footprint'] = fnames_local
+        self.loc[:, 'ftprintExists'] = exists
+
+        if not exists.any():
+            logger.error("No valid footprints found. Exiting ...")
+            raise RuntimeError("No valid footprints found")
+
+        missingFootprintsRaw= self[self['ftprintExists'] == False]
+        (missingFootprints,  fObsWithoutFootprints)=self.identifyMissingFootprints(missingFootprintsRaw,sOutpPrfx )
+        if(missingFootprints.empty==True):
+            logger.info('We have all the footprints we need. That is good')
+        else:
+            logger.error(f'We lack at least some footprints that are needed. Please call runflex with the option --obs={fObsWithoutFootprints}')
+            
         self.drop(columns='ftprintExists', inplace=True)
         self.loc[~exists, 'footprint'] = nan
         return
