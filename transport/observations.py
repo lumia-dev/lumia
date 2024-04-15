@@ -2,9 +2,10 @@
 
 import os
 import shutil
-from pandas import DataFrame, read_hdf, isnull
+from pandas import DataFrame, read_hdf, isnull,  tseries,  offsets,  Period,  to_datetime
 from numpy import array, nan
 from datetime import datetime
+import numpy as np
 from tqdm import tqdm
 from loguru import logger
 from transport.core.model import FootprintFile
@@ -38,10 +39,6 @@ class Observations(DataFrame):
 
     def write(self, filename: str) -> None:
         logger.debug(f'observations.write filename={filename} via self.to_hdf(filename, key=observations)')
-        try:
-            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-        except:
-            pass
         self.to_hdf(filename, key='observations')
 
     def gen_filenames(self) -> None:
@@ -50,6 +47,7 @@ class Observations(DataFrame):
         fnames = self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
         self.loc[:, 'footprint'] = fnames
 
+    
     def find_footprint_files(self, archive: str, local: str=None, sOutpPrfx='./') -> None:
         # 2) Append file names, both for local and archive
         if local is None:
@@ -66,19 +64,46 @@ class Observations(DataFrame):
             logger.error("No valid footprints found. Exiting ...")
             raise RuntimeError("No valid footprints found")
         missingFootprintsRaw= self[self['ftprintExists'] == False]
-        missingFootprintsRaw.to_csv(sOutpPrfx+"missing-footprint-files-raw.csv")
-        missingFootprintsTmp.missingFootprintsRaw[['site', 'code', 'lat', 'lon', 'alt', 'height', 'footprint']].copy()
-        missingFootprints=missingFootprintsTmp.drop_duplicates(subset=['footprint']) #loc[(missingFootprintsTmp['footprint'].duplicated(keep='First') == False), :] #groupby('footprint', as_index=True).max() #drop_duplicates(subset='footprint', keep="first")
-        # )missingFootprints=missingFootprints.reset_index()
-        try:
-            missingFootprintsTmp.to_csv(sOutpPrfx+"missingFootprintsTmp.csv")
-            missingFootprints['footprint'].to_csv(sOutpPrfx+"missing-footprint-files.csv")
-        except:
-            pass
+        if (missingFootprintsRaw.empty == True):
+            logger.info('We have all the footprints that are required. That is good.')
+        else:
+            #missingFootprintsRaw.to_csv(sOutpPrfx+"missing-footprint-files-raw.csv")
+            availColNames = list(missingFootprintsRaw.columns.values)
+            if not (any('code' in entry for entry in availColNames)):    #  
+                missingFootprintsRaw.rename(columns={'site':'code'}, inplace=True)
+            missingFootprintsTmp=missingFootprintsRaw[[ 'time','lat', 'lon', 'alt', 'height', 'code', 'footprint']].copy()
+            missingFootprintsTmp.rename(columns={'footprint':'missingFootprintFilename'}, inplace=True)
+            #missingFootprintsTmp.to_csv(sOutpPrfx+"missing-footprint-files-tmp.csv")
+            missingFootprintsTmp.drop_duplicates(subset=['missingFootprintFilename'], keep='last',inplace=True, ignore_index=True) 
+            try:
+                missingFootprintsTmp.to_csv(sOutpPrfx+"missing-footprint-files-tmp.csv")
+            except:
+                pass
+        missingFootprints=DataFrame(np.repeat(missingFootprintsTmp.values, 2, axis=0))
+        missingFootprints.rename(columns={0:'time',1:'lat', 2:'lon', 3:'alt', 4:'height', 5:'code',6:'missingFootprintFilename' }, inplace=True)
+        #print(missingFootprints)
+        missingFootprints['dtTime']= to_datetime(missingFootprints['time'])
+        missingFootprints['month_start_date'] = to_datetime(missingFootprints['time']).apply(lambda x: x.replace(day=1, hour=0 ))
+        missingFootprints['month_end_date']= to_datetime(missingFootprints['time'])
+        missingFootprints['month_end_date']=missingFootprints['month_end_date']+  tseries.offsets.MonthEnd(0)
+        missingFootprints['month_end_date'] = missingFootprints['month_end_date'].apply(lambda x: x.replace(hour=23 ))
+        missingFootprints['dtTime'].apply(lambda d: Period(d, freq='M').end_time.date())
+
+        i=0
+        imax=len(missingFootprints)
+        while(i<imax):
+            missingFootprints.iloc[i, 7]=missingFootprints.iloc[i, 8]
+            i+=1
+            missingFootprints.iloc[i, 7]=missingFootprints.iloc[i, 9]
+            i+=1
+        missingFootprints['time'] = missingFootprints['dtTime']
+        missingFootprints.drop(columns='dtTime', inplace=True)
+        # create a missing-footprint-files.csv file that can be handed to runflex to create these missing footprints
+        missingFootprints.to_csv(sOutpPrfx+"missing-footprint-files.csv")
         self.drop(columns='ftprintExists', inplace=True)
         self.loc[~exists, 'footprint'] = nan
         return
-
+        
     def gen_obsid(self, sOutpPrfx) -> None:
         # Construct the obs ids:
         # TODO: obsids are no longer unique if footprints from multiple(!) heights are available for the same site.
