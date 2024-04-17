@@ -140,9 +140,8 @@ class obsdb(obsdb):
         sStart=self.rcf['observations']['start']    # should be a string like start: '2018-01-01 00:00:00' 
         sEnd=self.rcf['observations']['end']
         nNoTempCov=0
-
-        print(f'sStart={sStart},  sEnd={sEnd} which are of type ',  flush=True)
-        print(type(sStart),  flush=True)
+        #print(f'sStart={sStart},  sEnd={sEnd} which are of type ',  flush=True)
+        #print(type(sStart),  flush=True)
         pdTimeStart=bs.getPdTime(sStart)
         pdTimeEnd=bs.getPdTime(sEnd)
         pdSliceStartTime=bs.getPdTime(sStart) #,  tzUT=True)

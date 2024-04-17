@@ -291,7 +291,8 @@ class lumiaGuiApp:
             
             # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
             # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
-            if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+            obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+            if('CARBONPORTAL' in obsLocation):
                 self.huntAndGatherObsData()
             self.closeTopLv(bWriteStop=False)
         return True
@@ -361,7 +362,7 @@ class lumiaGuiApp:
             self.oldLon1=ymlContents['run']['region']['lon1']   #35.0
             sStart=self.ymlContents['run']['time']['start']    # should be a string like start: '2018-01-01 00:00:00'
             sEnd=self.ymlContents['run']['time']['end']
-            sStart=bs.removeQuotesFromString(sStart)
+            sStart=bs.removeQuotesFromString(sStart) # only in case a user puts quotes around any dates in the yml config file
             sEnd=bs.removeQuotesFromString(sEnd)
             self.oldpdTimeStart = to_datetime(sStart[:19], format="%Y-%m-%d %H:%M:%S")
             self.oldpdTimeStart=self.oldpdTimeStart.tz_localize('UTC')
@@ -605,15 +606,17 @@ class lumiaGuiApp:
         colidx+=1 # =3  row['samplingHeight']
         # ###################################################
         if(bSelected):
-            sTextColor=sOptMenuTextColor
             state="normal"
         else:
-            sTextColor=sOptMenuInactiveTextColor
             state="disabled"
         gridID=int((100*rowidx)+colidx)
         myWidgetVar= ge.guiStringVar(value=str(row['samplingHeight'][0])) 
         #def __init__(self, parent,  root, myGridID, command=None, values=None,  *args, **kwargs):
         if(USE_TKINTER):
+            if(bSelected):
+                sTextColor=sOptMenuTextColor
+            else:
+                sTextColor=sOptMenuInactiveTextColor
             myWidgetSamplingHeight  = ge.oldGridCTkOptionMenu(scrollableFrame4Widgets, gridID, values=sSamplingHeights,
                                                             variable=myWidgetVar, text_color=sOptMenuTextColor, text_color_disabled=sOptMenuInactiveTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL), state=state) 
@@ -622,7 +625,7 @@ class lumiaGuiApp:
             
         else:
             myWidgetSamplingHeight  = ge.GridCTkOptionMenu(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myOptionMenuEvent, 
-                                                            values=sSamplingHeights, variable=myWidgetVar, text_color=sOptMenuTextColor, text_color_disabled=sTextColor,
+                                                            values=sSamplingHeights, variable=myWidgetVar, text_color=sTextColor, text_color_disabled=sTextColor,
                                                             font=("Georgia", fsNORMAL), dropdown_font=("Georgia",  fsSMALL)) 
         #if(USE_TKINTER):
         #    myWidgetSamplingHeight.configure(command=lambda widget=myWidgetSamplingHeight.widgetGridID : self.EvHdPg2myOptionMenuEvent(myWidgetSamplingHeight.widgetGridID, sSamplingHeights))  
@@ -880,17 +883,20 @@ class lumiaGuiApp:
         colidx+=1  # row['samplingHeight'] 
         # ###################################################
         widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
-        sOptMenuTextColor='snow'
-        sOptMenuInactiveTextColor='gray20'
+        if(USE_TKINTER):
+            sOptMenuTextColor='snow'
+            sOptMenuInactiveTextColor='gray20'
         if(self.widgetsLst[widgetID] is not None):
             try:  
                 if(b):
-                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=sOptMenuTextColor, disabled=False)
-                    sTextColor=self.activeTextColor
+                    if(USE_TKINTER):
+                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=sOptMenuTextColor, disabled=False)
+                        sTextColor=self.activeTextColor
                     #ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], disabled=False)
                 else:
-                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=sOptMenuInactiveTextColor,disabled=True )
-                    sTextColor=self.inactiveTextColor
+                    if(USE_TKINTER):
+                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=sOptMenuInactiveTextColor,disabled=True )
+                        sTextColor=self.inactiveTextColor
                     #ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],disabled=True )
             except:
                 pass
@@ -925,7 +931,8 @@ class lumiaGuiApp:
         self.haveDiscoveredObs=False
         # Get the currently selected tracer from the yml config file
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in obsLocation):
             self.check4recentDiscoveredObservations(self.ymlContents)
         bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):")
         # this gives us self.root.colWidth self.root.rowHeight, self.myFontFamily, self.fontHeight, self.fsNORMAL & friends
@@ -993,7 +1000,8 @@ class lumiaGuiApp:
         global AVAIL_OCEAN_NETEX_DATA     # Ocean Net Exchange combo box
         # Obs data location radiobutton variable (local vs carbon portal)
         self.iObservationsFileLocation= ge.guiIntVar(value=0)
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in obsLocation):
             self.iObservationsFileLocation = ge.guiIntVar(value=1)
         #       Ignore ChkBx
         self.bIgnoreWarningsCkbVar = ge.guiBooleanVar(value=False) 
@@ -1021,7 +1029,7 @@ class lumiaGuiApp:
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
             
             print(f'ObsFileLocation={ObsFileLocation}')
-            self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
+            #self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
             tracer=self.Pg1TracerRadioButton.value
             print(f'tracer={tracer}')
             self.ymlContents['run']['tracers'] = tracer
@@ -1127,7 +1135,8 @@ class lumiaGuiApp:
                                        text="from CarbonPortal", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                                        variable=self.iObservationsFileLocation,  value=1, command=self.EvHdPg1SetObsFileLocation)
         else:
-            if ('LOCAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+            obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+            if ('LOCAL' in obsLocation):
                 preselected=0
             else:
                 preselected=1
@@ -1573,7 +1582,8 @@ class lumiaGuiApp:
 
     def EvHdPg2GoBtnHit(self):
         sOutputPrfx=self.ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']): # else there is no dfq dataframe
+        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in obsLocation): # else there is no dfq dataframe
             try:
                 nObs=len(self.newDf)
                 filtered = ((self.newDf['selected'] == True))
@@ -1724,7 +1734,8 @@ class lumiaGuiApp:
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         self.iObservationsFileLocation= ge.guiIntVar(value=1) # Read observations from local file
         self.tracer='co2'
-        if ('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if ('CARBONPORTAL' in obsLocation):
             if(USE_TKINTER):
                 self.iObservationsFileLocation.set(1) # Read observations from CarbonPortal
             else:
@@ -1763,8 +1774,8 @@ class lumiaGuiApp:
             display(self.wdgGrid)
             self.nCols=10
             self.wdgGrid3 = wdg.GridspecLayout(n_rows=128, n_columns=self.nCols,  grid_gap="3px")
-
-        if('CARBONPORTAL' in self.ymlContents['observations'][self.tracer]['file']['location']):
+        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in obsLocation):
             # ====================================================================
             # Create a scrollable Frame within the rootFrame of the second GUI page to receive the dynamically created 
             #             widgets from the obsDataSets  -- part of lumiaGuiApp (root window)

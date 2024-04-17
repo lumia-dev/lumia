@@ -154,17 +154,10 @@ class Forward(BaseTransport):
             logger.debug(f"emis.grid={emis.grid}")
             fpf.align(emis.grid, emis.times.timestep, emis.times.min)
             logger.debug(f'emis.grid={emis.grid},  emis.times.timestep={emis.times.timestep},  emis.times.min={emis.times.min}')
-            nitems=0
             for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
-                if(nitems>1415):  # TODO crude debug statement - replace hard number with shape time info from emis object
-                    logger.error(f'iobs out of bounds. Time  axis (1st pandas df column) exceeds the dimension of 1416 (0 to 1415) entries. nitems={nitems} iobs={iobs}')
-                else:
-                    fp = fpf.get(obs)
-                    for cat in emis.categories :
-                        obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
-                nitems+=1
-                if(nitems>1425):
-                    break
+                fp = fpf.get(obs)
+                for cat in emis.categories :
+                    obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
         return obslist
 
 

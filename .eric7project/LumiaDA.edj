@@ -2,11 +2,11 @@
   "header": {
     "comment": "eric debugger properties file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-04-13, 18:27:28"
+    "saved": "2024-04-17, 14:54:32"
   },
   "debug_properties": {
     "VIRTUALENV": "skuggfaxe2",
-    "DEBUGCLIENT": "/opt/conda/envs/flex/lib/python3.10/site-packages/eric7/DebugClients/Python/DebugClient.py",
+    "DEBUGCLIENT": "/opt/conda3.10/envs/lumia/lib/python3.10/site-packages/eric7/DebugClients/Python/DebugClient.py",
     "ENVIRONMENTOVERRIDE": false,
     "ENVIRONMENTSTRING": "",
     "REMOTEDEBUGGER": true,
