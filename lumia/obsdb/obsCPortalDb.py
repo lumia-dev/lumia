@@ -6,6 +6,7 @@ from datetime import timedelta
 from numpy import zeros, sqrt
 import rctools
 import tarfile
+#import numpy as np
 #import yaml
 import xarray as xr
 from lumia.obsdb import obsdb
@@ -616,8 +617,9 @@ class obsdb(obsdb):
         # obsDfWthBg['Unnamed: 0'] = obsDfWthBg['Unnamed: 0'].map(lambda x: '%6d' % x)
         # the above line works n the test code, but not here, as the index is not named or reset here. Just leave it unformatted for now.
 
-        if 'NbPoints' in obsDfWthBg.columns:
-            obsDfWthBg['NbPoints'] = obsDfWthBg['NbPoints'].map(lambda x: '%3d' % x)
+        #if 'NbPoints' in obsDfWthBg.columns:
+            # df['age']=np.where(df['NR'].notnull(),'your_calculation',np.nan)
+            #obsDfWthBg['NbPoints'] = obsDfWthBg.where(obsDfWthBg['NbPoints'].notnull(),obsDfWthBg['NbPoints'].map(lambda x: '%3d' % x, 'ignore'))
         obsDfWthBg['background'] = obsDfWthBg['background'].map(lambda x: '%10.5f' % x)
         obsDfWthBg['obs'] = obsDfWthBg['obs'].map(lambda x: '%10.5f' % x)
         obsDfWthBg['err'] = obsDfWthBg['err'].map(lambda x: '%8.5f' % x)

@@ -104,7 +104,6 @@ def prepareCallToLumiaGUI(ymlFile, args):
     # scriptDirectory = os.path.dirname(os.path.abspath(sys.argv[0]))
     iVerbosityLv=args.verbosity
     ymlFile=verifyYmlFile(ymlFile)
-
     initialYmlFile=ymlFile
     (ymlFile, oldDiscoveredObservations)=hk.documentThisRun(initialYmlFile, thisScript,  args)  # from housekeepimg.py
     # Now the config.yml file has all the details for this particular run
@@ -1140,7 +1139,8 @@ class lumiaGuiApp:
                 preselected=0
             else:
                 preselected=1
-            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ],  preselected=preselected, description='')
+            #self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ],  preselected=preselected, description='')
+            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['LOCAL','CARBONPORTAL' ],  preselected=preselected, description='')
         self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL) 
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
@@ -1381,7 +1381,7 @@ class lumiaGuiApp:
                 self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
         else:
             sObservationsFileLocation=ge.getWidgetValue(self.Pg1ObsFileLocationRadioButtons) # returns a string
-            print(f'sObservationsFileLocation={sObservationsFileLocation}')
+            #print(f'sObservationsFileLocation={sObservationsFileLocation}')
             self.ymlContents['observations'][self.tracer]['file']['location'] = sObservationsFileLocation
         # Get the name of the local obs data file. This is ignored, if (self.ymlContents['observations'][self.tracer]['file']['location'] == 'CARBONPORTAL')
         
@@ -1599,11 +1599,12 @@ class lumiaGuiApp:
             #    logger.error(f"Fatal Error: Failed to write to file {self.sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc.")
             #    self.closeApp
             try:
+                #dfq.to_csv(sOutputPrfx+'_dbg_dfq_all.csv', mode='w', sep=',')
                 dfq['pid2'] = dfq['pid'].apply(bs.grabFirstEntryFromList)
                 dfq['samplingHeight2'] = dfq['samplingHeight'].apply(bs.grabFirstEntryFromList)
                 #,selected,country,stationID,altOk,altitude,HghtOk,samplingHeight[Lst],isICOS,latitude,longitude,dClass,dataSetLabel,includeCountry,includeStation,pid[Lst],pid2,samplingHeight2
                 dfq.drop(columns='pid',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
-                dfq.drop(columns='samplingHeight',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
+                #dfq.drop(columns='samplingHeight',inplace=True) # drop columns with lists. These are replaced with single values from the first list entry
                 dfq.drop(columns='selected',inplace=True)
                 dfq.drop(columns='altOk',inplace=True)
                 dfq.drop(columns='HghtOk',inplace=True)
@@ -1733,7 +1734,6 @@ class lumiaGuiApp:
         # ObservationsFileLocation
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         self.iObservationsFileLocation= ge.guiIntVar(value=1) # Read observations from local file
-        self.tracer='co2'
         obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
         if ('CARBONPORTAL' in obsLocation):
             if(USE_TKINTER):

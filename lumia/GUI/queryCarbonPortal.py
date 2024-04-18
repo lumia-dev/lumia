@@ -371,7 +371,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
                             pidMetadata['specificInfo']['productionInfo']['dateTime'], 
                             pidMetadata['accessUrl'],
                             pidMetadata['fileName'], int(0), 
-                            pidMetadata['specification']['self']['label']]
+                            pidMetadata['specification']['self']['label']],
+                            pidMetadata['specificInfo']['acquisition']['station']['org']['name']
             except:
                 bDataSuccessfullyRead=False
                 badPids.append(pid)

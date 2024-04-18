@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-04-18, 02:05:27"
+    "saved": "2024-04-18, 14:58:19"
   },
   "MultiProject": "",
   "Project": "",
@@ -62,11 +62,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        1137,
-        24
+        61,
+        13
       ],
       "Folds": [],
-      "Zoom": 2,
+      "Zoom": 0,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
@@ -231,14 +231,14 @@
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
     "Cursor": [
-      1137,
-      24
+      61,
+      13
     ]
   },
   "Breakpoints": [
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1456,
+      1457,
       "",
       false,
       true,
@@ -262,7 +262,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1378,
+      1379,
       "",
       false,
       true,
@@ -270,7 +270,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1384,
+      1385,
       "",
       false,
       true,
@@ -278,7 +278,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1131,
+      1490,
       "",
       false,
       true,
@@ -286,15 +286,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1489,
-      "",
-      false,
-      true,
-      0
-    ],
-    [
-      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1586,
+      1587,
       "",
       false,
       true,
@@ -310,7 +302,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1738,
+      1740,
       "",
       false,
       true,
@@ -327,6 +319,30 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
       141,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1779,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1774,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1144,
       "",
       false,
       true,
