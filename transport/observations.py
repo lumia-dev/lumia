@@ -135,7 +135,12 @@ class Observations(DataFrame):
         obsids = valid.code + valid.height.map('.{:.0f}m.'.format) + valid.time.dt.strftime('%Y%m%d-%H%M%S')
         #obsids=obsids.drop_duplicates()
         # logger.info(f"Dbg: obsids=\n{obsids}")
-        obsids.to_csv(sOutpPrfx+'obsids.csv', encoding='utf-8', sep=',', mode='w')
+        try:
+            if(sOutpPrfx is None):
+                sOutpPrfx='./output'
+            obsids.to_csv(sOutpPrfx+'obsids.csv', sep=',', mode='w')  # , encoding='utf-8'
+        except:
+            logger.error('obsids.to_csv(sOutpPrfx+obsids.csv) failed.')
         self.loc[~isnull(self.footprint), 'obsid'] = obsids
 
 

@@ -216,6 +216,8 @@ if __name__ == '__main__':
     LumiaFootprintFile.maxlength = args.max_footprint_length
 
     sOutpPrfx=args.outpPathPrfx
+    if (sOutpPrfx is None):
+        sOutpPrfx=""
     if args.check_footprints or 'footprint' not in obs.columns:
         obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints,  sOutpPrfx=sOutpPrfx)
     

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-04-17, 17:13:02"
+    "saved": "2024-04-18, 02:05:27"
   },
   "MultiProject": "",
   "Project": "",
@@ -62,11 +62,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        1587,
-        0
+        1137,
+        24
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 2,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 4
@@ -98,11 +98,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
       "Cursor": [
-        142,
-        0
+        399,
+        192
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 2,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 7
@@ -122,11 +122,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/multitracer.py",
       "Cursor": [
-        1,
-        0
+        219,
+        19
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 3,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 9
@@ -158,11 +158,11 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
       "Cursor": [
-        118,
-        141
+        162,
+        24
       ],
       "Folds": [],
-      "Zoom": 0,
+      "Zoom": 2,
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 12
@@ -214,13 +214,25 @@
       "Clone": false,
       "Splitindex": 0,
       "Editorindex": 16
+    },
+    {
+      "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/stilt.py",
+      "Cursor": [
+        132,
+        28
+      ],
+      "Folds": [],
+      "Zoom": 0,
+      "Clone": false,
+      "Splitindex": 0,
+      "Editorindex": 17
     }
   ],
   "ActiveWindow": {
     "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
     "Cursor": [
-      1587,
-      0
+      1137,
+      24
     ]
   },
   "Breakpoints": [
@@ -299,6 +311,22 @@
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       1738,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsdb/obsCPortalDb.py",
+      400,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/transport/observations.py",
+      141,
       "",
       false,
       true,

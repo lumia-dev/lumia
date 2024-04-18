@@ -397,7 +397,7 @@ class obsdb(obsdb):
                             # 'optimize.observations.uncertainty.type' key to 'dyn' (setup_uncertainties in ui/main_functions.py, ~l174)
                             if(errorEstimate is None):
                                 errorEstimate=CrudeErrorEstimate
-                                logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations of CO2 has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
+                                logger.warning(f"A crude fall-back estimate of {CrudeErrorEstimate} ppm for overall uncertainties in the observations of CO2 at SiteID={SiteID} pidUrl={pidUrl} has been used. Consider doing something smarter like changing the 'optimize.observations.uncertainty.type' key to 'dyn' in the .yml config file.")
                             else:
                                 logger.info(f"errorEstimate (observations): {errorEstimate}")
                                 data =( {
