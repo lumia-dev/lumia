@@ -170,6 +170,9 @@ class TracerEmis(xr.Dataset):
         self._mapping['space'] = value
 
     # Regular methods
+    def select(self, *args, **kwargs):
+        return super().sel(*args, **kwargs)
+    
     def add_cat(self, name: str, value: NDArray, attrs: dict = None):
         if isinstance(value, numbers.Number):
             value = zeros(self.shape) + value
@@ -225,14 +228,17 @@ class TracerEmis(xr.Dataset):
         for cat in attrs['constructor'].keys():
             self.variables[cat].attrs['transported'] = max(False, self.variables[cat].attrs.get('transported', False))
 
-    def print_summary(self, units=None):
+    def print_summary(self, units=None, cats=None):
         if units is None:
             units = species[self.tracer].unit_budget
         original_unit = self.units
         self.convert(units)
 
         tot = 0
-        for cat in self.categories:
+        if cats is None:
+            cats = self.categories
+            
+        for cat in cats:
             monthly_emis = self[cat].resample(time='MS', closed='left').sum(['lat', 'lon', 'time'])
             logger.info("===============================")
             logger.info(f"{cat}:")
@@ -244,8 +250,9 @@ class TracerEmis(xr.Dataset):
                 logger.info("    --------------------------")
                 logger.info(f"   Total : {monthly_emis_year.sum().data:7.2f} {units}")
                 tot += monthly_emis_year.sum().data
-        logger.info("    --------------------------")
-        logger.info(f"   Total : {tot:7.2f} {units}")
+        if len(cats)>1:
+            logger.info("    --------------------------")
+            logger.info(f"   Total : {tot:7.2f} {units}")
         self.convert(original_unit)
 
     def to_extensive(self):
@@ -356,6 +363,8 @@ class TracerEmis(xr.Dataset):
 
             # global attributes
             for k, v in attrs_to_nc(self.attrs).items():
+                if k == 'units':
+                    v=str(v)
                 setattr(nc, k, v)
 
                 if only_transported:
@@ -408,9 +417,9 @@ class Data:
         self._tracers[tracer.tracer] = tracer
         setattr(self, tracer.tracer, self._tracers[tracer.tracer])
 
-    def print_summary(self):
+    def print_summary(self, units=None, cats=None):
         for tracer in self._tracers:
-            self[tracer].print_summary()
+            self[tracer].print_summary(units=units,cats=cats)
 
     def __getitem__(self, item) -> TracerEmis:
         return self._tracers[item]
@@ -496,7 +505,7 @@ class Data:
                                    engine='h5netcdf', mode=mode, **kwargs)
             mode = 'a'
         return Path(filename)
-
+    
     @property
     def tracers(self):
         return list(self._tracers.keys())

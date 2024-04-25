@@ -6,6 +6,7 @@ from .data.xr import Data
 from .prior.prior import PriorConstraints
 from .mapping.multitracer import Mapping
 from .optimizer.scipy_optimizer import Optimizer
+from .optimizer.optimizer import Var4D
 from .models.footprints.transport import Transport
 
 # Utilities

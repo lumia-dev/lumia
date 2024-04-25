@@ -34,13 +34,18 @@ class PriorConstraints:
 
     @classmethod
     @debug.trace_args()
-    def setup(cls, dconf: Dict | DictConfig, mapping: Mapping) -> "PriorConstraints":
+    def setup(cls, dconf: Dict | DictConfig, mapping: Mapping, errmap: DataFrame = None) -> "PriorConstraints":
         vectors = []
         sigmas, corr_t, corr_h = {}, {}, {}
         for cat in mapping.optimized_categories:
             # Error, in the model space, is proportional to the absolute value of the flux
-            errmap = abs(mapping.model_data[cat.tracer][cat.name])
-
+            if errmap is None:
+                logger.debug('No predefined prior error. Setting the error proportional to the abs value of flux')
+                errmap = abs(mapping.model_data[cat.tracer][cat.name])
+            else:
+                #Ensure predefined errmap has same dimension as prescribed
+                assert (errmap.shape == mapping.model_data[cat.tracer][cat.name].shape)
+            
             # Error, in the optim space, is obtained by aggregating model-space errors following the same approach as for aggregating fluxes themselves
             errvec = mapping.coarsen_cat(cat, data=errmap.data, value_field='prior_uncertainty')
 

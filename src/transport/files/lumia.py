@@ -57,6 +57,9 @@ class LumiaFootprintFile(h5py.File):
             lon = self[obsid]['background']['lon'][:],
             lat = self[obsid]['background']['lat'][:],
             height = self[obsid]['background']['height'][:],
+            active = self[obsid]['background']['active'][:],
+            mass = self[obsid]['background']['mass'][:],
+            pressure = self[obsid]['background']['pressure'][:],
             time = self.origin + TimedeltaIndex(self[obsid]['background']['time'][:], unit='s')
         ))
         df.loc[:, 'obsid'] = obsid
