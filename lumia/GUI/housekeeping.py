@@ -8,6 +8,7 @@ import sys
 import getpass
 import platform
 import pathlib
+import hashlib
 import re
 import yaml
 from datetime import datetime
@@ -62,6 +63,17 @@ def getTracer(ymlEntryTracer,  abortOnError=False):
             logger.warning('Proceeding with the assumption tracer==co2')
     return(tracer)
 
+
+def caclulateSha256Filehash(myfile):
+    try:
+        sha256 = hashlib.sha256()
+        with open(myfile, 'rb') as g:
+            sha256.update(g.read())
+        sha256Value=sha256.hexdigest()
+        logger.debug(f'Local file {myfile} has the sha256 hash of {sha256Value}')
+    except:
+        sha256Value = 'UNKNOWN'
+    return(sha256Value)
 
 current_date = datetime.now()
 sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
@@ -324,6 +336,56 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward', bNewValue=False)
     
+    # if there are local files involved, calculate their sha256 checksum - The carbon portal PID is actually also the sha256 of the datafile concerned
+    if 'LOCAL' in ymlContents['observations'][tracer]['file']['location']:
+        myfile=ymlContents['observations'][tracer]['file']['path']
+        sha256Value=caclulateSha256Filehash(myfile)
+    else:
+        sha256Value='NotApplicable'
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer,  'file',  'sha256Value'],   value=sha256Value, bNewValue=True)
+    for cat in {'biosphere', 'fossil', 'ocean'}:
+        if 'LOCAL' in ymlContents['emissions'][tracer]['location'][cat]:
+            origin = ymlContents['emissions'][tracer]['categories'][cat]['origin']
+            #regionGrid=ymlContents['emissions'][tracer]['region'] 
+            #sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
+            myPath2FluxData1=ymlContents['emissions'][tracer]['path']  
+            myPath2FluxData1='/home/arndt/nateko/data/icos/DICE/fluxes/nc/'
+            myPath2FluxData3=ymlContents['emissions'][tracer]['interval'] 
+            myPath2FluxData3='1h/'
+            myPath2FluxData2='eurocom025x025'
+            try:
+                myPath2FluxData2=ymlContents['emissions'][tracer]['regionName']
+                myPath2FluxData2='eurocom025x025'
+            except:
+                logger.warning(f'Warning: No key emissions.{tracer}.regionName found in user defined resource file (used in pathnames). I shall try to guess it...')
+                mygrid=ymlContents['emissions'][tracer]['region'] 
+                if((250==int(mygrid.dlat*1000)) and (250==int(mygrid.dlon*1000)) and (abs((0.5*(mygrid.lat0+mygrid.lat1))-53)<mygrid.dlat)and (abs((0.5*(mygrid.lon0+mygrid.lon1))-10)<mygrid.dlon)):
+                    myPath2FluxData2='eurocom025x025' # It is highly likely that the region is centered in Europe and has a lat/lon grid of a quarter degree
+                else:
+                    logger.error(f'Abort. My guess of eurocom025x025 was not a very good guess. Please provide a emissions.{tracer}.regionName key in your yml configuration file and try again.', flush=True)
+                    sys.exit(1)
+            if ((len(myPath2FluxData1)>0) and (myPath2FluxData1[-1]!=os.path.sep)):
+                myPath2FluxData1=myPath2FluxData1+os.path.sep
+            myPath2FluxData=myPath2FluxData1+myPath2FluxData2+os.path.sep+myPath2FluxData3
+            if (os.path.sep!=myPath2FluxData[-1]):     # Does the path end in a directory separator (forward or back-slash depending on OS)?
+                myPath2FluxData=myPath2FluxData+os.path.sep
+            # TODO: sha256 and PIDs are not calculated proper for the apriori emissions data - needs fixing
+            if((origin is None)or(origin == '') or ('None' == origin)):
+                localEmisFile = os.path.join(myPath2FluxData, ymlContents['emissions'][tracer]['prefix']  )
+            else:
+                localEmisFile = os.path.join(myPath2FluxData, ymlContents['emissions'][tracer]['prefix'] + origin + '.2018.nc')
+            logger.debug(f"localEmisFile={localEmisFile} ")
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer,  'categories',  cat, 'localFile'],   value=localEmisFile, bNewValue=True)
+            sha256Value=caclulateSha256Filehash(localEmisFile)
+        else:
+            sha256Value='NotApplicable'
+            try:
+                ymlContents[ 'emissions'][ tracer]['categories'][cat]['localFile']='NotApplicable'
+            except:
+                pass  # if the key does not exists, then that's fine too
+                
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer,  'categories',  cat, 'sha256Value'],   value=sha256Value, bNewValue=True)
+        
     myMachine=platform.node()
     pyVers= 'Python 3.10.10' # sys.version()
     pyVersion='Python environment version is '+str(pyVers)
@@ -373,37 +435,41 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
             logger.error(f'Key observations.{tracer}.file.selectedObsData not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
             bErr=True
     if((bErr==False) and ((selectedObsData is None) or (len(selectedObsData)<3))):
-        logger.warning(f'Key observations.{tracer}.file.selectedObsData: No meaningful file name provided for this key in your yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
-        bErr=True
-    if((bErr) and (bDiscoverData==False)):
-        stopExecution=True
-    else:
-        keepThis=f'selected-ObsData-{tracer}.csv'
-        newFnameSelectedObsData=sOutputPrfx+keepThis
-        sCmd=f'cp {selectedObsData} {newFnameSelectedObsData}'
-        runSysCmd(sCmd)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
-
-    try:
-        selectedPIDs=ymlContents['observations'][tracer]['file']['selectedPIDs']
-    except:
-        if('LumiaGUI' in parentScript):
-            pass
-        else:
-            logger.error(f'Key observations.{tracer}.file.selectedPIDs not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+        if 'CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']:
+            logger.warning(f'Key observations.{tracer}.file.selectedObsData: No meaningful file name provided for this key in your yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
             bErr=True
-    if((bErr==False) and ((selectedPIDs is None) or (len(selectedPIDs)<3))):
-        logger.warning(f'Key observations.{tracer}.file.selectedPIDs: No meaningful file name provided for this key in your yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
-        bErr=True
     if((bErr) and (bDiscoverData==False)):
         stopExecution=True
     else:
-        # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
-        keepThis=f'selected-PIDs-{tracer}.csv'
-        newFnameSelectedPIDs=sOutputPrfx+keepThis
-        sCmd=f'cp {selectedPIDs} {newFnameSelectedPIDs}'
-        runSysCmd(sCmd)
-        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)
+        if 'CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']:
+            keepThis=f'selected-ObsData-{tracer}.csv'
+            newFnameSelectedObsData=sOutputPrfx+keepThis
+            sCmd=f'cp {selectedObsData} {newFnameSelectedObsData}'
+            runSysCmd(sCmd)
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
+
+    if 'CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']:
+        try:
+            selectedPIDs=ymlContents['observations'][tracer]['file']['selectedPIDs']
+        except:
+            if('LumiaGUI' in parentScript):
+                pass
+            else:
+                logger.error(f'Key observations.{tracer}.file.selectedPIDs not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+                bErr=True
+        if((bErr==False) and ((selectedPIDs is None) or (len(selectedPIDs)<3))):
+            logger.warning(f'Key observations.{tracer}.file.selectedPIDs: No meaningful file name provided for this key in your yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
+            bErr=True
+    if((bErr) and (bDiscoverData==False)):
+        stopExecution=True
+    else:
+        if 'CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']:
+            # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
+            keepThis=f'selected-PIDs-{tracer}.csv'
+            newFnameSelectedPIDs=sOutputPrfx+keepThis
+            sCmd=f'cp {selectedPIDs} {newFnameSelectedPIDs}'
+            runSysCmd(sCmd)
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)
 
     if(stopExecution):
         sys.exit(-1) # you cannot call LumiaDA telling it to use a list of PIDs that you have not provided in the yml file.

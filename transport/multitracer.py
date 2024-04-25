@@ -129,7 +129,8 @@ class MultiTracer(Model):
         return self._footprint_class
 
 
-if __name__ == '__main__':
+@logger.catch(reraise=True)
+def main():    
     import sys
 
     from argparse import ArgumentParser, REMAINDER
@@ -150,11 +151,10 @@ if __name__ == '__main__':
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
-    p.add_argument('--outpPathPrfx', '-o', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=False)
+    p.add_argument('--outpPathPrfx', '-o', default='', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=False)
     p.add_argument('args', nargs=REMAINDER)
     bTryagain=True
 
-   
     # I have seen this goofing up without producing a proper error - sometimes the first argument seems to contain unwanted information - try chucking these out...
     iSkip=0
     while((bTryagain) and (iSkip<5)):
@@ -163,14 +163,36 @@ if __name__ == '__main__':
             bTryagain=False
         except:
             iSkip=iSkip+1
+
+    # Set the verbosity in the logger (loguru quirks ...)
+    #logger.remove()
+    #logger.add(sys.stderr, level=args.verbosity)
+    outpPathPrfx=args.outpPathPrfx
+    logger.debug(f'outpPathPrfx={outpPathPrfx}')
+    if((outpPathPrfx is None) or (len(outpPathPrfx)<6)):
+        outpPathPrfx=''
+        # Extract the /tmp path from the obs argument --obs ./tmp/LumiaDA-2024-01-19T01_40/LumiaDA-2024-01-19T01_40-departures.hdf
+        if (len(args.obs) > 16):
+            sDir=os.path.dirname(args.obs)
+            outpPathPrfx=sDir+os.path.sep
+        # ./TMP/multitracer-run.log and ./TMP/multitracer-errors-only.log are moved to the output directory when the
+        # run finishes in case outpPathPrfx was not handed correctly from the parent script, else these log files are written
+        # straight to their correct location in outpPathPrfx
+    log_level = args.verbosity # "DEBUG"
+    log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <level>{level: <8}</level> | <yellow>Line {line: >4} ({file}):</yellow> <b>{message}</b>"
+    logger.add(sys.stderr, level=log_level, format=log_format, colorize=True, backtrace=True, diagnose=True)
+    dt=Timedelta(days = 2) # if a bunch of multitracer.py tasks is run in parallel we want all to write to the same log files without each task creating a new log file.
+    sCmd=f"{outpPathPrfx}multitracer-run.log"
+    logger.add(sCmd, retention=dt, level=log_level, format=log_format, colorize=False, backtrace=True, diagnose=True)
+    logger.info(f'{sys.executable} {sys.argv}')
+    sCmd=f"{outpPathPrfx}multitracer-errors-only.log"
+    logger.add(sCmd, retention=dt, delay =True, level='WARNING', format=log_format, colorize=False, backtrace=True, diagnose=True)
+ 
     if((bTryagain) or (iSkip>4)):
         logger.error('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjtest transport model was NOT run.')
         raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst model was NOT run.')
     else:
         logger.info('If you got the error >>multitracer.py: error: the following arguments are required: --obs<< but no CRITICAL ERROR, then you can ignore it safely. If you read this, then the contingency plan worked.')
-    # Set the verbosity in the logger (loguru quirks ...)
-    logger.remove()
-    logger.add(sys.stderr, level=args.verbosity)
 
     mmode='notSpecified'
     if args.forward:
@@ -187,19 +209,6 @@ if __name__ == '__main__':
         logger.error(f'CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() Option --obs not provided. The {mmode} transport model was NOT run.')
         raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() Option --obs not provided. The {mmode} transport model was NOT run.')
 
-    outpPathPrfx=None
-    if not(args.outpPathPrfx is None):
-        outpPathPrfx=args.outpPathPrfx
-    if((args.outpPathPrfx is None) or (len(args.outpPathPrfx)<6)):
-        outpPathPrfx=''
-        # try to derive it from the obs argument --obs ./tmp/LumiaDA-2024-01-19T01_40/LumiaDA-2024-01-19T01_40-departures.hdf
-        if (len(args.obs) > 16):
-            sDir=os.path.dirname(args.obs)
-            c=os.path.sep
-            if len(sDir.split(os.path.sep)) > 1:             
-                sp=sDir.split(os.path.sep)
-                uniqid=sp[-1]  # should now hold the name of the lowest subdirectory, e.g. LumiaDA-2024-01-19T01_40
-                outpPathPrfx=sDir+os.path.sep+uniqid+'-'
     if((outpPathPrfx is None) or (len(outpPathPrfx)<6)):
         logger.error(f'CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() --outpPathPrfx not provided nor could it be derived from the --obs argument. The {mmode} transport model was NOT run.')
         raise RuntimeError('CRITICAL ERROR: subprocess failed: lumia.transport.multitracer() invalid arguments passed. The Forward/Adjoint/Adjterst transport model was NOT run.')
@@ -220,7 +229,7 @@ if __name__ == '__main__':
         sOutpPrfx=""
     if args.check_footprints or 'footprint' not in obs.columns:
         obs.check_footprints(args.footprints, LumiaFootprintFile, local=args.copy_footprints,  sOutpPrfx=sOutpPrfx)
-    
+        # TODO: test that missing footprints are created with runflex seamlessly as intended
         #if(os.path.isfile(sOutpPrfx+"missing-footprint-files.csv")):
             # Call runflex to create the missing footprint files
             
@@ -229,6 +238,9 @@ if __name__ == '__main__':
 
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
     emis = Emissions.read(args.emis)  # goes to lumia.transport.emis.init_.read() and reads  self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']+emissions.nc
+    file_stats = os.stat(args.emis)
+    logger.debug(f'File Size of {args.emis} in Bytes is {file_stats.st_size}')
+
     if args.forward:
         logger.debug(f'lumia.transport.multitracer.main model.run_forward(obs, emis) with obs={obs} ')
         logger.debug(f'lumia.transport.multitracer.main model.run_forward(obs, emis) with emis={emis} ')
@@ -245,3 +257,9 @@ if __name__ == '__main__':
     elif args.adjtest :
         model.adjoint_test(obs, emis)
         logger.info('transport.multitracer (subprocess): Adjtest run completed successfully!')
+
+
+if __name__ == '__main__':
+    main()
+    
+

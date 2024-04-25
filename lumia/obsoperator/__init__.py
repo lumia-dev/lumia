@@ -172,6 +172,8 @@ class transport(object):
         sTmpPrfx=self.rcf[ 'run']['thisRun']['uniqueTmpPrefix']
         sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
         emf = self.writeStruct(struct, path=sTmpPrfx+'emissions.nc', zlib=compression, only_transported=True)
+        file_stats = os.stat(sTmpPrfx+'emissions.nc')
+        logger.debug(f'File Size of {sTmpPrfx}emissions.nc in Bytes is {file_stats.st_size}')
         del struct
         dbf = observations.to_hdf(sTmpPrfx+'observations.hdf')
         if(dbf is None):
@@ -194,7 +196,7 @@ class transport(object):
         #   TODO: testing with old multitracer.py from 2023-09-02:
         #   sCmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/archive/5e5e9777a227631d6ceeba4fd8cff9b241c55de1/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
         # creates normally: sCmd='python', '-u', '/home/arndt/nateko/dev/lumia/lumiaDA/lumia/transport/multitracer.py', '--forward', '--obs', '/home/arndt/nateko/data/icos/DICE/tmp/observations.hdf', '--emis', '/home/arndt/nateko/data/icos/DICE/tmp/emissions.nc', '--footprints', '/home/arndt/nateko/data/icos/DICE/footprints', '--tmp', '/home/arndt/nateko/data/icos/DICE/tmp'
-        logger.debug(f'Starting ForwardRun in subprocess with cmd={sCmd}')
+        logger.debug(f'obsoperator.init.runForward(): Starting ForwardRun in subprocess with cmd={sCmd}')
         
         p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
         logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')

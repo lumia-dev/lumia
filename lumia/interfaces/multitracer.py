@@ -53,6 +53,15 @@ class Interface:
         #self.model_data.to_netcdf(os.path.join(path, f'emissions{label}.nc'))
         logger.debug(f'filename={sTmpPrfx}emissions{label}.nc')        
         self.model_data.to_netcdf(f'{sTmpPrfx}emissions{label}.nc')
+        # try: # checking the emis file in small samples in human readable format
+        #     self.model_data.iloc[:512, :].to_csv(f'{sTmpPrfx}_dbg_emissions{label}-multitracerL57.csv', mode='w', sep=',')  
+        # except:
+        #     try:
+        #         df=self.model_data.to_dataframe()
+        #         df.iloc[:512, :].to_csv(f'{sTmpPrfx}_dbg_emissions{label}-multitracerL61.csv', mode='w', sep=',') 
+        #     except:
+        #        logger.warning(f'Failed to write .csv copy of netcdf file {sTmpPrfx}emissions{label}.nc') 
+
         self.model_data.convert(units)
         # Note: optim_data should contain all the optimization data (mapping, correlation matrices, uncertainties, state vectors, etc.). But in the 
         # current implementation, it contains only a very minimal set of vectors, which are not too useful. So for now, save the control vector 

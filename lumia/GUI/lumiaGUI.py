@@ -1141,7 +1141,7 @@ class lumiaGuiApp:
                 preselected=1
             #self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ],  preselected=preselected, description='')
             self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['LOCAL','CARBONPORTAL' ],  preselected=preselected, description='')
-        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsSMALL) 
+        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL) 
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)

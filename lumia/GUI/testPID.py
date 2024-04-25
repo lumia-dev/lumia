@@ -736,40 +736,83 @@ def runPidTest(pidFile, sOutputPrfx):
 2024-03-28 12:32:41.909 | ERROR    | lumia.obsdb.obsCPortalDb:gatherObs_fromCPortal:407 - Error: reading of the Dobj failed for pidUrl=https://meta.icos-cp.eu/objects/WqyL0AmwwqhaRLYCZuDHH1Ln.
 
 '''
+import subprocess
+def runcmd(cmd):
+    #logger.info(' '.join([str(x) for x in cmd]))
+    try :
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        logger.error(f'{e.output}')
+        logger.error("external command failed, exiting ...")
+        raise subprocess.CalledProcessError
+    for line in p.stdout:
+        sys.stdout.buffer.write(line)
+        sys.stdout.buffer.flush()
 
-p = argparse.ArgumentParser()
-p.add_argument('--pidLst', default=None,  help='Name of a text file listing the carbon portal PIDs (as a single column) that you wish to test.')
-#p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
-p.add_argument('--verbosity', '-v', dest='verbosity', default='INFO')
-p.add_argument('--sOutputPrfx', '-o', default='', help='Output file names will be prefixed with your string -- your string may contain a path or a partial name or both')
-args, unknown = p.parse_known_args(sys.argv[1:])
+@logger.catch(reraise=True)
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--pidLst', default=None,  help='Name of a text file listing the carbon portal PIDs (as a single column) that you wish to test.')
+    #p.add_argument('--fDiscoveredObs', dest='fDiscoveredObservations', default=None,  help="If step2 is set you must specify the .csv file that lists the observations discovered by LUMIA, typically named DiscoveredObservations.csv")   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
+    p.add_argument('--verbosity', '-v', dest='verbosity', default='INFO')
+    p.add_argument('--sOutputPrfx', '-o', default='', help='Output file names will be prefixed with your string -- your string may contain a path or a partial name or both')
+    args, unknown = p.parse_known_args(sys.argv[1:])
+    
+    # Set the verbosity in the logger (loguru quirks ...)
+    logger.remove()
+    #logger.add(sys.stderr, level=args.verbosity)
+    log_level = args.verbosity # "DEBUG"
+    log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <level>{level: <8}</level> | <yellow>Line {line: >4} ({file}):</yellow> <b>{message}</b>"
+    logger.add(sys.stderr, level=log_level, format=log_format, colorize=True, backtrace=True, diagnose=True)
+    logger.add("Lumia-run.log", level=log_level, format=log_format, colorize=False, backtrace=True, diagnose=True)
+    logger.info(f'{sys.executable} {sys.argv}')
+    logger.debug("This is my first debug message")
+    logger.info("This is my first info message")
+    
+    sOutputPrfx='testPID-'
+    logger.remove()
+    logger.add(sys.stderr, level=log_level, format=log_format, colorize=True, backtrace=True, diagnose=True)
+    sCmd=f"mv Lumia-run.log  {sOutputPrfx}runlog.log"
+    print(sCmd)
+    hk.runSysCmd(sCmd)
+    sCmd=f"{sOutputPrfx}runlog.log"
+    logger.add(sCmd, level=log_level, format=log_format, colorize=False, backtrace=True, diagnose=True)
+    sCmd=f"{sOutputPrfx}errors-only.log"
+    logger.add(sCmd, level='WARNING',  delay =True, format=log_format, colorize=False, backtrace=True, diagnose=True)
+    
+    logger.debug("This is a debug message")
+    logger.info("This is an info message")
+    logger.warning("This is a warning message")
+    logger.error("This is an error message")
+        
 
-# Set the verbosity in the logger (loguru quirks ...)
-logger.remove()
-logger.add(sys.stderr, level=args.verbosity)
-
-myMachine=platform.node()
-myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35
-myPlatformFlavour=platform.version() #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
-print(f'node={myMachine}')
-print(f'platform={myPlatformCore}')
-print(f'platformFlavour={myPlatformFlavour}')
-#testGui()
-#sys.exit(0)
-
-if(args.pidLst is None):
-    #logger.error("testPID: Fatal error: no user configuration (yaml) file provided.")
-    logger.error("testPID: Fatal error: no csv /PID file provided.")
-    sys.exit(1)
-else:
-    pidFile = args.pidLst
-
-if (not os.path.isfile(pidFile)):
-    logger.error(f"Fatal error in testPID: User specified pidLst file {pidFile} does not exist. Abort.")
-    sys.exit(-3)
-
-runPidTest(pidFile, args.sOutputPrfx)
-
+    logger.debug(f'Starting AdjointRun in subprocess with cmd={sCmd}')        
+    # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
+    p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+    logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')
+        
+    myMachine=platform.node()
+    myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35
+    myPlatformFlavour=platform.version() #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
+    print(f'node={myMachine}')
+    print(f'platform={myPlatformCore}')
+    print(f'platformFlavour={myPlatformFlavour}')
+    #testGui()
+    #sys.exit(0)
+    
+    if(args.pidLst is None):
+        #logger.error("testPID: Fatal error: no user configuration (yaml) file provided.")
+        logger.error("testPID: Fatal error: no csv /PID file provided.")
+        sys.exit(1)
+    else:
+        pidFile = args.pidLst
+    
+    if (not os.path.isfile(pidFile)):
+        logger.error(f"Fatal error in testPID: User specified pidLst file {pidFile} does not exist. Abort.")
+        sys.exit(-3)
+    
+    runPidTest(pidFile, args.sOutputPrfx)
+main()
 '''
 ...some wisdom from the horse's mouth...
 

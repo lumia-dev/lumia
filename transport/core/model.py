@@ -256,7 +256,7 @@ class Adjoint(BaseTransport):
                     fp = fpf.get(obs.obsid)
                     # logger.info(f"(pool_id({pool_id})): fp={fp}")
                     if(bFirst):
-                        logger.info(f"fp={fp}") 
+                        #logger.info(f"fp={fp}") 
                         logger.info(f"obs={obs}") # logger.debug(f" fp={fp},  total={total}") 
                         logger.info(f"desc={desc},  obs.__dir__()=")
                         print(obs.__dir__(),  flush=True)

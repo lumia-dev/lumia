@@ -354,7 +354,6 @@ class TracerEmis(xr.Dataset):
                 catunits /= self.area.units
             elif power_s != 0 :
                 raise RuntimeError(f"Unexpected units conversion request: {self[cat.name].data.unit} to {dest} ({power_s = })")
-
             # From units/s to units/tstep
             if power_t == 1 :
                 self[cat.name].data = (self[cat.name].data.swapaxes(0, -1) * self.timestep_length.data).swapaxes(0, -1)
@@ -365,15 +364,14 @@ class TracerEmis(xr.Dataset):
                 catunits /= self.timestep_length.units
             elif power_t != 0 :
                 raise RuntimeError(f"Unexpected units conversion request: {self[cat.name].data.units} to {dest} ({power_t =})")
-
             # Finally, convert:
             self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude * coeff
             
         self.attrs['units'] = dest
 
     def to_netcdf(self, filename, group=None, only_transported=False, **kwargs):
-        print(f'filename={filename}',  flush=True) # e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
-        logger.debug(f'xr.to_netcdf() L372 writing data to filename={filename}')
+        #  e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
+        logger.debug(f'in TracerEmis Class: xr.to_netcdf() L372 writing data to filename={filename}')
         # Replace the standard xarray.Dataset.to_netcdf method, which is too limitative
         with Dataset(filename, 'w') as nc:
             if group is not None :
@@ -417,6 +415,8 @@ class TracerEmis(xr.Dataset):
 
                 if only_transported :
                     nc.categories = [c.name for c in self.transported_categories]
+        file_stats = os.stat(filename)
+        logger.debug(f'File Size of {filename} in Bytes is {file_stats.st_size}')
 
         if self.temporal_mapping:
             print(f'filename={filename}',  flush=True)
@@ -586,13 +586,16 @@ class Data:
         return new
 
     def to_netcdf(self, filename, zlib=True, complevel=1, **kwargs):
-        logger.debug(f'xr.to_netcdf() L581 writing data to filename={filename}')
+        logger.debug(f'in Data Class: xr.to_netcdf() L581 writing data to filename={filename}')
         if not zlib :
             complevel = 0.
         encoding = dict(zlib=zlib, complevel=complevel)
         for tracer in self._tracers :
             logger.debug(f'filename={filename}, tracer={tracer}')  # e.g. filename=./tmp/LumiaDA-2024-01-17T16_55/LumiaDA-2024-01-17T16_55-emissions.nc
+            # self['co2'] is an instance of the  TracerEmis class and it is the  TracerEmis.to_netcdf() method that now gets called:
             self[tracer].to_netcdf(filename, group=tracer, encoding={var: encoding for var in self[tracer].data_vars}, engine='h5netcdf', **kwargs)
+        file_stats = os.stat(filename)
+        logger.debug(f'File Size of {filename} in Bytes is {file_stats.st_size}')
 
     @property
     def tracers(self):
@@ -848,7 +851,7 @@ class Data:
                     emis =  load_preprocessed(prefix, start, end, freq=freq,  grid=grid, archive=myarchivePseudoDict, \
                                                                 sFileName=sFileName, cat=cat,  bFromPortal=True,  iVerbosityLv=2)
                     logger.info(f"Emissions data: emis.shape = {emis.shape}")
-                else:
+                else: # Local file
                     # myarchivePseudoDict={'protocol':'rclone', 'remote':'lumia', 'path':myarchive+'eurocom025x025/1h/' }
                     emis = load_preprocessed(prefix, start, end, freq=freq, archive=myarchivePseudoDict,  grid=grid,  cat=cat)
                     # self contains in its dictionary #    'emissions.co2.archive': 'rclone:lumia:fluxes/nc/${emissions.co2.region}/${emissions.co2.interval}/'
@@ -973,8 +976,12 @@ def load_preprocessed(
             em1Data=xr.load_dataarray(fname, engine="netcdf4", decode_times=True)
             logger.info(f"Success: xr.load_dataarray({fname}, engine=netcdf4, decode_times=True)")
             # logger.debug(em1Data)
-            df = em1Data.to_dataframe()
-            #df.to_csv('em1Data.csv')
+            try:
+                df = em1Data.to_dataframe()
+                df.iloc[:1024, :].to_csv(f'_dbg_em1Data_{os.path.basename(fname)}_{cat}_{sKeyWord}_{sScndKeyWord}-XrL979.csv', mode='w', sep=',')  
+                #df.to_csv('em1Data.csv')
+            except:
+                logger.warning('in xr.py: df = em1Data.to_dataframe() failed')
             emData.append(em1Data)
             # data.append(xr.load_dataarray(fname, engine="netcdf4", decode_times=True))
         except:
@@ -983,31 +990,22 @@ def load_preprocessed(
     timeSel=slice(start, end)
     logger.debug(f'slice(start={slice}(start, end),  end={end}) = {timeSel}')
     emData = xr.concat(emData, dim='time').sel(time=slice(start, end))
+    #try:
+    #    # checking the emis file in small samples in human readable format
+    #    df = emData.to_dataframe()
+    #    df.iloc[:512, :].to_csv(f'_dbg_emData_{os.path.basename(fname)}_{cat}_{sKeyWord}_{sScndKeyWord}-4x512lines.csv', mode='w', sep=',')  
+    #    dStep=int(len(df)/3)
+    #    df.iloc[dStep:dStep+512, :].to_csv(f'_dbg_emData_{os.path.basename(fname)}_{cat}_{sKeyWord}_{sScndKeyWord}-4x512lines.csv', mode='a', sep=',')  
+    #    dStep+=dStep
+    #    df.iloc[dStep:dStep+512, :].to_csv(f'_dbg_emData_{os.path.basename(fname)}_{cat}_{sKeyWord}_{sScndKeyWord}-4x512lines.csv', mode='a', sep=',')  
+    #    df.iloc[-512:, :].to_csv(f'_dbg_emData_{os.path.basename(fname)}_{cat}_{sKeyWord}_{sScndKeyWord}-4x512lines.csv', mode='a', sep=',')  
+    #except:
+    #    pass
     
     # Resample if needed
     if freq is not None :
         times_dest = date_range(start, end, freq=freq, inclusive='left')  # starts correctly with the left boundary and excludes the right boundary
         logger.info(f'times_dest={times_dest}')
-        # logger.debug(f'emData={emData}')
-        try:
-            logger.debug(f'emData.columns={emData.columns}')  # fails
-        except:
-            pass
-        try:
-            logger.debug(f'emData.time={emData.time}')  
-        except:
-            pass
-        #try:
-        #    logger.debug(f'emData.time.data={emData.time.data}')
-        #except:
-        #    pass
-        df = emData.to_dataframe()
-        df.to_csv('emData.csv')
-        try:
-            df = emData.time.to_dataframe()
-            df.to_csv('emData.time.csv')
-        except:
-            pass
         tres1 = Timestamp(emData.time.data[1])-Timestamp(emData.time.data[0])
         tres2 = times_dest[1]-times_dest[0]
         if tres1 != tres2 :
@@ -1017,7 +1015,7 @@ def load_preprocessed(
             emData = emData.reindex(time=times_dest).ffill('time')
 
     times = emData.time.to_pandas()
-    emData = emData[(times >= start) * (times < end), :, :]  # xarray.dataarray[time:lat:lon] co2 emission values for the given 3D space
+    emData = emData[(times >= start) * (times < end), :, :]  # xarray.dataarray[time:lat:lon] co2 emission values for the given 3D time-space
     # Coarsen if needed
     # # # if grid is not None :    raise NotImplementedError
     # obsolete - that's what ensureCorrectGrid() is for.... 
@@ -1033,10 +1031,11 @@ def WriteStruct(data: Data, path: str, prefix=None, zlib=False, complevel=1, onl
         #logger.debug(f'xr.WriteStruct() L997 prefix is None,  filename={filename},  path={path}')
     else :
         filename = os.path.join(path, f'{prefix}.nc')
-    #logger.debug(f'xr.WriteStruct() L1002 filename={filename}')
+    logger.debug(f'xr.WriteStruct() L1034 filename={filename} (calls data.to_netcdf())')
     Path(path).mkdir(exist_ok=True, parents=True)
-    print(f'filename={filename}',  flush=True)
-    data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported)
+    logger.debug(f'filename={filename}',  flush=True)
+    data.to_netcdf(filename, zlib=zlib, complevel=complevel, only_transported=only_transported) # This calls
+    # the xr.Data.to_netcdf() method as opposed to a pandas method or the xr.TracerEmis.to_netcdf() method
     return filename
 
 

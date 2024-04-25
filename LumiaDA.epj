@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2024 , ",
-    "saved": "2024-02-28, 13:24:07"
+    "saved": "2024-04-25, 12:37:11"
   },
   "project": {
     "AUTHOR": "",
@@ -98,6 +98,7 @@
       "lumia/Uncertainties/__init__.py",
       "lumia/Uncertainties/tools.py",
       "lumia/__init__.py",
+      "lumia/auxiliary/outputEraser.py",
       "lumia/config.py",
       "lumia/control/__init__.py",
       "lumia/control/flexRes.py",
