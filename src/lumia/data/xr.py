@@ -756,7 +756,7 @@ def load_preprocessed(
             logger.error("The file(s) contains multiple data variables. I don't know what to do with them:")
             logger.error(pprint.pformat(glob.glob(f'{prefix}*nc')))
             raise RuntimeError
-        data = data[list(data.data_vars)[0]]
+        data = data[field]
 
         # Resample if needed:
         if freq is not None :
