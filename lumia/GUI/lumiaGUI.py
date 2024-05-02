@@ -1482,6 +1482,8 @@ class lumiaGuiApp:
             bS=row['selected']
             row.iloc[0]=bSel  # row['selected'] is the same as row.iloc[0]
             self.newDf.at[(ri) ,  ('selected')] = bSel
+            self.newDf.at[(ri) ,  ('includeCountry')] = row['includeCountry']
+            self.newDf.at[(ri) ,  ('includeStation')] = row['includeStation']
             self.newDf.at[(ri) ,  ('altOk')] = row['altOk']
             self.newDf.at[(ri) ,  ('HghtOk')] = row['HghtOk']
             if((bSel != bS) and (int(row['dClass'])==4)): 
@@ -1593,6 +1595,16 @@ class lumiaGuiApp:
                 logger.info(f"Thereof {nSelected} are presently selected.")
             except:
                 pass
+            # go through all lines check for country/station excluded
+            # countryInactive=row['country'] in self.excludedCountriesList
+            #                logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
+            # 
+            #self.excludedCountriesList = self.ymlContents['observations']['filters']['CountriesExcluded']
+            #self.excludedStationsList = self.ymlContents['observations']['filters']['StationsExcluded']
+            # newDf.at[(self.nRows-1) ,  ('samplingHeight')]+=[row['samplingHeight'] ]
+            #            bs=self.newDf.at[(ri) ,  ('selected')]
+            #            bc=self.newDf.at[(ri) ,  ('includeCountry')]
+            
             #try: 
             #    self.newDf.to_csv(self.sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
             #except:

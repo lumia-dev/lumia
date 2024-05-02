@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='575cc93f95e84f2f84df0b565a6128de6772e54b'
+LATESTGITCOMMIT_LumiaDA='37b981003ec40d3592c382f829ff6c9b0c8e2b06'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
 import sys
 import getpass
 import platform
+import distro
 import pathlib
 import hashlib
 import re
@@ -264,6 +265,13 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     #sysReleaseVersion=platform.release()  # 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
     myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35
     myPlatformFlavour=platform.version() #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
+    myPlatformInfo=platform.freedesktop_os_release() # {'NAME': 'Debian GNU/Linux', 'ID': 'debian', 'PRETTY_NAME': 'Debian GNU/Linux 12 (bookworm)',
+    #  'VERSION_ID': '12',  'VERSION': '12 (bookworm)', 'VERSION_CODENAME': 'bookworm', 'HOME_URL': 'https://www.debian.org/', 'SUPPORT_URL': 
+    # 'https://www.debian.org/support', 'BUG_REPORT_URL': 'https://bugs.debian.org/'}
+    myPlatformName=myPlatformInfo['NAME']  # Debian GNU/Linux
+    myPlatformVersion=myPlatformInfo['VERSION_ID'] # 12
+    myPlatformPrettyName=myPlatformInfo['PRETTY_NAME']  # Debian GNU/Linux 12 (bookworm)
+    myPlatformArchitecture=platform.machine() # x86_64
     if('#' in myPlatformFlavour[:1]): # A literal 'hash' in this string can cause unnecessary problems in the yaml file
         myPlatformFlavour=myPlatformFlavour[1:] # as it might be interpreted as a comment. Best be ridd of it
     # All output is written into  subdirectories named after the run.thisRun.uniqueIdentifierDateTime key
@@ -390,14 +398,18 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     pyVers= 'Python 3.10.10' # sys.version()
     pyVersion='Python environment version is '+str(pyVers)
     #pyVersion=pyVersion.strip('\n')
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'hostName' ],   value=myMachine, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformCore' ],   value=myPlatformCore, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformFlavour' ],   value=myPlatformFlavour, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformArchitecture' ],   value=myPlatformArchitecture, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformName' ],   value=myPlatformName, bNewValue=True)    
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformPrettyName' ],   value=myPlatformPrettyName, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformVersion' ],   value=myPlatformVersion, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'PythonVersion' ],   value=pyVersion, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueIdentifierDateTime'],   value=sNow, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueOutputPrefix'],   value=sOutputPrfx, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'uniqueTmpPrefix'],   value=sTmpPrfx, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'username'],   value=sUsername, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformCore' ],   value=myPlatformCore, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'platformFlavour' ],   value=myPlatformFlavour, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'PythonVersion' ],   value=pyVersion, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'thisRun',  'hostName' ],   value=myMachine, bNewValue=True)
     # Lumia version
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
