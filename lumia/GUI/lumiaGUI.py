@@ -1595,21 +1595,17 @@ class lumiaGuiApp:
                 logger.info(f"Thereof {nSelected} are presently selected.")
             except:
                 pass
-            # go through all lines check for country/station excluded
-            # countryInactive=row['country'] in self.excludedCountriesList
-            #                logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
-            # 
-            #self.excludedCountriesList = self.ymlContents['observations']['filters']['CountriesExcluded']
-            #self.excludedStationsList = self.ymlContents['observations']['filters']['StationsExcluded']
-            # newDf.at[(self.nRows-1) ,  ('samplingHeight')]+=[row['samplingHeight'] ]
-            #            bs=self.newDf.at[(ri) ,  ('selected')]
-            #            bc=self.newDf.at[(ri) ,  ('includeCountry')]
-            
-            #try: 
-            #    self.newDf.to_csv(self.sTmpPrfx+'_dbg_allObsInTimeSpaceSlab.csv', mode='w', sep=',')  
-            #except:
-            #    logger.error(f"Fatal Error: Failed to write to file {self.sTmpPrfx}_dbg_allObsInTimeSpaceSlab.csv. Please check your write permissions and possibly disk space etc.")
-            #    self.closeApp
+            for index, row in dfq.iterrows():
+                if(row['includeCountry']==False):
+                    if not (row['country'] in self.excludedCountriesList):
+                        self.excludedCountriesList.append(row['country'])
+                if(row['includeStation']==False):
+                    sname=row['stationID']
+                    print(sname)
+                    if not (row['stationID'] in self.excludedStationsList):
+                        self.excludedStationsList.append(row['stationID'])
+            self.ymlContents['observations']['filters']['CountriesExcluded'] = self.excludedCountriesList
+            self.ymlContents['observations']['filters']['StationsExcluded'] = self.excludedStationsList
             try:
                 #dfq.to_csv(sOutputPrfx+'_dbg_dfq_all.csv', mode='w', sep=',')
                 dfq['pid2'] = dfq['pid'].apply(bs.grabFirstEntryFromList)
