@@ -258,7 +258,7 @@ class lumiaGuiApp:
                     self.bUseCachedList = ge.guiAskyesno(title='Use previous list of obs data?',
                                 message=self.ageOfExistingDiscoveredObservations)
                 else:
-                    print('..suggest cached obs data...')
+                    #print('..suggest cached obs data...')
                     self.wdgGrid4 = wdg.GridspecLayout(n_rows=2, n_columns=3,  grid_gap="5px")
                     self.Pg1cachedObsDataLabel = ge.guiTxtLabel(self.guiPg1TpLv, text=self.ageOfExistingDiscoveredObservations,  width=600)
                     self.Pg1UseCachedButton = ge.guiButton(self.guiPg1TpLv, text="Use cached Discovered-obs-data",  width=240)
@@ -275,7 +275,7 @@ class lumiaGuiApp:
                     else:
                         self.bUseCachedList = False
             else:
-                print('no cached data on offer...')
+                logger.debug('There is no cached obs data at hand...')
             if(USE_TKINTER):
                 self.guiPg1TpLv.iconify()
             # Save  all details of the configuration and the version of the software used:
@@ -318,7 +318,7 @@ class lumiaGuiApp:
                 self.ymlContents['observations'][self.tracer]['file']['location'] = 'CARBONPORTAL'
         else: # ipywidgets returns the value (text string) of the selected radiobutton
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
-            print(f'..ObsFileLocation={ObsFileLocation}')
+            #print(f'..ObsFileLocation={ObsFileLocation}')
             self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
         return True
 
@@ -330,7 +330,7 @@ class lumiaGuiApp:
                 self.ymlContents['run']['tracers'] = 'ch4'
         else: # ipywidgets returns the value (text string) of the selected radiobutton
             TracerRbVal=self.Pg1TracerRadioButton.value
-            print(f'..TracerRbVal={TracerRbVal}')
+            #print(f'..TracerRbVal={TracerRbVal}')
             self.ymlContents['run']['tracers'] = TracerRbVal
         return True
 
@@ -445,16 +445,22 @@ class lumiaGuiApp:
         newColumnNames=['selected','country', 'stationID', 'altOk', 'altitude', 'HghtOk', 'samplingHeight', 'IcosClass', 'latitude', 'longitude', 'dClass', 'dataSetLabel', 'pid', 'includeCountry', 'includeStation']
         logger.debug(f'reading the listing of all discovered obs data sets from file {self.fDiscoveredObservations}')
         dfAllObs = pd.read_csv (self.fDiscoveredObservations)
+        strIcos='IcosClass'
         for index, row in dfAllObs.iterrows():
             hLst=[row['samplingHeight'] ]
             pidLst=[ row['pid']]
+            if (index==0):
+                try:
+                    sicos=row['IcosClass']
+                except:
+                    strIcos='isICOS'
             # bStationAltOk and bSamplHghtOk are helper variables that make filtering easier if requested at a later stage
             bStationAltOk = (((row['altitude'] >= self.stationMinAlt) &
                                 (row['altitude'] <= self.stationMaxAlt) ) | (self.bUseStationAltitudeFilter==False)) 
             bSamplHghtOk = (((row['samplingHeight'] >= self.inletMinHght) &
                                 (row['samplingHeight'] <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
             newRow=[bTrue,row['country'], row['stationID'], bStationAltOk, row['altitude'],  
-                            bSamplHghtOk, hLst, row['IcosClass'], row['latitude'], row['longitude'], row['dClass'], row['dataSetLabel'],  pidLst, True,  True]
+                            bSamplHghtOk, hLst, row[strIcos], row['latitude'], row['longitude'], row['dClass'], row['dataSetLabel'],  pidLst, True,  True]
             
             if(bCreateDf):
                 newDf=pd.DataFrame(data=[newRow], columns=newColumnNames)     
@@ -560,7 +566,7 @@ class lumiaGuiApp:
                 myWidgetCountry  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent,  variable=myWidgetVar, 
                     text=row['country'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False)  
             except:
-                print(f'creation of widget myWidgetCountry with gridID {gridID} failed')
+                logger.error(f'creation of widget myWidgetCountry with gridID {gridID} failed')
             #if(USE_TKINTER):
             #countryCkbEvtCommand=lambda widgetID=myWidgetCountry.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetCountry.widgetGridID)
                 #myWidgetCountry.configure(command=countryCkbEvtCommand) 
@@ -588,7 +594,7 @@ class lumiaGuiApp:
             myWidgetStationid  = ge.GridCTkCheckBox(self, scrollableFrame4Widgets, gridID, command=self.EvHdPg2myCheckboxEvent, variable=myWidgetVar, 
                                                     text=row['stationID'],text_color=sTextColor, text_color_disabled=sTextColor, font=("Georgia", fsNORMAL), onvalue=True, offvalue=False) 
         except:
-            print(f'creation of widget myWidgetStationid with gridID {gridID} failed')
+            logger.error(f'creation of widget myWidgetStationid with gridID {gridID} failed')
         #if(USE_TKINTER):
         #    myWidgetStationid.configure(command=lambda widgetID=myWidgetStationid.widgetGridID : self.EvHdPg2myCheckboxEvent(myWidgetStationid.widgetGridID)) 
             #if not (USE_TKINTER):
@@ -664,124 +670,113 @@ class lumiaGuiApp:
         return True
 
     def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
-        print(f'EvHdPg2myCheckboxEvent: gridID={gridID},  wdgGridTxt={wdgGridTxt},  description={description}')
-        if not(value is None):
-            print(f'value={value}')
-        try:
-            #print(f'self.lumiaGuiApp={self.lumiaGuiApp}')
-            #print(f'self.lumiaGuiApp.EvHdPg2myCheckboxEvent={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
-            if((len(wdgGridTxt)>1) and (value is not None)):
-                self=self.lumiaGuiApp # The callback from method guiElements_ipyWdg.GridCTkCheckBox.actOnCheckBoxChanges(change)
-               #  to this method sends its widget's "self" but we need the "self" representing its parent, the lumiaGuiApp, as opposed to the checkboxe's identity.
-        except:
-            pass
+        #  NOTE: The callback from method guiElements_ipyWdg.GridCTkCheckBox.actOnCheckBoxChanges(change)
+        #  to this method sends its widget's "self" but we need the "self" representing its parent, the lumiaGuiApp, as opposed to the checkboxe's identity.
+        # print(f'EvHdPg2myCheckboxEvent L675: EvHdPg2myCheckboxEvent: gridID={gridID},  wdgGridTxt={wdgGridTxt},  description={description}')
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the corresponding index to access the right widget in widgetsLst
-        bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
         if(self.widgetsLst[widgetID] is not None):
-            if(ci==0):
-                if(bChkBxIsSelected):
-                    self.newDf.at[(ri) ,  ('selected')] =True
-                    if(ri==33):
-                        bs=self.newDf.at[(ri) ,  ('selected')]
-                        bc=self.newDf.at[(ri) ,  ('includeCountry')]
-                    row=self.newDf.iloc[ri]
-                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='blue') # 'On'
-                else:
-                    self.newDf.at[(ri) ,  ('selected')] =False
-                    if(ri==33):
-                        bs=self.newDf.at[(ri) ,  ('selected')]
-                        bc=self.newDf.at[(ri) ,  ('includeCountry')]
-                    row=self.newDf.iloc[ri]
-                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='green') # 'Off'
-                self.EvHdPg2updateRowOfObsWidgets(ri, row)
-            elif(ci==1):  # Country
-                bSameCountry=True  # multiple rows may be affected
-                self.nRows=len(self.newDf)
-                thisCountry=self.newDf.at[(ri) ,  ('country')]
-                while((bSameCountry) and (ri<self.nRows)):
+            bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
+            try:
+                if(ci==0):
                     if(bChkBxIsSelected):
-                        # Set 'selected' to True only if the station, AltOk & HghtOk are presently selected AND dClass is the highest available, else not
-                        try:
-                            self.excludedCountriesList.remove(row['country'])
-                        except:
-                            pass
-                        self.newDf.at[(ri) ,  ('includeCountry')] =True
-                        if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
-                            self.newDf.at[(ri) ,  ('selected')] =True
+                        self.newDf.at[(ri) ,  ('selected')] =True
+                        row=self.newDf.iloc[ri]
+                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='blue') # 'On'
+                    else:
+                        self.newDf.at[(ri) ,  ('selected')] =False
+                        row=self.newDf.iloc[ri]
+                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID], text='',  text_color='green') # 'Off'
+                    self.EvHdPg2updateRowOfObsWidgets(ri, row)
+                elif(ci==1):  # Country
+                    bSameCountry=True  # multiple rows may be affected
+                    self.nRows=len(self.newDf)
+                    thisCountry=self.newDf.at[(ri) ,  ('country')]
+                    while((bSameCountry) and (ri<self.nRows)):
+                        if(bChkBxIsSelected):
+                            # Set 'selected' to True only if the station, AltOk & HghtOk are presently selected AND dClass is the highest available, else not
+                            try:
+                                self.excludedCountriesList.remove(row['country'])
+                            except:
+                                pass
+                            self.newDf.at[(ri) ,  ('includeCountry')] =True
+                            if ((row['includeStation']) and (int(row['dClass'])==4) and (row['altOk']) and (row['HghtOk'])) :  #bIncludeStation) 
+                                self.newDf.at[(ri) ,  ('selected')] =True
+                                row=self.newDf.iloc[ri]
+                                if(self.widgetsLst[widgetID] is not None):
+                                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
+                            else:
+                                self.newDf.at[(ri) ,  ('selected')] =False
+                                row=self.newDf.iloc[ri]
+                                if(self.widgetsLst[widgetID] is not None):
+                                    ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
+                            self.newDf.iloc[ri, 13]=True
                             row=self.newDf.iloc[ri]
-                            if(self.widgetsLst[widgetID] is not None):
-                                ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                         else:
+                            # Remove country from list of excluded countries
+                            c=row['country']
+                            if(row['country'] not in self.excludedCountriesList):
+                                self.excludedCountriesList.append(row['country'])
+                            self.newDf.at[(ri) ,  ('includeCountry')] =False
                             self.newDf.at[(ri) ,  ('selected')] =False
                             row=self.newDf.iloc[ri]
                             if(self.widgetsLst[widgetID] is not None):
                                 ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
-                        self.newDf.iloc[ri, 13]=True
+                        self.EvHdPg2updateRowOfObsWidgets(ri, row)
+                        ri+=1
+                        widgetID+=self.nWidgetsPerRow
+                        if(ri>=self.nRows):
+                            break
                         row=self.newDf.iloc[ri]
-                    else:
-                        # Remove country from list of excluded countries
-                        if(row['country'] not in self.excludedCountriesList):
-                            self.excludedCountriesList.append(row['country'])
-                        self.newDf.at[(ri) ,  ('includeCountry')] =False
-                        self.newDf.at[(ri) ,  ('selected')] =False
-                        row=self.newDf.iloc[ri]
-                        if(ri==33):
-                            bs=self.newDf.at[(ri) ,  ('selected')]
-                            bc=self.newDf.at[(ri) ,  ('includeCountry')]
-                            logger.info(f"self.newDf.at[(10) ,  (selected)]   set   to {bs}")
-                            logger.info(f"self.newDf.at[(10) ,(includeCountry)] set to {bc}")
-                        if(self.widgetsLst[widgetID] is not None):
-                            ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
-                    self.EvHdPg2updateRowOfObsWidgets(ri, row)
-                    ri+=1
-                    widgetID+=self.nWidgetsPerRow
-                    if(ri>=self.nRows):
-                        break
-                    row=self.newDf.iloc[ri]
-                    if (thisCountry not in row['country']) :
-                        bSameCountry=False
-            elif(ci==2):  # stationID
-                bSameStation=True  # multiple rows may be affected
-                self.nRows=len(self.newDf)
-                thisStation=self.newDf.at[(ri) ,  ('stationID')]
-                while((bSameStation) and (ri<self.nRows)):
-                    if(bChkBxIsSelected):
-                        try:
-                            self.excludedStationsList.remove(row['stationID'])
-                        except:
-                            pass
-                        ge.guiSetCheckBox(self.widgetsLst[widgetID], True) # self.widgetsLst[widgetID].select()
-                        if((self.newDf.at[(ri) ,  ('includeCountry')]==True) and
-                            (self.newDf.at[(ri) ,  ('altOk')]==True) and
-                            (self.newDf.at[(ri) ,  ('HghtOk')]==True) and
-                            (row['dClass']==4)):
-                            self.newDf.at[(ri) ,  ('selected')] =True
+                        if (thisCountry not in row['country']) :
+                            bSameCountry=False
+                elif(ci==2):  # stationID
+                    bSameStation=True  # multiple rows may be affected
+                    self.nRows=len(self.newDf)
+                    thisStation=self.newDf.at[(ri) ,  ('stationID')]
+                    while((bSameStation) and (ri<self.nRows)):
+                        if(bChkBxIsSelected):
+                            try:
+                                self.excludedStationsList.remove(row['stationID'])
+                            except:
+                                pass
+                            ge.guiSetCheckBox(self.widgetsLst[widgetID], True) # self.widgetsLst[widgetID].select()
+                            if((self.newDf.at[(ri) ,  ('includeCountry')]==True) and
+                                (self.newDf.at[(ri) ,  ('altOk')]==True) and
+                                (self.newDf.at[(ri) ,  ('HghtOk')]==True) and
+                                (row['dClass']==4)):
+                                self.newDf.at[(ri) ,  ('selected')] =True
+                                row=self.newDf.iloc[ri]
+                            else:
+                                self.newDf.at[(ri) ,  ('selected')] =False
+                                row=self.newDf.iloc[ri]
+                            self.newDf.at[(ri) ,  ('includeStation')] =True
                             row=self.newDf.iloc[ri]
+                            ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
                         else:
+                            ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #  self.widgetsLst[widgetID].deselect()
+                            if(row['stationID'] not in self.excludedStationsList):
+                                self.excludedStationsList.append(row['stationID'])
                             self.newDf.at[(ri) ,  ('selected')] =False
+                            self.newDf.at[(ri) ,  ('includeStation')] =False
                             row=self.newDf.iloc[ri]
-                        self.newDf.at[(ri) ,  ('includeStation')] =True
+                            ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
+                        self.EvHdPg2updateRowOfObsWidgets(ri, row)
+                        ri+=1
+                        widgetID+=self.nWidgetsPerRow
+                        if(ri>=self.nRows):
+                            break
                         row=self.newDf.iloc[ri]
-                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.activeTextColor)
-                    else:
-                        ge.guiSetCheckBox(self.widgetsLst[widgetID], False) #  self.widgetsLst[widgetID].deselect()
-                        if(row['stationID'] not in self.excludedStationsList):
-                            self.excludedStationsList.append(row['stationID'])
-                        self.newDf.at[(ri) ,  ('selected')] =False
-                        self.newDf.at[(ri) ,  ('includeStation')] =False
-                        row=self.newDf.iloc[ri]
-                        ge.guiConfigureWdg(self, widget=self.widgetsLst[widgetID],text_color=self.inactiveTextColor)
-                    self.EvHdPg2updateRowOfObsWidgets(ri, row)
-                    ri+=1
-                    widgetID+=self.nWidgetsPerRow
-                    if(ri>=self.nRows):
-                        break
-                    row=self.newDf.iloc[ri]
-                    if (thisStation not in row['stationID']) :
-                        bSameStation=False
+                        if (thisStation not in row['stationID']) :
+                            bSameStation=False
+            except:
+                print('EvHdPg2myCheckboxEvent().L775: event processing failed')
+        else:
+            logger.error(f'widgetID={widgetID} not found in self.widgetsLst[]')
+        #print(f'self.excludedCountriesList={self.excludedCountriesList}')
+        #print(f'self.excludedStationsList={self.excludedStationsList}')
         return True
  
 
@@ -1027,10 +1022,10 @@ class lumiaGuiApp:
                 self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2                
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
             
-            print(f'ObsFileLocation={ObsFileLocation}')
+            #print(f'ObsFileLocation={ObsFileLocation}')
             #self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
             tracer=self.Pg1TracerRadioButton.value
-            print(f'tracer={tracer}')
+            #print(f'tracer={tracer}')
             self.ymlContents['run']['tracers'] = tracer
             self.EvHdPg1GotoPage2()
         return True
@@ -1282,7 +1277,7 @@ class lumiaGuiApp:
         else:
             strStartTime=self.Pg1TimeStartEntry.value
             strEndTime=self.Pg1TimeEndEntry.value
-            print(f'strStartTime={strStartTime},  strEndTime={strEndTime}')
+            #print(f'strStartTime={strStartTime},  strEndTime={strEndTime}')
         if (len(strStartTime)<10):
             bTimeError=True
             sErrorMsg+='Invalid Start Date entered.\n'
@@ -1333,7 +1328,7 @@ class lumiaGuiApp:
         Lat1=float(ge.getWidgetValue(self.Pg1Latitude1Entry))
         Lon0=float(ge.getWidgetValue(self.Pg1Longitude0Entry))
         Lon1=float(ge.getWidgetValue(self.Pg1Longitude1Entry))
-        print(f'Lat0={Lat0},  Lat1={Lat1},  Lon0={Lon0},  Lon1={Lon1}')
+        #print(f'Lat0={Lat0},  Lat1={Lat1},  Lon0={Lon0},  Lon1={Lon1}')
         if(USE_TKINTER): # TODO fix
             if(Lat0 < self.latMin):
                 bLatLonError=True
@@ -1386,7 +1381,7 @@ class lumiaGuiApp:
         # Get the name of the local obs data file. This is ignored, if (self.ymlContents['observations'][self.tracer]['file']['location'] == 'CARBONPORTAL')
         
         fname=ge.getWidgetValue(self.Pg1ObsFileLocationLocalEntry)
-        print(f'self.Pg1ObsFileLocationLocalEntry.value={fname}')
+        #print(f'self.Pg1ObsFileLocationLocalEntry.value={fname}')
         self.ymlContents['observations'][self.tracer]['file']['path'] = fname
             
         # Emissions data (a prioris)
@@ -1471,6 +1466,9 @@ class lumiaGuiApp:
             bIcosOk=((bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
             bSel=False
             countryInactive=row['country'] in self.excludedCountriesList
+            if(countryInactive):
+                c=row['country']
+                print(f'Country {c} excluded')
             stationInactive=row['stationID'] in self.excludedStationsList
             # The row['includeCountry'] flag tells us whether we draw it as we draw country names only once for all its data sets
             if((row['includeCountry']) and (row['includeStation']) and 
@@ -1597,6 +1595,8 @@ class lumiaGuiApp:
                 pass
             for index, row in dfq.iterrows():
                 if(row['includeCountry']==False):
+                    c=row['country']
+                    print(f'removing country {c}')
                     if not (row['country'] in self.excludedCountriesList):
                         self.excludedCountriesList.append(row['country'])
                 if(row['includeStation']==False):
@@ -1604,7 +1604,9 @@ class lumiaGuiApp:
                     print(sname)
                     if not (row['stationID'] in self.excludedStationsList):
                         self.excludedStationsList.append(row['stationID'])
+            print(f'Writing to yaml File: self.excludedCountriesList={self.excludedCountriesList}')
             self.ymlContents['observations']['filters']['CountriesExcluded'] = self.excludedCountriesList
+            print(f'Writing to yaml File: self.excludedStationsList={self.excludedStationsList}')
             self.ymlContents['observations']['filters']['StationsExcluded'] = self.excludedStationsList
             try:
                 #dfq.to_csv(sOutputPrfx+'_dbg_dfq_all.csv', mode='w', sep=',')
@@ -1864,10 +1866,12 @@ class lumiaGuiApp:
         #else:
         #    self.update_idletasks()
         if(not USE_TKINTER):
-            whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 
-                                                                                            title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+            whichButton=int(ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 
+                                                                                            title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240))
+            # 1975 self.Pg2GoButton = ge.guiButton(rootFrame, text="GO!", command=self.EvHdPg2GoBtnHit, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
+            # 2040 ge.guiPlaceWidget(self.wdgGrid, self.Pg2GoButton, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
             if(whichButton==1): 
-                self.EvHdPg2GoBtnHit
+                self.EvHdPg2GoBtnHit()
             else:
                 print('User abort.')
                 self.closeApp(bWriteStop=True) # Abort run
@@ -1942,6 +1946,7 @@ class lumiaGuiApp:
         #  ##############################################################################
         # GO! Button
         #self.GoButton = ctk.CTkButton(rootFrame, font=(self.root.myFontFamily, self.root.fsLARGE), command=EvHdPg2GoBtnHit,  text="GO!")  # Note: expressions after command= cannot have parameters or they will be executed at initialisation which is unwanted
+        print('runPg2 creating createPg2staticWidgets.ge.guiButton()')
         self.Pg2GoButton = ge.guiButton(rootFrame, text="GO!", command=self.EvHdPg2GoBtnHit, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg2GoButton,  value='gray1', bText_color=True)

@@ -62,7 +62,7 @@ def getTracer(ymlEntryTracer,  abortOnError=False):
             sys.exit(-7)
         else:
             logger.warning('Proceeding with the assumption tracer==co2')
-    return(tracer)
+    return(tracer.lower())
 
 
 def caclulateSha256Filehash(myfile):

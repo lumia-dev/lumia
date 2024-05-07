@@ -35,11 +35,8 @@ class GridCTkCheckBox(wdg.Checkbox):
     def __init__(self, parent,  root, myGridID, command, variable, text='',  *args, **kwargs):
         #ctk.CTkCheckBox.__init__(self, root, *args, **kwargs) 
         self.widgetGridID= myGridID
-        self.command=command
-        # command=self.EvHdPg2myCheckboxEvent
-        self.lumiaGuiApp=parent
-        #if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-        #    print(f'command={command},  self.widgetGridID={self.widgetGridID}')
+        self.command=parent.EvHdPg2myCheckboxEvent  
+        self.parent=parent
         #self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
         #self.eventHandlerFunction=lambda: command(self.widgetGridID)
         wdg.Checkbox.__init__(self, 
@@ -48,6 +45,7 @@ class GridCTkCheckBox(wdg.Checkbox):
             disabled=False,
             indent=False
         )
+        
 
         def actOnCheckBoxChanges(change):
             try:
@@ -65,35 +63,12 @@ class GridCTkCheckBox(wdg.Checkbox):
                     try:
                         wdgGridTxt=change['owner'].layout.grid_area
                         if not (wdgGridTxt is None):
-                            #print(f'changeEvent={change}')
-
-                            # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
-                            # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
-
-                            if((self.widgetGridID==200) or (self.widgetGridID==1) or (self.widgetGridID==11802)):
-                               print(f'CheckBox Change event with: self.widgetGridID={self.widgetGridID} wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
-                            self.lumiaGuiApp.EvHdPg2myCheckboxEvent(gridID=self.widgetGridID, wdgGridTxt=wdgGridTxt,value=value,description=description )
- 
                             #try:
-                            #    ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
-                            #    print(f'running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            #    print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            #    ptr2EvHdPg2myCheckboxEvent
-                            #    print('ran ptr2EvHdPg2myCheckboxEvent')
+                            #   print(f'CheckBox Change event with: self.widgetGridID={self.widgetGridID} wdgGridTxtID={wdgGridTxt},  value={value},  description={description}')
+                            #   print('Calling self.parent.EvHdPg2myCheckboxEvent() with those parameters')
                             #except:
-                            #    pass
-                            #try:
-                            #    print(f'running ptrToEvHdPg2myCheckboxEvent, self.widgetGridID={self.widgetGridID}')
-                            #    self.ptrToEvHdPg2myCheckboxEvent
-                            #    print('ran ptrToEvHdPg2myCheckboxEvent')
-                            #except:
-                            #    pass
-                            #try:
-                            #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
-                            #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
-                            #    print('ran self.EvHdPg2myCheckboxEvent')
-                            #except:
-                            #    pass
+                            #    print('Error: GridCTkCheckBox.actOnCheckBoxChanges(): p112 failed')
+                            self.parent.EvHdPg2myCheckboxEvent(gridID=self.widgetGridID, wdgGridTxt=wdgGridTxt,value=value,description=description )
                     except:
                         pass
             except:
@@ -102,20 +77,7 @@ class GridCTkCheckBox(wdg.Checkbox):
 
         self.observe(actOnCheckBoxChanges)
         return
-        #    command=ptrToEvHdPg2myCheckboxEvent,
-        #out = widgets.Output() 
-        #@out.capture()
-        #ptrToEvHdPg2myCheckboxEvent(self.widgetGridID)
-    #wdg.Checkbox.observe(actOnCheckBoxChanges)
-    #display(out)
-"""
-Event triggered in GridCTkCheckBox(self.widgetGridID=1)
-{'name': '_property_lock', 'old': {'value': False}, 'new': {}, 'owner': GridCTkCheckBox(value=False, description='CH', indent=False, 
-            layout=Layout(grid_area='widget002', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-Event triggered in GridCTkCheckBox(self.widgetGridID=202)
-{'name': '_property_lock', 'old': {'value': False}, 'new': {}, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False,
-            layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}            
-"""
+
 
 class GridCTkLabel(wdg.Text):
     def __init__(self, root, myGridID, text='',  description='', *args, **kwargs):
@@ -244,57 +206,6 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
     #return(ctk.CTkButton(master=master, command=command, font=(fontName, fontSize), text=text)
     return True
 
-
-class guiOldCheckBox(wdg.Checkbox):
-    def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, fontSize=12, variable=False, 
-                            text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
-        self.command=command
-        self.lumiaGuiApp=parent
-        #@def   guiCheckBox:
-        # variable holds the initial state whether the CheckBox is selected (True) or not (False)
-        wdg.Checkbox.__init__(self, 
-            value=variable,
-            description=text,
-            disabled=disabled,
-            indent=False
-        )
-
-        def actOnCheckBoxChange(change):
-            try:
-                chName=change['name']
-                # we are only interested in events where there is a change in value selected/deselected True/False etc
-                # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
-                # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-                if('value' in chName):
-                    value=True
-                    #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
-                    try:
-                        value=change['owner'].value  # True/False for check box now being selected or deselected
-                    except:
-                        print('Failed to extract the value')
-                    print(f'changeEvent={change}')
-                    print(f'command={self.command}')
-                    if(command is None):
-                        pass
-                    elif(isinstance(self.command, str)):
-                        if ('EvHdPg2stationAltitudeFilterAction' in self.command):
-                            print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
-                            self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
-                        if ('EvHdPg2stationSamplingHghtAction' in self.command):
-                            print('calling EvHdPg2stationSamplingHghtAction')
-                            self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
-                    else:
-                        self.command
-            except:
-                pass
-            return True
-        
-        #btn.on_click(lambda self, trainfolder=trainfolder, modelname=modelname : segmentation_training(trainfolder,modelname))
-        #self.observe(lambda actOnOptionMenuChanges)
-        
-        #self.observe(lambda self=self.lumiaGuiApp,  value=self.value : self.command(self, self.value))
-        self.observe(actOnCheckBoxChange)
-        return
 
 
 class guiCheckBox(wdg.Checkbox):
@@ -601,7 +512,7 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
         on_click
 
     def on_cancel(b):
-        print('Cancel pressed')
+        #print('Cancel pressed')
         global whichButton
         whichButton=2
         global button_clicked
@@ -624,7 +535,6 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
             poll(10)          # React to UI events (upto 10 at a time)
             time.sleep(0.1)
 
-    #print(f'returning whichButton={whichButton}')
     return (whichButton) 
 
 
