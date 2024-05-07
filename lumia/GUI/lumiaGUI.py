@@ -864,7 +864,7 @@ class lumiaGuiApp:
         # ###################################################
         widgetID+=1 # calculate the corresponding index to access the right widget in widgetsLst
         if(self.widgetsLst[widgetID] is not None):
-            try:  # TODO: fix this
+            try:  
                 bIncludeStation=row['includeStation']
                 bChkBxIsSelected=ge.getWidgetValue(self.widgetsLst[widgetID])
                 if(bIncludeStation != bChkBxIsSelected):  # update the widget selection status if necessary
@@ -1450,10 +1450,16 @@ class lumiaGuiApp:
     def applyFilterRulesPg2(self):
         bICOSonly=self.ymlContents['observations']['filters']['ICOSonly']
         self.getFilters()
+        # For each observational data set we check whether the station altitude, sampling height, or ICOSonly filters apply. 
+        # We also check for manually rejected countries or stations
         for ri, row in self.newDf.iterrows():
-            #if ((row['stationID'] in 'ZSF') or (row['stationID'] in 'JAR') or (row['stationID'] in 'DEC')):
-                #id=row['stationID']
-                #print(f'stationID={id},  self.newDf-rowidx={ri}')
+            bSel=False 
+            if (ri==0):
+                try:
+                    strICOS=row['IcosClass'] # if this works then the column IcosClass exists and is named as such
+                    strICOS='IcosClass'
+                except:
+                    strICOS='isICOS' # if not, it is an old file where the column was called isICOS
             row['altOk'] = (((float(row['altitude']) >= self.stationMinAlt) &
                                 (float(row['altitude']) <= self.stationMaxAlt) ) | (self.bUseStationAltitudeFilter==False)) 
             if(isinstance(row['samplingHeight'], list)):
@@ -1462,21 +1468,21 @@ class lumiaGuiApp:
                 sH=float(row['samplingHeight'])
             row['HghtOk'] = (((sH >= self.inletMinHght) &
                                             (sH <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
-            icosStatus=row['IcosClass'] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
-            bIcosOk=((bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
-            bSel=False
             countryInactive=row['country'] in self.excludedCountriesList
-            if(countryInactive):
-                c=row['country']
-                print(f'Country {c} excluded')
             stationInactive=row['stationID'] in self.excludedStationsList
             # The row['includeCountry'] flag tells us whether we draw it as we draw country names only once for all its data sets
             if((row['includeCountry']) and (row['includeStation']) and 
                 (not countryInactive) and (not stationInactive) and 
                 (row['altOk']) and (row['HghtOk']) and 
-                (int(row['dClass'])==4) and (bIcosOk)):
+                (int(row['dClass'])==4) ):
                 # if station and country are selected only then may we toggle the 'selected' entry to True
                 bSel=True
+
+            icosStatus=row[strICOS] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
+            bIcosOk=((bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
+            if(not bIcosOk):
+                bSel=False
+
             bS=row['selected']
             row.iloc[0]=bSel  # row['selected'] is the same as row.iloc[0]
             self.newDf.at[(ri) ,  ('selected')] = bSel
@@ -1557,12 +1563,24 @@ class lumiaGuiApp:
         self.applyFilterRulesPg2()
         return True
     
-    def EvHdPg2isICOSfilter(self, actualSelf=None, value=None):
-        if((value is not None) and (actualSelf is not None)):
+    def EvHdPg2isICOSfilter(self, myWidget=None, value=None):
+        if((value is not None) and (myWidget is not None)):
             print(f'EvHdPg2isICOSfilter called with value={value}')
-            self=actualSelf 
-        ge.getWidgetValue()
-        ge.getVarValue()
+            #self=actualSelf 
+        try:
+            if(myWidget is not None):
+                myWdgValue=myWidget.getWidgetValue()
+                if(value is None):
+                    value=myWdgValue
+        except:
+            pass
+        try:
+            if(myWidget is not None):
+                myVarValue=ge.getVarValue(myWidget)
+                print(f'EvHdPg2isICOSfilter: myVarValue={myVarValue}')
+        except:
+            myVarValue=None
+        print(f'EvHdPg2isICOSfilter: var value={value}')
         bICOSonly=True
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
             rbvariable=self.Pg2isICOSradioButton.cget("variable")
@@ -1595,13 +1613,9 @@ class lumiaGuiApp:
                 pass
             for index, row in dfq.iterrows():
                 if(row['includeCountry']==False):
-                    c=row['country']
-                    print(f'removing country {c}')
                     if not (row['country'] in self.excludedCountriesList):
                         self.excludedCountriesList.append(row['country'])
                 if(row['includeStation']==False):
-                    sname=row['stationID']
-                    print(sname)
                     if not (row['stationID'] in self.excludedStationsList):
                         self.excludedStationsList.append(row['stationID'])
             print(f'Writing to yaml File: self.excludedCountriesList={self.excludedCountriesList}')
@@ -1929,11 +1943,12 @@ class lumiaGuiApp:
         self.ICOSstationsLabel = ge.guiTxtLabel(rootFrame, text="ICOS stations", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         if(USE_TKINTER):
             self.Pg2isICOSradioButton = ge.guiRadioButton(rootFrame, text="Any station", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
-                                                               variable=self.isICOSRadioButtonVar,  value=0,  command=self.EvHdPg2isICOSfilter)
+                                                               variable=self.isICOSRadioButtonVar,  value=0,  command=self.EvHdPg2isICOSfilter, nameOfEvtHd='EvHdPg2isICOSfilter')
             self.Pg2isICOSradioButton2 = ge.guiRadioButton(rootFrame, text="ICOS only", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
-                                                               variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter)
+                                                               variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter, nameOfEvtHd='EvHdPg2isICOSfilter')
         else:
-            self.Pg2isICOSradioButton = ge.guiRadioButton(['Any station', 'ICOS only'], preselected=self.isICOSRadioButtonVar, description='')
+            self.Pg2isICOSradioButton = ge.guiRadioButton(['Any station', 'ICOS only'], preselected=self.isICOSRadioButtonVar, description='', nameOfEvtHd='EvHdPg2isICOSfilter')
+           
         # Col_11                
         #  ##############################################################################
         # Cancel Button

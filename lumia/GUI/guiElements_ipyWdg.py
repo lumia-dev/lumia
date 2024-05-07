@@ -257,10 +257,10 @@ class guiCheckBox(wdg.Checkbox):
                 pass
             elif((self.nameOfEvtHd is not None) and (len(self.nameOfEvtHd)>3)):
                 if ('EvHdPg2stationAltitudeFilterAction' in self.nameOfEvtHd):
-                    print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
+                    #print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
                     self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
                 if ('EvHdPg2stationSamplingHghtAction' in self.nameOfEvtHd):
-                    print('calling EvHdPg2stationSamplingHghtAction')
+                    #print('calling EvHdPg2stationSamplingHghtAction')
                     self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
             else:
                 self.command
@@ -423,7 +423,7 @@ def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1, 
     return True
 
 
-def guiRadioButton(options=[] , description='',  text='', preselected=None):
+def guiRadioButton(options=[] , description='',  text='', preselected=None,  command=None, nameOfEvtHd=''):
     if(preselected is None):
         preselected=0
     if(len(description)==0):
