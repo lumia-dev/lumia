@@ -672,7 +672,7 @@ class lumiaGuiApp:
     def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
         #  NOTE: The callback from method guiElements_ipyWdg.GridCTkCheckBox.actOnCheckBoxChanges(change)
         #  to this method sends its widget's "self" but we need the "self" representing its parent, the lumiaGuiApp, as opposed to the checkboxe's identity.
-        # print(f'EvHdPg2myCheckboxEvent L675: EvHdPg2myCheckboxEvent: gridID={gridID},  wdgGridTxt={wdgGridTxt},  description={description}')
+        #print(f'EvHdPg2myCheckboxEvent L675: EvHdPg2myCheckboxEvent: gridID={gridID},  wdgGridTxt={wdgGridTxt},  description={description}')
         ri=int(0.01*gridID)  # row index for the widget on the grid
         ci=int(gridID-(100*ri))  # column index for the widget on the grid
         row=self.newDf.iloc[ri]
@@ -1090,7 +1090,8 @@ class lumiaGuiApp:
                                        text="CH4", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                        variable=self.iTracerRbVal,  value=1, command=self.EvHdPg1SetTracer)
         else:
-            self.Pg1TracerRadioButton = ge.guiRadioButton(['CO2', 'CH4'], preselected=self.iTracerRbVal,  description='')
+            self.Pg1TracerRadioButton = ge.guiRadioButton(parent=self,  options=['CO2', 'CH4'], preselected=self.iTracerRbVal, description='', 
+                                                            command=self.EvHdPg1SetTracer)
         #       Emissions data (a prioris) : dyn.vegetation net exchange model
         self.Pg1FossilEmisLabel = ge.guiTxtLabel(self.guiPg1TpLv, text="Fossil emissions:", width=self.root.colWidth,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, anchor="e", nCols=self.nCols,  colwidth=1)
         self.Pg1FossilEmisOptionMenu = ge.guiOptionMenu(self.guiPg1TpLv, values=AVAIL_FOSSIL_EMISS_DATA, 
@@ -1134,15 +1135,16 @@ class lumiaGuiApp:
                 preselected=0
             else:
                 preselected=1
-            #self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['from local file','from CarbonPortal' ],  preselected=preselected, description='')
-            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(['LOCAL','CARBONPORTAL' ],  preselected=preselected, description='')
-        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL) 
-        if(USE_TKINTER): # TODO fix
+            self.Pg1ObsFileLocationRadioButtons = ge.guiRadioButton(parent=self,  options=['LOCAL','CARBONPORTAL' ],  preselected=preselected,
+                                                                                                        command=self.EvHdPg1SetObsFileLocation, description='')
+        self.Pg1FileSelectButton = ge.guiButton(self.guiPg1TpLv, text="Select local obsdata file",  command=self.EvHdPg1selectFile,  
+                                                                        fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL) 
+        if(USE_TKINTER): 
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)
         # Entry for local  obs data file
         self.Pg1ObsFileLocationLocalEntry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.ObsFileLocationEntryVar, placeholder_text=self.ObsFileLocationEntryVar, width=self.root.colWidth)
-        if(USE_TKINTER): # TODO fix
+        if(USE_TKINTER): 
             ge.updateWidget(self.Pg1ObsFileLocationLocalEntry,  value='lemon chiffon', bFg_color=True) # in CTk this is the main button color (not the text color)
         if(USE_TKINTER):
             # if textvariable is longer than entry box, i.e. the path spills over, it will be right-aligned, showing the end with the file name
@@ -1151,12 +1153,12 @@ class lumiaGuiApp:
         # ################################################################
         # Cancel Button
         self.Pg1CancelButton = ge.guiButton(self.guiPg1TpLv, text="Cancel",  command=self.closeTopLv,  fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE) 
-        if(USE_TKINTER): # TODO fix
+        if(USE_TKINTER): 
             ge.updateWidget(self.Pg1CancelButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1CancelButton,  value='DarkOrange1', bFg_color=True) # in CTk this is the main button color (not the text color)
         #  Go button
         self.Pg1GoButton = ge.guiButton(self.guiPg1TpLv, text="PROCEED", command=self.EvHdPg1GotoPage2, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
-        if(USE_TKINTER): # TODO fix
+        if(USE_TKINTER): 
             ge.updateWidget(self.Pg1GoButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1GoButton,  value='green3', bFg_color=True) # in CTk this is the main button color (not the text color)
         return True
@@ -1563,24 +1565,11 @@ class lumiaGuiApp:
         self.applyFilterRulesPg2()
         return True
     
-    def EvHdPg2isICOSfilter(self, myWidget=None, value=None):
-        if((value is not None) and (myWidget is not None)):
-            print(f'EvHdPg2isICOSfilter called with value={value}')
-            #self=actualSelf 
-        try:
-            if(myWidget is not None):
-                myWdgValue=myWidget.getWidgetValue()
-                if(value is None):
-                    value=myWdgValue
-        except:
-            pass
-        try:
-            if(myWidget is not None):
-                myVarValue=ge.getVarValue(myWidget)
-                print(f'EvHdPg2isICOSfilter: myVarValue={myVarValue}')
-        except:
-            myVarValue=None
-        print(f'EvHdPg2isICOSfilter: var value={value}')
+    def EvHdPg2isICOSfilter(self, actualSelf=None, value=None):
+        #if((value is not None) and (actualSelf is not None)):
+        print(f'EvHdPg2isICOSfilter called with value={value}')
+        print(f'self={self}')   
+        print(f'actualSelf={actualSelf}')
         bICOSonly=True
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
             rbvariable=self.Pg2isICOSradioButton.cget("variable")
@@ -1596,6 +1585,20 @@ class lumiaGuiApp:
         self.ymlContents['observations']['filters']['ICOSonly']=bICOSonly
         self.applyFilterRulesPg2()                       
         return True
+        try:
+            if(value is not None):
+                myWdgValue=actualSelf.getWidgetValue()
+                if(value is None):
+                    value=myWdgValue
+        except:
+            pass
+        try:
+            if(actualSelf is not None):
+                myVarValue=ge.getVarValue(actualSelf)
+                print(f'EvHdPg2isICOSfilter: myVarValue={myVarValue}')
+        except:
+            myVarValue=None
+        print(f'EvHdPg2isICOSfilter: var value={value}')
 
 
     def EvHdPg2GoBtnHit(self):
@@ -1909,6 +1912,7 @@ class lumiaGuiApp:
         except:
             self.ObsFileRankingBox=None
         # Col2
+        print(f'lumiaGUI.createPg2staticWidgets L1912: parent=self={self}')
         #  ##############################################################################
         self.ObsLv1Ckb = ge.guiCheckBox(rootFrame, self, text="Level1", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                 variable=self.ObsLv1CkbVar, onvalue=True, offvalue=False)                             
@@ -1916,9 +1920,10 @@ class lumiaGuiApp:
                                                                 variable=self.ObsNRTCkbVar, onvalue=True, offvalue=False)                             
         self.ObsOtherCkb = ge.guiCheckBox(rootFrame, self, text="Other", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                 variable=self.ObsOtherCkbVar, onvalue=True, offvalue=False)                             
+                                                            #command=self.EvHdPg2stationSamplingHghtAction
         # Col 3    Filtering of station altitudes
         #  ##############################################################################
-        self.FilterStationAltitudesCkb = ge.guiCheckBox(rootFrame, self, text="Filter station altitudes", fontName=self.root.myFontFamily,  
+        self.FilterStationAltitudesCkb = ge.guiCheckBox(rootFrame, parent=self, text="Filter station altitudes", fontName=self.root.myFontFamily,  
                                                     fontSize=self.root.fsNORMAL, variable=self.FilterStationAltitudesCkbVar, onvalue=True, offvalue=False, 
                                                     command=self.EvHdPg2stationAltitudeFilterAction, nameOfEvtHd='EvHdPg2stationAltitudeFilterAction') 
         self.minAltLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
@@ -1943,11 +1948,12 @@ class lumiaGuiApp:
         self.ICOSstationsLabel = ge.guiTxtLabel(rootFrame, text="ICOS stations", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         if(USE_TKINTER):
             self.Pg2isICOSradioButton = ge.guiRadioButton(rootFrame, text="Any station", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
-                                                               variable=self.isICOSRadioButtonVar,  value=0,  command=self.EvHdPg2isICOSfilter, nameOfEvtHd='EvHdPg2isICOSfilter')
+                                                               variable=self.isICOSRadioButtonVar,  value=0,  command=self.EvHdPg2isICOSfilter)
             self.Pg2isICOSradioButton2 = ge.guiRadioButton(rootFrame, text="ICOS only", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
-                                                               variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter, nameOfEvtHd='EvHdPg2isICOSfilter')
+                                                               variable=self.isICOSRadioButtonVar,  value=1,  command=self.EvHdPg2isICOSfilter)
         else:
-            self.Pg2isICOSradioButton = ge.guiRadioButton(['Any station', 'ICOS only'], preselected=self.isICOSRadioButtonVar, description='', nameOfEvtHd='EvHdPg2isICOSfilter')
+            self.Pg2isICOSradioButton = ge.guiRadioButton(parent=self, options=['Any station', 'ICOS only'], preselected=self.isICOSRadioButtonVar, description='', 
+                                                                                        command=self.EvHdPg2isICOSfilter)
            
         # Col_11                
         #  ##############################################################################

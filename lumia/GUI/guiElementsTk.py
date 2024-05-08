@@ -154,9 +154,9 @@ def guiPlaceWidget(wdgGrid,  widget, row=0, column=0, columnspan=1, rowspan=1,  
     widget.grid(row=row, column=column, columnspan=columnspan, rowspan=rowspan, padx=padx, pady=pady, sticky=sticky)
 
 def guiRadioButton(rootFrame, text, fontName="Georgia",  fontSize=12, 
-                                   variable=None,  value=None,  command=None,  nameOfEvtHd=None):
+                                   variable=None,  value=None,  command=None):
     if((variable is None) or (value is None) or (command is None)):
-        raise RuntimeError('Attempt to create radiobutton failed. At least one of the required parameters variable, value or command was not valid.')
+        raise RuntimeError('Attempt to create radio-button failed. At least one of the required parameters variable, value or command was not valid.')
     return(ctk.CTkRadioButton(rootFrame, text=text,  font=(fontName, fontSize),  
                                    variable=variable,  value=value,  command=command))
 

@@ -37,6 +37,7 @@ class GridCTkCheckBox(wdg.Checkbox):
         self.widgetGridID= myGridID
         self.command=parent.EvHdPg2myCheckboxEvent  
         self.parent=parent
+        #print(f'parent={parent}, self.command={self.command},  self.parent.EvHdPg2myCheckboxEvent={self.parent.EvHdPg2myCheckboxEvent} ')
         #self.ptrToEvHdPg2myCheckboxEvent=lambda: command(self.widgetGridID)
         #self.eventHandlerFunction=lambda: command(self.widgetGridID)
         wdg.Checkbox.__init__(self, 
@@ -46,7 +47,6 @@ class GridCTkCheckBox(wdg.Checkbox):
             indent=False
         )
         
-
         def actOnCheckBoxChanges(change):
             try:
                 chName=change['name']
@@ -213,7 +213,10 @@ class guiCheckBox(wdg.Checkbox):
                              fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
         self.command=command
         self.lumiaGuiApp=parent
+        self.parent=parent
         self.nameOfEvtHd=nameOfEvtHd
+        #self.command=parent.EvHdPg2myCheckboxEvent  
+        print(f'parent={parent}, self.command={self.command}')
         #@def   guiCheckBox:
         # variable holds the initial state whether the CheckBox is selected (True) or not (False)
         wdg.Checkbox.__init__(self, 
@@ -222,49 +225,90 @@ class guiCheckBox(wdg.Checkbox):
             disabled=disabled,
             indent=False
         )
-        self.observe(self.actOnCheckBoxChange)
-        return
 
-    def actOnCheckBoxChange(self, change):
-        try:
-            chName=''
-            #print(f'changeEvent={change}')
-        except:
-            pass
-        try:
-            chName=change['name']
-        except:
-            chName=''
-        #print(f'chName={chName}')
-        # we are only interested in events where there is a change in value selected/deselected True/False etc
-        # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
-        # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-        if('value' in chName):
-            value=True
-            #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+        def actOnCheckBoxChange(change):
             try:
-                value=change['owner'].value  # True/False for check box now being selected or deselected
+                chName=''
+                #print(f'changeEvent={change}')
             except:
-                print('Failed to extract the value')
-                value=True
-            #print(f'command={self.command}')
-            # There ought to be a more elegant way using lambda or functool.partial(), but I could not get this to work.
-            # self.command points to the right memory address where that function resides, but seemingly nothing happens...
-            # lambda actualSelf=self.lumiaGuiApp, value=value : self.command(actualSelf, value)
-            # functool.partial(self.command, actualSelf=self.lumiaGuiApp, value=value)
-            # ...but then again a good programmer can program in FORTRAN in any programming language....speed is no issue here, it is only ugly
-            if(self.command is None):
                 pass
-            elif((self.nameOfEvtHd is not None) and (len(self.nameOfEvtHd)>3)):
-                if ('EvHdPg2stationAltitudeFilterAction' in self.nameOfEvtHd):
-                    #print('calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction')
-                    self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
-                if ('EvHdPg2stationSamplingHghtAction' in self.nameOfEvtHd):
-                    #print('calling EvHdPg2stationSamplingHghtAction')
-                    self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
-            else:
-                self.command
+            try:
+                chName=change['name']
+            except:
+                chName=''
+            #print(f'chName={chName}')
+            # we are only interested in events where there is a change in value selected/deselected True/False etc
+            # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
+            # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+            if('value' in chName):
+                value=True
+                #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                try:
+                    value=change['owner'].value  # True/False for check box now being selected or deselected
+                except:
+                    print('Failed to extract the value')
+                    value=True
+                #print(f'command={self.command}')
+                # There ought to be a more elegant way using lambda or functool.partial(), but I could not get this to work.
+                # self.command points to the right memory address where that function resides, but seemingly nothing happens...
+                # lambda actualSelf=self.lumiaGuiApp, value=value : self.command(actualSelf, value)
+                # functool.partial(self.command, actualSelf=self.lumiaGuiApp, value=value)
+                # ...but then again a good programmer can program in FORTRAN in any programming language....speed is no issue here, it is only ugly
+                if(self.command is None):
+                    pass
+                elif((self.nameOfEvtHd is not None) and (len(self.nameOfEvtHd)>3)):
+                    if ('EvHdPg2stationAltitudeFilterAction' in self.nameOfEvtHd):
+                        print(f'calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction= {self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction}')
+                        self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
+                    if ('EvHdPg2stationSamplingHghtAction' in self.nameOfEvtHd):
+                        print(f'calling EvHdPg2stationSamplingHghtAction={self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction}')
+                        self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
+                else:
+                    self.command
+
+        self.observe(actOnCheckBoxChange)
         return 
+
+class guiRadioButton(wdg.RadioButtons):
+    def __init__(self,  parent=None,  options=[] , description='',  text='', preselected=None,  command=None):
+        self.command=command
+        self.parent=parent
+        if(preselected is None):
+            preselected=0
+        if((description is None) or (len(description)<1)):
+            description=text
+        myRb=wdg.RadioButtons.__init__(self, 
+            options=options,
+            value=options[preselected],
+            description=description,
+            disabled=False, 
+            indent=False
+        )
+
+        #@def   guiRadioButton:
+        # variable holds the initial state whether the CheckBox is selected (True) or not (False)
+        def actOnRbChange(change):
+            #print(f'changeEvent={change}')
+            try:
+                chName=change['name']
+            except:
+                chName=''
+            #print(f'chName={chName}')
+            # we are only interested in events where there is a change in the radiobutton index value
+            # changeEvent={'name': 'index', 'old': 0, 'new': 1, 'owner': guiRadioButton(index=1, layout=Layout(grid_area='widget018', 
+            # height='60px', margin='2px', padding='2px', width='auto'), options=('Any station', 'ICOS only'), value='ICOS only'), 'type': 'change'}
+            if('index' in chName):
+                value=999
+                try:
+                    value=change['owner'].index  # index of the presently selected radiobutton 0,1,2,...
+                    #print(f'value=change[owner].index={value}')
+                except:
+                    print('Failed to extract the change[owner].index')
+                self.command(self.parent, value)
+    
+        self.observe(actOnRbChange)
+        return(myRb)
+
         
 
 def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=None,  text=None,  text_color=None, fg_color=None,  bg_color=None):
@@ -422,20 +466,6 @@ def guiPlaceWidget(wdgGrid,  widget,  row=0, column=0, columnspan=1, rowspan=1, 
         pass
     return True
 
-
-def guiRadioButton(options=[] , description='',  text='', preselected=None,  command=None, nameOfEvtHd=''):
-    if(preselected is None):
-        preselected=0
-    if(len(description)==0):
-        description=text
-    return(wdg.RadioButtons(
-        options=options,
-        value=options[preselected],
-    #    layout={'width': 'max-content'}, # If the items' names are long
-        description=description,
-        disabled=False
-    ))
-    return True
 
 
 def guiSetCheckBox(myWidget, bSelected=False):
