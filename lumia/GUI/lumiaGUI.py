@@ -297,7 +297,7 @@ class lumiaGuiApp:
         return True
             
     def EvHdPg1selectFile(self):
-        filename = ge.guiFileDialog() 
+        filename = ge.guiFileDialog(filetypes=[("All", "*")]) 
         if ((filename is None) or (len(filename)<5)):
             return   # Canceled or no valid filename returned: Keep previous data and continue
         # update the file entry widget
@@ -310,7 +310,6 @@ class lumiaGuiApp:
         return True
 
     def EvHdPg1SetObsFileLocation(self):
-        
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
             if (ge.getVarValue(self.iObservationsFileLocation)==0):
                self.ymlContents['observations'][self.tracer]['file']['location'] = 'LOCAL'
@@ -320,18 +319,44 @@ class lumiaGuiApp:
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
             #print(f'..ObsFileLocation={ObsFileLocation}')
             self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
+        s=self.ymlContents['observations'][self.tracer]['file']['location'] 
+        print(f'EvHdPg1SetObsFileLocation(): changed to {s}')
         return True
 
     def EvHdPg1SetTracer(self):
+        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        myPath2FluxData1=self.ymlContents['emissions'][self.tracer]['path']
+        sLandVegModel=self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['origin']
+        #sEmBiosphereLocation=self.ymlContents['emissions'][self.tracer]['location']['biosphere']
+        #sEmFossilLocation=self.ymlContents['emissions'][self.tracer]['location']['fossil']
+        #sEmOceanLocation=self.ymlContents['emissions'][self.tracer]['location']['ocean']
+        #sAnthropEm=self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['fossil']
+        #sOceanNEE=self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['ocean']
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
             if (ge.getVarValue(self.iTracerRbVal)==0):
                self.ymlContents['run']['tracers'] = 'co2'
+               self.tracer='co2'
             else:
                 self.ymlContents['run']['tracers'] = 'ch4'
+                self.tracer='ch4'
         else: # ipywidgets returns the value (text string) of the selected radiobutton
             TracerRbVal=self.Pg1TracerRadioButton.value
             #print(f'..TracerRbVal={TracerRbVal}')
             self.ymlContents['run']['tracers'] = TracerRbVal
+            self.tracer=TracerRbVal
+        # create potentially missing keys that are expected to exist for the new tracer
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'path'],   value=obsLocation, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'path'],   value=myPath2FluxData1, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'file', 'location'],   value=obsLocation, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'categories', 'biosphere', 'origin'],   value=sLandVegModel, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'categories', 'fossil', 'origin'],   value='UNKOWN', bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'categories', 'ocean', 'origin'],   value='UNKOWN', bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'location', 'biosphere'],   value='UNKOWN', bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'location', 'fossil'],   value='UNKOWN', bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'location', 'ocean'],   value='UNKOWN', bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'optimize','emissions', self.tracer, 'biosphere', 'adjust'],   value=True, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'optimize','emissions', self.tracer, 'fossil', 'adjust'],   value=False, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'optimize','emissions', self.tracer, 'ocean', 'adjust'],   value=False, bNewValue=False)
         return True
 
     def getFilters(self):
@@ -1143,7 +1168,8 @@ class lumiaGuiApp:
             ge.updateWidget(self.Pg1FileSelectButton,  value='gray1', bText_color=True)
             ge.updateWidget(self.Pg1FileSelectButton,  value='light goldenrod', bFg_color=True) # in CTk this is the main button color (not the text color)
         # Entry for local  obs data file
-        self.Pg1ObsFileLocationLocalEntry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.ObsFileLocationEntryVar, placeholder_text=self.ObsFileLocationEntryVar, width=self.root.colWidth)
+        self.Pg1ObsFileLocationLocalEntry = ge.guiDataEntry(self.guiPg1TpLv, textvariable=self.ObsFileLocationEntryVar, placeholder_text=self.ObsFileLocationEntryVar, 
+                                                                                                width=self.root.colWidth)
         if(USE_TKINTER): 
             ge.updateWidget(self.Pg1ObsFileLocationLocalEntry,  value='lemon chiffon', bFg_color=True) # in CTk this is the main button color (not the text color)
         if(USE_TKINTER):

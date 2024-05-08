@@ -208,7 +208,7 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
 
 
 
-class guiCheckBox(wdg.Checkbox):
+class oldGuiCheckBox(wdg.Checkbox):
     def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None, 
                              fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
         self.command=command
@@ -265,6 +265,46 @@ class guiCheckBox(wdg.Checkbox):
                         self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
                 else:
                     self.command
+
+        self.observe(actOnCheckBoxChange)
+        return 
+
+class guiCheckBox(wdg.Checkbox):
+    def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None, 
+                             fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
+        self.command=command
+        self.parent=parent
+        print(f'parent={parent}, self.command={self.command}')
+        #@def   guiCheckBox:
+        # variable holds the initial state whether the CheckBox is selected (True) or not (False)
+        wdg.Checkbox.__init__(self, 
+            value=variable,
+            description=text,
+            disabled=disabled,
+            indent=False
+        )
+
+        def actOnCheckBoxChange(change):
+            try:
+                chName=change['name']
+            except:
+                chName=''
+            #print(f'chName={chName}')
+            # we are only interested in events where there is a change in value selected/deselected True/False etc
+            # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
+
+            if('value' in chName):
+                value=True
+                #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
+                try:
+                    value=change['owner'].value  # True/False for check box now being selected or deselected
+                except:
+                    print('Failed to extract the value')
+                print(f'command={self.command}')
+                if(self.command is None):
+                    pass
+                else:
+                    self.command(self.parent, value)
 
         self.observe(actOnCheckBoxChange)
         return 
