@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='0a2971c40d71b5efed55c73159de0a6e8059d603'
+LATESTGITCOMMIT_LumiaDA='4d65299c243c6bc4ec0e3850d936ca3a73f461ba'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -320,7 +320,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
 
     tracer=getTracer(ymlContents['run']['tracers'])
     # Before setting a new output path, grab the name of the latest (existing) dicoveredObsData if it exists
-    oldDiscoveredObservations='DiscoveredObservations.csv'
+    oldDiscoveredObservations='DiscoveredObservations-'+tracer+'.csv'
     try:
         oldDiscoveredObservations=ymlContents['observations'][tracer]['file']['dicoveredObsData']
     except:

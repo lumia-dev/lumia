@@ -301,6 +301,7 @@ class guiCheckBox(wdg.Checkbox):
                 except:
                     print('Failed to extract the value')
                 print(f'command={self.command}')
+                print(f'change={change}')
                 if(self.command is None):
                     pass
                 else:
@@ -338,13 +339,14 @@ class guiRadioButton(wdg.RadioButtons):
             # changeEvent={'name': 'index', 'old': 0, 'new': 1, 'owner': guiRadioButton(index=1, layout=Layout(grid_area='widget018', 
             # height='60px', margin='2px', padding='2px', width='auto'), options=('Any station', 'ICOS only'), value='ICOS only'), 'type': 'change'}
             if('index' in chName):
+                print(f'changeEvent={change}')
                 value=999
                 try:
                     value=change['owner'].index  # index of the presently selected radiobutton 0,1,2,...
-                    #print(f'value=change[owner].index={value}')
+                    print(f'value=change[owner].index={value}')
                 except:
                     print('Failed to extract the change[owner].index')
-                self.command(self.parent, value)
+                self.command() #self.parent, value)
     
         self.observe(actOnRbChange)
         return(myRb)
@@ -589,7 +591,7 @@ def guiWidgetsThatWait4UserInput(watchedWidget=None,watchedWidget2=None, title='
         button_clicked = True
         on_cancel
         #return True
-    
+        
     watchedWidget.on_click(on_click)
     if(watchedWidget2 is None):
         pass

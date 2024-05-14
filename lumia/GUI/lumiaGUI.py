@@ -231,17 +231,25 @@ class lumiaGuiApp:
                 
     def EvHdPg1GotoPage2(self):
         bGo=False
+        repeat=False
+        print('Entering EvHdPg1GotoPage2')
         (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues()
         ge.guiWipeTextBox(self.Pg1displayBox, protect=True) # delete all text
         if((bErrors) and (bWarnings)):
+            print('errors and warnings')
             # self.Pg1displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg, protect=True)
         elif(bErrors):
+            print('errors')
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg, protect=True)
         elif(bWarnings):
+            print('warnings')
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
-            if(ge.getVarValue(self.bIgnoreWarningsCkbVar)):
+            val=ge.getWidgetValue(self.Pg1ignoreWarningsCkb)
+            print(f'ge.getWidgetValue(self.Pg1ignoreWarningsCkb) val={val}')
+            if((ge.getVarValue(self.bIgnoreWarningsCkbVar)) or (True==ge.getWidgetValue(self.Pg1ignoreWarningsCkb))):
                 bGo=True
+                print('Proceed in spite of warnings')
             #if(USE_TKINTER):
             #    self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
             ge.guiConfigureWdg(self, widget=self.Pg1ignoreWarningsCkb,  disabled=False)
@@ -268,8 +276,9 @@ class lumiaGuiApp:
                     ge.guiPlaceWidget(self.wdgGrid4, self.Pg1DontUseCachedButton, row=1, column=1, columnspan=1, rowspan=1,  padx=10, pady=10, sticky='news')
                     self.wdgGrid4
                     display(self.wdgGrid4)
-                    whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
+                    askUserUseCachedBtn=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
                             title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
+                    whichButton=askUserUseCachedBtn.selectedBtn
                     if(whichButton==1): 
                         self.bUseCachedList = True
                     else:
@@ -290,11 +299,20 @@ class lumiaGuiApp:
             
             # At this moment the commandline is visible. Before closing the toplevel and proceeding, we need to discover any requested data.
             # Once collected, we have the relevant info to create the 2nd gui page and populate it with dynamical widgets.
-            obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-            if('CARBONPORTAL' in obsLocation):
+            self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+            if('CARBONPORTAL' in self.obsLocation):
                 self.huntAndGatherObsData()
             self.closeTopLv(bWriteStop=False)
-        return True
+        else: #(bGo==False):
+            repeat=True
+            try:
+                print('about to reset the Proceed button')
+                whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+                #self.askUserGoOrCancel.reset()
+                print('Proceed button reset successfully')
+            except:
+                pass
+        return(repeat)
             
     def EvHdPg1selectFile(self):
         filename = ge.guiFileDialog(filetypes=[("All", "*")]) 
@@ -324,7 +342,7 @@ class lumiaGuiApp:
         return True
 
     def EvHdPg1SetTracer(self):
-        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
         myPath2FluxData1=self.ymlContents['emissions'][self.tracer]['path']
         sLandVegModel=self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['origin']
         #sEmBiosphereLocation=self.ymlContents['emissions'][self.tracer]['location']['biosphere']
@@ -345,9 +363,9 @@ class lumiaGuiApp:
             self.ymlContents['run']['tracers'] = TracerRbVal
             self.tracer=TracerRbVal
         # create potentially missing keys that are expected to exist for the new tracer
-        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'path'],   value=obsLocation, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'path'],   value=self.obsLocation, bNewValue=False)
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'path'],   value=myPath2FluxData1, bNewValue=False)
-        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'file', 'location'],   value=obsLocation, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'file', 'location'],   value=self.obsLocation, bNewValue=False)
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'categories', 'biosphere', 'origin'],   value=sLandVegModel, bNewValue=False)
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'categories', 'fossil', 'origin'],   value='UNKOWN', bNewValue=False)
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'emissions', self.tracer, 'categories', 'ocean', 'origin'],   value='UNKOWN', bNewValue=False)
@@ -357,15 +375,22 @@ class lumiaGuiApp:
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'optimize','emissions', self.tracer, 'biosphere', 'adjust'],   value=True, bNewValue=False)
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'optimize','emissions', self.tracer, 'fossil', 'adjust'],   value=False, bNewValue=False)
         hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'optimize','emissions', self.tracer, 'ocean', 'adjust'],   value=False, bNewValue=False)
+        hk.setKeyVal_Nested_CreateIfNecessary(self.ymlContents, [ 'observations', self.tracer, 'file', 'location'],   value='UNKOWN', bNewValue=False)
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
         return True
 
     def getFilters(self):
         self.bUseStationAltitudeFilter=self.ymlContents['observations']['filters']['bStationAltitude']
         self.bUseSamplingHeightFilter=self.ymlContents['observations']['filters']['bSamplingHeight']
+        self.bICOSonly=self.ymlContents['observations']['filters']['ICOSonly']
         self.stationMinAlt = self.ymlContents['observations']['filters']['stationMinAlt']     # in meters amsl
         self.stationMaxAlt = self.ymlContents['observations']['filters']['stationMaxAlt']  # in meters amsl
-        self.inletMinHght = self.ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
-        self.inletMaxHght = self.ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
+        self.samplingMinHght = self.ymlContents['observations']['filters']['inletMinHeight']     # in meters amsl
+        self.samplingMaxHght = self.ymlContents['observations']['filters']['inletMaxHeight']  # in meters amsl
+        self.stationMinAltVar=ge.guiStringVar(value=str(self.stationMinAlt))
+        self.stationMaxAltVar=ge.guiStringVar(value=str(self.stationMaxAlt))
+        self.samplingMinHghtVar=ge.guiStringVar(value=str(self.samplingMinHght))
+        self.samplingMaxHghtVar=ge.guiStringVar(value=str(self.samplingMaxHght))
         return True
 
     def check4recentDiscoveredObservations(self, ymlContents):
@@ -379,7 +404,8 @@ class lumiaGuiApp:
         # we need to construct
         # ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-DiscoveredObservations.csv
         self.haveDiscoveredObs=False
-        if (os.path.exists(self.oldDiscoveredObservations)):
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if (('CARBONPORTAL' in self.obsLocation) and (os.path.exists(self.oldDiscoveredObservations))):
             self.oldLat0=ymlContents['run']['region']['lat0']  # 33.0
             self.oldLat1=ymlContents['run']['region']['lat1']   #73.0
             self.oldLon0=ymlContents['run']['region']['lon0']  # -15.0
@@ -396,7 +422,10 @@ class lumiaGuiApp:
             try:
                 # Extract the creation time of the existing oldDiscoveredObservations from its filename:
                 baseName=os.path.basename(self.oldDiscoveredObservations)
-                # has format LumiaGUI-2024-02-26T12_36-DiscoveredObservations.csv
+                tracer=hk.getTracer(self.ymlContents['run']['tracers'])
+                if(tracer not in baseName[-8:-4]):
+                    return(False)
+                # has format LumiaGUI-2024-02-26T12_36-DiscoveredObservations-co2.csv
                 tStamp=baseName[-43:-27]
                 tStampDatetime = to_datetime(tStamp, format="%Y-%m-%dT%H_%M")
                 currentTime = datetime.now()
@@ -477,13 +506,13 @@ class lumiaGuiApp:
             if (index==0):
                 try:
                     sicos=row['IcosClass']
-                except:
+                except:  # if IcosClass column does not exist, use the old name for it
                     strIcos='isICOS'
             # bStationAltOk and bSamplHghtOk are helper variables that make filtering easier if requested at a later stage
             bStationAltOk = (((row['altitude'] >= self.stationMinAlt) &
                                 (row['altitude'] <= self.stationMaxAlt) ) | (self.bUseStationAltitudeFilter==False)) 
-            bSamplHghtOk = (((row['samplingHeight'] >= self.inletMinHght) &
-                                (row['samplingHeight'] <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
+            bSamplHghtOk = (((row['samplingHeight'] >= self.samplingMinHght) &
+                                (row['samplingHeight'] <= self.samplingMaxHght) ) | (self.bUseSamplingHeightFilter==False))
             newRow=[bTrue,row['country'], row['stationID'], bStationAltOk, row['altitude'],  
                             bSamplHghtOk, hLst, row[strIcos], row['latitude'], row['longitude'], row['dClass'], row['dataSetLabel'],  pidLst, True,  True]
             
@@ -517,8 +546,18 @@ class lumiaGuiApp:
         isDifferent=True
         self.nRows=0
         isSameStation = False
+        strICOS='IcosClass'
         for index, row in newDf.iterrows():
             if((row['altOk']==False) or (row['HghtOk']==False)):
+                newDf.at[(self.nRows) ,  ('selected')] = False
+            if (index==0):
+                try:
+                    sicos=row['IcosClass']
+                except:  # if IcosClass column does not exist, use the old name for it
+                    strICOS='isICOS'
+            icosStatus=row[strICOS] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
+            bIcosOk=((self.bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
+            if(not bIcosOk):
                 newDf.at[(self.nRows) ,  ('selected')] = False
             if(self.nRows>0):
                 isSameStation = ((row['stationID'] in newDf['stationID'][self.nRows-1]))
@@ -950,8 +989,8 @@ class lumiaGuiApp:
         self.haveDiscoveredObs=False
         # Get the currently selected tracer from the yml config file
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
-        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-        if('CARBONPORTAL' in obsLocation):
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in self.obsLocation):
             self.check4recentDiscoveredObservations(self.ymlContents)
         bs.stakeOutSpacesAndFonts(self.root, nCols, nRows, USE_TKINTER,  sLongestTxt="Start date (00:00h):")
         # this gives us self.root.colWidth self.root.rowHeight, self.myFontFamily, self.fontHeight, self.fsNORMAL & friends
@@ -1019,8 +1058,8 @@ class lumiaGuiApp:
         global AVAIL_OCEAN_NETEX_DATA     # Ocean Net Exchange combo box
         # Obs data location radiobutton variable (local vs carbon portal)
         self.iObservationsFileLocation= ge.guiIntVar(value=0)
-        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-        if('CARBONPORTAL' in obsLocation):
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in self.obsLocation):
             self.iObservationsFileLocation = ge.guiIntVar(value=1)
         #       Ignore ChkBx
         self.bIgnoreWarningsCkbVar = ge.guiBooleanVar(value=False) 
@@ -1040,19 +1079,23 @@ class lumiaGuiApp:
         # Place all widgets onto the first GUI page  -- part of lumiaGuiApp (toplevel window)
         # ====================================================================
         self.placeAllPg1WidgetsOnCanvas(nCols,  nRows,  xPadding,  yPadding)
-        if not (USE_TKINTER): 
-            whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
-            # print(f'obtained whichButton={whichButton}')
-            if(whichButton==2): 
-                self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2                
-            ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
-            
-            #print(f'ObsFileLocation={ObsFileLocation}')
-            #self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
-            tracer=self.Pg1TracerRadioButton.value
-            #print(f'tracer={tracer}')
-            self.ymlContents['run']['tracers'] = tracer
-            self.EvHdPg1GotoPage2()
+        if not (USE_TKINTER):
+            repeat=True
+            while(repeat):
+                whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+                #self.askUserGoOrCancel=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
+                #whichButton=self.askUserGoOrCancel.selectedBtn
+                # print(f'obtained whichButton={whichButton}')
+                if(whichButton==2): 
+                    self.closeTopLv(bWriteStop=True)  # Abort. Do not proceed to page 2                
+                self.ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
+                
+                #print(f'ObsFileLocation={ObsFileLocation}')
+                #self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
+                tracer=self.Pg1TracerRadioButton.value 
+                #print(f'tracer={tracer}')
+                self.ymlContents['run']['tracers'] = tracer
+                repeat=self.EvHdPg1GotoPage2()
         return True
 
     def createAllPg1Widgets(self):
@@ -1155,8 +1198,8 @@ class lumiaGuiApp:
                                        text="from CarbonPortal", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, 
                                        variable=self.iObservationsFileLocation,  value=1, command=self.EvHdPg1SetObsFileLocation)
         else:
-            obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-            if ('LOCAL' in obsLocation):
+            self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+            if ('LOCAL' in self.obsLocation):
                 preselected=0
             else:
                 preselected=1
@@ -1446,7 +1489,7 @@ class lumiaGuiApp:
             self.ymlContents['optimize']['emissions'][self.tracer]['biosphere']['adjust'] = bAdjustLandVeg
             self.ymlContents['optimize']['emissions'][self.tracer]['fossil']['adjust'] = bAdjustFossilCkb
             self.ymlContents['optimize']['emissions'][self.tracer]['ocean']['adjust'] = bAdjustOceanCkb                
-
+        
         # Can we suggest to the user to use the existing DiscoveredObservations.csv file?
         if(self.haveDiscoveredObs):
             self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
@@ -1476,7 +1519,7 @@ class lumiaGuiApp:
             
         
     def applyFilterRulesPg2(self):
-        bICOSonly=self.ymlContents['observations']['filters']['ICOSonly']
+        #bICOSonly=self.ymlContents['observations']['filters']['ICOSonly']
         self.getFilters()
         # For each observational data set we check whether the station altitude, sampling height, or ICOSonly filters apply. 
         # We also check for manually rejected countries or stations
@@ -1494,8 +1537,8 @@ class lumiaGuiApp:
                 sH=float(row['samplingHeight'][0])
             else:
                 sH=float(row['samplingHeight'])
-            row['HghtOk'] = (((sH >= self.inletMinHght) &
-                                            (sH <= self.inletMaxHght) ) | (self.bUseSamplingHeightFilter==False))
+            row['HghtOk'] = (((sH >= self.samplingMinHght) &
+                                            (sH <= self.samplingMaxHght) ) | (self.bUseSamplingHeightFilter==False))
             countryInactive=row['country'] in self.excludedCountriesList
             stationInactive=row['stationID'] in self.excludedStationsList
             # The row['includeCountry'] flag tells us whether we draw it as we draw country names only once for all its data sets
@@ -1507,7 +1550,7 @@ class lumiaGuiApp:
                 bSel=True
 
             icosStatus=row[strICOS] # [1,2,A,no] are possible values (strings) meaning ICOS affiliation class 1, 2 or Associated or no ICOS status
-            bIcosOk=((bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
+            bIcosOk=((self.bICOSonly==False)or( '1' in icosStatus)or( '2' in icosStatus)or('A' in icosStatus)or('a' in icosStatus))
             if(not bIcosOk):
                 bSel=False
 
@@ -1524,10 +1567,7 @@ class lumiaGuiApp:
                 
                 
 
-    def EvHdPg2stationAltitudeFilterAction(self, actualSelf=None, value=None):
-        if((value is not None) and (actualSelf is not None)):
-            print(f'EvHdPg2stationAltitudeFilterAction called with value={value}')
-            self=actualSelf 
+    def EvHdPg2stationAltitudeFilterAction(self):
         stationMinAltCommonSense= -100 #m Dead Sea
         stationMaxAltCommonSense= 9000 #m Himalaya
         bStationFilterActive= ge.getWidgetValue(self.FilterStationAltitudesCkb)
@@ -1569,8 +1609,8 @@ class lumiaGuiApp:
         bSamplingHghtFilterActive=ge.getWidgetValue(self.FilterSamplingHghtCkb)
         if(bSamplingHghtFilterActive):
             self.ymlContents['observations']['filters']['bSamplingHeight']=True
-            mnh=int(ge.getWidgetValue(self.inletMinHghtEntry))
-            mxh=int(ge.getWidgetValue(self.inletMaxHghtEntry))
+            mnh=int(ge.getWidgetValue(self.samplingMinHghtEntry))
+            mxh=int(ge.getWidgetValue(self.samplingMaxHghtEntry))
             if(inletMinHeightCommonSense > mnh):
                 bStationFilterError=True # ≥≤
                 sErrorMsg+="I can't think of any ICOS station with an inlet height below ground....please fix the minimum inlet height to ≥0m. Thanks.\n"
@@ -1596,41 +1636,27 @@ class lumiaGuiApp:
         print(f'EvHdPg2isICOSfilter called with value={value}')
         print(f'self={self}')   
         print(f'actualSelf={actualSelf}')
-        bICOSonly=True
+        self.bICOSonly=True
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
             rbvariable=self.Pg2isICOSradioButton.cget("variable")
             isICOSrbValue = rbvariable.get()
             if(isICOSrbValue==0):
-                bICOSonly=False
+                self.bICOSonly=False
         else: # ipywidgets returns the value (string) of the selected radiobutton
             # self.Pg2isICOSradioButton = ge.guiRadioButton(['Any station', 'ICOS only'], description='is ICOS station')
             isICOSrbValue=self.Pg2isICOSradioButton.value
             if('Any station' in isICOSrbValue):
-                bICOSonly=False
+                self.bICOSonly=False
         print(f'isICOSrbValue={isICOSrbValue}')
-        self.ymlContents['observations']['filters']['ICOSonly']=bICOSonly
+        self.ymlContents['observations']['filters']['ICOSonly']=self.bICOSonly
         self.applyFilterRulesPg2()                       
         return True
-        try:
-            if(value is not None):
-                myWdgValue=actualSelf.getWidgetValue()
-                if(value is None):
-                    value=myWdgValue
-        except:
-            pass
-        try:
-            if(actualSelf is not None):
-                myVarValue=ge.getVarValue(actualSelf)
-                print(f'EvHdPg2isICOSfilter: myVarValue={myVarValue}')
-        except:
-            myVarValue=None
-        print(f'EvHdPg2isICOSfilter: var value={value}')
 
 
     def EvHdPg2GoBtnHit(self):
         sOutputPrfx=self.ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-        if('CARBONPORTAL' in obsLocation): # else there is no dfq dataframe
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in self.obsLocation): # else there is no dfq dataframe
             try:
                 nObs=len(self.newDf)
                 filtered = ((self.newDf['selected'] == True))
@@ -1787,8 +1813,8 @@ class lumiaGuiApp:
         # ObservationsFileLocation
         self.tracer=hk.getTracer(self.ymlContents['run']['tracers'])
         self.iObservationsFileLocation= ge.guiIntVar(value=1) # Read observations from local file
-        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-        if ('CARBONPORTAL' in obsLocation):
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if ('CARBONPORTAL' in self.obsLocation):
             if(USE_TKINTER):
                 self.iObservationsFileLocation.set(1) # Read observations from CarbonPortal
             else:
@@ -1798,11 +1824,7 @@ class lumiaGuiApp:
         self.ObsOtherCkbVar = ge.guiBooleanVar(value=True)
         self.getFilters()
         self.FilterStationAltitudesCkbVar = ge.guiBooleanVar(value=self.ymlContents['observations']['filters']['bStationAltitude'])
-        self.sStationMinAlt=ge.guiStringVar(value=f'{self.stationMinAlt}')
-        self.sStationMaxAlt=ge.guiStringVar(value=f'{self.stationMaxAlt}')
         self.FilterSamplingHghtCkbVar = ge.guiBooleanVar(value=self.ymlContents['observations']['filters']['bSamplingHeight'])
-        self.sInletMinHght=ge.guiStringVar(value=f'{self.inletMinHght}')
-        self.sInletMaxHght=ge.guiStringVar(value=f'{self.inletMaxHght}')
         self.isICOSRadioButtonVar = ge.guiIntVar(value=0)
         self.bICOSonly=False
         if (self.ymlContents['observations']['filters']['ICOSonly']==True):
@@ -1827,8 +1849,8 @@ class lumiaGuiApp:
             display(self.wdgGrid)
             self.nCols=10
             self.wdgGrid3 = wdg.GridspecLayout(n_rows=128, n_columns=self.nCols,  grid_gap="3px")
-        obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-        if('CARBONPORTAL' in obsLocation):
+        self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
+        if('CARBONPORTAL' in self.obsLocation):
             # ====================================================================
             # Create a scrollable Frame within the rootFrame of the second GUI page to receive the dynamically created 
             #             widgets from the obsDataSets  -- part of lumiaGuiApp (root window)
@@ -1911,6 +1933,9 @@ class lumiaGuiApp:
         if(not USE_TKINTER):
             whichButton=int(ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 
                                                                                             title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240))
+            #self.askUserGoOrCancel=int(ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg2GoButton,watchedWidget2=self.Pg2CancelButton, 
+            #                                                                                title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240))
+            #whichButton=self.askUserGoOrCancel.selectedBtn
             # 1975 self.Pg2GoButton = ge.guiButton(rootFrame, text="GO!", command=self.EvHdPg2GoBtnHit, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
             # 2040 ge.guiPlaceWidget(self.wdgGrid, self.Pg2GoButton, row=3, column=7, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
             if(whichButton==1): 
@@ -1926,6 +1951,7 @@ class lumiaGuiApp:
         # Creation  the static widgets  of second GUI page  -- part of lumiaGuiApp (root window)
         # 1) Static widgets (top part)
         # ====================================================================
+        self.getFilters()
         # Row 0:  Title Label
         #  ##############################################################################
         self.Pg2TitleLabel = ge.guiTxtLabel(rootFrame, self.Pg2title, fontName=self.root.myFontFamily, fontSize=self.root.fsGIGANTIC, style="bold", nCols=self.nCols,  colwidth=self.nCols)
@@ -1955,9 +1981,9 @@ class lumiaGuiApp:
         self.minAltLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         self.maxAltLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         # min Altitude Entry
-        self.stationMinAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.sStationMinAlt, placeholder_text=str(self.stationMinAlt), width=self.root.colWidth)
+        self.stationMinAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.stationMinAltVar, placeholder_text=str(self.stationMinAlt), width=self.root.colWidth)
         # max Altitude Entry
-        self.stationMaxAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.sStationMaxAlt, placeholder_text=str(self.stationMaxAlt), width=self.root.colWidth)
+        self.stationMaxAltEntry = ge.guiDataEntry(rootFrame,textvariable=self.stationMaxAltVar, placeholder_text=str(self.stationMaxAlt), width=self.root.colWidth)
         # Col 5    -  sampling height filter
         #  ##############################################################################
         self.FilterSamplingHghtCkb = ge.guiCheckBox(rootFrame, self, text="Filter sampling heights", fontName=self.root.myFontFamily,  
@@ -1966,9 +1992,9 @@ class lumiaGuiApp:
         self.minHghtLabel = ge.guiTxtLabel(rootFrame, text="min alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         self.maxHghtLabel = ge.guiTxtLabel(rootFrame, text="max alt:", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
         # min inlet height
-        self.inletMinHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.sInletMinHght, placeholder_text=str(self.inletMinHght), width=self.root.colWidth)
+        self.samplingMinHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.samplingMinHghtVar, placeholder_text=str(self.samplingMinHght), width=self.root.colWidth)
         # max inlet height
-        self.inletMaxHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.sInletMaxHght, placeholder_text=str(self.inletMaxHght), width=self.root.colWidth)
+        self.samplingMaxHghtEntry = ge.guiDataEntry(rootFrame,textvariable=self.samplingMaxHghtVar, placeholder_text=str(self.samplingMaxHght), width=self.root.colWidth)
         # Col7
         #  ##############################################################################
         self.ICOSstationsLabel = ge.guiTxtLabel(rootFrame, text="ICOS stations", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL, nCols=self.nCols,  colwidth=1)
@@ -2040,9 +2066,9 @@ class lumiaGuiApp:
         ge.guiPlaceWidget(self.wdgGrid, self.minHghtLabel, row=2, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         ge.guiPlaceWidget(self.wdgGrid, self.maxHghtLabel, row=3, column=4, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # min inlet height
-        ge.guiPlaceWidget(self.wdgGrid, self.inletMinHghtEntry, row=2, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.samplingMinHghtEntry, row=2, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # max inlet height
-        ge.guiPlaceWidget(self.wdgGrid, self.inletMaxHghtEntry, row=3, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
+        ge.guiPlaceWidget(self.wdgGrid, self.samplingMaxHghtEntry, row=3, column=5, columnspan=1,padx=xPadding, pady=yPadding, sticky="ew")
         # Col7
         #  ##############################################################################
         # 

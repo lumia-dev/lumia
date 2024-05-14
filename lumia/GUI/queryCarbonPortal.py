@@ -6,6 +6,7 @@ import sys
 import os
 import re
 import datetime
+import housekeeping as hk
 from loguru import logger
 import numpy as np
 from pandas import DataFrame  #, concat
@@ -469,7 +470,8 @@ def discoverObservationsOnCarbonPortal(tracer='CO2', pdTimeStart: datetime=None,
     logger.info("Dropping duplicates and deprecated data sets that have been replaced with newer versions.")
     # But we are still keeping all sampling heights.
     sOutputPrfx=ymlContents[ 'run']['thisRun']['uniqueOutputPrefix']
-    fDiscoveredObservations=sOutputPrfx+"DiscoveredObservations.csv"
+    tracer=hk.getTracer(ymlContents['run']['tracers'])
+    fDiscoveredObservations=sOutputPrfx+"DiscoveredObservations-"+tracer+".csv"
     nObsDataRecords2 = len(dfqdd)
     logger.info(f"{nObsDataRecords2} valid observational data records remaining from {nTotalStations2} stations across Europe.")
     dfqdd.to_csv(fDiscoveredObservations, mode='w', sep=',')

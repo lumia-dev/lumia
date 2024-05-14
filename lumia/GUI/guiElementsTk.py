@@ -131,7 +131,9 @@ def guiConfigureWdg(self, widget=None,  state=None,  disabled=None,  command=Non
         widget.configure(bg_color=bg_color)
 
 def guiDataEntry(self, textvariable='',  placeholder_text='', width:int=40):
-    return(ctk.CTkEntry(self,textvariable=textvariable, placeholder_text=placeholder_text, width=width))
+    #s=ctk.CTkEntry(master=self, textvariable=textvariable,  placeholder_text=placeholder_text, width=width)
+    #print(f's={s}')
+    return(ctk.CTkEntry(master=self, textvariable=textvariable, placeholder_text=placeholder_text, width=width))
 
 def guiFileDialog(filetypes=[("All", "*.yml")],  title='Open local file',  description="Select file", multiple=False,  width=240): 
     return(ctk.filedialog.askopenfilename(filetypes=filetypes,  title=title))
@@ -203,7 +205,7 @@ def guiWriteIntoTextBox( TxtBox,  text,  protect=False):
 
 def  updateWidget(widget,  value, bTextvar=False,  bText_color=False,  bFg_color=False,  bBg_color=False):
     if(bTextvar):
-        widget.configure(textvariable=value)
+        widget.configure(textvariable=str(value))
     elif(bText_color):  
         widget.configure(text_color=value)
     elif(bFg_color):   # in CTk this is the main button color (not the text color)
