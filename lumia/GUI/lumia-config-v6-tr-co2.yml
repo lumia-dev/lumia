@@ -72,7 +72,7 @@ model:
 observations:
   co2:
     file:
-      dicoveredObsData: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-26T10_30-DiscoveredObservations.csv
+      dicoveredObsData: ./output/LumiaGUI-2024-05-14T15_22/LumiaGUI-2024-05-14T15_22-DiscoveredObservations-co2.csv #./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-26T10_30-DiscoveredObservations.csv
       discoverData: false
       location: CARBONPORTAL
       path: observations.tar.gz
@@ -83,8 +83,8 @@ observations:
       - NRT
       - AnyOther
       rename: background:mix_background
-      selectedObsData: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-selected-ObsData-co2.csv
-      selectedPIDs: ./output/LumiaGUI-2024-02-27T01_02/LumiaGUI-2024-02-27T01_02-selected-PIDs-co2.csv
+      selectedObsData: ./output/LumiaGUI-2024-05-14T15_22/LumiaGUI-2024-05-14T15_22-selected-ObsData-co2.csv
+      selectedPIDs: ./output/LumiaGUI-2024-05-14T15_22/LumiaGUI-2024-05-14T15_22-selected-PIDs-co2.csv
       tracer: co2
     units: ppm
   end: ${run.time.end}

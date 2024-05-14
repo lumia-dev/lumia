@@ -59,7 +59,7 @@ class GridCTkCheckBox(wdg.Checkbox):
                     try:
                         value=change['owner'].value  # True/False for check box now being selected or deselected
                     except:
-                        print('Failed to extract the value')
+                        logger.warning('GridCTkCheckBox.actOnCheckBoxChanges: Failed to extract the value from change[owner].value')
                     try:
                         wdgGridTxt=change['owner'].layout.grid_area
                         if not (wdgGridTxt is None):
@@ -114,7 +114,7 @@ class GridCTkOptionMenu(wdg.Dropdown):
                     try:
                         value=change['owner'].value  # True/False for check box now being selected or deselected
                     except:
-                        print('Failed to extract the value')
+                        logger.warning('GridCTkOptionMenu.actOnOptionMenuChanges: Failed to extract the value from change[owner].value')
                     try:
                         wdgGridTxt=change['owner'].layout.grid_area
                         if not (wdgGridTxt is None):
@@ -123,30 +123,9 @@ class GridCTkOptionMenu(wdg.Dropdown):
                             # print(f'Calling self.parent.EvHdPg2myCheckboxEvent(gridID=99999) with self.lumiaGuiApp={self.lumiaGuiApp.EvHdPg2myCheckboxEvent}')
                             # def EvHdPg2myCheckboxEvent(self, gridID=None,  wdgGridTxt='',  value=None,  description=''):
 
-                            if((self.widgetGridID==3) or (self.widgetGridID==203) or (self.widgetGridID==11803)):
-                               print(f'OptionMenu Change event with: self.widgetGridID={self.widgetGridID},  value={value},  wdgGridTxt={wdgGridTxt},  sSamplingHeights={self.options}')
+                            #if((self.widgetGridID==3) or (self.widgetGridID==203) or (self.widgetGridID==11803)):
+                            #   print(f'OptionMenu Change event with: self.widgetGridID={self.widgetGridID},  value={value},  wdgGridTxt={wdgGridTxt},  sSamplingHeights={self.options}')
                             self.lumiaGuiApp.EvHdPg2myOptionMenuEvent(gridID=self.widgetGridID, sSamplingHeights=self.options, selectedValue=value)
- 
-                            #try:
-                            #    ptr2EvHdPg2myCheckboxEvent=lambda: self.command(self.widgetGridID)
-                            #    print(f'running ptr2EvHdPg2myCheckboxEvent={ptr2EvHdPg2myCheckboxEvent}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            #    print(f'running self.command={self.command}=lambda: self.command(self.widgetGridID={self.widgetGridID}) -- with command={command}')
-                            #    ptr2EvHdPg2myCheckboxEvent
-                            #    print('ran ptr2EvHdPg2myCheckboxEvent')
-                            #except:
-                            #    pass
-                            #try:
-                            #    print(f'running ptrToEvHdPg2myCheckboxEvent, self.widgetGridID={self.widgetGridID}')
-                            #    self.ptrToEvHdPg2myCheckboxEvent
-                            #    print('ran ptrToEvHdPg2myCheckboxEvent')
-                            #except:
-                            #    pass
-                            #try:
-                            #    print('running self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)')
-                            #    self.EvHdPg2myCheckboxEvent(wdgGridTxt=wdgGridTxt,  value=value,  description=description)
-                            #    print('ran self.EvHdPg2myCheckboxEvent')
-                            #except:
-                            #    pass
                     except:
                         pass
             except:
@@ -208,73 +187,12 @@ def guiButton(master, text='Ok',  command=None,  fontName="Georgia",  fontSize=1
 
 
 
-class oldGuiCheckBox(wdg.Checkbox):
-    def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None, 
-                             fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
-        self.command=command
-        self.lumiaGuiApp=parent
-        self.parent=parent
-        self.nameOfEvtHd=nameOfEvtHd
-        #self.command=parent.EvHdPg2myCheckboxEvent  
-        print(f'parent={parent}, self.command={self.command}')
-        #@def   guiCheckBox:
-        # variable holds the initial state whether the CheckBox is selected (True) or not (False)
-        wdg.Checkbox.__init__(self, 
-            value=variable,
-            description=text,
-            disabled=disabled,
-            indent=False
-        )
-
-        def actOnCheckBoxChange(change):
-            try:
-                chName=''
-                #print(f'changeEvent={change}')
-            except:
-                pass
-            try:
-                chName=change['name']
-            except:
-                chName=''
-            #print(f'chName={chName}')
-            # we are only interested in events where there is a change in value selected/deselected True/False etc
-            # changeEvent={'name': '_property_lock', 'old': {}, 'new': {'value': False}, 'owner': GridCTkCheckBox(value=True, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}                
-            # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
-            if('value' in chName):
-                value=True
-                #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
-                try:
-                    value=change['owner'].value  # True/False for check box now being selected or deselected
-                except:
-                    print('Failed to extract the value')
-                    value=True
-                #print(f'command={self.command}')
-                # There ought to be a more elegant way using lambda or functool.partial(), but I could not get this to work.
-                # self.command points to the right memory address where that function resides, but seemingly nothing happens...
-                # lambda actualSelf=self.lumiaGuiApp, value=value : self.command(actualSelf, value)
-                # functool.partial(self.command, actualSelf=self.lumiaGuiApp, value=value)
-                # ...but then again a good programmer can program in FORTRAN in any programming language....speed is no issue here, it is only ugly
-                if(self.command is None):
-                    pass
-                elif((self.nameOfEvtHd is not None) and (len(self.nameOfEvtHd)>3)):
-                    if ('EvHdPg2stationAltitudeFilterAction' in self.nameOfEvtHd):
-                        print(f'calling lumiaGuiApp.EvHdPg2stationAltitudeFilterAction= {self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction}')
-                        self.lumiaGuiApp.EvHdPg2stationAltitudeFilterAction(self.lumiaGuiApp, value)
-                    if ('EvHdPg2stationSamplingHghtAction' in self.nameOfEvtHd):
-                        print(f'calling EvHdPg2stationSamplingHghtAction={self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction}')
-                        self.lumiaGuiApp.EvHdPg2stationSamplingHghtAction(self.lumiaGuiApp, value)
-                else:
-                    self.command
-
-        self.observe(actOnCheckBoxChange)
-        return 
-
 class guiCheckBox(wdg.Checkbox):
     def __init__(self, root=None, parent=None,  disabled=False, text='', fontName="Georgia", command=None, nameOfEvtHd=None, 
                              fontSize=12, variable=False, text_color='gray5',  text_color_disabled='gray70', onvalue=True, offvalue=False):
         self.command=command
         self.parent=parent
-        print(f'parent={parent}, self.command={self.command}')
+       #print(f'parent={parent}, self.command={self.command}')
         #@def   guiCheckBox:
         # variable holds the initial state whether the CheckBox is selected (True) or not (False)
         wdg.Checkbox.__init__(self, 
@@ -285,27 +203,31 @@ class guiCheckBox(wdg.Checkbox):
         )
 
         def actOnCheckBoxChange(change):
+            #print(f'Entering actOnCheckBoxChange.change:{change}')
             try:
                 chName=change['name']
             except:
                 chName=''
+            #print(f'chName={chName}')
             #print(f'chName={chName}')
             # we are only interested in events where there is a change in value selected/deselected True/False etc
             # changeEvent={'name': 'value', 'old': True, 'new': False, 'owner': GridCTkCheckBox(value=False, description='JFJ', indent=False, layout=Layout(grid_area='widget011', height='30px', margin='2px', padding='2px', width='auto')), 'type': 'change'}
 
             if('value' in chName):
                 value=True
+                #print(f'actOnCheckBoxChange.change:{change}')
                 #description=change['owner'].description  # 'CH' 'JFJ' a country or station name code or empty if a Select button
                 try:
                     value=change['owner'].value  # True/False for check box now being selected or deselected
+                    #print(f'change[owner].value={value}')
                 except:
-                    print('Failed to extract the value')
-                print(f'command={self.command}')
-                print(f'change={change}')
+                    logger.warning('guiCheckBox.actOnCheckBoxChange: Failed to extract the value from change[owner].value')
+                #print(f'actOnCheckBoxChange.command={self.command}')
+                #print(f'command={self.command}')
                 if(self.command is None):
                     pass
                 else:
-                    self.command(self.parent, value)
+                    self.command()
 
         self.observe(actOnCheckBoxChange)
         return 
@@ -339,13 +261,13 @@ class guiRadioButton(wdg.RadioButtons):
             # changeEvent={'name': 'index', 'old': 0, 'new': 1, 'owner': guiRadioButton(index=1, layout=Layout(grid_area='widget018', 
             # height='60px', margin='2px', padding='2px', width='auto'), options=('Any station', 'ICOS only'), value='ICOS only'), 'type': 'change'}
             if('index' in chName):
-                print(f'changeEvent={change}')
+                #print(f'changeEvent={change}')
                 value=999
                 try:
                     value=change['owner'].index  # index of the presently selected radiobutton 0,1,2,...
-                    print(f'value=change[owner].index={value}')
+                    # print(f'value=change[owner].index={value}')
                 except:
-                    print('Failed to extract the change[owner].index')
+                    logger.warning('guiRadioButton.actOnRbChange: Failed to extract the value from change[owner].value')
                 self.command() #self.parent, value)
     
         self.observe(actOnRbChange)

@@ -70,7 +70,7 @@ def verifyYmlFile(ymlFile):
             rval=ymlFileSelectButton.value[0]
             # filename = ge.guiFileDialogDoAll(filetypes=filetypes, title=title)
             ymlFile=rval['name']
-        print(f'Name of initial Lumia config file={ymlFile}')
+       #print(f'Name of initial Lumia config file={ymlFile}')
     if (ymlFile is None):
         logger.error("You need to provide an initial Lumia configuration .yml file. Try again when you have done your homework.")
         sys.exit(-3)
@@ -232,24 +232,24 @@ class lumiaGuiApp:
     def EvHdPg1GotoPage2(self):
         bGo=False
         repeat=False
-        print('Entering EvHdPg1GotoPage2')
+       #print('Entering EvHdPg1GotoPage2')
         (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues()
         ge.guiWipeTextBox(self.Pg1displayBox, protect=True) # delete all text
         if((bErrors) and (bWarnings)):
-            print('errors and warnings')
+           #print('errors and warnings')
             # self.Pg1displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg, protect=True)
         elif(bErrors):
-            print('errors')
+           #print('errors')
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg, protect=True)
         elif(bWarnings):
-            print('warnings')
+           #print('warnings')
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
             val=ge.getWidgetValue(self.Pg1ignoreWarningsCkb)
-            print(f'ge.getWidgetValue(self.Pg1ignoreWarningsCkb) val={val}')
+           #print(f'ge.getWidgetValue(self.Pg1ignoreWarningsCkb) val={val}')
             if((ge.getVarValue(self.bIgnoreWarningsCkbVar)) or (True==ge.getWidgetValue(self.Pg1ignoreWarningsCkb))):
                 bGo=True
-                print('Proceed in spite of warnings')
+               #print('Proceed in spite of warnings')
             #if(USE_TKINTER):
             #    self.Pg1ignoreWarningsCkb.configure(state=tk.NORMAL)
             ge.guiConfigureWdg(self, widget=self.Pg1ignoreWarningsCkb,  disabled=False)
@@ -306,10 +306,7 @@ class lumiaGuiApp:
         else: #(bGo==False):
             repeat=True
             try:
-                print('about to reset the Proceed button')
                 whichButton=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1GoButton,watchedWidget2=self.Pg1CancelButton, title='',  myDescription="PROCEED",  myDescription2="Cancel", width=240)
-                #self.askUserGoOrCancel.reset()
-                print('Proceed button reset successfully')
             except:
                 pass
         return(repeat)
@@ -337,8 +334,8 @@ class lumiaGuiApp:
             ObsFileLocation=self.Pg1ObsFileLocationRadioButtons.value
             #print(f'..ObsFileLocation={ObsFileLocation}')
             self.ymlContents['observations'][self.tracer]['file']['location'] =ObsFileLocation
-        s=self.ymlContents['observations'][self.tracer]['file']['location'] 
-        print(f'EvHdPg1SetObsFileLocation(): changed to {s}')
+        #s=self.ymlContents['observations'][self.tracer]['file']['location'] 
+        #print(f'EvHdPg1SetObsFileLocation(): changed to {s}')
         return True
 
     def EvHdPg1SetTracer(self):
@@ -836,7 +833,7 @@ class lumiaGuiApp:
                         if (thisStation not in row['stationID']) :
                             bSameStation=False
             except:
-                print('EvHdPg2myCheckboxEvent().L775: event processing failed')
+                logger.warning('EvHdPg2myCheckboxEvent().L836: event processing failed')
         else:
             logger.error(f'widgetID={widgetID} not found in self.widgetsLst[]')
         #print(f'self.excludedCountriesList={self.excludedCountriesList}')
@@ -850,13 +847,13 @@ class lumiaGuiApp:
         widgetID=(ri*self.nWidgetsPerRow)+ci  # calculate the widgetID to access the right widget in widgetsLst
         #print(f"OptionMenuEventHandler: (ri={ri}, ci4={ci}, widgetID={widgetID}, gridID={gridID})")
         if(self.widgetsLst[widgetID] is not None):
-            print(f'EvHdPg2myOptionMenuEvent: widgetID={widgetID},  ri={ri},  ci={ci},  sSamplingHeights={sSamplingHeights}')
+           #print(f'EvHdPg2myOptionMenuEvent: widgetID={widgetID},  ri={ri},  ci={ci},  sSamplingHeights={sSamplingHeights}')
             if(ci==3):  # SamplingHeight
                 if(selectedValue is None):
                     nsh=ge.getWidgetValue(self.widgetsLst[widgetID])
                 else:
                     nsh=selectedValue
-                print(f'selected sampling height={nsh}')
+               #print(f'selected sampling height={nsh}')
                 newSamplingHeight=nsh # a string var 
                 nPos=0
                 try:
@@ -873,7 +870,7 @@ class lumiaGuiApp:
                             pids=self.newDf.at[(ri) ,  ('pid')]
                             bs.swapListElements(pids, 0, nPos)
                             self.newDf.at[(ri) ,  ('pid')]=pids
-                            print(f"new samplingHeights={self.newDf.at[(ri) ,  ('samplingHeight')]}")
+                           #print(f"new samplingHeights={self.newDf.at[(ri) ,  ('samplingHeight')]}")
                             break
                         nPos+=1
                 except:
@@ -1333,7 +1330,7 @@ class lumiaGuiApp:
     # checkGuiValues gathers all the selected options and text from the available entry
     # fields and boxes and then generates a prompt using them
     def checkGuiValues(self):
-        print('Entered checkGuiValues')
+       #print('Entered checkGuiValues')
         bErrors=False
         sErrorMsg=""
         bWarnings=False
@@ -1458,11 +1455,11 @@ class lumiaGuiApp:
         # Emissions data (a prioris)
         # Land/Vegetation Net Exchange combo box
         sLandVegModel= ge.getWidgetValue(self.Pg1LandNetExchangeOptionMenu) # 'VPRM', 'LPJ-GUESS'
-        print(f'sLandVegModel={sLandVegModel}')
+       #print(f'sLandVegModel={sLandVegModel}')
         self.ymlContents['emissions'][self.tracer]['categories']['biosphere']['origin']=sLandVegModel
         # Fossil emissions combo box
         sFossilEmisDataset =ge.getWidgetValue(self.Pg1FossilEmisOptionMenu)   # "EDGARv4_LATEST")
-        print(f'sFossilEmisDataset={sFossilEmisDataset}')
+       #print(f'sFossilEmisDataset={sFossilEmisDataset}')
         self.ymlContents['emissions'][self.tracer]['categories']['fossil']['origin']=sFossilEmisDataset
         # Ocean Net Exchange combo box
         
@@ -1494,7 +1491,7 @@ class lumiaGuiApp:
         if(self.haveDiscoveredObs):
             self.bSuggestOldDiscoveredObservations=self.canUseRecentDiscoveredObservations()
         # Deal with any errors or warnings
-        print('exiting checkGuiValues()')
+        #print('exiting checkGuiValues()')
         return(bErrors, sErrorMsg, bWarnings, sWarningsMsg)
 
     def canUseRecentDiscoveredObservations(self):
@@ -1568,6 +1565,7 @@ class lumiaGuiApp:
                 
 
     def EvHdPg2stationAltitudeFilterAction(self):
+        #print('Entering EvHdPg2stationAltitudeFilterAction')
         stationMinAltCommonSense= -100 #m Dead Sea
         stationMaxAltCommonSense= 9000 #m Himalaya
         bStationFilterActive= ge.getWidgetValue(self.FilterStationAltitudesCkb)
@@ -1600,7 +1598,7 @@ class lumiaGuiApp:
         
     def EvHdPg2stationSamplingHghtAction(self, actualSelf=None, value=None):
         if((value is not None) and (actualSelf is not None)):
-            print(f'EvHdPg2stationSamplingHghtAction called with value={value}')
+            #print(f'EvHdPg2stationSamplingHghtAction called with value={value}')
             self=actualSelf 
         inletMinHeightCommonSense = 0    # in meters
         inletMaxHeightCommonSense = 850 # in meters World's heighest buildings
@@ -1633,9 +1631,9 @@ class lumiaGuiApp:
     
     def EvHdPg2isICOSfilter(self, actualSelf=None, value=None):
         #if((value is not None) and (actualSelf is not None)):
-        print(f'EvHdPg2isICOSfilter called with value={value}')
-        print(f'self={self}')   
-        print(f'actualSelf={actualSelf}')
+        #print(f'EvHdPg2isICOSfilter called with value={value}')
+        #print(f'self={self}')   
+        #print(f'actualSelf={actualSelf}')
         self.bICOSonly=True
         if(USE_TKINTER): # tkinter returns the index (int) of the selected radiobutton
             rbvariable=self.Pg2isICOSradioButton.cget("variable")
@@ -1647,7 +1645,7 @@ class lumiaGuiApp:
             isICOSrbValue=self.Pg2isICOSradioButton.value
             if('Any station' in isICOSrbValue):
                 self.bICOSonly=False
-        print(f'isICOSrbValue={isICOSrbValue}')
+        #print(f'isICOSrbValue={isICOSrbValue}')
         self.ymlContents['observations']['filters']['ICOSonly']=self.bICOSonly
         self.applyFilterRulesPg2()                       
         return True
@@ -1673,9 +1671,9 @@ class lumiaGuiApp:
                 if(row['includeStation']==False):
                     if not (row['stationID'] in self.excludedStationsList):
                         self.excludedStationsList.append(row['stationID'])
-            print(f'Writing to yaml File: self.excludedCountriesList={self.excludedCountriesList}')
+            #print(f'Writing to yaml File: self.excludedCountriesList={self.excludedCountriesList}')
             self.ymlContents['observations']['filters']['CountriesExcluded'] = self.excludedCountriesList
-            print(f'Writing to yaml File: self.excludedStationsList={self.excludedStationsList}')
+            #print(f'Writing to yaml File: self.excludedStationsList={self.excludedStationsList}')
             self.ymlContents['observations']['filters']['StationsExcluded'] = self.excludedStationsList
             try:
                 #dfq.to_csv(sOutputPrfx+'_dbg_dfq_all.csv', mode='w', sep=',')
@@ -1964,7 +1962,7 @@ class lumiaGuiApp:
         except:
             self.ObsFileRankingBox=None
         # Col2
-        print(f'lumiaGUI.createPg2staticWidgets L1912: parent=self={self}')
+        #print(f'lumiaGUI.createPg2staticWidgets L1912: parent=self={self}')
         #  ##############################################################################
         self.ObsLv1Ckb = ge.guiCheckBox(rootFrame, self, text="Level1", fontName=self.root.myFontFamily,  fontSize=self.root.fsNORMAL,
                                                                 variable=self.ObsLv1CkbVar, onvalue=True, offvalue=False)                             
@@ -2019,7 +2017,7 @@ class lumiaGuiApp:
         #  ##############################################################################
         # GO! Button
         #self.GoButton = ctk.CTkButton(rootFrame, font=(self.root.myFontFamily, self.root.fsLARGE), command=EvHdPg2GoBtnHit,  text="GO!")  # Note: expressions after command= cannot have parameters or they will be executed at initialisation which is unwanted
-        print('runPg2 creating createPg2staticWidgets.ge.guiButton()')
+        #print('runPg2 creating createPg2staticWidgets.ge.guiButton()')
         self.Pg2GoButton = ge.guiButton(rootFrame, text="GO!", command=self.EvHdPg2GoBtnHit, fontName=self.root.myFontFamily,  fontSize=self.root.fsLARGE)
         if(USE_TKINTER): # TODO fix
             ge.updateWidget(self.Pg2GoButton,  value='gray1', bText_color=True)
