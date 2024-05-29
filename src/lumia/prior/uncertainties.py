@@ -51,7 +51,7 @@ def calc_dist_vector(iloc, stretch_ratio = 1., debug: bool = False):
     return V
 
 
-@cache
+# @cache
 def calc_dist_matrix(lats, lons, stretch_ratio=1.):
     M = zeros((len(lats), len(lons)))
     _common['lons'] = lons

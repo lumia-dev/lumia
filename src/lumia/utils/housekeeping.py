@@ -176,11 +176,57 @@ def getTracer(ymlEntryTracer,  abortOnError=False):
             logger.warning('Proceeding with the assumption tracer==co2')
     return(tracer.lower())
 
+def handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
+    # a priori background concentrations of tracer (co2, ch4).
+    '''
+background:
+  concentrations:
+    co2:
+      backgroundFile: ${machine.backgrounds}
+      rename: mix_background
+      stationWithoutBackgroundConcentration: DAILYMEAN
+      userProvidedBackgroundConcentration: 410
+    '''
+    try:
+        tracer=getTracer(ymlContents['run']['tracers'])
+    except:
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'tracers'],   value= 'co2', bNewValue=True)
+        tracer='co2'
+    
+    # if there are local files involved, calculate their sha256 checksum - The carbon portal PID is actually also the sha256 of the datafile concerned
+    bCPortal=False
+    try:
+        bCPortal= ('CARBONPORTAL' in ymlContents['background']['concentrations'][tracer]['location']) # and ('LumiaGUI' in parentScript)
+    except:
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'background', 'concentrations' ,  tracer, 'location' ],   value='LOCAL', bNewValue=True)
+    if(bCPortal):   # BgrndData is taken directly from the carbonportal with their PIDs  # ('LumiaGUI' in parentScript) and
+        sha256Value='NotApplicable'
+    else:
+        try:
+            myfile=ymlContents['background']['concentrations'][tracer]['backgroundFiles']
+        except:
+            try:
+                myfile=ymlContents[myMachine]['backgrounds']
+                setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations', tracer ,'backgroundFiles'],   value= '$'+'{'+'machine.backgrounds'+'}', bNewValue=True)
+            except:
+                logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFile nor in the {myMachine}.backgrounds key of the input yaml config file.')
+                sys.exit(-61)
+        localBgndFiles = glob.glob(myfile)
+        if len(localBgndFiles) == 0:
+            logger.error(f"No background concentration files matching pattern {myfile} were found.")
+            sys.exit(-63)
+        hashValues=[]
+        for localBgndFile in localBgndFiles :    
+            logger.debug(f"localBgndFile={localBgndFile} ")
+            sha256Value=caclulateSha256Filehash(localBgndFile)
+            hashValues.append(sha256Value)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations',tracer ,'localFiles'],   value=localBgndFiles, bNewValue=True)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations',tracer ,'sha256Values'],   value=hashValues, bNewValue=True)
+    return
 
 def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
     # ### Tracer and observational data ### #  
     bErr=False
-    bLocalObs=False
     localObsDataFile='UNKNOWN'
     newFnameSelectedObsData=None
     newFnameSelectedPIDs=None
@@ -208,12 +254,12 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
     #  so they have the same unique identifier as this run and are carried forward to the correct output folder for this run.
     
     # if there are local files involved, calculate their sha256 checksum - The carbon portal PID is actually also the sha256 of the datafile concerned
+    bCPortal=False
     try:
-        if 'LOCAL' in ymlContents['observations'][tracer]['file']['location']:
-            bLocalObs=True
+        bCPortal= ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']) # and ('LumiaGUI' in parentScript)
     except:
-        bLocalObs=True
-    if (('LumiaGUI' in parentScript) and (not bLocalObs)):
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'location' ],   value='LOCAL', bNewValue=True)
+    if(bCPortal):   # obsData is taken directly from the carbonportal with their PIDs  # ('LumiaGUI' in parentScript) and
         sha256Value='NotApplicable'
     else:
         myfile=ymlContents['observations'][tracer]['file']['path']
@@ -225,7 +271,9 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
         if('LumiaGUI' in parentScript):
             pass
         else:
-            if (bLocalObs):
+            if (bCPortal):
+                bErr=True
+            else:
                 try:
                     localObsDataFile=ymlContents['observations'][tracer]['file']['path']
                     while(localObsDataFile[0]=='$'): 
@@ -234,16 +282,14 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
                         bErr=True
                 except:
                     bErr=True
-            else:
-                bErr=True
     if (bErr):
-        if(bLocalObs): 
-            logger.error(f'Obs data is set to local file but the specified local obsData file observations.{tracer}.file.path={localObsDataFile} could not be found or is not readable. Please fix.')
-        else:
+        if(bCPortal): 
             logger.error(f'Obs data is set to originate from the CARBONPORTAL. However, the key observations.{tracer}.file.selectedObsData is not set. Please run LumiaGUI or LumiaPrep to create it.')
+        else:
+            logger.error(f'Obs data is set to local file but the specified local obsData file observations.{tracer}.file.path={localObsDataFile} could not be found or is not readable. Please fix.')
         stopExecution=True
     else:
-        if(not bLocalObs):
+        if(bCPortal):
             keepThis=f'selected-ObsData-{tracer}.csv'
             newFnameSelectedObsData=sOutputPrfx+keepThis
             sCmd=f'cp {selectedObsData} {newFnameSelectedObsData}'
@@ -262,7 +308,7 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
     if((bErr) and (bDiscoverData==False)):
         stopExecution=True
     else:
-        if (not bLocalObs):
+        if (bCPortal):
             # the value is something like ./output/LumiaDA-2024-01-08T10_00-selected-ObsData-co2.csv.   Strip the Lumia-2024-01-08T10_00- part from it
             keepThis=f'selected-PIDs-{tracer}.csv'
             newFnameSelectedPIDs=sOutputPrfx+keepThis
@@ -470,7 +516,10 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
                                                                                                                                     ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
     # ### Configure the output directories ### #
     (sOutputPrfx,  sTmpPrfx)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
-
+    
+    # ### Tracer background concentration files ### # 
+    handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
+    
     # ### Tracer and observational data ### #      
     (sha256Value,  tracer , newFnameSelectedObsData, newFnameSelectedPIDs, oldDiscoveredObservations)=handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer,  'file',  'sha256Value'],   value=sha256Value, bNewValue=True)
@@ -484,7 +533,12 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     #if ('LumiaMaster' in parentScript):
     #    cats={'anthropogenic', 'biosphere', 'fires', 'ocean'}
     for cat in cats:
-        if ('CARBONPORTAL' in ymlContents['emissions'][tracer]['location'][cat]): # and ('LumiaGUI' in parentScript)
+        bCPortal=False
+        try:
+            bCPortal= ('CARBONPORTAL' in ymlContents['emissions'][tracer]['location'][cat]) # and ('LumiaGUI' in parentScript)
+        except:
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer, 'categories', cat, 'location' ],   value='LOCAL', bNewValue=True)
+        if(bCPortal):
             sha256Value='NotApplicable'
         else:
             origin = ymlContents['emissions'][tracer]['categories'][cat]['origin']
@@ -524,9 +578,10 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
             if ((len(myPath2FluxData1)>0) and (myPath2FluxData1[-1]!=os.path.sep)):
                 myPath2FluxData1=myPath2FluxData1+os.path.sep
             myPath2FluxData=myPath2FluxData1+myPath2FluxData2+os.path.sep+myPath2FluxData3
+            myAltPath2FluxData=myPath2FluxData1+myPath2FluxData3 # sometimes we may end up with a /eurocom025x025/eurocom025x025 repetition in the path
             if (os.path.sep!=myPath2FluxData[-1]):     # Does the path end in a directory separator (forward or back-slash depending on OS)?
                 myPath2FluxData=myPath2FluxData+os.path.sep
-            # TODO: sha256 and PIDs are not calculated proper for the apriori emissions data - needs fixing
+                myAltPath2FluxData=myAltPath2FluxData+os.path.sep
             if((origin is None)or(origin == '') or ('None' == origin)):
                 myPrefix=ymlContents['emissions'][tracer]['prefix']
                 while(myPrefix[0]=='$'): 
@@ -540,8 +595,11 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
                 pattern = os.path.join(myPath2FluxData, myYmlContents + origin + '.????.nc')
                 localEmisFiles = glob.glob(pattern)
                 if len(localEmisFiles) == 0:
-                    logger.error(f"No emission files matching pattern {pattern} found")
-                    sys.exit(-56)
+                    pattern2 = os.path.join(myAltPath2FluxData, myYmlContents + origin + '.????.nc')
+                    localEmisFiles = glob.glob(pattern2)
+                    if len(localEmisFiles) == 0:
+                        logger.error(f"No emission files matching pattern {pattern} nor {pattern2} were found.")
+                        sys.exit(-56)
             hashValues=[]
             for localEmisFile in localEmisFiles :    
                 logger.debug(f"localEmisFile={localEmisFile} ")
