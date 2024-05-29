@@ -4,26 +4,45 @@ from loguru import logger
 from dataclasses import dataclass
 from typing import List
 
+def runSysCmd(sCmd,  ignoreError=False):
+    try:
+        os.system(sCmd)
+    except:
+        if(ignoreError==False):
+            logger.error(f"Error: Failed to execute system command >>{sCmd}<<. Please check your write permissions and possibly disk space etc.")
+        return False
+    return True
 
 @dataclass
 class Rclone:
     path: str
     protocol: str = 'rclone'
     remote: str = None
-
+    # format of 'archive' key in config.yaml::: localFolder: protocol (allows to add options for swestore tokens): remoteEntity: remotePath
     def __post_init__(self):
         """
         The default way to instantiate the Rclone archive is to pass a path, with the format: "rclone:remote:path". In that case, __post_init__ will then split this into three attributes: protocol, remote and path.
         """
         if self.path is not None and self.remote is None :
-            self.protocol, self.remote, self.path = self.path.split(':')
+            lst = self.path.split(':')
+            paramsCount = len(lst)
+            if(paramsCount<4): # old behaviour that assumes that the local directory is named 'rclone' like the protocol
+                self.protocol, self.remote, self.remotePath = self.path.split(':')
+                self.localPth=self.protocol
+            else:
+                # More important than allowing a different local folder name is the ability to send options with the protocol like an authentication token for swestore.
+                self.localPath, self.protocol, self.remote, self.remotePath = self.path.split(':')
+            print(f'self.protocol={self.protocol}')
 
     def download(self, remotepath: str, localpath: str) -> None:
         if self.path is None :
             return
-        cmd = [self.protocol, 'copy', f'{self.remote}:{remotepath}', localpath]
+        #cmd = [self.protocol, 'copy', f'{self.remote}:{remotepath}', localpath]
+        cmd = f'{self.protocol} copy {self.remote}:{self.remotePath} {self.localPath}'
         try :
-            _ = subprocess.check_output(cmd)
+            #_ = subprocess.check_output(cmd)  # Allow for commandline options like swestore access tokens be passed
+            rStr=subprocess.check_output(cmd, text=True, shell=True)
+            return(rStr.splitlines())
         except subprocess.CalledProcessError as e:
             logger.exception(f"File {remotepath} not found on archive {self.protocol}:{self.remote}", traceback=False)
 
@@ -31,21 +50,34 @@ class Rclone:
         """
         Return a list of the files present on the archive
         """
-        return subprocess.check_output(['rclone', 'lsf', f'{self.remote}:{self.path}']).decode().split()
+        #return subprocess.check_output(['rclone', 'lsf', f'{self.remote}:{self.path}']).decode().split()
+        #cmd = [self.protocol, 'lsf', f'{self.remote}:{self.path}']
+        cmd = f'{self.protocol} lsf {self.remote}:{self.remotePath}'
+        # print(f'cmd={cmd}') cmd=rclone --client-cert=/tmp/x509up_u1001 --client-key=/tmp/x509up_u1001 lsf swestore:/snic/tmflex/LUMIA/fluxes/nc/eurocom025x025/H
+        try :
+            #_ = subprocess.check_output(cmd) # Allow for commandline options like swestore access tokens be passed
+            rStr=subprocess.check_output(cmd, text=True, shell=True)
+            return(rStr.splitlines())
+        except subprocess.CalledProcessError as e:
+            logger.exception(f"File {self.remote}:{self.remotePath} not found on archive {self.protocol}:{self.remote}", traceback=False)
 
     def get(self, filepath: str) -> bool:
         """
         If the file given by the "filepath" path is not already on disk, try to retrieve it from the archive.
         """
+        print(f'filepath={filepath}')
         if os.path.dirname(filepath) == '':
             filepath = os.path.join('.', filepath)
+        logger.info(f'Rclone.get(): Reading input file={filepath}')
         
-        logger.info(f"Getting file {filepath}")
+        #logger.info(f"Getting file {filepath}")
         if self.path is not None:
-            if not os.path.exists(filepath):
+            if(os.path.exists(filepath)):
+                logger.info(f'File {filepath} found locally.')
+            else:
                 localpath, filename = os.path.split(filepath)
-                remotepath = os.path.join(self.path, filename)
-                logger.info(f"File not found. Try downlaod it from {self.protocol}:{self.remote}:{remotepath}")
+                remotepath = os.path.join(self.remotePath, filename)
+                logger.info(f"Requested input file does not exist locally. Attempting to download it with {self.protocol}:{self.remote}:{remotepath}")
                 self.download(remotepath, localpath)
         return os.path.exists(filepath)
 

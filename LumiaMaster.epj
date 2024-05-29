@@ -1,0 +1,205 @@
+{
+  "header": {
+    "comment": "eric project file for project LumiaMaster",
+    "copyright": "Copyright (C) 2024 guillaume.monteil@nateko.lu.se with additions from arndt.meier@nateko.lu.se, arndt.meier@nateko.lu.se",
+    "saved": "2024-05-27, 12:52:46"
+  },
+  "project": {
+    "AUTHOR": "guillaume.monteil@nateko.lu.se with additions from arndt.meier@nateko.lu.se",
+    "CHECKERSPARMS": {},
+    "DESCRIPTION": "LUMIA Master branch\nhttps://github.com/lumia-dev/lumia",
+    "DOCSTRING": "",
+    "DOCUMENTATIONPARMS": {},
+    "EMAIL": "arndt.meier@nateko.lu.se",
+    "EMBEDDED_VENV": false,
+    "EOL": 0,
+    "FILETYPES": {
+      "*.cfg": "OTHERS",
+      "*.epj": "OTHERS",
+      "*.ini": "OTHERS",
+      "*.json": "OTHERS",
+      "*.md": "OTHERS",
+      "*.py": "SOURCES",
+      "*.py3": "SOURCES",
+      "*.pyw": "SOURCES",
+      "*.pyw3": "SOURCES",
+      "*.rst": "OTHERS",
+      "*.toml": "OTHERS",
+      "*.txt": "OTHERS",
+      "*.yaml": "OTHERS",
+      "*.yml": "OTHERS",
+      "GNUmakefile": "OTHERS",
+      "Makefile": "OTHERS",
+      "README": "OTHERS",
+      "README.*": "OTHERS",
+      "makefile": "OTHERS"
+    },
+    "FORMS": [],
+    "HASH": "0eb24e54f498279db6f8adc588b4b1d2a33373a6",
+    "IDLPARAMS": {
+      "DefinedNames": [],
+      "IncludeDirs": [],
+      "UndefinedNames": []
+    },
+    "LEXERASSOCS": {},
+    "LICENSE": "European Union Public Licence 1.2 (EUPL 1.2)",
+    "MAINSCRIPT": "run/control_inversion.py",
+    "MAKEPARAMS": {
+      "MakeEnabled": false,
+      "MakeExecutable": "",
+      "MakeFile": "",
+      "MakeParameters": "",
+      "MakeTarget": "",
+      "MakeTestOnly": true
+    },
+    "MIXEDLANGUAGE": false,
+    "OTHERS": [
+      "Makefile",
+      "README.md",
+      "docs/dummy.md",
+      "docs/index.md",
+      "docs/observations.md",
+      "docs/settings.md",
+      "docs/tutorial.md",
+      "mkdocs.yml",
+      "pyproject.toml",
+      "run/LumiaDA-2024-04-25T16_46-config.yml",
+      "run/LumiaDA-2024-05-15T16_46-config.yml",
+      "run/README.md",
+      "run/ch4_inversion.yaml",
+      "run/co2_inversion.yaml",
+      "run/control_inversion.yaml",
+      "run/inversion.yaml",
+      "src/congrad/Makefile",
+      "src/lumia.egg-info/SOURCES.txt",
+      "src/lumia.egg-info/dependency_links.txt",
+      "src/lumia.egg-info/requires.txt",
+      "src/lumia.egg-info/top_level.txt"
+    ],
+    "OTHERTOOLSPARMS": {},
+    "PACKAGERSPARMS": {},
+    "PROGLANGUAGE": "Python3",
+    "PROJECTTYPE": "Console",
+    "PROJECTTYPESPECIFICDATA": {},
+    "RCCPARAMS": {
+      "CompressLevel": 0,
+      "CompressionDisable": false,
+      "CompressionThreshold": 70,
+      "PathPrefix": ""
+    },
+    "RESOURCES": [],
+    "SOURCES": [
+      "__init__.py",
+      "run/ch4_inversion.py",
+      "run/co2_inversion.py",
+      "run/control_inversion.py",
+      "src/gridtools/__init__.py",
+      "src/icosPortalAccess/getHandleFromDoi.py",
+      "src/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",
+      "src/lumia/__init__.py",
+      "src/lumia/data/__init__.py",
+      "src/lumia/data/xr.py",
+      "src/lumia/mapping/__init__.py",
+      "src/lumia/mapping/multitracer.py",
+      "src/lumia/minimizers/__init__.py",
+      "src/lumia/minimizers/congrad.py",
+      "src/lumia/models/__init__.py",
+      "src/lumia/models/footprints/__init__.py",
+      "src/lumia/models/footprints/protocols.py",
+      "src/lumia/models/footprints/transport.py",
+      "src/lumia/observations/__init__.py",
+      "src/lumia/observations/observations.py",
+      "src/lumia/observations/protocols.py",
+      "src/lumia/optimizer/__init__.py",
+      "src/lumia/optimizer/categories.py",
+      "src/lumia/optimizer/optimizer.py",
+      "src/lumia/optimizer/preconditioning.py",
+      "src/lumia/optimizer/protocols.py",
+      "src/lumia/optimizer/scipy_optimizer.py",
+      "src/lumia/prior/__init__.py",
+      "src/lumia/prior/prior.py",
+      "src/lumia/prior/protocols.py",
+      "src/lumia/prior/uncertainties.py",
+      "src/lumia/ui/__init__.py",
+      "src/lumia/ui/main_functions.py",
+      "src/lumia/utils/__init__.py",
+      "src/lumia/utils/archive.py",
+      "src/lumia/utils/clusters.py",
+      "src/lumia/utils/dconf.py",
+      "src/lumia/utils/debug.py",
+      "src/lumia/utils/housekeeping.py",
+      "src/lumia/utils/logging.py",
+      "src/lumia/utils/system.py",
+      "src/lumia/utils/time_utils.py",
+      "src/lumia/utils/tracers.py",
+      "src/lumia/utils/units.py",
+      "src/transport/__init__.py",
+      "src/transport/concentrations.py",
+      "src/transport/core/__init__.py",
+      "src/transport/core/model.py",
+      "src/transport/emis/__init__.py",
+      "src/transport/files/__init__.py",
+      "src/transport/files/flexpart.py",
+      "src/transport/files/lumia.py",
+      "src/transport/files/stilt.py",
+      "src/transport/multitracer.py",
+      "src/transport/observations.py"
+    ],
+    "SOURCESDIR": ".",
+    "SPELLEXCLUDES": "",
+    "SPELLLANGUAGE": "en_US",
+    "SPELLWORDS": "",
+    "TESTING_FRAMEWORK": "",
+    "TRANSLATIONEXCEPTIONS": [],
+    "TRANSLATIONPATTERN": "",
+    "TRANSLATIONS": [],
+    "TRANSLATIONSBINPATH": "",
+    "TRANSLATIONSOURCESTARTPATH": "",
+    "UICPARAMS": {
+      "Package": "",
+      "PackagesRoot": "",
+      "RcSuffix": ""
+    },
+    "VCS": "Git",
+    "VCSOPTIONS": {
+      "add": [
+        ""
+      ],
+      "checkout": [
+        ""
+      ],
+      "commit": [
+        ""
+      ],
+      "diff": [
+        ""
+      ],
+      "export": [
+        ""
+      ],
+      "global": [
+        ""
+      ],
+      "history": [
+        ""
+      ],
+      "log": [
+        ""
+      ],
+      "remove": [
+        ""
+      ],
+      "status": [
+        ""
+      ],
+      "tag": [
+        ""
+      ],
+      "update": [
+        ""
+      ]
+    },
+    "VCSOTHERDATA": {},
+    "VERSION": "0.1"
+  }
+}

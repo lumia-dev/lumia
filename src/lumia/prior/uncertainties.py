@@ -87,7 +87,34 @@ class SpatialCorrelation:
         self.n = len(self.lats)
 
         # Calculate the covariance matrix:
-        distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio = self.stretch_ratio)
+        #distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio = self.stretch_ratio)  !! causes: TypeError: unhashable type: 'numpy.ndarray'
+        logger.info(' ')
+        logger.info('distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio = self.stretch_ratio)  !! causes: TypeError: unhashable type: numpy.ndarray')
+        logger.info(f'self.lats={self.lats}, self.lons={self.lons}')
+        logger.info(f'self.stretch_ratio={self.stretch_ratio}')
+        logger.info(f'type(self.lats)={type(self.lats)}, type(self.lons)={type(self.lons)}')
+        logger.info(f'type(self.stretch_ratio)={type(self.stretch_ratio)}')
+        logger.info(' ')
+        logger.info('Trying: distmat = calc_dist_matrix(tuple(map(tuple, self.lats)), tuple(map(tuple, self.lons)), stretch_ratio = self.stretch_ratio)')
+        logger.info(f'self.lats={self.lats}, self.lons={self.lons}')
+        logger.info(f'type(self.lats)={type(self.lats)}, type(self.lons)={type(self.lons)}')
+        logger.info(f'self.lats.shape={self.lats.shape}, self.lons.shape={self.lons.shape}')
+        #latsSet = set()
+        #lonsSet = set() # self.lats and self.lons each have 15908 entries, representing land surface points on the 0.25deg grid. Data points over the ocean seem excluded.
+        df = DataFrame(self.lats)
+        df.to_csv('lats-spatCor.csv', index=False)
+        df = DataFrame(self.lons)
+        df.to_csv('lons-spatCor.csv', index=False)
+        #latsSet.add(self.lats)
+        #lonsSet.add(self.lons)
+        # !! causes: TypeError: unhashable type: 'numpy.ndarray'
+        distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio = self.stretch_ratio)  
+        #tupLats=tuple(map(tuple, self.lats))
+        #tupLons= tuple(map(tuple, self.lons))
+        #logger.info(f'latsSet={latsSet}, lonsSet={lonsSet}')
+        #logger.info(f'type(latsSet)={type(latsSet)}, type(lonsSet)={type(lonsSet)}')
+        #logger.info(' ')
+        #distmat = calc_dist_matrix(latsSet, lonsSet, stretch_ratio = self.stretch_ratio)
         match self.cortype:
             case 'g':
                 self.mat = exp(-(distmat/self.corlen)**2)

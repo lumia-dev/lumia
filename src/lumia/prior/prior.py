@@ -50,6 +50,7 @@ class PriorConstraints:
                 to_offset(cat.optimization_interval),
                 errvec
             )
+            print(f'cat.name={cat.name}, cat={cat}')
             corr_h[cat] = calc_horizontal_correlation(
                 cat.name, 
                 cat.horizontal_correlation, 

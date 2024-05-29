@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 from typing import Union, List, Tuple
 from pathlib import Path
 from pint import Quantity
@@ -8,7 +9,7 @@ from dataclasses import dataclass, field
 from numpy import ndarray, unique, array, zeros
 from numpy.typing import NDArray
 from datetime import datetime
-from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, IntervalIndex
+from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, IntervalIndex, DataFrame
 from loguru import logger
 from pandas import date_range, DateOffset, Timedelta
 from pandas.tseries.frequencies import to_offset
@@ -657,7 +658,8 @@ class Data:
             # Add new tracer to the emission object
             em.add_tracer(
                 TracerEmis(tracer_name=tracer, grid=tr.region, time=time, units=unit_emis, timestep=tr.interval))
-
+            t=tr.categories.items()
+            print(f'tr.categories.items()={t}')
             for catname, cat in tr.categories.items():
                 # The name of the files should follow the pattern {path}/{prefix}{origin}.*.nc
                 # - path is given by the key "emissions.{tracer}.path"
@@ -686,12 +688,15 @@ class Data:
                 # Do the same for the archive (if needed):
                 archive = tr.get('archive', None)
                 if archive is not None :
-                    archive = archive + '/' + freq_src
+                    if(archive[-1]!='/'):
+                        archive = archive + '/'
+                    archive = archive + freq_src
 
                 # Load the emissions
+                logger.info(f'xr.load_preprocessed(): prefix={prefix} start={start},  end={end},  freq={tr.interval}, archive={archive},  field={field}')
                 emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=archive, field=field)
-                
-                # Add them to the current data structure
+                #df = DataFrame(emis)
+                #df.to_csv('data-'+catname+'.csv', index=False) # Add them to the current data structure
                 attrs = {'origin': cat} if isinstance(cat, str) else cat
                 em[tracer].add_cat(catname, emis, attrs=attrs)
         return em
@@ -725,22 +730,29 @@ def load_preprocessed(
     """
 
     if archive is not None :
+        print(f'archive={archive}')
         archive = Rclone(archive)
         files_on_archive = archive.lsf()
     
         # Try to import one file for each month of the simulation. If not available, fallback on one file per year, finally, try a non time-specific file (e.g. climatology).
         # I haven't felt the use to implement finer resolution files (e.g. daily), but it should be simple if needed ...
         files_to_get = set()
-        for tt in date_range(start, end, freq='MS', inclusive='left'):
-            files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y-%m.nc'))
-            if len(files) == 0 :
-                files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y.nc'))
-            if len(files) == 0 :
-                files = fnmatch.filter(files_on_archive, prefix.name + '.nc')
-            files_to_get.update(files)
-
-        for file in files_to_get :
-            archive.get(prefix.parent / file)
+        if((files_on_archive is not None) and (len(files_on_archive)>0)): # else files_on_archive is not iterable and causes an error
+            for tt in date_range(start, end, freq='MS', inclusive='left'):
+                files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y-%m.nc')) # prefix.name=flux_co2.VPRM_ECMWF_NEE.
+                if len(files) == 0 :
+                    files = fnmatch.filter(files_on_archive, tt.strftime(f'{prefix.name}%Y.nc'))
+                    #if len(files) == 0 :
+                    #    fmask=tt.strftime(f'{prefix.name}%Y.nc')
+                    #    files = fnmatch.filter(files_on_archive, fmask)
+                if len(files) == 0 :
+                    files = fnmatch.filter(files_on_archive, prefix.name + '.nc')
+                files_to_get.update(files)
+            if(len(files_to_get)==0):
+                print(f'No matching files for filter {prefix.name} available from archive {archive.remote}:{archive.remotePath}')
+            for file in files_to_get :
+                print(f'prefix={prefix},  prefix.parent ={prefix.parent }')
+                archive.get(prefix.parent / file)
 
     with dask.config.set(**{'array.slicing.split_large_chunks': True}):
         data = xr.open_mfdataset(f'{prefix}*nc')
@@ -750,14 +762,22 @@ def load_preprocessed(
         end = Timestamp(end)
         
         # There should be a single dataarray in the file: get it:
+        print(f'input file {prefix}*nc field={field}, data.data_vars={data.data_vars}')
         if field is None and len(data.data_vars) == 1:
             field = list(data.data_vars)[0]
         elif field is None :
             logger.error("The file(s) contains multiple data variables. I don't know what to do with them:")
             logger.error(pprint.pformat(glob.glob(f'{prefix}*nc')))
             raise RuntimeError
-        data = data[field]
-
+        if(field in data.data_vars):
+            data = data[field]
+        else:
+            if ((field in 'flux_co2') and('co2_flux' in data.data_vars)):
+                data = data['co2_flux']
+                data=data.rename('flux_co2')
+            else:
+                logger.error(f'The field {field} requested in the configuration yaml file is not found in the actual input file \n{prefix}*nc\n The latter contains: {data.data_vars}')
+                sys.exit(-1)
         # Resample if needed:
         if freq is not None :
             times_dest = date_range(start, end, freq=freq, inclusive='left')
