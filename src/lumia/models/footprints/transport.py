@@ -101,7 +101,7 @@ class Transport:
         return dept.loc[:, ['mismatch', 'sigma']]
 
     @debug.timer
-    def calc_departures_adj(self, forcings : DataFrame, step='adjoint') -> Data:
+    def calc_departures_adj(self, forcings : DataFrame, step='adjoint',  logLevel:str = 'INFO') -> Data:
 
         # Write departures file
         self.observations.loc[forcings.index, 'dy'] = forcings
@@ -112,21 +112,37 @@ class Transport:
         adjemis_file = self.emissions_file
 
         # Create command
-        cmd = self.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.path_footprints, '--tmp', self.path_temp]
+        sCmd = self.executable + ['--adjoint', '--obs', departures_file, '--emis', adjemis_file, '--footprints', self.path_footprints, '--tmp', self.path_temp]
         if self.serial :
-            cmd.append('--serial')
+            sCmd.append('--serial')
         if step in self.extra_arguments:
-            cmd.append(self.extra_arguments[step])
+            sCmd.append(self.extra_arguments[step])
         if "*" in self.extra_arguments:
-            cmd.append(self.extra_arguments['*'])
-        # Run
-        runcmd(cmd, shell=True)
+            sCmd.append(self.extra_arguments['*'])
+
+        # MasterPlus addons for improved logging and error detection in case the subprocess should fail.
+        if('multitracer.py' in sCmd):
+            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+            # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+            sCmd.append('--outpPathPrfx')
+            sCmd.append( sOutputPrfx)
+            sCmd.append('--verbosity')
+            sCmd.append(logLevel)
+        logger.info(f'Calling transport model with command:\n{sCmd}')
+
+        # Run the transport model 
+        logger.debug(f'Calling transport model in a subprocess with cmd={sCmd}')
+        p=runcmd(sCmd, shell=True)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        if(p==0):
+            logger.debug(f'return value from subprocess is={p} -- all good.')
+        else:
+            logger.warning(f'Non-zero (val={p}) return value from subprocess {sCmd}.')
 
         # Read result and return:
         return Data.from_file(adjemis_file)
 
     @debug.timer
-    def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
+    def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False,  logLevel:str = 'INFO') -> Tuple[Path, Path]:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
         compression = step in self.output_steps
@@ -137,16 +153,37 @@ class Transport:
         self.observations.to_hdf(dbf, 'observations')
 
         # Run the model:
-        cmd = self.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.path_footprints, '--tmp', self.path_temp]
+        sCmd = self.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.path_footprints, '--tmp', self.path_temp]
 
         if self.serial or serial:
-            cmd.append('--serial')
+            sCmd.append('--serial')
 
         if step in self.extra_arguments:
-            cmd.append(self.extra_arguments[step])
+            sCmd.append(self.extra_arguments[step])
         if '*' in self.extra_arguments:
-            cmd.append(self.extra_arguments['*'])
-        runcmd(cmd, shell=True)
+            sCmd.append(self.extra_arguments['*'])
+            
+        # MasterPlus addons for improved logging and error detection in case the subprocess should fail.
+        if('multitracer.py' in sCmd):
+            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
+            if(dbf is None):
+                logger.warning('Warning: dbf is None. That may cause trouble...')
+            else:
+                logger.debug(f' dbf={dbf}')
+            # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+            sCmd.append('--outpPathPrfx')
+            sCmd.append( sOutputPrfx)
+            sCmd.append('--verbosity')
+            sCmd.append(logLevel)
+            # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+        logger.info(f'Calling transport model with command:\n{sCmd}')
+        # Run the transport model 
+        logger.debug(f'Calling transport model in a subprocess with cmd={sCmd}')
+        p=runcmd(sCmd, shell=True)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
+        if(p==0):
+            logger.debug(f'return value from subprocess is={p} -- all good.')
+        else:
+            logger.warning(f'Non-zero (val={p}) return value from subprocess {sCmd}.')
 
         return emf, dbf
 

@@ -99,6 +99,12 @@ def expandKeyValue(namedVariable,ymlContents,myMachine):
         expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]]  
     return(expandedKey)
 
+def getDictItemsFromParticularLv(myDict): 
+    keys=[]
+    for key, val in myDict.items():
+        keys.append(key)
+    return(keys)
+
 
 def getStartEndTimes(ymlContents, ymlFile, args, myMachine):
     # Determine start/end times - may come from commandline, else the config ymlFile
@@ -466,11 +472,28 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
         i+=1
         myDict = myDict[key]
 
-def getDictItemsFromParticularLv(myDict): 
-    keys=[]
-    for key, val in myDict.items():
-        keys.append(key)
-    return(keys)
+
+    # ### set up logging ### #
+def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='-run.log',  cleanSlate=True):
+    if(cleanSlate):
+        logger.remove()
+    #log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <level>{level: <8}</level> | <yellow>Line {line: >4} ({file}):</yellow> <b>{message}</b>"
+    #logger.add(sys.stderr, level=log_level, format=log_format, colorize=True, backtrace=True, diagnose=True)
+    #logger.add("file.log", level=log_level, format=log_format, colorize=False, backtrace=True, diagnose=True)
+    logger.add(
+        sys.stdout,
+        format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <yellow><c>{file.path}</>:<c>{line}</yellow>)</> | {message}',
+        level= log_level, colorize=True, backtrace=True, diagnose=True
+    )
+    logFile=sOutputPrfx+parentScript+logName
+    logger.info(f'A log file is written to {logFile}.')
+    logger.add(
+        logFile,
+        format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <blue><c>{file.path}</>:<c>{line}</blue>)</> | {message}',
+        level= log_level, colorize=True, backtrace=True, diagnose=True, rotation="5 days"
+    )
+
+    
 
 def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNOWN'):
     # current version of the yml config files:
@@ -511,12 +534,17 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         setKeyVal_Nested_CreateIfNecessary(ymlContents, ['model', 'options',  'serial'],   value=True, bNewValue=True)
     myCom=""
     
+    # ### Configure the output directories ### #
+    (sOutputPrfx,  sTmpPrfx)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
+
+    # ### set up logging ### #
+    log_level = args.verbosity
+    setupLogging(log_level,  parentScript, sOutputPrfx)
+    
     # ### query Git - what version of Lumia are we running? ### #        
     (nVers, nSubVers, repoUrl, branch, sLocalGitRepos, remoteCommitUrl, myCom, LATESTGITCOMMIT_LumiaDA)=queryGitRepository(parentScript, 
                                                                                                                                     ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
-    # ### Configure the output directories ### #
-    (sOutputPrfx,  sTmpPrfx)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
-    
+
     # ### Tracer background concentration files ### # 
     handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
     

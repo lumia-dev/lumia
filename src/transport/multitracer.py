@@ -10,6 +10,8 @@ from transport.concentrations import read_conc_file
 from pandas import Timedelta
 from pathlib import Path
 
+from lumia.utils.housekeeping import setupLogging
+
 
 class MultiTracer(Model):
     _footprint_class = LumiaFootprintFile
@@ -47,13 +49,25 @@ if __name__ == '__main__':
     p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
+    p.add_argument('--outpPathPrfx', '-o', default='', help="Value of the run.thisRun.uniqueOutputPrefix key from the Lumia config yml file.", required=False)
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
     # Set the verbosity in the logger (loguru quirks ...)
-    logger.remove()
-    logger.add(sys.stderr, level=args.verbosity)
-    logger.debug('test')
+    #logger.remove()
+    #logger.add(sys.stderr, level=args.verbosity)
+    #logger.debug('test')
+    log_level=args.verbosity
+    sOutputPrfx=args.outpPathPrfx
+    logPath=f'{sOutputPrfx}multitracer.log'
+    i=1
+    scriptName='multitracer'
+    while(os.path.isfile(logPath)):
+        logPath=f'{sOutputPrfx}multitracer-{i}.log'
+        scriptName=f'multitracer-{i}'
+        i+=1
+    setupLogging(log_level,  scriptName, sOutputPrfx,  '.log',  cleanSlate=True)
+    logger.debug(f'Creating logfile {sOutputPrfx}{scriptName}.log')
 
     obs = Observations.read(args.obs)
 

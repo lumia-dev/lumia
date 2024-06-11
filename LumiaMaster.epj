@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaMaster",
     "copyright": "Copyright (C) 2024 guillaume.monteil@nateko.lu.se with additions from arndt.meier@nateko.lu.se, arndt.meier@nateko.lu.se",
-    "saved": "2024-05-27, 12:52:46"
+    "saved": "2024-06-10, 11:07:36"
   },
   "project": {
     "AUTHOR": "guillaume.monteil@nateko.lu.se with additions from arndt.meier@nateko.lu.se",
@@ -160,7 +160,7 @@
       "PackagesRoot": "",
       "RcSuffix": ""
     },
-    "VCS": "Git",
+    "VCS": "None",
     "VCSOPTIONS": {
       "add": [
         ""
