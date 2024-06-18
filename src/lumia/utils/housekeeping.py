@@ -84,19 +84,36 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
 
 
 def expandKeyValue(namedVariable,ymlContents,myMachine):
-    # namedVariable[2:-1] contains of something like ${run.paths.emissions}
+    # namedVariable[2:-1] contains something like ${run.paths.emissions}
     keys=namedVariable.split('.')
-    for i, key in enumerate(keys):
+    j=len(keys)
+    i=0
+    for key in enumerate(keys):
         if('machine' in key):
-            keys[i]=myMachine
+            if('.' in myMachine): # myMachine may contain 1 or 2 keys e.g. cosmos or machine.cosmos
+                machineParts=myMachine.split('.')
+                keys[i]=machineParts[0]
+                i=i+1
+                if(j>i):
+                    # because the myMachine key split into 2 keys, we need to shift the higher keys by one
+                    keys.append(keys[j-1])
+                    while (j>i):
+                        keys[j]=keys[j-1]
+                        j=j-1
+                keys[i]=machineParts[1]
+            else:
+                keys[i]=myMachine 
     if(len(keys)==2):
         expandedKey=ymlContents[keys[0]][keys[1]]  
     elif(len(keys)==3):
         expandedKey=ymlContents[keys[0]][keys[1]][keys[2]]
     elif(len(keys)==4):
         expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]]
-    else:
+    elif(len(keys)==5):
         expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]]  
+    else:
+        expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]] [keys[5]]  
+    i=i+1
     return(expandedKey)
 
 def getDictItemsFromParticularLv(myDict): 
@@ -210,9 +227,16 @@ background:
     else:
         try:
             myfile=ymlContents['background']['concentrations'][tracer]['backgroundFiles']
+            while(myfile[0]=='$'): 
+                myfile=expandKeyValue(myfile[2:-1] ,ymlContents, myMachine)
         except:
             try:
-                myfile=ymlContents[myMachine]['backgrounds']
+                if('.' in myMachine):
+                    splitty=myMachine.split('.')
+                    mMachine=splitty[1]
+                    myfile=ymlContents['machine'][mMachine]['backgrounds']
+                else:
+                    myfile=ymlContents[myMachine]['backgrounds']
                 setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations', tracer ,'backgroundFiles'],   value= '$'+'{'+'machine.backgrounds'+'}', bNewValue=True)
             except:
                 logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFile nor in the {myMachine}.backgrounds key of the input yaml config file.')
@@ -262,13 +286,20 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
     # if there are local files involved, calculate their sha256 checksum - The carbon portal PID is actually also the sha256 of the datafile concerned
     bCPortal=False
     try:
-        bCPortal= ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']) # and ('LumiaGUI' in parentScript)
+        bCPortal= ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']) 
     except:
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'location' ],   value='LOCAL', bNewValue=True)
     if(bCPortal):   # obsData is taken directly from the carbonportal with their PIDs  # ('LumiaGUI' in parentScript) and
         sha256Value='NotApplicable'
     else:
-        myfile=ymlContents['observations'][tracer]['file']['path']
+        try:
+            myfile=ymlContents['observations'][tracer]['file']['path']
+        except:
+            logger.error(f'Key observations.{tracer}.file.path not found in yaml config file {ymlFile}. Did you forget the tracer key level?')
+            sys.exit(-5)
+        if (not os.path.isfile(myfile)) or (not os.access(myfile, os.R_OK)):
+            logger.error(f'The observational data file {myfile} proclaimed in the key observations.{tracer}.file.path is not found on disk or is not readable.')
+            sys.exit(-6)
         sha256Value=caclulateSha256Filehash(myfile)
     stopExecution=False
     try:
@@ -337,10 +368,17 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
     scriptName=sys.argv[0]
     script_directory = os.path.dirname(os.path.abspath(scriptName))
     scriptTail=scriptName[-6:]
+    bHaveGit=True
     if('.ipynb' in scriptTail):
-        logger.info('Local git information is not available from this python notebook. This is not an issue.')
-    else: 
-        import git
+        logger.info('Local git information is not available from this python notebook. This means we cannot check what the latest version is, but that is not a drama.')
+        bHaveGit=False
+    else:
+        try:
+            import git
+        except:
+            bHaveGit=False
+            logger.info('Local git information is not available in your Python environment. This means we cannot check what the latest version is, but that is not a drama.')
+    if(bHaveGit):    
         try:
             # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
             if('LumiaGUI' in parentScript):
@@ -481,15 +519,15 @@ def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='-run.log
     #logger.add(sys.stderr, level=log_level, format=log_format, colorize=True, backtrace=True, diagnose=True)
     #logger.add("file.log", level=log_level, format=log_format, colorize=False, backtrace=True, diagnose=True)
     logger.add(
-        sys.stdout,
-        format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <yellow><c>{file.path}</>:<c>{line}</yellow>)</> | {message}',
+        sys.stdout,                        
+        format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <c>{file.path}</>:<c>{line})</> | {message}',  #<blue><c>{file.path}</>:<c>{line}</blue>)</> | {message}',
         level= log_level, colorize=True, backtrace=True, diagnose=True
     )
     logFile=sOutputPrfx+parentScript+logName
     logger.info(f'A log file is written to {logFile}.')
     logger.add(
         logFile,
-        format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <blue><c>{file.path}</>:<c>{line}</blue>)</> | {message}',
+        format='{time:YYYY-MM-DD HH:mm:ss.SSS zz} | elapsed time: {elapsed} | {level: <8} | {file.path}:L.{line}) | {message}', 
         level= log_level, colorize=True, backtrace=True, diagnose=True, rotation="5 days"
     )
 
@@ -502,6 +540,15 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     # Now read the yaml configuration file - whether altered by the GUI or not
     ymlContents=readYmlCfgFile(ymlFile)
     # Save  all details of the configuration and the version of the software used:
+    try:
+        tkey=ymlContents[myMachine]  # old style, machine entries anywhere in the yaml file
+    except:
+        try:
+            tkey=ymlContents['machine'][myMachine]
+            myMachine='machine.'+myMachine  # newer style with all machine definitions under a common machine: entry
+        except:
+            logger.error(f'Fatal error: User provided machine name {myMachine} not found in the specified yaml config file {ymlFile}')
+            sys.exit(-4)
     
     # the unique identifer used in folder and file names is based on the date of time we run Lumia
     current_date = datetime.now()
@@ -538,8 +585,11 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     (sOutputPrfx,  sTmpPrfx)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
 
     # ### set up logging ### #
-    log_level = args.verbosity
+    log_level='INFO'
+    if((args is not None)and(args.verbosity is not None)):
+        log_level = args.verbosity
     setupLogging(log_level,  parentScript, sOutputPrfx)
+    logger.info(f'{args}')  # document how Lumia was called including commandline options
     
     # ### query Git - what version of Lumia are we running? ### #        
     (nVers, nSubVers, repoUrl, branch, sLocalGitRepos, remoteCommitUrl, myCom, LATESTGITCOMMIT_LumiaDA)=queryGitRepository(parentScript, 
@@ -651,7 +701,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         except:
             sUsername="UNKNOWN" 
             
-    logger.info(f'lumiaGUI is run by user {sUsername}')
+    logger.info(f'{parentScript} is run by user {sUsername}')
     # sysName=platform.system() # Linux
     #sysReleaseVersion=platform.release()  # 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
     myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35
@@ -753,20 +803,20 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         sys.exit(-10)
 
     # TODO remove this section once happy with the new yaml file created.
-    sNewYmlFileName=ymlFile[:-5]+'-new.yaml'
-    sCmd=f'mv {ymlFile} {sNewYmlFileName}'
-    rValue=0
-    print(f'sCmd={sCmd}')
-    try:
-        rValue=os.system(sCmd)
-    except:
-        logger.error(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
-        sys.exit(-7)
-    sCmd="cp "+ymlFile+'.bac '+ymlFile # recover backup file.
-    os.system(sCmd)
+    #sNewYmlFileName=ymlFile[:-5]+'-new.yaml'
+    #sCmd=f'mv {ymlFile} {sNewYmlFileName}'
+    #rValue=0
+    #print(f'sCmd={sCmd}')
+    #try:
+    #    rValue=os.system(sCmd)
+    #except:
+    #    logger.error(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
+    #    sys.exit(-7)
+    # sCmd="cp "+ymlFile+'.bac '+ymlFile # recover backup file.
+    # os.system(sCmd)
 
     
-    return(sNewYmlFileName, oldDiscoveredObservations)  # oldDiscoveredObservations is only used by LumiaGUI
+    return(sNewYmlFileName, oldDiscoveredObservations, myMachine)  # oldDiscoveredObservations is only used by LumiaGUI
 
 
 

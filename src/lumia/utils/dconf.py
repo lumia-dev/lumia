@@ -55,31 +55,33 @@ def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictCon
     
     For example, consider the following sections of a yaml file:
     ```
-        laptop :
-            temp : /dev/shm/lumia
-            footprints : /data/LUMIA/footprints
-            correlations : /data/LUMIA/correlations
-            ncores : 8
-            output : output
-        
-        hpc :
-            temp : /tmp
-            footprints : /proj/LUMIA/footprints
-            correlations : /scratch/LUMIA/correlations
-            ncores : ${oc.env:SLURM_TASKS_PER_NODE}
-            output : /scratch/LUMIA/output
+        machine:
+            laptop :
+                temp : /dev/shm/lumia
+                footprints : /data/LUMIA/footprints
+                correlations : /data/LUMIA/correlations
+                ncores : 8
+                output : output
             
-        run :
-            start : 1 jan 2018
-            end : 1 jan 2019
-            tag : my-project
-            ncpus : ${machine.ncpus}
-            paths : 
-                temp : ${machine.tmp}
-                footprints : ${machine.footprints}
-                correlations : ${machine.correlations}
-                output : ${machine.output}/${.tag}
-            
+            hpc :
+                temp : /tmp
+                footprints : /proj/LUMIA/footprints
+                correlations : /scratch/LUMIA/correlations
+                ncores : ${oc.env:SLURM_TASKS_PER_NODE}
+                output : /scratch/LUMIA/output
+                
+            run :
+                start : 1 jan 2018
+                end : 1 jan 2019
+                tag : my-project
+                ncpus : machine.${machine.ncpus}
+                paths : 
+                    temp : ${machine.tmp}
+                    footprints : ${machine.footprints}
+                    correlations : ${machine.correlations}
+                    output : ${machine.output}/${.tag}
+                    
+        example: machine='machine.hpc'    
     ```
     
     If loaded with "read_config(filename, machine='hpc')", the keys under the "run" section will read their value from the "hpc" section, e.g. "run.paths.footprints" will evaluate to "/proj/LUMIA/footprints".
@@ -104,8 +106,20 @@ def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictCon
     
     dconf = OmegaConf.load(file)
     if machine :
-        logger.info(f'Setting config section "machine" to "{machine}"')
-        dconf['machine'] = dconf[machine]
+        logger.info(f'Setting config section "{machine}" to "machine"')
+        # Be fault tolerant: machine definitions may be organised under a common machine: key or as in older yaml files just scattered about.
+        try:
+            if('.' in machine): # machine can be 'machine.cosmos' or simply 'cosmos' 
+                machineParts=machine.split('.')
+                dconf['machine'] = dconf[machineParts[0]][machineParts[1]]
+            else:
+                dconf['machine'] = dconf[machine]  # old style
+        except:
+            machine='machine.'+machine  # try some graceful error handling: user selects 'cosmos' though config file may have this under machine:cosmos
+            try:
+                dconf['machine'] = dconf['machine'][machine]
+            except:
+                logger.error(f'Fatal error: Cannot find key {machine} in user yaml config file {file}')
         
     # Add keys for other sections as well
     if extra_keys is not None :

@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaMaster",
     "copyright": "Copyright (C) 2024 guillaume.monteil@nateko.lu.se with additions from arndt.meier@nateko.lu.se, arndt.meier@nateko.lu.se",
-    "saved": "2024-06-10, 11:07:36"
+    "saved": "2024-06-18, 09:53:34"
   },
   "project": {
     "AUTHOR": "guillaume.monteil@nateko.lu.se with additions from arndt.meier@nateko.lu.se",
@@ -93,6 +93,7 @@
       "run/ch4_inversion.py",
       "run/co2_inversion.py",
       "run/control_inversion.py",
+      "run/runLumia.py",
       "src/gridtools/__init__.py",
       "src/icosPortalAccess/getHandleFromDoi.py",
       "src/icosPortalAccess/readLv3NcFileFromCarbonPortal.py",

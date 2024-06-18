@@ -96,8 +96,11 @@ opt.vectors.to_xarray().to_netcdf(Path(dconf.run.paths.output) / 'states.nc')
 
 
 # Validation:
-apri = model.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apri.nc')
-apos = model.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apos.nc')
+#apri = model.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apri.nc')
+#apos = model.Data.from_file(Path(dconf.run.paths.output) / 'emissions.apos.nc')
+apri = model.Data.from_file(Path(dconf.run.thisRun.uniqueOutputPrefix) +'emissions.apri.nc')
+apos = model.Data.from_file(Path(dconf.run.thisRun.uniqueOutputPrefix) +'emissions.apos.nc')
+
 valid = lumia.Observations.from_tar(dconf.observations.validation_file)
 valid.select_times(tmin=dconf.run.start, tmax=dconf.run.end)
 for k, v in dconf.observations.get('rename', {}).items():
