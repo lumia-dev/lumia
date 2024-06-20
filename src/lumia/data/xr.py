@@ -723,7 +723,9 @@ def load_preprocessed(
     - freq      : frequency of the produced emissions. If the pre-processed files are at a lower frequency, they will
                   be up-sampled (by simple rebinning, no change in the actual flux distribution).
     - grid      : grid definition of the produced emissions. Not fully implemented, should be left to default value
-    - archive   : alternative location for the pre-processed emission files. Should be a rclone remote, (e.g. rclone:lumia:path/to/the/emissions). The remote must be configured on the system (i.e. "rclone lsf rclone:lumia:path/to/the/emissions should return the list of emission files on the rclone remote)
+    - archive   : alternative location for the pre-processed emission files. Should be a rclone remote, (e.g. rclone:lumia:path/to/the/emissions). 
+                    The remote must be configured on the system (i.e. "rclone lsf rclone:lumia:path/to/the/emissions should return the list of 
+                    emission files on the rclone remote. See also the machine:MACHINE:archive key in the config.yaml file)
     - field     : name of the field to be read, in case there are several fields in the pre-processed emission file
     """
 

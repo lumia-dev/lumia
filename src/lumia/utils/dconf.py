@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import traceback
 from omegaconf import OmegaConf, DictConfig
 from pandas import Timestamp
 from types import SimpleNamespace
@@ -48,14 +49,16 @@ OmegaConf.register_new_resolver('ts', Timestamp)
 OmegaConf.register_new_resolver('Grid', lambda d: Grid(**d))
 
 
-def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictConfig:
+def read_config(file : str | Path, myMachine: str = None, **extra_keys) -> DictConfig:
     """
     Load a yaml configuration file.
-    The "machine" optional argument can be a string, pointing to the name of a section to be rename as "machine". The content of that section should be machine-specific settings (i.e. paths, libraries, number of CPUs, etc.). This allows having a single configuration file valid on different computers.
+    The "myMachine" optional argument can be a string, pointing to the name of a section to be rename as "machine". 
+    The content of that section should be machine-specific settings (i.e. paths, libraries, number of CPUs, etc.). 
+    This allows having a single configuration file valid on different computers.
     
     For example, consider the following sections of a yaml file:
     ```
-        machine:
+        machines:
             laptop :
                 temp : /dev/shm/lumia
                 footprints : /data/LUMIA/footprints
@@ -81,12 +84,12 @@ def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictCon
                     correlations : ${machine.correlations}
                     output : ${machine.output}/${.tag}
                     
-        example: machine='machine.hpc'    
+        example: machine='machines.hpc'    
     ```
     
-    If loaded with "read_config(filename, machine='hpc')", the keys under the "run" section will read their value from the "hpc" section, e.g. "run.paths.footprints" will evaluate to "/proj/LUMIA/footprints".
+    If loaded with "read_config(filename, myMachine='hpc')", the keys under the "run" section will read their value from the "hpc" section, e.g. "run.paths.footprints" will evaluate to "/proj/LUMIA/footprints".
     
-    If no value is provided for "machine", an error will be raised when attempting to read keys pointing to the "machine" section. To prevent that, one solution can be to add a default "machine" section.
+    If no value is provided for "myMachine", an error will be raised when attempting to read keys pointing to the "machines" section. To prevent that, one solution can be to add a default "machine" section.
     
     ```
         machine :
@@ -105,21 +108,22 @@ def read_config(file : str | Path, machine: str = None, **extra_keys) -> DictCon
     logger.info(f'Read config file {file}')
     
     dconf = OmegaConf.load(file)
-    if machine :
-        logger.info(f'Setting config section "{machine}" to "machine"')
-        # Be fault tolerant: machine definitions may be organised under a common machine: key or as in older yaml files just scattered about.
+    if myMachine :
+        logger.info(f'Setting config section "{myMachine}" to "machine"')
+        # Be fault tolerant: myMachine definitions may be organised under a common machines: key or as in older yaml files just scattered about.
         try:
-            if('.' in machine): # machine can be 'machine.cosmos' or simply 'cosmos' 
-                machineParts=machine.split('.')
+            if('.' in myMachine): # myMachine can be 'machines.cosmos' or simply 'cosmos' 
+                machineParts=myMachine.split('.')
                 dconf['machine'] = dconf[machineParts[0]][machineParts[1]]
             else:
-                dconf['machine'] = dconf[machine]  # old style
+                dconf['machine'] = dconf[myMachine]  # old style
         except:
-            machine='machine.'+machine  # try some graceful error handling: user selects 'cosmos' though config file may have this under machine:cosmos
             try:
-                dconf['machine'] = dconf['machine'][machine]
+                dconf['machine'] = dconf['machines'][myMachine]
             except:
-                logger.error(f'Fatal error: Cannot find key {machine} in user yaml config file {file}')
+                myMachine='machines.'+myMachine  # try some graceful error handling: user selects 'cosmos' though config file may have this under machines:cosmos
+                dconf['machine'] = dconf[myMachine]
+                logger.error(f'Fatal error: Cannot find key {myMachine} in user yaml config file {file}')
         
     # Add keys for other sections as well
     if extra_keys is not None :

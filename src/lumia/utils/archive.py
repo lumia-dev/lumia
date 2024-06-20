@@ -1,8 +1,10 @@
 import os
+import sys
 import subprocess
 from loguru import logger
 from dataclasses import dataclass
 from typing import List
+import re
 
 def runSysCmd(sCmd,  ignoreError=False):
     try:
@@ -39,7 +41,14 @@ class Rclone:
                 # More important than allowing a different local folder name is the ability to send options with the protocol like an authentication token for swestore.
                 self.localPath, self.protocol, self.remote, self.remotePath = self.path.split(':')
             logger.debug(f'archive.rclone.__post_init__: self.protocol={self.protocol}')
-
+            #if('--client-cert=' in self.path):
+            tokenFound = re.search('--client-cert=(.+?) ', self.path)
+            if(tokenFound):
+                remoteMachineAccessToken=tokenFound.group(1)
+                if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
+                    logger.error(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
+                    sys.exit(-7)
+                # TODO: check age of token
     def download(self, remotepath: str, localpath: str) -> None:
         if self.path is None :
             return

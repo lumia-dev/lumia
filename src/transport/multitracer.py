@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 from loguru import logger
 from transport.core import Model
 from transport.emis import Emissions
@@ -66,7 +67,7 @@ if __name__ == '__main__':
         logPath=f'{sOutputPrfx}multitracer-{i}.log'
         scriptName=f'multitracer-{i}'
         i+=1
-    setupLogging(log_level,  scriptName, sOutputPrfx,  '.log',  cleanSlate=True)
+    setupLogging(log_level,  scriptName, sOutputPrfx,  '.log',  cleanSlate=False)
     logger.debug(f'Creating logfile {sOutputPrfx}{scriptName}.log')
 
     obs = Observations.read(args.obs)

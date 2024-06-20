@@ -28,7 +28,7 @@ def main():
     if (args.machine is None):
         print("Lumia: Fatal error: no machine provided. Select one of the machines defined in your yaml config file - add machines as needed in that file.")
         sys.exit(-2)
-    machine=args.machine
+    myMachine=args.machine
     if(args.config is None):
         print("Lumia: Warning: no user configuration (yaml) file provided. Defaulting to control_inversion.yaml in the working directory.")
         ymlConfigFile="control_inversion.yaml"    
@@ -38,15 +38,15 @@ def main():
         
     # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
     thisScript='LumiaMaster'
-    (ymlConfigFile, oldDiscoveredObservations, machine)=documentThisRun(ymlConfigFile, thisScript,  args, myMachine=machine)  # from housekeepimg.py
+    (ymlConfigFile, oldDiscoveredObservations, myMachine)=documentThisRun(ymlConfigFile, thisScript,  args, myMachine=myMachine)  # from housekeepimg.py
     print(f'updated configuratrion yaml file written to {ymlConfigFile}')
     
     # oldDiscoveredObservations is not needed in LumiaDA, only in lumiaGUI
     # Now the config.yml file has all the details for this particular run
     
     
-    conf= lumia.read_config(ymlConfigFile,machine=machine)
-    #conf= lumia.read_config("LumiaDA-2024-05-15T16_46-config.yml",machine="skuggfaxe")
+    conf= lumia.read_config(ymlConfigFile,myMachine=myMachine)
+    #conf= lumia.read_config("LumiaDA-2024-05-15T16_46-config.yml",myMachine="skuggfaxe")
     lumia.settings.write(conf, Path(conf.run.paths.output + '/'+ymlConfigFile))  # update the config file in the original location
     p1=Path(conf.run.thisRun.uniqueOutputPrefix)
     p2=Path(conf.run.thisRun.uniqueOutputPrefix +'/'+ymlConfigFile) 
@@ -78,6 +78,8 @@ def main():
     emis = lumia.Data.from_dconf(conf, conf.run.start, conf.run.end)
     print(f'emis={emis}')
     "Done loading emissions"
+    
+    print(f'**conf.model={str(**conf.model)}')
     transport = lumia.Transport(**conf.model)
     "Done running the transport"
     # brings model to vector 
