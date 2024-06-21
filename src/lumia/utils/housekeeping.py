@@ -523,7 +523,7 @@ def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='-run.log
         format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <c>{file.path}</>:<c>{line})</> | {message}',  #<blue><c>{file.path}</>:<c>{line}</blue>)</> | {message}',
         level= log_level, colorize=True, backtrace=True, diagnose=True
     )
-    logFile=sOutputPrfx+parentScript+logName
+    logFile=sOutputPrfx+logName
     logger.info(f'A log file is written to {logFile}.')
     logger.add(
         logFile,
@@ -593,7 +593,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     (nVers, nSubVers, repoUrl, branch, sLocalGitRepos, remoteCommitUrl, myCom, LATESTGITCOMMIT_LumiaDA)=\
                                                         queryGitRepository(parentScript, ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
     # # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'executable'],   value='${lumia:src/transport/multitracer.py}', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'executable'],   value='${lumia:transport/multitracer.py}', bNewValue=False)
 
     # ### Tracer background concentration files ### # 
     handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
@@ -755,15 +755,16 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file', 'selectedObsData'],   value='None', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file','selectedPIDs'],   value='None', bNewValue=False)
     
+    # !! LumiaMaster does not appreciate the key communication_file being set, so don't
     # Make explicitly stated communication and temporal files use the unique identifier for file names and directory locations:
     #congrad:
     #  communication_file: ${run.paths.temp}/congrad.nc
     # var4d:
     #  file: /home/arndt/nateko/data/icos/DICE/tmp/congrad.nc
     # These 2 keys always point to the same file, only that the var4d one is calculated later using the ${run.paths.temp} placeholder's value
-    congradFile=sTmpPrfx+'congrad.nc'
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d', 'communication', 'file'],   value=congradFile, bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'congrad', 'communication_file'],   value=congradFile, bNewValue=True)
+    # congradFile=sTmpPrfx+'congrad.nc'
+    # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d', 'communication', 'file'],   value=congradFile, bNewValue=True)
+    # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'congrad', 'communication_file'],   value=congradFile, bNewValue=True)
 
     
     # Now update the configuration file writing everything out and hand control back to the main program....

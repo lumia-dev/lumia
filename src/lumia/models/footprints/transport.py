@@ -136,7 +136,8 @@ class Transport:
         if(p==0):
             logger.debug(f'return value from subprocess is={p} -- all good.')
         else:
-            logger.warning(f'Non-zero (val={p}) return value from subprocess {sCmd}.')
+            logger.error(f'Non-zero return value (val={p}) from subprocess {sCmd}.')
+            raise RuntimeError(f'Non-zero return value (val={p}) from subprocess {sCmd}.')
 
         # Read result and return:
         return Data.from_file(adjemis_file)

@@ -1,5 +1,6 @@
 from pathlib import Path
 from lumia.utils.housekeeping import documentThisRun,  getTracer
+import os
 import sys
 from argparse import ArgumentParser
 from loguru import logger
@@ -65,24 +66,20 @@ def main():
     # obs = lumia.Observations.from_tar(conf.observations.file.path)
     #obs.observations.loc[:, 'obs'] = np.random.normal(obs.observations['mix_truth'].values, obs.observations['err'].values)
     obs.observations.loc[:, 'obs'] = obs.observations['mix_truth'].values
-    "Done loading obs"
+    logger.info("Done loading obs")
     emis = lumia.Data.from_dconf(conf, conf.run.start, conf.run.end)
-    print(f'emis={emis}')
-    "Done loading emissions"
+    logger.info(f'emis={emis}')
+    logger.info("Done loading emissions")
     
-    myDict=(conf.model)
-    print(f'conf.model={myDict}')
     transport = lumia.Transport(**conf.model)
-    "Done running the transport"
+    logger.info("Done running the transport model")
     # brings model to vector 
     mapping = lumia.Mapping.init(conf, emis)
-    "Done running with the mapping"
-    print(f'conf.run.paths={conf.run.paths}')
+    logger.info("Done running with the mapping")
+    logger.debug(f'conf.run.paths={conf.run.paths}')
     prior = lumia.PriorConstraints.setup(conf.run.paths, mapping)
     
-    p=Path(conf.run.thisRun.uniqueOutputPrefix) +'emissions.apri.nc'
-    print(f'dconf.run.thisRun.uniqueOutputPrefix+emissions.apri.nc={p}')
-    "run inversion"
+    logger.info("Now run the inversion...")
     opt = lumia.Optimizer(
        prior = prior,
        model = transport, 
@@ -102,5 +99,9 @@ def main():
     emis.to_netcdf(Path(conf.run.thisRun.uniqueOutputPrefix) +'emissions.apri.nc')
     apos.to_netcdf(Path(conf.run.thisRun.uniqueOutputPrefix) + 'emissions.apos.nc')
     obs.save_tar(Path(conf.run.thisRun.uniqueOutputPrefix) + 'observations.apos.tar.gz')
+    p=str(conf.run.thisRun.uniqueOutputPrefix)
+    p=os.path.dirname(p)
+    logger.info(f'All output written to {p}')
+    logger.info('Lumia run completed. Done.')
 
 main()

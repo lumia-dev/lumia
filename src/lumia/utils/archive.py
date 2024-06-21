@@ -48,7 +48,7 @@ class Rclone:
                 remoteMachineAccessToken=tokenFound.group(1)
                 if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
                     logger.error(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
-                    sys.exit(-7)
+                    raise RuntimeError('The remote machine access token for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
                 ageInSeconds=time() - os.path.getctime(remoteMachineAccessToken)
                 #ageLstInSeconds=time() - os.path.getmtime(remoteMachineAccessToken)
                 if(ageInSeconds > (12*3600)):
