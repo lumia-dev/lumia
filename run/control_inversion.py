@@ -28,7 +28,6 @@ obs.observations.loc[:, 'obs'] = obs.observations['mix_truth'].values
 "Done loading obs"
 emis = lumia.Data.from_dconf(conf, conf.run.start, conf.run.end)
 "Done loading emissions"
-print(f'**conf.model={str(**conf.model)}')
 transport = lumia.Transport(**conf.model)
 "Done running the transport"
 # brings model to vector 

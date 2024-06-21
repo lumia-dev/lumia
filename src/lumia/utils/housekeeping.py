@@ -368,6 +368,9 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
     scriptName=sys.argv[0]
     script_directory = os.path.dirname(os.path.abspath(scriptName))
     scriptTail=scriptName[-6:]
+    lumiaGUIdir=pathlib.Path(script_directory)
+    oneLevelUp=lumiaGUIdir.parent
+    lumiaDA_directory=oneLevelUp.parent
     bHaveGit=True
     if('.ipynb' in scriptTail):
         logger.info('Local git information is not available from this python notebook. This means we cannot check what the latest version is, but that is not a drama.')
@@ -383,9 +386,6 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
             # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
             if('LumiaGUI' in parentScript):
                 # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here
-                lumiaGUIdir=pathlib.Path(script_directory)
-                oneLevelUp=lumiaGUIdir.parent
-                lumiaDA_directory=oneLevelUp.parent
                 try:
                     localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
                 except:
@@ -544,12 +544,11 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         tkey=ymlContents[myMachine]  # old style, machine entries anywhere in the yaml file
     except:
         try:
-            tkey=ymlContents['machine'][myMachine]
-            myMachine='machine.'+myMachine  # newer style with all machine definitions under a common machine: entry
+            tkey=ymlContents['machines'][myMachine]
+            myMachine='machines.'+myMachine  # newer style with all machine definitions under a common machine: entry
         except:
             logger.error(f'Fatal error: User provided machine name {myMachine} not found in the specified yaml config file {ymlFile}')
             sys.exit(-4)
-    
     # the unique identifer used in folder and file names is based on the date of time we run Lumia
     current_date = datetime.now()
     sNow=current_date.isoformat("T","seconds") # sNow is the time stamp for all log files of a particular run
@@ -573,7 +572,6 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication',  'file'],   value='congrad.nc', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward', bNewValue=False)
     
@@ -592,8 +590,10 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     logger.info(f'{args}')  # document how Lumia was called including commandline options
     
     # ### query Git - what version of Lumia are we running? ### #        
-    (nVers, nSubVers, repoUrl, branch, sLocalGitRepos, remoteCommitUrl, myCom, LATESTGITCOMMIT_LumiaDA)=queryGitRepository(parentScript, 
-                                                                                                                                    ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
+    (nVers, nSubVers, repoUrl, branch, sLocalGitRepos, remoteCommitUrl, myCom, LATESTGITCOMMIT_LumiaDA)=\
+                                                        queryGitRepository(parentScript, ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
+    # # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'executable'],   value='${lumia:src/transport/multitracer.py}', bNewValue=False)
 
     # ### Tracer background concentration files ### # 
     handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
@@ -767,27 +767,33 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
 
     
     # Now update the configuration file writing everything out and hand control back to the main program....
+    # update the original config yaml file (in working directory or elsewhere)
     try:
         with open(ymlFile, 'w') as outFile:  # we are updating/replacing the configuration file
             yaml.dump(ymlContents, outFile)    
     except:
         logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
         sys.exit(-19)
+
+    # in the local config file (see just above) we don't add the unique folder below output and tmp 
+    # so it can serve as a blueprint for the next run
+    # However, the config yaml we save in output and that we will use in this run should contain the uniquely
+    # named subfolder after the output and tmp locations so all output from this run ends in a dedicated folder.
+    sOutpDir=os.path.dirname(sOutputPrfx)
+    sTmpDir=os.path.dirname(sTmpPrfx)
+    ymlContents['run']['paths']['output']=sOutpDir
+    ymlContents['run']['paths']['temp']=sTmpDir
     sNewYmlFileName=f'{sOutputPrfx}config.yml' # v{nVers}.{nSubVers}-{tracer}
-    sCmd=f'cp {ymlFile} {sNewYmlFileName}'
-    rValue=0
-    print(f'sCmd={sCmd}')
     try:
-        rValue=os.system(sCmd)
+        with open(sNewYmlFileName, 'w') as outFile:  # we are writing the configuration file into the output folder
+            yaml.dump(ymlContents, outFile)    
     except:
-        logger.error(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
-        sys.exit(-7)
-    if(rValue!=0):
-        logger.error(f'Abort. os.popen({sCmd}) returned an error. Future reproducibility of this Lumia run is compromised, because I cannot document the Lumia configuration you are using.')
-        sys.exit(-8)
-    sCmd=f'cp {ymlFile}.bac {sNewYmlFileName}.bac'  # copy also the .bac file in case the user pulls out and we want to revert to the original ymlFIle
-    print(f'sCmd={sCmd}')
-    rValue=os.system(sCmd)
+        logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
+        sys.exit(-19)
+
+    #sCmd=f'cp {ymlFile}.bac {sNewYmlFileName}.bac'  # copy also the .bac file in case the user pulls out and we want to revert to the original ymlFIle
+    #print(f'sCmd={sCmd}')
+    #rValue=os.system(sCmd)
 
     # Document the Python environment
     sCmd=(f'pip list --format=freeze > {sOutputPrfx}python-environment-pipLst.txt')
@@ -814,8 +820,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     #    sys.exit(-7)
     # sCmd="cp "+ymlFile+'.bac '+ymlFile # recover backup file.
     # os.system(sCmd)
-
-    
+    logger.info(f'updated configuratrion yaml file written to {sNewYmlFileName}')
     return(sNewYmlFileName, oldDiscoveredObservations, myMachine)  # oldDiscoveredObservations is only used by LumiaGUI
 
 

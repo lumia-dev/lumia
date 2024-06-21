@@ -1,5 +1,6 @@
 import os
 import sys
+from time import time
 import subprocess
 from loguru import logger
 from dataclasses import dataclass
@@ -48,6 +49,10 @@ class Rclone:
                 if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
                     logger.error(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
                     sys.exit(-7)
+                ageInSeconds=time() - os.path.getctime(remoteMachineAccessToken)
+                #ageLstInSeconds=time() - os.path.getmtime(remoteMachineAccessToken)
+                if(ageInSeconds > (12*3600)):
+                    logger.warning(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive is older than 12 hours and may have expired.')
                 # TODO: check age of token
     def download(self, remotepath: str, localpath: str) -> None:
         if self.path is None :

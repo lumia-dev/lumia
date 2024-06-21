@@ -35,23 +35,14 @@ def main():
     else:
         ymlConfigFile=str(args.config)
         
-        
     # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
     thisScript='LumiaMaster'
     (ymlConfigFile, oldDiscoveredObservations, myMachine)=documentThisRun(ymlConfigFile, thisScript,  args, myMachine=myMachine)  # from housekeepimg.py
-    print(f'updated configuratrion yaml file written to {ymlConfigFile}')
-    
     # oldDiscoveredObservations is not needed in LumiaDA, only in lumiaGUI
     # Now the config.yml file has all the details for this particular run
     
-    
     conf= lumia.read_config(ymlConfigFile,myMachine=myMachine)
-    #conf= lumia.read_config("LumiaDA-2024-05-15T16_46-config.yml",myMachine="skuggfaxe")
-    lumia.settings.write(conf, Path(conf.run.paths.output + '/'+ymlConfigFile))  # update the config file in the original location
-    p1=Path(conf.run.thisRun.uniqueOutputPrefix)
-    p2=Path(conf.run.thisRun.uniqueOutputPrefix +'/'+ymlConfigFile) 
-    print(f'p1={p1}, p2={p2}') # write a copy of the updated config file to the output directory (with unique name)
-    lumia.settings.write(conf, Path(conf.run.thisRun.uniqueOutputPrefix+'/'+ymlConfigFile))
+    lumia.settings.write(conf, Path(ymlConfigFile)) # update the config file with the selected machine
     
     "Loading obs"
     tracer=getTracer(conf.run.tracers)
@@ -79,7 +70,8 @@ def main():
     print(f'emis={emis}')
     "Done loading emissions"
     
-    print(f'**conf.model={str(**conf.model)}')
+    myDict=(conf.model)
+    print(f'conf.model={myDict}')
     transport = lumia.Transport(**conf.model)
     "Done running the transport"
     # brings model to vector 
