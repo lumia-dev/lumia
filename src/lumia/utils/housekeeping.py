@@ -13,6 +13,7 @@ import pathlib
 import hashlib
 import re
 import yaml
+from time import time
 from datetime import datetime
 from pandas import  Timestamp  # , to_datetime
 from loguru import logger
@@ -512,7 +513,7 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
 
 
     # ### set up logging ### #
-def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='-run.log',  cleanSlate=True):
+def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='run.log',  cleanSlate=True):
     if(cleanSlate):
         logger.remove()
     #log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <level>{level: <8}</level> | <yellow>Line {line: >4} ({file}):</yellow> <b>{message}</b>"
@@ -523,7 +524,10 @@ def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='-run.log
         format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <g>{elapsed}</> | <level>{level: <8}</level> | <c>{file.path}</>:<c>{line})</> | {message}',  #<blue><c>{file.path}</>:<c>{line}</blue>)</> | {message}',
         level= log_level, colorize=True, backtrace=True, diagnose=True
     )
-    logFile=sOutputPrfx+logName
+    if(sOutputPrfx in logName):
+        logFile=logName
+    else:
+        logFile=sOutputPrfx+logName
     logger.info(f'A log file is written to {logFile}.')
     logger.add(
         logFile,
@@ -531,6 +535,16 @@ def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='-run.log
         level= log_level, colorize=True, backtrace=True, diagnose=True, rotation="5 days"
     )
 
+
+def tryToCreateNewToken(ymlContents, myMachine):            
+    try:
+        tokenGenerator=ymlContents['emissions']['tokenGenerator']
+        while(tokenGenerator[0]=='$'): 
+            tokenGenerator=expandKeyValue(tokenGenerator[2:-1] ,ymlContents, myMachine)
+        os.system(tokenGenerator)
+    except:
+        logger.warning('The key emissions.tokenGenerator is not defined in your yaml configuration file, so I cannot call it for you. You will have to create a valid token by your usual means before running LUMIA.')
+        return  # user has to fix the token issue manually after the exception will be raised
     
 
 def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNOWN'):
@@ -578,6 +592,42 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     if ((args is not None) and (args.serial)) : 
         setKeyVal_Nested_CreateIfNecessary(ymlContents, ['model', 'options',  'serial'],   value=True, bNewValue=True)
     myCom=""
+
+    # Let's be nice: check if a token is required for rclone and if yes, check if it is valid, before wasting time on a doomed Lumia run... 
+    try:
+        try:
+            tracer=getTracer(ymlContents['run']['tracers'])
+        except:
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'tracers'],   value= 'co2', bNewValue=True)
+            tracer='co2'
+        archiveAccessKey=ymlContents['emissions'][tracer]['archive']
+        while(archiveAccessKey[0]=='$'): 
+            archiveAccessKey=expandKeyValue(archiveAccessKey[2:-1] ,ymlContents, myMachine)
+        #if('--client-cert=' in archiveAccessKey):
+        tokenFound = re.search('--client-cert=(.+?) ', archiveAccessKey)
+        if(tokenFound):
+            remoteMachineAccessToken=tokenFound.group(1)
+            if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
+                tryToCreateNewToken(ymlContents, myMachine)
+            if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
+                logger.error(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
+                raise RuntimeError('The remote machine access token for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
+            ageInSeconds=time() - os.path.getctime(remoteMachineAccessToken)
+            #ageLstInSeconds=time() - os.path.getmtime(remoteMachineAccessToken)
+            maxAge=12*3600
+            try:
+                maxAge=ymlContents['emissions']['tokenTimeout']
+                while((isinstance(maxAge, str)) and (maxAge[0]=='$')): 
+                    maxAge=expandKeyValue(maxAge[2:-1] ,ymlContents, myMachine)
+            except:
+                maxAge=12*3600
+            if(ageInSeconds > int(maxAge)):
+                maxHours=maxAge/3600
+                logger.warning(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive is older than {maxHours} hours and may have expired.')
+                tryToCreateNewToken(ymlContents, myMachine)
+    except:
+        pass
+    
     
     # ### Configure the output directories ### #
     (sOutputPrfx,  sTmpPrfx)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
@@ -754,7 +804,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file', 'discoverData'],   value=False, bNewValue=False) # only create if not exist.
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file', 'selectedObsData'],   value='None', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file','selectedPIDs'],   value='None', bNewValue=False)
-    
+
     # !! LumiaMaster does not appreciate the key communication_file being set, so don't
     # Make explicitly stated communication and temporal files use the unique identifier for file names and directory locations:
     #congrad:

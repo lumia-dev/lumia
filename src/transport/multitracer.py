@@ -58,7 +58,7 @@ if __name__ == '__main__':
     #logger.remove()
     #logger.add(sys.stderr, level=args.verbosity)
     #logger.debug('test')
-    log_level=args.verbosity
+    log_level=args.verbosity # 'DEBUG'
     sOutputPrfx=args.outpPathPrfx
     logPath=f'{sOutputPrfx}multitracer.log'
     i=1
@@ -67,8 +67,8 @@ if __name__ == '__main__':
         logPath=f'{sOutputPrfx}multitracer-{i}.log'
         scriptName=f'multitracer-{i}'
         i+=1
-    setupLogging(log_level,  scriptName, sOutputPrfx,  '.log',  cleanSlate=False)
-    logger.debug(f'Creating logfile {sOutputPrfx}{scriptName}.log')
+    setupLogging(log_level,  scriptName, sOutputPrfx,  logPath,  cleanSlate=False)
+    logger.info(f'{args}')  # document how multitracer.py was called including commandline options
 
     obs = Observations.read(args.obs)
 
@@ -95,11 +95,15 @@ if __name__ == '__main__':
 
     if args.forward:
         obs = model.run_forward(obs, emis)
+        logger.info('forward model completed successfully. Writing results...')
         obs.write(args.obs)
 
     elif args.adjoint :
         adj = model.run_adjoint(obs, emis)
+        logger.info('adjoint model completed successfully. Writing results...')
         adj.write(args.emis)
 
     elif args.adjtest :
         model.adjoint_test(obs, emis)
+        logger.info('adjoint test model completed successfully.')
+    logger.info('multitracer.py subprocess completed successfully.')

@@ -56,6 +56,7 @@ def runcmd(cmd, shell : bool = False):
     except subprocess.CalledProcessError :
         logger.error("external command failed, exiting ...")
         raise subprocess.CalledProcessError
+    logger.debug(f'return value from subprocess.run({cmd} is p={p}.')
     # for line in p.stdout:
     #     sys.stdout.buffer.write(line)
     #     sys.stdout.buffer.flush()

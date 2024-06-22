@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import os
 from dataclasses import dataclass, field
 from numpy.typing import NDArray
 from pathlib import Path
@@ -36,10 +37,13 @@ class Transport:
     extra_fields : List[str]
     serial : bool
     setup_uncertainties : List[str] = field(default_factory=list)
-    emissions_file : Path | None = None
+    emissions_file : Path | None = None    
 
     def __post_init__(self):
         self._observations = None
+        pth=str(self.path_output)
+        folders=pth.split(os.path.sep)
+        self.sOutputPrfx=pth+os.path.sep+folders[-1]+'-'        
         self.path_temp = Path(self.path_temp)
         self.path_output = Path(self.path_output)
         self.path_footprints = Path(self.path_footprints)
@@ -120,24 +124,23 @@ class Transport:
         if "*" in self.extra_arguments:
             sCmd.append(self.extra_arguments['*'])
 
-        # MasterPlus addons for improved logging and error detection in case the subprocess should fail.
-        if('multitracer.py' in sCmd):
-            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-            # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+        # MasterPlus addons for improved logging
+        # Run the model executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+        if('multitracer.py' in self.executable[-1]): # sCmd):
             sCmd.append('--outpPathPrfx')
-            sCmd.append( sOutputPrfx)
-            sCmd.append('--verbosity')
-            sCmd.append(logLevel)
+            sCmd.append( self.sOutputPrfx)
+        sCmd.append('--verbosity')
+        sCmd.append(logLevel)
         logger.info(f'Calling transport model with command:\n{sCmd}')
 
         # Run the transport model 
         logger.debug(f'Calling transport model in a subprocess with cmd={sCmd}')
         p=runcmd(sCmd, shell=True)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
-        if(p==0):
-            logger.debug(f'return value from subprocess is={p} -- all good.')
-        else:
-            logger.error(f'Non-zero return value (val={p}) from subprocess {sCmd}.')
-            raise RuntimeError(f'Non-zero return value (val={p}) from subprocess {sCmd}.')
+        # if(p==0):
+        #     logger.debug(f'return value from subprocess is={p} -- all good.')
+        # else:
+        #     logger.error(f'Non-zero return value (val={p}) from subprocess {sCmd}.')
+        #     raise RuntimeError(f'Non-zero return value (val={p}) from subprocess {sCmd}.')
 
         # Read result and return:
         return Data.from_file(adjemis_file)
@@ -164,27 +167,22 @@ class Transport:
         if '*' in self.extra_arguments:
             sCmd.append(self.extra_arguments['*'])
             
-        # MasterPlus addons for improved logging and error detection in case the subprocess should fail.
-        if('multitracer.py' in sCmd):
-            sOutputPrfx=self.rcf[ 'run']['thisRun']['uniqueOutputPrefix']
-            if(dbf is None):
-                logger.warning('Warning: dbf is None. That may cause trouble...')
-            else:
-                logger.debug(f' dbf={dbf}')
-            # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+        # MasterPlus addons for improved logging
+        # Run the model executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
+        if('multitracer.py' in self.executable[-1]): # sCmd):
             sCmd.append('--outpPathPrfx')
-            sCmd.append( sOutputPrfx)
-            sCmd.append('--verbosity')
-            sCmd.append(logLevel)
+            sCmd.append( self.sOutputPrfx)
+        sCmd.append('--verbosity')
+        sCmd.append(logLevel)
             # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
         logger.info(f'Calling transport model with command:\n{sCmd}')
         # Run the transport model 
         logger.debug(f'Calling transport model in a subprocess with cmd={sCmd}')
         p=runcmd(sCmd, shell=True)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
-        if(p==0):
-            logger.debug(f'return value from subprocess is={p} -- all good.')
-        else:
-            logger.warning(f'Non-zero (val={p}) return value from subprocess {sCmd}.')
+        # if(p==0):
+        #     logger.debug(f'return value from subprocess is={p} -- all good.')
+        # else:
+        #     logger.warning(f'Non-zero (val={p}) return value from subprocess {sCmd}.')
 
         return emf, dbf
 
