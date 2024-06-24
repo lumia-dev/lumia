@@ -15,6 +15,7 @@ import re
 import yaml
 from time import time
 from datetime import datetime
+from dateutil.parser import parse
 from pandas import  Timestamp  # , to_datetime
 from loguru import logger
 
@@ -43,6 +44,8 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
         sOutpDir="./output"
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'output' ],   value=sOutpDir, bNewValue=True)
     if(len(sOutpDir)>0):
+        # if the output directory already contains a subdirectory with a date, then we want to strip that lowest level and create our output at the same level with current date+time
+        sOutpDir=stripDateLevelIfPresent(sOutpDir)
         sCmd=("mkdir -p "+sOutpDir)
     try:
         os.system(sCmd)
@@ -65,7 +68,8 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
     except:
         sTmpDir="./tmp"
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'temp' ],   value=sTmpDir, bNewValue=True)
-    if(len(sOutpDir)>0):
+    if(len(sTmpDir)>0):
+        sTmpDir=stripDateLevelIfPresent(sTmpDir)
         sCmd=("mkdir -p "+sTmpDir)
     try:
         if not('LumiaGUI' in parentScript): # lumiaGUI only writes to the outputDir not the sTmpDir directory
@@ -235,12 +239,14 @@ background:
                 if('.' in myMachine):
                     splitty=myMachine.split('.')
                     mMachine=splitty[1]
-                    myfile=ymlContents['machine'][mMachine]['backgrounds']
+                    myfile=ymlContents['machines'][mMachine]['backgrounds']
                 else:
                     myfile=ymlContents[myMachine]['backgrounds']
+                    while(myfile[0]=='$'): 
+                        myfile=expandKeyValue(myfile[2:-1] ,ymlContents, myMachine)
                 setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations', tracer ,'backgroundFiles'],   value= '$'+'{'+'machine.backgrounds'+'}', bNewValue=True)
             except:
-                logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFile nor in the {myMachine}.backgrounds key of the input yaml config file.')
+                logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFiles nor in the {myMachine}.backgrounds key of the input yaml config file.')
                 sys.exit(-61)
         localBgndFiles = glob.glob(myfile)
         if len(localBgndFiles) == 0:
@@ -536,6 +542,26 @@ def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='run.log'
     )
 
 
+def stripDateLevelIfPresent(sOutpDir):
+    # if the output directory already contains a subdirectory with a date, then we want to strip that lowest level and create our output at the same level with current date+time
+    # if output presently contains e.g. ./output/LumiaMaster-2024-06-24T01_19
+    # then we want to return only ./output
+    try:
+        pos = sOutpDir.index('-')
+    except:
+        return(sOutpDir) # no date present
+    if(pos<1):
+        return(sOutpDir)
+    try:
+        sHasDate=sOutpDir[pos+1:]
+        parse(sHasDate, fuzzy=True) # check if the contents of sHasDate can be understood as a date+time
+        head, tail = os.path.split(sOutpDir)
+        return(head)
+    except:
+        return(sOutpDir)
+    return(sOutpDir)
+
+
 def tryToCreateNewToken(ymlContents, myMachine):            
     try:
         tokenGenerator=ymlContents['emissions']['tokenGenerator']
@@ -816,6 +842,11 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d', 'communication', 'file'],   value=congradFile, bNewValue=True)
     # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'congrad', 'communication_file'],   value=congradFile, bNewValue=True)
 
+    # We need to update the output folders to reflect the unique identifier in the directory tree created for the output
+    sOutpDir=os.path.dirname(sOutputPrfx)
+    sTmpDir=os.path.dirname(sTmpPrfx)
+    ymlContents['run']['paths']['output']=sOutpDir
+    ymlContents['run']['paths']['temp']=sTmpDir
     
     # Now update the configuration file writing everything out and hand control back to the main program....
     # update the original config yaml file (in working directory or elsewhere)
@@ -826,14 +857,6 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         logger.error(f'failed to update the Lumia configuration file. Is the file {ymlFile} or the corresponding file system write protectd?')
         sys.exit(-19)
 
-    # in the local config file (see just above) we don't add the unique folder below output and tmp 
-    # so it can serve as a blueprint for the next run
-    # However, the config yaml we save in output and that we will use in this run should contain the uniquely
-    # named subfolder after the output and tmp locations so all output from this run ends in a dedicated folder.
-    sOutpDir=os.path.dirname(sOutputPrfx)
-    sTmpDir=os.path.dirname(sTmpPrfx)
-    ymlContents['run']['paths']['output']=sOutpDir
-    ymlContents['run']['paths']['temp']=sTmpDir
     sNewYmlFileName=f'{sOutputPrfx}config.yml' # v{nVers}.{nSubVers}-{tracer}
     try:
         with open(sNewYmlFileName, 'w') as outFile:  # we are writing the configuration file into the output folder

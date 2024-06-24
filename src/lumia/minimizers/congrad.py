@@ -64,6 +64,11 @@ class Minimizer:
     def save(self, path: str) -> None:
         copy_file(self.commfile.filepath, os.path.join(path, 'congrad.nc'))
         copy_file(os.path.join(os.path.dirname(self.commfile.filepath), 'congrad_debug.out'), path)
+        try:
+            logger.debug(f'self.commfile.filepath={self.commfile.filepath}')
+            logger.debug(f'path={path}')
+        except:
+            logger.debug('could not write all save() info.')
 
     def iter_states(self):
         traject = self.commfile.read_traject()
