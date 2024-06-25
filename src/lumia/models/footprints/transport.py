@@ -44,6 +44,9 @@ class Transport:
         pth=str(self.path_output)
         folders=pth.split(os.path.sep)
         self.sOutputPrfx=pth+os.path.sep+folders[-1]+'-'        
+        pth=str(self.path_temp)
+        folders=pth.split(os.path.sep)
+        self.sTmpPrfx=pth+os.path.sep+folders[-1]+'-'        
         self.path_temp = Path(self.path_temp)
         self.path_output = Path(self.path_output)
         self.path_footprints = Path(self.path_footprints)
@@ -127,8 +130,10 @@ class Transport:
         # MasterPlus addons for improved logging
         # Run the model executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
         if('multitracer.py' in self.executable[-1]): # sCmd):
-            sCmd.append('--outpPathPrfx')
-            sCmd.append( self.sOutputPrfx)
+            #sCmd.append('--outpPathPrfx')
+            #sCmd.append( self.sOutputPrfx)
+            sCmd.append('--tmpPathPrfx')
+            sCmd.append( self.sTmpPrfx)
         sCmd.append('--verbosity')
         sCmd.append(logLevel)
         logger.info(f'Calling transport model with command:\n{sCmd}')
@@ -170,8 +175,10 @@ class Transport:
         # MasterPlus addons for improved logging
         # Run the model executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py
         if('multitracer.py' in self.executable[-1]): # sCmd):
-            sCmd.append('--outpPathPrfx')
-            sCmd.append( self.sOutputPrfx)
+            #sCmd.append('--outpPathPrfx')
+            #sCmd.append( self.sOutputPrfx)
+            sCmd.append('--tmpPathPrfx')
+            sCmd.append( self.sTmpPrfx)
         sCmd.append('--verbosity')
         sCmd.append(logLevel)
             # Run the model. sys.executable is typically lumia.transport.multitracer.py (Beware, there is another lumia/lumia/interfaces/multitracer.py

@@ -748,7 +748,7 @@ def load_preprocessed(
             for file in files_to_get :
                 archive.get(prefix.parent / file)
         if(len(files_to_get)==0):
-            print(f'No matching files for filter {prefix.name} available from archive {archive.remote}:{archive.remotePath}')
+            logger.info(f'No matching files for filter {prefix.name} available from archive {archive.remote}:{archive.remotePath}')
 
     with dask.config.set(**{'array.slicing.split_large_chunks': True}):
         data = xr.open_mfdataset(f'{prefix}*nc')

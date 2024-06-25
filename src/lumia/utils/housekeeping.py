@@ -35,9 +35,11 @@ def caclulateSha256Filehash(myfile):
 def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMachine):        
     # All output is written into  subdirectories named after the run.thisRun.uniqueIdentifierDateTime key
     # Create these subdirectories. This also ensures early on that we can write to the intended locations
+    useMachine=False
     try:
         sOutpDir=ymlContents['run']['paths']['output']
         while(sOutpDir[0]=='$'): 
+            useMachine=True
             sOutpDir=expandKeyValue(sOutpDir[2:-1] ,ymlContents, myMachine)
 
     except:
@@ -85,7 +87,7 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
     except:
         sys.exit(f'Abort. Failed to create user-requested temp sub-directory {sTmpDir}LumiaDA-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     sTmpPrfx=sTmpDir+sTmpPrfx
-    return(sOutputPrfx,  sTmpPrfx)
+    return(sOutputPrfx,  sTmpPrfx,  useMachine)
 
 
 def expandKeyValue(namedVariable,ymlContents,myMachine):
@@ -554,7 +556,7 @@ def stripDateLevelIfPresent(sOutpDir):
         return(sOutpDir)
     try:
         sHasDate=sOutpDir[pos+1:]
-        parse(sHasDate, fuzzy=True) # check if the contents of sHasDate can be understood as a date+time
+        parse(sHasDate[:10], fuzzy=False) # check if the contents of sHasDate can be understood as a date+time
         head, tail = os.path.split(sOutpDir)
         return(head)
     except:
@@ -580,6 +582,16 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     # Now read the yaml configuration file - whether altered by the GUI or not
     ymlContents=readYmlCfgFile(ymlFile)
     # Save  all details of the configuration and the version of the software used:
+    
+    if('UNKNOWN' in myMachine):
+        try:
+            mkey=ymlContents['machineChosen']  # I have chosen this rather odd name so it appears in the yaml file just before the list of known machines
+            myMachine=mkey
+        except:
+            print("Fatal error: UNKNOWN machine. Select one of the machines defined in your yaml config file either by providing the name via the commandline or by setting the key machineChosen in your yaml config file - add machines as needed.")
+            sys.exit(-2)
+    else: # machine provided on commandline overrides config file settings
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, ['machineChosen'],   value=myMachine, bNewValue=True)
     try:
         tkey=ymlContents[myMachine]  # old style, machine entries anywhere in the yaml file
     except:
@@ -656,7 +668,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     
     
     # ### Configure the output directories ### #
-    (sOutputPrfx,  sTmpPrfx)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
+    (sOutputPrfx,  sTmpPrfx,  useMachine)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
 
     # ### set up logging ### #
     log_level='INFO'
@@ -845,8 +857,15 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     # We need to update the output folders to reflect the unique identifier in the directory tree created for the output
     sOutpDir=os.path.dirname(sOutputPrfx)
     sTmpDir=os.path.dirname(sTmpPrfx)
-    ymlContents['run']['paths']['output']=sOutpDir
-    ymlContents['run']['paths']['temp']=sTmpDir
+    if(useMachine):
+        if('.' in myMachine):
+            machineParts=myMachine.split('.')
+            myMachine=machineParts[-1]
+        ymlContents['machines'][myMachine]['output']=sOutpDir
+        ymlContents['machines'][myMachine]['temp']=sTmpDir
+    else:
+        ymlContents['run']['paths']['output']=sOutpDir
+        ymlContents['run']['paths']['temp']=sTmpDir
     
     # Now update the configuration file writing everything out and hand control back to the main program....
     # update the original config yaml file (in working directory or elsewhere)

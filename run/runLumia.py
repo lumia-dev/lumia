@@ -10,7 +10,7 @@ import lumia
 def main():
     
     p = ArgumentParser()
-    p.add_argument('--machine', '-m', help='Name of the section of the yaml file to be used as "machine". It should contain the machine-specific settings (paths, number of CPUs, paths to secrets, etc.)')
+    p.add_argument('--machine', '-m', default='UNKNOWN', help='Name of the section of the yaml file to be used as "machine". It should contain the machine-specific settings (paths, number of CPUs, paths to secrets, etc.)')
     p.add_argument('--config', '-c',  default="control_inversion.yaml", type=Path,  help='Path to the config file (yaml file)')
     p.add_argument('--start', default=None, 
             help='Start of the period for wh-ch the emissions should be optimized. This needs to be a string understandable by pandas.Timestamp, e.g. 2018-01-01')
@@ -26,9 +26,6 @@ def main():
             help='logging level. This needs to be one of TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR or CRITICAL') # type=lumia.setup_logging,
     args = p.parse_args(sys.argv[1:])
     
-    if (args.machine is None):
-        print("Lumia: Fatal error: no machine provided. Select one of the machines defined in your yaml config file - add machines as needed in that file.")
-        sys.exit(-2)
     myMachine=args.machine
     if(args.config is None):
         print("Lumia: Warning: no user configuration (yaml) file provided. Defaulting to control_inversion.yaml in the working directory.")
@@ -37,7 +34,7 @@ def main():
         ymlConfigFile=str(args.config)
         
     # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
-    thisScript='LumiaMaster'
+    thisScript='LumiaMasterPlus'
     (ymlConfigFile, oldDiscoveredObservations, myMachine)=documentThisRun(ymlConfigFile, thisScript,  args, myMachine=myMachine)  # from housekeepimg.py
     # oldDiscoveredObservations is not needed in LumiaDA, only in lumiaGUI
     # Now the config.yml file has all the details for this particular run
@@ -96,12 +93,19 @@ def main():
     #emis.to_netcdf(Path(conf.run.paths.output) / 'emissions.apri.nc')
     #apos.to_netcdf(Path(conf.run.paths.output) / 'emissions.apos.nc')
     #obs.save_tar(Path(conf.run.paths.output) / 'observations.apos.tar.gz')
-    emis.to_netcdf(Path(conf.run.thisRun.uniqueOutputPrefix +'emissions.apri.nc'))
-    apos.to_netcdf(Path(conf.run.thisRun.uniqueOutputPrefix + 'emissions.apos.nc'))
-    obs.save_tar(Path(conf.run.thisRun.uniqueOutputPrefix + 'observations.apos.tar.gz'))
-    p=str(conf.run.thisRun.uniqueOutputPrefix)
-    p=os.path.dirname(p)
-    logger.info(f'All output written to {p}')
+    try:
+        sOutPth=conf.run.thisRun.uniqueOutputPrefix
+    except:
+        try:
+            sOutPth=conf.run.paths.output
+            if (os.path.sep != sOutPth[-1]):
+                sOutPth=sOutPth+os.path.sep
+        except:
+            sOutPth='./'
+    emis.to_netcdf(Path(sOutPth +'emissions.apri.nc'))
+    apos.to_netcdf(Path(sOutPth + 'emissions.apos.nc'))
+    obs.save_tar(Path(sOutPth + 'observations.apos.tar.gz'))
+    logger.info(f'All output written to {sOutPth}')
     logger.info('Lumia run completed. Done.')
 
 main()

@@ -50,7 +50,8 @@ if __name__ == '__main__':
     p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
-    p.add_argument('--outpPathPrfx', '-o', default='', help="Value of the run.thisRun.uniqueOutputPrefix key from the Lumia config yml file.", required=False)
+    #p.add_argument('--outpPathPrfx', '-o', default='', help="Value of the run.thisRun.uniqueOutputPrefix key from the Lumia config yml file.", required=False)
+    p.add_argument('--tmpPathPrfx', '-o', default='', help="Value of the run.thisRun.uniqueTmpPrefix key from the Lumia config yml file.", required=False)
     p.add_argument('args', nargs=REMAINDER)
     args = p.parse_args(sys.argv[1:])
 
@@ -59,15 +60,15 @@ if __name__ == '__main__':
     #logger.add(sys.stderr, level=args.verbosity)
     #logger.debug('test')
     log_level=args.verbosity # 'DEBUG'
-    sOutputPrfx=args.outpPathPrfx
-    logPath=f'{sOutputPrfx}multitracer.log'
+    sTmpPrfx=args.tmpPathPrfx
+    logPath=f'{sTmpPrfx}multitracer.log'
     i=1
     scriptName='multitracer'
     while(os.path.isfile(logPath)):
-        logPath=f'{sOutputPrfx}multitracer-{i}.log'
+        logPath=f'{sTmpPrfx}multitracer-{i}.log'
         scriptName=f'multitracer-{i}'
         i+=1
-    setupLogging(log_level,  scriptName, sOutputPrfx,  logPath,  cleanSlate=False)
+    setupLogging(log_level,  scriptName, sTmpPrfx,  logPath,  cleanSlate=False)
     logger.info(f'{args}')  # document how multitracer.py was called including commandline options
 
     obs = Observations.read(args.obs)
