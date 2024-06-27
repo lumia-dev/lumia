@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='3783671213e5dbaca8f275e5fe5649272fd604ec'
+LATESTGITCOMMIT_LumiaDA='54e8a794247fa03bc8b7b11a2a9c3ab92d60dad0'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -438,7 +438,8 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
             except:
                 logger.debug('Failed to find localRepo.working_tree_dir info')
             try:
-                branch=localRepo.head.ref # repo.head.ref=LumiaDA
+                repoHead=localRepo.head.ref # repo.head.ref=LumiaDA
+                branch=str(repoHead)
                 print(f'Local git info suggests that the branch name is : {branch}')
             except:
                 logger.debug('Failed to find localRepo.working_tree_dir from git info')
