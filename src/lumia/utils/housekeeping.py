@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='01be33c5fb858f07a08e1cd40f5b0cc0bb0f7424'
+LATESTGITCOMMIT_LumiaDA='3783671213e5dbaca8f275e5fe5649272fd604ec'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
 import sys
+import subprocess
 import glob
 import getpass
 import platform
@@ -381,6 +382,7 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
     oneLevelUp=lumiaGUIdir.parent
     lumiaDA_directory=oneLevelUp.parent
     bHaveGit=True
+    branch='UNKNOWN'
     if('.ipynb' in scriptTail):
         logger.info('Local git information is not available from this python notebook. This means we cannot check what the latest version is, but that is not a drama.')
         bHaveGit=False
@@ -390,11 +392,38 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
         except:
             bHaveGit=False
             logger.info('Local git information is not available in your Python environment. This means we cannot check what the latest version is, but that is not a drama.')
+    '''
+        pip show lumia
+        Name: lumia
+        Version: 1.0
+        Summary: 
+        Home-page: 
+        Author: 
+        Author-email: Guillaume Monteil <guillaume.monteil@nateko.lu.se>, Carlos Gomez <carlos.gomez@nateko.lu.se>, Arndt Meier <arndt.meier@nateko.lu.se>
+        License: 
+        Location: /opt/condaPython3.11/envs/LumiaMaster/lib/python3.11/site-packages
+        Editable project location: /home/arndt/dev/py/lumiaMaster/lumia
+        Requires: bottleneck, dask, h5netcdf, h5py, loguru, matplotlib, mkdocs, netCDF4, numpy, omegaconf, pandas, pint, python-dateutil, scipy, setuptools, tables, tqdm, xarray
+        Required-by: (LumiaMaster)    
+    '''
+    bHaveGitRoot=False
+    sCmd='pip show lumia'
+    try:
+        rval = subprocess.check_output(sCmd, shell=True, text=True)
+        lines=str.splitlines(rval)
+        for chunks in lines:
+            if ('Editable project location' in chunks):
+                chunkbits=chunks.split(':')
+                sLocalGitRepos=chunkbits[-1]
+                bHaveGitRoot=True
+    except:
+        logger.warning("No Lumia installation directory found. Very odd. Please check why >pip show lumia< returns an error.")
+        
     if(bHaveGit):    
         try:
             # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
             if('LumiaGUI' in parentScript):
-                # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here
+                # The correct .git info is found in the LumiaMaster or LumiaDA directory, typically 1 or 2 directories up from the main() script
                 try:
                     localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
                 except:
@@ -403,7 +432,8 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
                 localRepo = git.Repo(script_directory, search_parent_directories=True)
             logger.debug(f'localRepo={localRepo}')
             try:
-                sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
+                if(not bHaveGitRoot):
+                    sLocalGitRepos=localRepo.working_tree_dir # /home/arndt/dev/lumia/lumiaDA/lumia
                 logger.debug(f'Found localRepo.working_tree_dir info at : {sLocalGitRepos}')
             except:
                 logger.debug('Failed to find localRepo.working_tree_dir info')
@@ -411,7 +441,7 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
                 branch=localRepo.head.ref # repo.head.ref=LumiaDA
                 print(f'Local git info suggests that the branch name is : {branch}')
             except:
-                logger.debug('Failed to find localRepo.working_tree_dir info')
+                logger.debug('Failed to find localRepo.working_tree_dir from git info')
             try:
                 repoUrl=localRepo.remotes.origin.url  # git@github.com:lumia-dev/lumia.git
                 logger.debug(f'Local git info suggests that the remote github url is : {repoUrl}')
@@ -823,7 +853,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     # Lumia version
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'branch'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/branch/LumiaDA?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value=parentScript, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'mainScript'],   value=parentScript, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value=branch, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'url'],   value='git@github.com:lumia-dev/lumia.git', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'commit'],   value=LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'location'],   value='git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA, bNewValue=True)
