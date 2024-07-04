@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count, shared_memory
 from numpy import pi, cos, sin, arcsin, zeros, exp, linalg, eye, meshgrid, flipud, argsort, diag, sqrt, where, unique
 from dataclasses import dataclass
 from numpy.typing import NDArray
@@ -57,7 +57,11 @@ def calc_dist_matrix(lats, lons, stretch_ratio=1.):
     _common['lons'] = lons
     _common['lats'] = lats
     _common['stretch_ratio'] = stretch_ratio
-    with Pool() as pp :
+    ncpus = cpu_count() 
+    ncpus=int((0.9*(ncpus-1))+0.5)  # TODO: testing if this helps with OOM errors
+    if(ncpus<1):
+        ncpus=1
+    with Pool(processes=ncpus) as pp: #with Pool() as pp :
         res = pp.map(calc_dist_vector, range(len(lons)))
     for i, v in enumerate(res):
         M[:i+1, i] = v

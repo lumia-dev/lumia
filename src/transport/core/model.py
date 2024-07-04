@@ -150,6 +150,33 @@ class Forward(BaseTransport):
             res = list(tqdm(pool.imap(self.run_file, filenames, chunksize=1), total=len(filenames), leave=False))
         return res
 
+        '''
+            def run_files(self, *args, **kwargs) :
+                if self.parallel :
+                    return self.run_files_mp(*args, **kwargs)
+                else :
+                    return self.run_files_serial(*args, **kwargs)
+        
+            @abstractmethod
+            def run_files_mp(self, *args, **kwargs):
+                pass
+        
+            @abstractmethod
+            def run_files_serial(self, *args, **kwargs):
+                pass
+            def run_files_serial(self, filenames: List[str]) -> List[Observations]:
+                res = []
+                for filename in tqdm(filenames):
+                    res.append(self.run_file(filename, silent=self.silent))
+                return res
+        
+            def run_files_mp(self, filenames: List[str]) -> List[Observations]:
+                with Pool(processes=self.ncpus) as pool:
+                    res = list(tqdm(pool.imap(self.run_file, filenames, chunksize=1), total=len(filenames), leave=False))
+                return res
+        
+        '''
+
     @staticmethod
     def run_file(filename: str, silent: bool = True) -> Observations:
         """

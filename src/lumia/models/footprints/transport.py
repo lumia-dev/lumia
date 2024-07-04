@@ -80,6 +80,16 @@ class Transport:
     def calc_departures(self, emissions: Emissions, step: str = None) -> Departures:
         _, obsfile = self.run_forward(emissions, step)
 
+        '''
+            Note on calling multitracer.py from here or cacl_departures_adj:
+            The max number of cores to be used can be set in the configuration yaml file in the keys, e.g.
+             model:
+                  extra_arguments:
+                    adjoint : -n 6
+                    var4d : -n ${machine:ncores}
+                    apos : -n ${machine:ncores}
+            These settings will then be passed on to multitracer.py
+        '''
         # db = self._observations.from_hdf(obsfile)
         db : DataFrame = read_hdf(obsfile)
 

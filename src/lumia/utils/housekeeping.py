@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='54e8a794247fa03bc8b7b11a2a9c3ab92d60dad0'
+LATESTGITCOMMIT_LumiaDA='636cf55ef319fa29f94e655ed01e8e38a4774084'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -33,7 +33,7 @@ def caclulateSha256Filehash(myfile):
     return(sha256Value)
 
 
-def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMachine):        
+def configureOutputDirectories (ymlContents, ymlFile, lumiaFlavour, sNow, myMachine):        
     # All output is written into  subdirectories named after the run.thisRun.uniqueIdentifierDateTime key
     # Create these subdirectories. This also ensures early on that we can write to the intended locations
     useMachine=False
@@ -54,11 +54,11 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
         os.system(sCmd)
     except:
         sys.exit(f'Abort. Failed to create user-requested output directory {sOutpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
-    sOutputPrfx=parentScript+'-'+sNow+os.path.sep+parentScript+'-'+sNow +'-'
+    sOutputPrfx=lumiaFlavour+'-'+sNow+os.path.sep+lumiaFlavour+'-'+sNow +'-'
     sTmpPrfx=sOutputPrfx # same structure below the Temp and Output directories
     if ((len(sOutpDir)>0) and (sOutpDir[-1]!=os.path.sep)):
         sOutpDir=sOutpDir+os.path.sep
-    sCmd=("mkdir -p "+sOutpDir+parentScript+'-'+sNow)
+    sCmd=("mkdir -p "+sOutpDir+lumiaFlavour+'-'+sNow)
     try:
         os.system(sCmd)
     except:
@@ -66,7 +66,8 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
     sOutputPrfx=sOutpDir+sOutputPrfx
     try:
         sTmpDir=ymlContents['run']['paths']['temp']
-        while(sTmpDir[0]=='$'): 
+        while(sTmpDir[0]=='$'):
+            useMachine =True
             sTmpDir=expandKeyValue(sTmpDir[2:-1] ,ymlContents, myMachine)
     except:
         sTmpDir="./tmp"
@@ -75,15 +76,15 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
         sTmpDir=stripDateLevelIfPresent(sTmpDir)
         sCmd=("mkdir -p "+sTmpDir)
     try:
-        if not('LumiaGUI' in parentScript): # lumiaGUI only writes to the outputDir not the sTmpDir directory
+        if not('LumiaGUI' in lumiaFlavour): # lumiaGUI only writes to the outputDir not the sTmpDir directory
             os.system(sCmd)
     except:
         sys.exit(f'Abort. Failed to create user-requested temp directory {sTmpDir}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
     if ((len(sTmpDir)>0) and (sTmpDir[-1]!=os.path.sep)):
         sTmpDir=sTmpDir+os.path.sep
-    sCmd=("mkdir -p "+sTmpDir+parentScript+'-'+sNow)
+    sCmd=("mkdir -p "+sTmpDir+lumiaFlavour+'-'+sNow)
     try:
-        if not('LumiaGUI' in parentScript): # lumiaGUI only writes to the outputDir not the sTmpDir directory
+        if not('LumiaGUI' in lumiaFlavour): # lumiaGUI only writes to the outputDir not the sTmpDir directory
             os.system(sCmd)
     except:
         sys.exit(f'Abort. Failed to create user-requested temp sub-directory {sTmpDir}LumiaDA-{sNow}. Please check the key run.paths.output in your {ymlFile} file as well as your write permissions.')
@@ -93,35 +94,42 @@ def configureOutputDirectories (ymlContents, ymlFile, parentScript, sNow, myMach
 
 def expandKeyValue(namedVariable,ymlContents,myMachine):
     # namedVariable[2:-1] contains something like ${run.paths.emissions}
-    keys=namedVariable.split('.')
-    j=len(keys)
-    i=0
-    for key in enumerate(keys):
-        if('machine' in key):
-            if('.' in myMachine): # myMachine may contain 1 or 2 keys e.g. cosmos or machine.cosmos
-                machineParts=myMachine.split('.')
-                keys[i]=machineParts[0]
-                i=i+1
-                if(j>i):
-                    # because the myMachine key split into 2 keys, we need to shift the higher keys by one
-                    keys.append(keys[j-1])
-                    while (j>i):
-                        keys[j]=keys[j-1]
-                        j=j-1
-                keys[i]=machineParts[1]
+    n=0
+    while(n<2):
+        keys=namedVariable.split('.')
+        j=len(keys)
+        i=0
+        for key in keys: #enumerate(keys):
+            if('machine' in key):
+                if('.' in myMachine): # myMachine may contain 1 or 2 keys e.g. cosmos or machine.cosmos
+                    machineParts=myMachine.split('.')
+                    keys[0]='machines' # machineParts[-1]
+                    i=i+1
+                    if(j>i):
+                        # because the myMachine key split into 2 keys, we need to shift the higher keys by one
+                        keys.append(keys[j-1])
+                        while (j>i):
+                            keys[j]=keys[j-1]
+                            j=j-1
+                    keys[i]=machineParts[1] # keys[1]='cosmos' or 'laptop' or ...
+                else:
+                    keys[i]=myMachine 
+        try:
+            if(len(keys)==2):
+                expandedKey=ymlContents[keys[0]][keys[1]]  
+            elif(len(keys)==3):
+                expandedKey=ymlContents[keys[0]][keys[1]][keys[2]]
+            elif(len(keys)==4):
+                expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]]
+            elif(len(keys)==5):
+                expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]]  
             else:
-                keys[i]=myMachine 
-    if(len(keys)==2):
-        expandedKey=ymlContents[keys[0]][keys[1]]  
-    elif(len(keys)==3):
-        expandedKey=ymlContents[keys[0]][keys[1]][keys[2]]
-    elif(len(keys)==4):
-        expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]]
-    elif(len(keys)==5):
-        expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]]  
-    else:
-        expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]] [keys[5]]  
-    i=i+1
+                expandedKey=ymlContents[keys[0]][keys[1]][keys[2]][keys[3]][keys[4]] [keys[5]]  
+            i=i+1
+            n=99
+        except:
+            myMachine='machines.'+myMachine
+            n=n+1
     return(expandedKey)
 
 def getDictItemsFromParticularLv(myDict): 
@@ -135,6 +143,7 @@ def getStartEndTimes(ymlContents, ymlFile, args, myMachine):
     # Determine start/end times - may come from commandline, else the config ymlFile
     end=None
     start=None
+    bUseMachine=False
     if ((args is None) or (args.start is None)) :
         try:            
             start=Timestamp(ymlContents['run']['time']['start'])
@@ -149,6 +158,7 @@ def getStartEndTimes(ymlContents, ymlFile, args, myMachine):
                 logger.error(f'No valid start time found in the keys run.time.start nor observations.start nor time.start of your yml file {ymlFile}. Please fix or use the commandline option --start.')
         if((start is not None) and (isinstance(start, str))):        
             while(start[0]=='$'): 
+                bUseMachine=True
                 start=expandKeyValue(start[2:-1] ,ymlContents,myMachine)
     else:
         start= Timestamp(args.start)
@@ -186,7 +196,7 @@ def getStartEndTimes(ymlContents, ymlFile, args, myMachine):
         except:
             logger.warning(f'Key run.time.timestep not found in your ymlFile {ymlFile}. Assuming it is 1h. This may be updated when reading observational or emission data.')
             timeStep='1h'
-    return(sStart, sEnd,  timeStep) 
+    return(sStart, sEnd,  timeStep,  bUseMachine) 
  
 
 def getTracer(ymlEntryTracer,  abortOnError=False):
@@ -207,50 +217,52 @@ def getTracer(ymlEntryTracer,  abortOnError=False):
             logger.warning('Proceeding with the assumption tracer==co2')
     return(tracer.lower())
 
-def handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
+def handleBackgndData(ymlContents, ymlFile,  sOutputPrfx, myMachine):
     # a priori background concentrations of tracer (co2, ch4).
     '''
-background:
-  concentrations:
-    co2:
-      backgroundFile: ${machine.backgrounds}
-      rename: mix_background
-      stationWithoutBackgroundConcentration: DAILYMEAN
-      userProvidedBackgroundConcentration: 410
+    background:
+      concentrations:
+        co2:
+          backgroundFiles: ${machine.backgrounds}
+          rename: mix_background
+          stationWithoutBackgroundConcentration: DAILYMEAN
+          userProvidedBackgroundConcentration: 410
     '''
     try:
         tracer=getTracer(ymlContents['run']['tracers'])
     except:
         setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'tracers'],   value= 'co2', bNewValue=True)
         tracer='co2'
-    
+    bUseMachine=False
     # if there are local files involved, calculate their sha256 checksum - The carbon portal PID is actually also the sha256 of the datafile concerned
     bCPortal=False
     try:
-        bCPortal= ('CARBONPORTAL' in ymlContents['background']['concentrations'][tracer]['location']) # and ('LumiaGUI' in parentScript)
+        bCPortal= ('CARBONPORTAL' in ymlContents['background']['concentrations'][tracer]['location']) 
     except:
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'background', 'concentrations' ,  tracer, 'location' ],   value='LOCAL', bNewValue=True)
-    if(bCPortal):   # BgrndData is taken directly from the carbonportal with their PIDs  # ('LumiaGUI' in parentScript) and
+    if(bCPortal):   # BgrndData is taken directly from the carbonportal with their PIDs  
         sha256Value='NotApplicable'
     else:
         try:
             myfile=ymlContents['background']['concentrations'][tracer]['backgroundFiles']
             while(myfile[0]=='$'): 
+                bUseMachine=True
                 myfile=expandKeyValue(myfile[2:-1] ,ymlContents, myMachine)
-        except:
-            try:
-                if('.' in myMachine):
+            if(bUseMachine):
+                try:
                     splitty=myMachine.split('.')
-                    mMachine=splitty[1]
+                    mMachine=splitty[-1]
                     myfile=ymlContents['machines'][mMachine]['backgrounds']
-                else:
-                    myfile=ymlContents[myMachine]['backgrounds']
-                    while(myfile[0]=='$'): 
-                        myfile=expandKeyValue(myfile[2:-1] ,ymlContents, myMachine)
+                except:
+                    try:
+                        myfile=ymlContents[mMachine]['backgrounds']
+                    except:
+                        logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFiles nor in the {myMachine}.backgrounds key of the input yaml config file.')
+                        sys.exit(-61)
                 setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations', tracer ,'backgroundFiles'],   value= '$'+'{'+'machine.backgrounds'+'}', bNewValue=True)
-            except:
-                logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFiles nor in the {myMachine}.backgrounds key of the input yaml config file.')
-                sys.exit(-61)
+        except:
+            logger.error(f'No backgrounds file is specified in neither the background.concentrations.{tracer}.backgroundFiles nor in the {myMachine}.backgrounds key of the input yaml config file.')
+            sys.exit(-62)
         localBgndFiles = glob.glob(myfile)
         if len(localBgndFiles) == 0:
             logger.error(f"No background concentration files matching pattern {myfile} were found.")
@@ -262,9 +274,9 @@ background:
             hashValues.append(sha256Value)
         setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations',tracer ,'localFiles'],   value=localBgndFiles, bNewValue=True)
         setKeyVal_Nested_CreateIfNecessary(ymlContents, ['background','concentrations',tracer ,'sha256Values'],   value=hashValues, bNewValue=True)
-    return
+    return (bUseMachine)
 
-def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
+def  handleObsData(ymlContents, ymlFile, parentScript, lumiaFlavour, sOutputPrfx, myMachine):
     # ### Tracer and observational data ### #  
     bErr=False
     localObsDataFile='UNKNOWN'
@@ -299,7 +311,7 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
         bCPortal= ('CARBONPORTAL' in ymlContents['observations'][tracer]['file']['location']) 
     except:
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'location' ],   value='LOCAL', bNewValue=True)
-    if(bCPortal):   # obsData is taken directly from the carbonportal with their PIDs  # ('LumiaGUI' in parentScript) and
+    if(bCPortal):   # obsData is taken directly from the carbonportal with their PIDs  
         sha256Value='NotApplicable'
     else:
         try:
@@ -315,7 +327,7 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
     try:
         selectedObsData=ymlContents['observations'][tracer]['file']['selectedObsData']
     except:
-        if('LumiaGUI' in parentScript):
+        if(('LumiaGUI' in parentScript) or ('LumiaGUI' in lumiaFlavour)):
             pass
         else:
             if (bCPortal):
@@ -344,7 +356,7 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
             try:
                 selectedPIDs=ymlContents['observations'][tracer]['file']['selectedPIDs']
             except:
-                if('LumiaGUI' in parentScript):
+                if(('LumiaGUI' in parentScript) or ('LumiaGUI' in lumiaFlavour)):
                     pass
                 else:
                     logger.error(f'Key observations.{tracer}.file.selectedPIDs not found in yml config file {ymlFile}. Please run LumiaGUI.py with your yml config file before calling LumiaDA in order to create that file.')
@@ -367,7 +379,7 @@ def  handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine):
     return(sha256Value, tracer, newFnameSelectedObsData, newFnameSelectedPIDs, oldDiscoveredObservations)
 
 
-def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion):  
+def   queryGitRepository(parentScript, lumiaFlavour, ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion):  
     # ### query Git - what version of Lumia are we running? ### #        
     # Get the local git hash so we have some clue of what version of LUMIA we may be using...
     localRepo='UNKNOWN    '
@@ -422,7 +434,7 @@ def   queryGitRepository(parentScript,  ymlContents, nThisConfigFileVersion, nTh
     if(bHaveGit):    
         try:
             # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
-            if('LumiaGUI' in parentScript):
+            if(('LumiaGUI' in parentScript) or ('LumiaGUI' in lumiaFlavour)):
                 # The correct .git info is found in the LumiaMaster or LumiaDA directory, typically 1 or 2 directories up from the main() script
                 try:
                     localRepo = git.Repo(lumiaDA_directory, search_parent_directories=True)
@@ -552,7 +564,7 @@ def setKeyVal_Nested_CreateIfNecessary(myDict, keyLst,   value=None,  bNewValue=
 
 
     # ### set up logging ### #
-def   setupLogging(log_level,  parentScript, sOutputPrfx,  logName:str='run.log',  cleanSlate=True):
+def   setupLogging(log_level, sOutputPrfx,  logName:str='run.log',  cleanSlate=True):
     if(cleanSlate):
         logger.remove()
     #log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS zz}</green> | <level>{level: <8}</level> | <yellow>Line {line: >4} ({file}):</yellow> <b>{message}</b>"
@@ -600,18 +612,19 @@ def tryToCreateNewToken(ymlContents, myMachine):
         tokenGenerator=ymlContents['emissions']['tokenGenerator']
         while(tokenGenerator[0]=='$'): 
             tokenGenerator=expandKeyValue(tokenGenerator[2:-1] ,ymlContents, myMachine)
+        print(tokenGenerator)
         os.system(tokenGenerator)
     except:
         logger.warning('The key emissions.tokenGenerator is not defined in your yaml configuration file, so I cannot call it for you. You will have to create a valid token by your usual means before running LUMIA.')
         return  # user has to fix the token issue manually after the exception will be raised
     
-
-def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNOWN'):
+def documentThisRun(ymlFile,  parentScript='runLumia',  lumiaFlavour='Lumia', args=None, myMachine= 'UNKNOWN',  interactive=True):
     # current version of the yml config files:
     nThisConfigFileVersion= int(6)
     nThisConfigFileSubVersion=int(2)
     # Now read the yaml configuration file - whether altered by the GUI or not
     ymlContents=readYmlCfgFile(ymlFile)
+
     # Save  all details of the configuration and the version of the software used:
     
     if('UNKNOWN' in myMachine):
@@ -638,7 +651,9 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     # colons from the time are not without problems in directory and file names. Better to play it safe and replace them with underscores
     sNow=re.sub(':', '_', sNow)
     sNow=sNow[:-3] # minutes is good enough....don't need seconds if a run takes hours...
-    (sStart, sEnd,  timeStep)=getStartEndTimes(ymlContents, ymlFile, args,myMachine )   
+    (sStart, sEnd,  timeStep,  bUseMachine)=getStartEndTimes(ymlContents, ymlFile, args,myMachine )   
+    if(bUseMachine):
+        useMachine=True
     
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['run', 'time',  'start'],   value= sStart, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations',  'start'],   value='${run.time.start}', bNewValue=True)
@@ -652,9 +667,6 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths',  'footprints'],   value='/footprints', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['correlation',  'inputdir'],   value='/data/corr', bNewValue=False )
     # Run-dependent paths
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication',  'file'],   value='congrad.nc', bNewValue=False)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'archive'],   value='rclone:lumia:fluxes/nc/', bNewValue=False)
-    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  '*',  'path'],   value= '/data/fluxes/nc', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'output'],   value= 'T', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'transport',  'steps'],   value='forward', bNewValue=False)
     
@@ -671,13 +683,15 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
             tracer='co2'
         archiveAccessKey=ymlContents['emissions'][tracer]['archive']
         while(archiveAccessKey[0]=='$'): 
+            useMachine=True
             archiveAccessKey=expandKeyValue(archiveAccessKey[2:-1] ,ymlContents, myMachine)
         #if('--client-cert=' in archiveAccessKey):
         tokenFound = re.search('--client-cert=(.+?) ', archiveAccessKey)
         if(tokenFound):
             remoteMachineAccessToken=tokenFound.group(1)
             if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
-                tryToCreateNewToken(ymlContents, myMachine)
+                if( interactive):
+                    tryToCreateNewToken(ymlContents, myMachine)
             if (not os.path.isfile(remoteMachineAccessToken)) or (not os.access(remoteMachineAccessToken, os.R_OK)):
                 logger.error(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
                 raise RuntimeError('The remote machine access token for rclone specified in your yaml config file in key emissions.TRACER.archive could not be found or read.')
@@ -693,32 +707,36 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
             if(ageInSeconds > int(maxAge)):
                 maxHours=maxAge/3600
                 logger.warning(f'The remote machine access token {remoteMachineAccessToken} for rclone specified in your yaml config file in key emissions.TRACER.archive is older than {maxHours} hours and may have expired.')
-                tryToCreateNewToken(ymlContents, myMachine)
+                if( interactive):
+                    tryToCreateNewToken(ymlContents, myMachine)
     except:
         pass
-    
-    
+       
     # ### Configure the output directories ### #
-    (sOutputPrfx,  sTmpPrfx,  useMachine)=configureOutputDirectories(ymlContents, ymlFile, parentScript, sNow,  myMachine)
-
+    (sOutputPrfx,  sTmpPrfx,  bUseMachine)=configureOutputDirectories(ymlContents, ymlFile, lumiaFlavour, sNow,  myMachine)
+    if(bUseMachine):
+        useMachine=True
     # ### set up logging ### #
     log_level='INFO'
     if((args is not None)and(args.verbosity is not None)):
         log_level = args.verbosity
-    setupLogging(log_level,  parentScript, sOutputPrfx)
+    setupLogging(log_level,  sOutputPrfx)
     logger.info(f'{args}')  # document how Lumia was called including commandline options
     
     # ### query Git - what version of Lumia are we running? ### #        
     (nVers, nSubVers, repoUrl, branch, sLocalGitRepos, remoteCommitUrl, myCom, LATESTGITCOMMIT_LumiaDA)=\
-                                                        queryGitRepository(parentScript, ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
+                                                        queryGitRepository(parentScript, lumiaFlavour, ymlContents, nThisConfigFileVersion, nThisConfigFileSubVersion)
     # # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'transport',  'exec'],   value='/lumia/transport/multitracer.py', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model',  'executable'],   value='${lumia:transport/multitracer.py}', bNewValue=False)
 
     # ### Tracer background concentration files ### # 
-    handleBackgndData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
+    bUseMachine=handleBackgndData(ymlContents, ymlFile,  sOutputPrfx, myMachine)
+    if(bUseMachine):
+        useMachine=True
     
     # ### Tracer and observational data ### #      
-    (sha256Value,  tracer , newFnameSelectedObsData, newFnameSelectedPIDs, oldDiscoveredObservations)=handleObsData(ymlContents, ymlFile,  parentScript, sOutputPrfx, myMachine)
+    (sha256Value,  tracer , newFnameSelectedObsData, newFnameSelectedPIDs, oldDiscoveredObservations)=\
+                                handleObsData(ymlContents, ymlFile,  parentScript, lumiaFlavour, sOutputPrfx, myMachine)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer,  'file',  'sha256Value'],   value=sha256Value, bNewValue=True)
     if(newFnameSelectedObsData is not None):
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedObsData' ],   value=newFnameSelectedObsData, bNewValue=True)
@@ -726,13 +744,12 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'observations',  tracer, 'file', 'selectedPIDs' ],   value=newFnameSelectedPIDs, bNewValue=True)
    
     # ### a priori emissions files  ### #
-    cats=getDictItemsFromParticularLv(ymlContents['emissions'][tracer]['categories']) # could be {'biosphere', 'fossil', 'ocean'} or {'anthropogenic', 'biosphere', 'fires', 'ocean'}
-    #if ('LumiaMaster' in parentScript):
-    #    cats={'anthropogenic', 'biosphere', 'fires', 'ocean'}
+    cats=getDictItemsFromParticularLv(ymlContents['emissions'][tracer]['categories']) 
+    # cats could be {'biosphere', 'fossil', 'ocean'} or {'anthropogenic', 'biosphere', 'fires', 'ocean'}
     for cat in cats:
         bCPortal=False
         try:
-            bCPortal= ('CARBONPORTAL' in ymlContents['emissions'][tracer]['location'][cat]) # and ('LumiaGUI' in parentScript)
+            bCPortal= ('CARBONPORTAL' in ymlContents['emissions'][tracer]['location'][cat]) 
         except:
             setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer, 'categories', cat, 'location' ],   value='LOCAL', bNewValue=True)
         if(bCPortal):
@@ -809,6 +826,48 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
                 pass  # if the key does not exists, then that's fine too
                 
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer,  'categories',  cat, 'sha256Value'],   value=hashValues, bNewValue=True)
+
+    # ### how many cores or cpus may we use? ###
+    ncpus=1
+    if(useMachine):
+        if('.' in myMachine):
+            machineParts=myMachine.split('.')
+            mMachine=machineParts[-1]
+            try:
+                ncpus=ymlContents['machines'][mMachine]['ncores']
+            except:
+                pass
+        else:
+            try:
+                ncpus=ymlContents[myMachine]['ncores']
+            except:
+                pass
+    else:
+        try:
+            ncpus=ymlContents['run']['ncores']
+        except:
+            try:
+                ncpus=ymlContents['run']['ncpus']
+            except:
+                pass
+    try:
+        if((args is not None)and(args.ncpus >0)): # commandline overrides yaml config file settings
+            ncpus=args.ncpus    
+    except:
+        pass
+    if(ncpus > os.cpu_count()):
+        ncpus=int((0.8*ncpus)+0.5)  # TODO: testing if this helps with OOM errors
+    if(useMachine):
+        if('.' in myMachine):
+            machineParts=myMachine.split('.')
+            mMachine=machineParts[-1]
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'machines',  mMachine, 'ncores'],   value=ncpus, bNewValue=True)
+        else:
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [myMachine, 'ncores'],   value=ncpus, bNewValue=True)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run', 'ncores'],   value='${machine.ncores}', bNewValue=True)
+    else:
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run', 'ncores'],   value=ncpus, bNewValue=True)
+
         
     # ### Host System / machine / user ### #        
     # Document what kind of system the run is being carried out on
@@ -820,7 +879,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
         except:
             sUsername="UNKNOWN" 
             
-    logger.info(f'{parentScript} is run by user {sUsername}')
+    logger.info(f'The main script {parentScript} is run by user {sUsername}. The Lumia flavour is {lumiaFlavour}')
     # sysName=platform.system() # Linux
     #sysReleaseVersion=platform.release()  # 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023
     myPlatformCore=platform.platform()  # Linux-5.15.0-89-generic-x86_64-with-glibc2.35
@@ -856,6 +915,7 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'commit'],   value='gitkraken://repolink/778bf0763fae9fad55be85dde4b42613835a3528/commit/5e5e9777a227631d6ceeba4fd8cff9b241c55de1?url=git%40github.com%3Alumia-dev%2Flumia.git',  bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'mainScript'],   value=parentScript, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'branch'],   value=branch, bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'lumiaFlavour'],   value=lumiaFlavour, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'url'],   value='git@github.com:lumia-dev/lumia.git', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'commit'],   value=LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'location'],   value='git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA, bNewValue=True)
@@ -875,16 +935,22 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file', 'selectedObsData'],   value='None', bNewValue=False)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, ['observations', tracer, 'file','selectedPIDs'],   value='None', bNewValue=False)
 
-    # !! LumiaMaster does not appreciate the key communication_file being set, so don't
-    # Make explicitly stated communication and temporal files use the unique identifier for file names and directory locations:
-    #congrad:
-    #  communication_file: ${run.paths.temp}/congrad.nc
-    # var4d:
-    #  file: /home/arndt/nateko/data/icos/DICE/tmp/congrad.nc
-    # These 2 keys always point to the same file, only that the var4d one is calculated later using the ${run.paths.temp} placeholder's value
-    # congradFile=sTmpPrfx+'congrad.nc'
-    # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d', 'communication', 'file'],   value=congradFile, bNewValue=True)
-    # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'congrad', 'communication_file'],   value=congradFile, bNewValue=True)
+    try:
+        tkey=ymlContents['optimize']['optimizer']  # old style, machine entries anywhere in the yaml file
+        if('congrad' in tkey):
+            setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d',  'communication',  'file'],   value='congrad.nc', bNewValue=False)
+            # !! LumiaMaster does not appreciate the key communication_file being set, so don't
+            # Make explicitly stated communication and temporal files use the unique identifier for file names and directory locations:
+            #congrad:
+            #  communication_file: ${run.paths.temp}/congrad.nc
+            # var4d:
+            #  file: /home/arndt/nateko/data/icos/DICE/tmp/congrad.nc
+            # These 2 keys always point to the same file, only that the var4d one is calculated later using the ${run.paths.temp} placeholder's value
+            # congradFile=sTmpPrfx+'congrad.nc'
+            # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'var4d', 'communication', 'file'],   value=congradFile, bNewValue=True)
+            # setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'congrad', 'communication_file'],   value=congradFile, bNewValue=True)
+    except:
+        pass
 
     # We need to update the output folders to reflect the unique identifier in the directory tree created for the output
     sOutpDir=os.path.dirname(sOutputPrfx)
@@ -894,10 +960,16 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None, myMachine= 'UNKNO
             machineParts=myMachine.split('.')
             myMachine=machineParts[-1]
         ymlContents['machines'][myMachine]['output']=sOutpDir
-        ymlContents['machines'][myMachine]['temp']=sTmpDir
+        ymlContents['machines'][myMachine]['temp']=sTmpDir        
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run', 'paths', 'output'],   value='${machine.output}', bNewValue=True)
+        setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'run',  'paths', 'temp'],   value='${machine.temp}', bNewValue=True)
     else:
         ymlContents['run']['paths']['output']=sOutpDir
         ymlContents['run']['paths']['temp']=sTmpDir
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model', 'path_output'],   value=sOutpDir, bNewValue=True)
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model', 'path_temp'],   value=sTmpDir, bNewValue=True) 
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model', 'path_output'],   value='${machine.output}', bNewValue=True)
+    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'model', 'path_temp'],   value='${machine.temp}', bNewValue=True)  
     
     # Now update the configuration file writing everything out and hand control back to the main program....
     # update the original config yaml file (in working directory or elsewhere)

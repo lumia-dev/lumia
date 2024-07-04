@@ -21,6 +21,7 @@ def main():
     p.add_argument('--spindown', default=None, type=str, 
             help='Length of the buffer at the end of the simulation (period that will be included in the inversion, but trimmed from the results. This needs to be a string undertood by pandas.tseries.frequencies.to_offset')
     #p.add_argument('--forward', default=False, action='store_true')
+    p.add_argument('--noPrompt', '-n', action='store_true', default=False, help="if set, do not prompt user for input - set this flag if running slurm or laodleveler.")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--verbosity', '-v', default='DEBUG', 
             help='logging level. This needs to be one of TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR or CRITICAL') # type=lumia.setup_logging,
@@ -32,15 +33,20 @@ def main():
         ymlConfigFile="control_inversion.yaml"    
     else:
         ymlConfigFile=str(args.config)
-        
+    
+    interactive=True
+    if(args.noPrompt):
+        interactive=False
     # Do the housekeeping like documenting the current git commit version of this code, date, time, user, platform etc.
-    thisScript='LumiaMasterPlus'
-    (ymlConfigFile, oldDiscoveredObservations, myMachine)=documentThisRun(ymlConfigFile, thisScript,  args, myMachine=myMachine)  # from housekeepimg.py
+    thisScript=sys.argv[0] 
+    lumiaFlavour='LumiaMasterPlus'
+    (ymlConfigFile, oldDiscoveredObservations, myMachine)=documentThisRun(ymlConfigFile, thisScript, lumiaFlavour, args, myMachine=myMachine,  interactive=interactive)  # from housekeepimg.py
     # oldDiscoveredObservations is not needed in LumiaDA, only in lumiaGUI
     # Now the config.yml file has all the details for this particular run
     
     conf= lumia.read_config(ymlConfigFile,myMachine=myMachine)
     lumia.settings.write(conf, Path(ymlConfigFile)) # update the config file with the selected machine
+    ncpus=conf.machine.ncores #  documentThisRun() ensured a sensible value for ncpus
     
     "Loading obs"
     tracer=getTracer(conf.run.tracers)

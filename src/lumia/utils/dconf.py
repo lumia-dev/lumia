@@ -77,7 +77,7 @@ def read_config(file : str | Path, myMachine: str = None, **extra_keys) -> DictC
                 start : 1 jan 2018
                 end : 1 jan 2019
                 tag : my-project
-                ncpus : machine.${machine.ncpus}
+                ncpus : machine.${machine.ncores}
                 paths : 
                     temp : ${machine.tmp}
                     footprints : ${machine.footprints}

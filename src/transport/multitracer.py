@@ -44,7 +44,7 @@ if __name__ == '__main__':
     p.add_argument('--adjtest', '-t', action='store_true', default=False, help="Perform and adjoint test")
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--tmp', default='/tmp', help='Path to a temporary directory where (big) files can be written')
-    p.add_argument('--ncpus', '-n', default=os.cpu_count(), type=int)
+    p.add_argument('--ncpus', '-n', default=0, type=int)
     p.add_argument('--max-footprint-length', type=Timedelta, default='14D')
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         logPath=f'{sTmpPrfx}multitracer-{i}.log'
         scriptName=f'multitracer-{i}'
         i+=1
-    setupLogging(log_level,  scriptName, sTmpPrfx,  logPath,  cleanSlate=False)
+    setupLogging(log_level,  sTmpPrfx,  logPath,  cleanSlate=False)
     logger.info(f'{args}')  # document how multitracer.py was called including commandline options
 
     obs = Observations.read(args.obs)
@@ -89,7 +89,12 @@ if __name__ == '__main__':
         obs.interp_background(bg, LumiaFootprintFile)
         if not args.forward or args.adjoint or args.adjtest:
             obs.write(args.obs)
-
+            
+    ncpus=1
+    if(args.ncpus >0): # commandline overrides yaml config file settings
+        ncpus=args.ncpus    
+    if(ncpus > os.cpu_count()):
+        ncpus=int((0.8*ncpus)+0.5)  # TODO: testing if this helps with OOM errors
     model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
 
     emis = Emissions.read(args.emis)
