@@ -236,17 +236,13 @@ class lumiaGuiApp:
         (bErrors, sErrorMsg, bWarnings, sWarningsMsg) = self.checkGuiValues()
         ge.guiWipeTextBox(self.Pg1displayBox, protect=True) # delete all text
         if((bErrors) and (bWarnings)):
-           #print('errors and warnings')
-            # self.Pg1displayBox.insert("0.0", "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg)
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg+sWarningsMsg, protect=True)
         elif(bErrors):
-           #print('errors')
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please fix the following errors:\n"+sErrorMsg, protect=True)
         elif(bWarnings):
-           #print('warnings')
             ge.guiWriteIntoTextBox(self.Pg1displayBox, "Please consider carefully the following warnings:\n"+sWarningsMsg, protect=True)
-            val=ge.getWidgetValue(self.Pg1ignoreWarningsCkb)
-           #print(f'ge.getWidgetValue(self.Pg1ignoreWarningsCkb) val={val}')
+            #val=ge.getWidgetValue(self.Pg1ignoreWarningsCkb)
+            #print(f'ge.getWidgetValue(self.Pg1ignoreWarningsCkb) val={val}')
             if((ge.getVarValue(self.bIgnoreWarningsCkbVar)) or (True==ge.getWidgetValue(self.Pg1ignoreWarningsCkb))):
                 bGo=True
                #print('Proceed in spite of warnings')
@@ -402,7 +398,7 @@ class lumiaGuiApp:
         # ./output/LumiaGUI-2024-02-22T02_16/LumiaGUI-2024-02-22T02_16-DiscoveredObservations.csv
         self.haveDiscoveredObs=False
         self.obsLocation=self.ymlContents['observations'][self.tracer]['file']['location']
-        if (('CARBONPORTAL' in self.obsLocation) and (os.path.exists(self.oldDiscoveredObservations))):
+        if (('CARBONPORTAL' in self.obsLocation) and (os.path.isfile(self.oldDiscoveredObservations))):
             self.oldLat0=ymlContents['run']['region']['lat0']  # 33.0
             self.oldLat1=ymlContents['run']['region']['lat1']   #73.0
             self.oldLon0=ymlContents['run']['region']['lon0']  # -15.0
@@ -423,7 +419,8 @@ class lumiaGuiApp:
                 if(tracer not in baseName[-8:-4]):
                     return(False)
                 # has format LumiaGUI-2024-02-26T12_36-DiscoveredObservations-co2.csv
-                tStamp=baseName[-43:-27]
+                tidx=baseName.index('20')
+                tStamp=baseName[tidx:tidx+16]
                 tStampDatetime = to_datetime(tStamp, format="%Y-%m-%dT%H_%M")
                 currentTime = datetime.now()
                 dT=currentTime - tStampDatetime
@@ -431,9 +428,9 @@ class lumiaGuiApp:
                 sdT=sdT.replace(':','h',1)
                 sdTcleaned = sdT.split(':', 1)[0] # # 0 days 7h2m
                 self.ageOfExistingDiscoveredObservations=f'Do you want to use the cached discovered observations from \n{sdTcleaned}m ago?'
+                self.haveDiscoveredObs=True
             except:
-                pass
-            self.haveDiscoveredObs=True
+                self.haveDiscoveredObs=False
         return True
             
 

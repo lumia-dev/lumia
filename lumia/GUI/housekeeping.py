@@ -182,8 +182,8 @@ def documentThisRun(ymlFile,  parentScript='Lumia', args=None):
     if('.ipynb' in scriptTail):
         logger.info('Local git information is not available from this python notebook. This is not an issue.')
     else: 
-        import git
         try:
+            import git
             # https://github.com/lumia-dev/lumia/commit/6be5dd54aa5a16b136c2c1e2685fc8abf2beb404
             if('LumiaGUI' in parentScript):
                 # The correct .git info is found in the LumiaDA root where run.py lives, 2 directories up from here

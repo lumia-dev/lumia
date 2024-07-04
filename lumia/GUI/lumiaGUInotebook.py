@@ -1,4 +1,9 @@
 #!pip install jupyter_ui_poll
+#!pip install distro
+#!pip install loguru
+#!pip install screeninfo
+#!pip install git+https://github.com/ecederstrand/exchangelib
+
 from importlib import reload
 import ipywidgets as wdg
 

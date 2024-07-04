@@ -31,8 +31,7 @@ def main():
     p.add_argument('--ymf')   # yaml configuration file where the user plans his or her Lumia run: parameters, input files etc.
     p.add_argument('--verbosity', '-v', default='INFO',  help="Affects how detailed the logging is. valid arguments are INFO and DEBUG, default is INFO")
     args = p.parse_args(sys.argv[1:])
-    
-    
+        
     # Set the verbosity in the logger (loguru quirks ...)
     logger.remove()
     #logger.add(sys.stderr, level=args.verbosity)
