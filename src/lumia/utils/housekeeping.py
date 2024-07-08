@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='aad44b6d6e5d11f26abd5a26e351e8dfbc5210cf'
+LATESTGITCOMMIT_LumiaDA='514e8ab5bb422c106b8540cd72f8cc3d8d415201'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
@@ -820,10 +820,10 @@ def documentThisRun(ymlFile,  parentScript='runLumia',  lumiaFlavour='Lumia', ar
                 sha256Value=caclulateSha256Filehash(localEmisFile)
                 hashValues.append(sha256Value)
             setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer,  'categories',  cat, 'localFiles'],   value=localEmisFiles, bNewValue=True)
-            try:
-                ymlContents[ 'emissions'][ tracer]['categories'][cat]['localFile']='NotApplicable'
-            except:
-                pass  # if the key does not exists, then that's fine too
+            #try:
+            #    ymlContents[ 'emissions'][ tracer]['categories'][cat]['localFile']='NotApplicable'
+            #except:
+            #    pass  # if the key does not exists, then that's fine too
                 
         setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'emissions',  tracer,  'categories',  cat, 'sha256Value'],   value=hashValues, bNewValue=True)
 
