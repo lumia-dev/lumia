@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='514e8ab5bb422c106b8540cd72f8cc3d8d415201'
-LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
+LATESTGITCOMMIT_LumiaDA='c57381a002519572f400a88f22ed651df92965c0'
+LATESTGITCOMMIT_Runflex='9ef682d69e32fdfd1e1c23e742149c6268b8715a'
 
 import os
 import sys
@@ -920,8 +920,8 @@ def documentThisRun(ymlFile,  parentScript='runLumia',  lumiaFlavour='Lumia', ar
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'commit'],   value=LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'lumia',  'git',  'location'],   value='git@github.com:lumia-dev/lumia/commit/'+LATESTGITCOMMIT_LumiaDA, bNewValue=True)
     # runflex
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'softwareUsed',  'runflex',  'branch'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
-    setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'commit'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [  'softwareUsed',  'runflex',  'branch'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/branch/v2?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
+    #setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex',  'commit'],   value='gitkraken://repolink/b9411fbf7aeeb54d7bb34331a98e2cc0b6db9d5f/commit/aad612b36a247046120bda30c8837acb5dec4f26?url=https%3A%2F%2Fgithub.com%2Flumia-dev%2Frunflex.git',  bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'branch'],   value='v2', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'url'],   value='git@github.com:lumia-dev/runflex.git', bNewValue=True)
     setKeyVal_Nested_CreateIfNecessary(ymlContents, [ 'softwareUsed',  'runflex', 'git', 'commit'],   value=LATESTGITCOMMIT_Runflex, bNewValue=True)
