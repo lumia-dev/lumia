@@ -134,7 +134,9 @@ class Transport:
             sCmd.append('--serial')
         if step in self.extra_arguments:
             sCmd.append(self.extra_arguments[step])
-        if "*" in self.extra_arguments:
+        if "adjoint" in self.extra_arguments:
+            sCmd.append(self.extra_arguments['adjoint'])
+        elif "*" in self.extra_arguments:
             sCmd.append(self.extra_arguments['*'])
 
         # MasterPlus addons for improved logging
