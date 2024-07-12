@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project LumiaDA",
     "copyright": "Copyright (C) 2024 , ",
-    "saved": "2024-06-18, 11:01:24"
+    "saved": "2024-07-12, 08:45:02"
   },
   "project": {
     "AUTHOR": "",
@@ -170,7 +170,7 @@
       "PackagesRoot": "",
       "RcSuffix": ""
     },
-    "VCS": "None",
+    "VCS": "Git",
     "VCSOPTIONS": {
       "add": [
         ""

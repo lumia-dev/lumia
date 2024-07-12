@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-LATESTGITCOMMIT_LumiaDA='01be33c5fb858f07a08e1cd40f5b0cc0bb0f7424'
+LATESTGITCOMMIT_LumiaDA='d3c8c976e8d4b55ab590ad1bfa77b092a7d3d7c5'
 LATESTGITCOMMIT_Runflex='aad612b36a247046120bda30c8837acb5dec4f26'
 
 import os
 import sys
 import getpass
 import platform
-import distro
+#import distro
 import pathlib
 import hashlib
 import re

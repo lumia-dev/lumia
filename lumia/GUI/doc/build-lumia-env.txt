@@ -1,0 +1,135 @@
+Lumia @github :
+https://github.com/lumia-dev/lumia
+
+Lumia homepage:
+https://lumia.nateko.lu.se/
+
+==========================
+Installing LumiaGUI (and LumiaDA - the branch of Lumia with Direct Access to th carbon portal built-in)
+
+I'm on a ubuntu 22.04  system - you may have to adjust to your environment. Lumia is unlikely to run on Microsoft operating systems,
+but pretty much any Linux flavour should be fine.
+
+Let's focus on LumiaGUI for now. For Lumia itself you needa a truckload of input data, which is why
+we prefer to run the actual inversion model in Lund with direct access to ICOS data (observations & emissions) and the SWESTORE (footprints, ERA5).
+
+1) prepare your system
+
+    # update the package repository
+sudo apt update
+    # we need a gcc and gfortran compiler
+sudo apt install build-essential gcc gfortran gfortran-12 libgfortran-12-dev libgfortran5
+    # we need libraries to read hdf4/5, netcdf, hdf4/5 and grib (libeccodes) data formats as well as the apps cdo, ncdump + ncgen (netcdf-bin) and for convenience ncview
+sudo apt install libgfortran5 libeccodes0 libeccodes-dev libsz2 libhdf5-103-1 libhdf5-hl-100 libnetcdf19 hdf5-helpers libhdf4-0 libhdf5-fortran-102 libhdf5-hl-fortran-100 libhdf5-cpp-103-1 libhdf5-hl-cpp-100 libhdf5-dev libnetcdf-dev libnetcdf-c++4 libnetcdff7 libnetcdff-dev netcdf-bin ncview libudunits2-0  libudunits2-data libudunits2-0 udunits-bin cdo
+    # we need git
+sudo apt install git git-man git-extras git-hub libgit2-1.1
+    # this and likely 1 or 2 more  libs are needed for python tkinter to work (graphics package for Linux - not needed for Jupyter notebooks to run)
+sudo apt install libtk8.6
+    # we may need other things, but I am not sure until we test the image
+
+2) Install a recent Miniconda, with Python 3.10 or 3.11, e.g.
+
+# install Miniconda - disable any existing conda installations in this bash terminal, while we are building the docker image
+export PYTHONPATH=''
+export CONDA_PREFIX=''
+Miniconda3-py311_24.4.0-0-Linux-x86_64.sh -b -m -p /opt/condaPython3.11
+
+source /opt/condaPython3.11/lib/python3.11/site-packages/conda/shell/etc/profile.d/conda.sh
+export CONDA_ENVS_PATH=/opt/condaPython3.11/envs
+
+3) create a dedicated environment for LumiaGUI (and LumiaDA)
+/opt/condaPython3.11/bin/conda create -y --name LumiaDA python=3.11
+
+conda info --envs
+conda activate LumiaDA
+python --version    # sanity check
+which python        # sanity check
+
+add this to your .bashrc file:
+
+export PYTHON_VERSION=3.11
+export ACTIVE_ENV=LumiaDA
+export CONDA_PREFIX=/opt/condaPython3.11
+export CONDA_ENVS_PATH=${CONDA_PREFIX}/envs
+
+export ENV_PREFIX=$CONDA_PREFIX/envs/$ACTIVE_ENV
+export PATH=$CONDA_PREFIX/bin:$CONDA_PREFIX/condabin:$PATH
+conda activate $ACTIVE_ENV
+
+export PYTHONPATH=$ENV_PREFIX/lib/python${PYTHON_VERSION}/:$ENV_PREFIX/bin:$ENV_PREFIX/lib/python${PYTHON_VERSION}/site-packages:$ENV_PREFIX/lib/python${PYTHON_VERSION}/site-packages/eric7/:$ENV_PREFIX/lib/python${PYTHON_VERSION}/site-packages/eric7/DebugClients/Python/:$ENV_PREFIX/lib/python${PYTHON_VERSION}/site-packages/eric7plugins/
+export PYPTH=$ENV_PREFIX/lib/python${PYTHON_VERSION}/:$ENV_PREFIX/bin:$ENV_PREFIX/lib/python${PYTHON_VERSION}/site-packages
+
+4) exit your bash terminal and start a fresh one so the updated .bashrc kicks in.
+
+5) update pip and install all requirements for lumiaDA/lumiaGUI:
+python -m pip install --upgrade pip
+
+pip install -r /home/arndt/nateko/it/bygg/docker.LumiaDA.01/min-requirements-lumiGUI.txt
+
+Note: if you want a nice Python IDE, try  pip install eric-ide (however, this will likely install a number of other things and might be
+better installed in an independent virt env of its own.)
+
+The Latest versions of LumiaMaster (not LumiaDA) require 3 intel packages not available through pip. There are separate instructions available
+
+6) installing LumiaDA and LumiaGUI
+
+Find a good location where to install the package. The working directory may later be anywhere else
+
+mkdir LumiaDA
+cd LumiaDA
+#      branch: LumiaDA
+#      location: git@github.com:lumia-dev/lumia/commit/575cc93f95e84f2f84df0b565a6128de6772e54b
+#      url: git@github.com:lumia-dev/lumia.git
+git config --global init.defaultBranch master
+git clone https://github.com/lumia-dev/lumia.git
+cd lumia
+git switch lumiaDA
+pip install -e .
+
+7) LumiaMaster has a python and a FORTRAN optimizer to choose from, lumiaDA has only the FORTRAN one that we need to build
+However, this is not needed for lumiaGUI, only for lumia itself. For details see the lumia documentation.
+
+cd src/congrad/
+make
+make install
+# Make sure the gfortran build for congrad.exe was successful
+ls -l congrad.exe
+
+==========
+
+Recommended reading to get the minimum requirements file for a locally installed home-built python package:
+https://stackoverflow.com/questions/35796968/get-all-modules-packages-used-by-a-python-project
+pip install pipreqs
+pipreqs /home/project/location
+
+creates requirements.txt
+which you can then use with
+pip install -r requirements.txt
+
+=============================
+
+Installing the LumiaGUI Notebook:
+
+1) have a working version of JupyterLab - at Lund we are using
+JupyterLab version 3.4.7 with Python 3.10.6
+
+2) Create a working folder in JupyterLab and navigate to your lumiaDA installation directory.
+In that folder create 2 subfolder, 'tmp' and 'output'
+
+3) cd deeper into
+./lumia/GUI/
+and upload
+lumiaGUInotebook.ipynb
+lumia-config-v6-tr-co2.yml
+*.py
+
+All things fair and squre, you should be able to run
+lumiaGUInotebook.ipynb
+in your JupyterLab
+You may want to uncomment the first few lines the first time you run it as you are likely to need those additional libraries.
+
+Good Luck!
+
+
+
+

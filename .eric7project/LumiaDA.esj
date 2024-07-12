@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric session file for project LumiaDA",
     "warning": "This file was generated automatically, do not edit.",
-    "saved": "2024-07-04, 17:23:10"
+    "saved": "2024-07-12, 09:21:11"
   },
   "MultiProject": "",
   "Project": "",
@@ -38,8 +38,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
       "Cursor": [
-        185,
-        4
+        13,
+        11
       ],
       "Folds": [],
       "Zoom": 0,
@@ -62,8 +62,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
       "Cursor": [
-        93,
-        17
+        88,
+        13
       ],
       "Folds": [],
       "Zoom": 0,
@@ -74,8 +74,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
       "Cursor": [
-        433,
-        4
+        17,
+        42
       ],
       "Folds": [],
       "Zoom": 0,
@@ -86,8 +86,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
       "Cursor": [
-        66,
-        38
+        172,
+        13
       ],
       "Folds": [],
       "Zoom": 1,
@@ -134,8 +134,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/transport/core/model.py",
       "Cursor": [
-        81,
-        0
+        55,
+        26
       ],
       "Folds": [],
       "Zoom": 0,
@@ -158,8 +158,8 @@
     {
       "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/obsoperator/__init__.py",
       "Cursor": [
-        202,
-        0
+        220,
+        59
       ],
       "Folds": [],
       "Zoom": 0,
@@ -205,10 +205,10 @@
     }
   ],
   "ActiveWindow": {
-    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/ui/main_functions.py",
+    "Filename": "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
     "Cursor": [
-      115,
-      0
+      17,
+      42
     ]
   },
   "Breakpoints": [
@@ -237,8 +237,48 @@
       0
     ],
     [
+      "/home/arndt/dev/py/lumiaMaster/lumia/run/control_inversion.py",
+      31,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/py/lumiaMaster/lumia/run/control_inversion.py",
+      31,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/py/lumiaMaster/lumia/run/control_inversion.py",
+      31,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/py/lumiaMaster/lumia/run/control_inversion.py",
+      31,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/py/lumiaMaster/lumia/run/control_inversion.py",
+      31,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1982,
+      1979,
       "",
       false,
       true,
@@ -254,7 +294,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1028,
+      1025,
       "",
       false,
       true,
@@ -262,7 +302,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1141,
+      1138,
       "",
       false,
       true,
@@ -270,7 +310,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      421,
+      417,
       "",
       false,
       true,
@@ -278,7 +318,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      259,
+      255,
       "",
       false,
       true,
@@ -294,7 +334,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      279,
+      275,
       "",
       false,
       true,
@@ -302,7 +342,7 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      1083,
+      1080,
       "",
       false,
       true,
@@ -310,7 +350,47 @@
     ],
     [
       "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
-      250,
+      246,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      260,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      982,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      1488,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      987,
+      "",
+      false,
+      true,
+      0
+    ],
+    [
+      "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
+      399,
       "",
       false,
       true,
@@ -347,6 +427,7 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/boringStuff.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@35",
+        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElementsTk.py@@12",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@32",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@35",
@@ -358,7 +439,6 @@
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@235",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@236",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/guiElements_ipyWdg.py@@25",
-        "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/housekeeping.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/lumiaGUI.py@@185",
         "/home/arndt/dev/lumia/lumiaDA/lumia/lumia/GUI/myCarbonPortalTools.py",

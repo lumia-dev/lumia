@@ -274,7 +274,7 @@ class lumiaGuiApp:
                     display(self.wdgGrid4)
                     askUserUseCachedBtn=ge.guiWidgetsThatWait4UserInput(watchedWidget=self.Pg1UseCachedButton,watchedWidget2=self.Pg1DontUseCachedButton, 
                             title='',  myDescription="Use cached Discovered-obs-data",  myDescription2="Hunt for latest data from the carbon portal", width=300)
-                    whichButton=askUserUseCachedBtn.selectedBtn
+                    whichButton=int(askUserUseCachedBtn)
                     if(whichButton==1): 
                         self.bUseCachedList = True
                     else:
@@ -1015,9 +1015,9 @@ class lumiaGuiApp:
         # grid: ${Grid:{lon0:-15, lat0:33, lon1:35, lat1:73, dlon:0.25, dlat:0.25}}
         # sRegion="lon0=%.3f, lon1=%.3f, lat0=%.3f, lat1=%.3f, dlon=%.3f, dlat=%.3f, nlon=%d, nlat=%d"%(regionGrid.lon0, regionGrid.lon1,  regionGrid.lat0,  regionGrid.lat1,  regionGrid.dlon,  regionGrid.dlat,  regionGrid.nlon,  regionGrid.nlat)
         self.lonMin = float(-25.0)  # this is a property of Lumia and protects against use it was not designed or tested for
-        self.lonMax = float(45.0)
-        self.latMin = float(23.0)
-        self.latMax = float(83.0)
+        self.lonMax = float(90.0)
+        self.latMin = float(-89.0)
+        self.latMax = float(89.0)
         Lat0=self.ymlContents['run']['region']['lat0']  # 33.0
         Lat1=self.ymlContents['run']['region']['lat1']   #73.0
         self.sLat0=ge.guiStringVar(value=f'{Lat0:.3f}')

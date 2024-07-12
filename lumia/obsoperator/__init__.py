@@ -226,10 +226,9 @@ class transport(object):
 
         if self.serial :
             sCmd.append('--serial')
-        sCmd.extend(list(self.rcf.rcfGet('model.transport.extra_arguments', default=''))) #sCmd.extend(list(self.rcf.getAlt('model','transport','extra_arguments', default='')))
+        sCmd.extend(list(self.rcf.rcfGet('model.transport.extra_arguments', default=''))) 
 
         logger.debug(f'Starting AdjointRun in subprocess with cmd={sCmd}')        
-        # TODO: uncomment the next line  (runcmd multitracer.py) when done debugging 
         p=runcmd(sCmd)  # !Beware, Eric's debugger does not spawn the associated subprocess command and multitracer.py is not executed!
         logger.info(f'return value from subprocess(python ./transport/multitracer.py)={p}')
 
