@@ -174,6 +174,8 @@ class Observations:
         
         # Ensure that all observations have measurement error:
         sel = self.observations.loc[:, self.settings.field_err_obs] <= 0
+        if sum(sel) > 0:
+            logger.warning(f'Found {sum(sel)} obs without measurement error, setting these to err_min {self.settings.err_min}')
         self.observations.loc[sel, self.settings.field_err_obs] = self.settings.err_min
 
         for code in self.observations.code.drop_duplicates():
@@ -214,4 +216,4 @@ class Observations:
             self.observations.loc[self.observations.code == code, 'mod_detrended'] = mod_averaged.values
         
         # Apply global scaling factor if needed:
-        self.observations.loc[:, 'err'] *= self.settings.err_fac
+        self.observations.loc[:, 'err'] *= float(self.settings.err_fac)

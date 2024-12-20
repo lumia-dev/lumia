@@ -43,6 +43,7 @@ class PriorConstraints:
                 logger.debug('No predefined prior error. Setting the error proportional to the abs value of flux')
                 errmap = abs(mapping.model_data[cat.tracer][cat.name])
             else:
+                
                 #Ensure predefined errmap has same dimension as prescribed
                 assert (errmap.shape == mapping.model_data[cat.tracer][cat.name].shape)
             
