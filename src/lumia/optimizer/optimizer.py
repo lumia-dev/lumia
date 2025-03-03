@@ -59,7 +59,7 @@ class Var4D:
     _vectors : DataFrame | None = None
     
     def __post_init__(self):
-
+        
         if isinstance(self.settings, (dict, DictConfig)):
             self.settings = Settings(**self.settings) # {k: v for (k, v) in self.settings.items() if k in Settings.__annotations__})
 
@@ -72,14 +72,16 @@ class Var4D:
             temporal_correlations = self.prior.temporal_correlations,
             horizontal_correlations = self.prior.horizontal_correlations,
             sigmas = self.prior.sigmas,
-            coordinates = self.prior.coordinates
+            coordinates = self.prior.coordinates,
+            category_correlations = self.prior.category_correlations  # new parameter
         )
         self.g_to_gc = partial(
             g_to_gc,
             temporal_correlations = self.prior.temporal_correlations,
             horizontal_correlations = self.prior.horizontal_correlations,
             sigmas = self.prior.sigmas,
-            coordinates = self.prior.coordinates
+            coordinates = self.prior.coordinates,
+            category_correlations = self.prior.category_correlations  # new parameter
         )
 
         # Setup model
