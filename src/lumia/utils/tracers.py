@@ -24,6 +24,13 @@ CO2 = Specie(
     unit_optim=units('umol').units
 )
 
+C14 = Specie(
+    unit_emis=units('umol/m**2/s').units, 
+    unit_mix=units('ppm').units,
+    unit_budget=units('PgC').units,
+    unit_optim=units('umol').units
+)
+
 CH4 = Specie(
     unit_emis=units('nmol/m**2/s').units, 
     unit_mix=units('ppb').units,
@@ -42,6 +49,7 @@ BC = Specie(
 @dataclass
 class Species:
     co2 : Specie = CO2
+    c14 : Specie = C14
     ch4 : Specie = CH4
     bc  : Specie = BC
 

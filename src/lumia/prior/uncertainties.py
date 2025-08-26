@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from multiprocessing import Pool
-from numpy import pi, cos, sin, arcsin, zeros, exp, linalg, eye, meshgrid, flipud, argsort, diag, sqrt, where, unique
+from numpy import pi, cos, sin, arcsin, zeros, exp, linalg, eye, meshgrid, flipud, argsort, diag, sqrt, where, unique, sqrt
 from dataclasses import dataclass
 from numpy.typing import NDArray
 from loguru import logger
@@ -14,6 +14,16 @@ from pathlib import Path
 from h5py import File
 import hashlib
 from functools import cache
+
+# --- new imports you’ll need ---
+try:
+    import numpy as np
+    from scipy.spatial import cKDTree
+    from scipy.sparse import csr_matrix, isspmatrix_csr, spmatrix, csc_matrix
+    from sksparse.cholmod import cholesky as cholmod_factor  # optional
+    _HAVE_CHOLMOD = True
+except Exception:
+    _HAVE_CHOLMOD = False
 
 
 _common = {}   # common for multiprocessing
@@ -68,38 +78,110 @@ def calc_dist_matrix(lats, lons, stretch_ratio=1.):
 
 @dataclass(kw_only=True)
 class SpatialCorrelation:
-    corlen : float
-    cortype : str
+    corlen : float          # kilometers
+    cortype : str           # 'e' / 'g' / 'h'
     lats : NDArray
     lons : NDArray
-    min_eigval : float = 0.00001
-    stretch_ratio : float = 1.
+    min_eigval : float = 0.00001     # unused if we skip eig
+    stretch_ratio : float = 1.0   # NOTE: not applied in sparse-tree path
     min_corr : float = 1.e-7
     cache_dir : Path | None = None
+    # NOTE: This is new, not in the original code
+    backend : str = "evd"               # "evd" | "cholmod"
+    cholmod_opts : dict | None = None   # fill_factor, diag_perturb, ordering
+
+    # runtime fields
+    _dense_B : NDArray | None = None
+    _sparse_B : "csr_matrix | None" = None
+    _L_dense : NDArray | None = None    # for EVD
+    _chol_F : object | None = None      # cholmod factor object
 
     @debug.trace_args()
     def __post_init__(self):
-        
-        # Ensure that cache_dir is a Path and not a str (if not None)
-        if self.cache_dir :
-            self.cache_dir = Path(self.cache_dir)
-            
-        self.n = len(self.lats)
+        if self.cholmod_opts is None:
+            self.cholmod_opts = {}
 
-        # Calculate the covariance matrix:
-        distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio = self.stretch_ratio)
-        match self.cortype:
-            case 'g':
-                self.mat = exp(-(distmat/self.corlen)**2)
-            case 'e':
-                self.mat = exp(-(distmat/self.corlen))
-            case 'h':
-                self.mat = 1/(1+distmat/self.corlen)
-            case _:
-                logger.error(f'Correlation choice "{self.cortype}" should be one of ["g", "e", "h"]')
-                raise ValueError
-        self.mat[self.mat < self.min_corr] = 0.
-        self.eigen_vectors, self.eigen_values = self.calc_eigen_decomposition()
+        n = len(self.lats)
+        distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio=self.stretch_ratio)
+
+        if self.cortype == 'g':
+            B = exp(-(distmat / self.corlen) ** 2)
+        elif self.cortype == 'e':
+            B = exp(-(distmat / self.corlen))
+        elif self.cortype == 'h':
+            B = 1.0 / (1.0 + distmat / self.corlen)
+        else:
+            raise ValueError(f'Unknown cortype "{self.cortype}" (expected "g","e","h").')
+
+        B[B < self.min_corr] = 0.0
+
+        if self.backend == "cholmod":
+            if not _HAVE_CHOLMOD:
+                logger.warning("CHOLMOD backend requested but sksparse.cholmod is unavailable. Falling back to EVD.")
+                self.backend = "evd"
+
+        if self.backend == "cholmod":
+            # sparse path
+            B = (B + B.T) * 0.5  # symmetrize numerically
+            # optional diagonal perturbation
+            dp = float(self.cholmod_opts.get("diag_perturb", 0.0))
+            if dp > 0.0:
+                B[range(n), range(n)] += dp
+
+            self._sparse_B = csr_matrix(B)
+
+            # optional reordering—let CHOLMOD decide by default
+            # factorize (ichol or cholmod LL^T depending on CHOLMOD heuristics)
+            try:
+                ordering = self.cholmod_opts.get("ordering", "auto")
+                F = cholmod_factor(self._sparse_B, ordering=ordering if ordering != "auto" else None)
+                self._chol_F = F
+            except Exception as e:
+                logger.warning(f"CHOLMOD factorization failed ({e}). Falling back to EVD.")
+                self.backend = "evd"
+                self._sparse_B = None
+
+        if self.backend == "evd":
+            # dense EVD path (with caching support, if you keep it)
+            self._dense_B = B
+            self._L_dense = self._dense_evd_L(self._dense_B)
+
+    # ---- EVD helper
+    def _dense_evd_L(self, B: NDArray) -> NDArray:
+        lam, V = linalg.eigh(B)
+        # clamp negative eigenvalues (numerical)
+        if self.min_eigval > 1.e-10:
+            min_e = self.min_eigval * min((1.0, lam.max()))
+        else:
+            min_e = self.min_eigval
+        n_neg = (lam < min_e).sum()
+        lam[lam < min_e] = min_e
+        if n_neg > 0:
+            logger.debug(f"SpatialCorrelation: clamped {n_neg} eigenvalues to {min_e:.3e}")
+        return V * (lam ** 0.5)
+
+    # def __post_init__(self):
+        
+    #     # Ensure that cache_dir is a Path and not a str (if not None)
+    #     if self.cache_dir :
+    #         self.cache_dir = Path(self.cache_dir)
+            
+    #     self.n = len(self.lats)
+
+    #     # Calculate the covariance matrix:
+    #     distmat = calc_dist_matrix(self.lats, self.lons, stretch_ratio = self.stretch_ratio)
+    #     match self.cortype:
+    #         case 'g':
+    #             self.mat = exp(-(distmat/self.corlen)**2)
+    #         case 'e':
+    #             self.mat = exp(-(distmat/self.corlen))
+    #         case 'h':
+    #             self.mat = 1/(1+distmat/self.corlen)
+    #         case _:
+    #             logger.error(f'Correlation choice "{self.cortype}" should be one of ["g", "e", "h"]')
+    #             raise ValueError
+    #     self.mat[self.mat < self.min_corr] = 0.
+    #     self.eigen_vectors, self.eigen_values = self.calc_eigen_decomposition()
         
     @property
     def hash(self) -> int :
@@ -167,12 +249,45 @@ class SpatialCorrelation:
         return p, lam**.5
 
     @property
-    def L(self) -> NDArray:
-        return self.eigen_vectors * self.eigen_values 
+    def is_sparse(self) -> bool:
+        return self.backend == "cholmod" and self._chol_F is not None and self._sparse_B is not None
 
     @property
-    def B(self) -> NDArray:
-        return self.mat
+    def B(self):
+        # used in calc_total_uncertainty (works with dense or CSR)
+        if self.is_sparse:
+            return self._sparse_B
+        return self._dense_B
+
+    @property
+    def L(self):
+        # used only by the *dense* preconditioner path
+        if self.is_sparse:
+            raise RuntimeError("L requested but eigen decomposition was not computed (sparse backend).")
+        return self._L_dense
+
+    # apply sqrt(B) to x (x shape: [n] or [*, n])
+    def apply_L(self, X: NDArray) -> NDArray:
+        if self.is_sparse:
+            # CHOLMOD factor represents B ≈ L L^T; apply L
+            return self._chol_F.apply_Pt(self._chol_F.apply_L(X))
+        else:
+            return X @ self.L.T
+
+    # apply sqrt(B)^T to x
+    def apply_Lt(self, X: NDArray) -> NDArray:
+        if self.is_sparse:
+            return self._chol_F.apply_Lt(self._chol_F.apply_P(X))
+        else:
+            return X @ self.L
+        
+    # @property
+    # def L(self) -> NDArray:
+    #     return self.eigen_vectors * self.eigen_values 
+
+    # @property
+    # def B(self) -> NDArray:
+    #     return self.mat
 
 
 @dataclass(kw_only=True)
@@ -227,64 +342,127 @@ class TemporalCorrelation:
 
 @debug.timer
 def calc_total_uncertainty(
-        errvec: DataFrame,
-        temporal_correlation: NDArray,
-        spatial_correlation: NDArray,
-        unit_optim : Unit,
-        unit_budget : Unit,
-        field : str = 'prior_uncertainty') -> Quantity:
+    errvec: DataFrame,
+    temporal_correlation,           # NDArray (dense, nt x nt)
+    spatial_correlation,            # NDArray or CSR (np x np)
+    unit_optim: Unit,
+    unit_budget: Unit,
+    field: str = 'prior_uncertainty'
+) -> Quantity:
     unitconv = (1 * unit_optim).to(unit_budget).magnitude
 
-    nt = temporal_correlation.shape[0]
-    sigmas = errvec.loc[:, field].values * unitconv
-    ch = spatial_correlation
-    ct = temporal_correlation
+    ct = temporal_correlation      # (nt x nt), dense
+    ch = spatial_correlation       # (np x np), dense or sparse
+    nt = ct.shape[0]
 
-    # The formula below is equivalent (but much faster) to:
-    #for it1 in range(nt):
-    #    for it2 in range(nt):
-    #        for ip1 in range(nh):
-    #            for ip2 in range(nh):
-    #                errtot += sigmas[it1, ip1] * sigmas[it2, ip2] * Ct[it1, it2] * Ch[ip1, ip2]
-    #errtot = sqrt(errtot)
+    s = errvec.loc[:, field].values * unitconv       # (nt*np,)
+    S = s.reshape(nt, -1).T                          # (np x nt)
 
-    # This relies :
-    # - on the property of the kronecker vector that:
-    #   kron(A, B) @ vec(V) = vec(A @ V @ B.T)
-    #   with "vec" the vectorization operator (i.e. V.reshape(-1) here
-    # - on the property that the sum of a covariance matrix can be inferred from the equation s @ Q @ s,
-    #   with "s" the vector of standard deviations (sigmas) and Q the correlation matrix
-    # - combining the two, we have: s @ kron(Qt, Qh) @ s === s @ vec(Qh @ E @ Qt), with "E" the matrix form
-    #   of the vector of standard deviations "s". 
-    # - the matrix form of the standard deviations need to be (np, nt), however, the data are stored in a (nt, np) order ==> we must use the transpose of the reshaped matrix, and, likewise, we must transpose the outcome of the matrix product before reshaping it as a vector
+    # Q = kron(ct, ch); s^T Q s = vec(S)^T vec(ch S ct^T) = sum(ch S ct^T ⊙ S)  (we keep it as matmul)
+    # We compute: T = ch @ S @ ct  (np x nt)
+    if sp.issparse(ch):
+        T = ch @ S @ ct
+    else:
+        T = ch.dot(S).dot(ct)
 
-    return (sigmas @ (ch @ sigmas.reshape(nt, -1).T @ ct).T.reshape(-1))**.5
+    total_var = (S.T @ T).sum()   # == vec(S)^T vec(T)
+    return (total_var ** 0.5)
+
+
+# @debug.timer
+# def calc_total_uncertainty(
+#         errvec: DataFrame,
+#         temporal_correlation: NDArray,
+#         spatial_correlation: NDArray,
+#         unit_optim : Unit,
+#         unit_budget : Unit,
+#         field : str = 'prior_uncertainty') -> Quantity:
+#     unitconv = (1 * unit_optim).to(unit_budget).magnitude
+
+#     nt = temporal_correlation.shape[0]
+#     sigmas = errvec.loc[:, field].values * unitconv
+#     ch = spatial_correlation
+#     ct = temporal_correlation
+
+#     # The formula below is equivalent (but much faster) to:
+#     #for it1 in range(nt):
+#     #    for it2 in range(nt):
+#     #        for ip1 in range(nh):
+#     #            for ip2 in range(nh):
+#     #                errtot += sigmas[it1, ip1] * sigmas[it2, ip2] * Ct[it1, it2] * Ch[ip1, ip2]
+#     #errtot = sqrt(errtot)
+
+#     # This relies :
+#     # - on the property of the kronecker vector that:
+#     #   kron(A, B) @ vec(V) = vec(A @ V @ B.T)
+#     #   with "vec" the vectorization operator (i.e. V.reshape(-1) here
+#     # - on the property that the sum of a covariance matrix can be inferred from the equation s @ Q @ s,
+#     #   with "s" the vector of standard deviations (sigmas) and Q the correlation matrix
+#     # - combining the two, we have: s @ kron(Qt, Qh) @ s === s @ vec(Qh @ E @ Qt), with "E" the matrix form
+#     #   of the vector of standard deviations "s". 
+#     # - the matrix form of the standard deviations need to be (np, nt), however, the data are stored in a (nt, np) order ==> we must use the transpose of the reshaped matrix, and, likewise, we must transpose the outcome of the matrix product before reshaping it as a vector
+
+#     return (sigmas @ (ch @ sigmas.reshape(nt, -1).T @ ct).T.reshape(-1))**.5
     
 
 @debug.timer
-def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFrame) -> TemporalCorrelation:
+def calc_temporal_correlation(
+    corlen: DateOffset, dt: DateOffset, sigmas: DataFrame,
+    backend: str = "evd", cholmod_opts: dict | None = None
+) -> TemporalCorrelation:
+    # backend ignored here; temporal is small, dense is fine
     assert dt.base == corlen.base
-
-    # Number of time steps :
     times = sigmas.loc[:, 'time'].drop_duplicates()
     nt = times.shape[0]
-
     return TemporalCorrelation(corlen=corlen.n / dt.n, dt=1., n=nt)
 
 
+# @debug.timer
+# def calc_temporal_correlation(corlen: DateOffset, dt: DateOffset, sigmas: DataFrame) -> TemporalCorrelation:
+#     assert dt.base == corlen.base
+
+#     # Number of time steps :
+#     times = sigmas.loc[:, 'time'].drop_duplicates()
+#     nt = times.shape[0]
+
+#     return TemporalCorrelation(corlen=corlen.n / dt.n, dt=1., n=nt)
+
+
 @debug.timer
-def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame, cache_dir : Path = None) -> SpatialCorrelation:
-    corlen, cortype = corstring.split('-')
-    corlen = int(corlen)
-    logger.warning("Fix might be needed if two categories from two different tracers have the same name")
-    # Two categories with the same name can exist, in different tracers ...
-    # It would be better to have unique categories that have cat name and cat tracer as properties
+def calc_horizontal_correlation(
+    catname: str, corstring: str, sigmas: DataFrame,
+    cache_dir: Path = None,
+    backend: str = "evd", cholmod_opts: dict | None = None
+) -> SpatialCorrelation:
+    corlen_s, cortype = corstring.split('-')
+    corlen = int(corlen_s)
     vec = sigmas.loc[(sigmas.category == catname)]
     vec = vec.loc[vec.time == vec.iloc[0].time]
+
     return SpatialCorrelation(
-        corlen=corlen, 
-        cortype=cortype, 
-        lats=vec.lat.values, 
-        lons=vec.lon.values, 
-        cache_dir=cache_dir
+        corlen=corlen,
+        cortype=cortype,
+        lats=vec.lat.values,
+        lons=vec.lon.values,
+        cache_dir=cache_dir,
+        backend=backend,
+        cholmod_opts=cholmod_opts,
     )
+
+
+# @debug.timer
+# def calc_horizontal_correlation(catname: str, corstring: str, sigmas: DataFrame, cache_dir : Path = None) -> SpatialCorrelation:
+#     corlen, cortype = corstring.split('-')
+#     corlen = int(corlen)
+#     logger.warning("Fix might be needed if two categories from two different tracers have the same name")
+#     # Two categories with the same name can exist, in different tracers ...
+#     # It would be better to have unique categories that have cat name and cat tracer as properties
+#     vec = sigmas.loc[(sigmas.category == catname)]
+#     vec = vec.loc[vec.time == vec.iloc[0].time]
+#     return SpatialCorrelation(
+#         corlen=corlen, 
+#         cortype=cortype, 
+#         lats=vec.lat.values, 
+#         lons=vec.lon.values, 
+#         cache_dir=cache_dir
+#     )

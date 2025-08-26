@@ -18,6 +18,12 @@ from lumia.utils.time_utils import overlap_percent, interval_range
 from lumia.optimizer.categories import Category
 from lumia.utils import debug
 
+from scipy.sparse import csr_matrix
+import numpy as np
+
+def _mk_placeholder(name="overlap_fraction"):
+    # keep a tiny var so code that expects a DataArray key doesn’t break
+    return name, DataArray(np.float32(1.0))
 
 @dataclass(kw_only=True)
 class Mapping:
@@ -75,95 +81,136 @@ class Mapping:
 
     @debug.timer
     def distribflux_time(self, emcoarse: NDArray, cat: Category) -> NDArray:
-        """
-        Distribute the fluxes from the optimization time steps to the model time steps
-        inputs:
-        emcoarse: state vector (nx,), with nx = nt_optim * npoints
-        cat: category name
-
-        returns:
-        emfine: (nt_model, npoints) matrix, with nt_model the numnber of model time steps
-        """
-
-        # 1) Select the transition matrix (nt_optim, nt_model)
-        tmap = self.temporal_mapping[cat].overlap_fraction
-        ntopt = tmap.time_optim.size
-        disaggregation_matrix = tmap.data
-
-        # Reshape the vector to a (nt_optim, npoints) array
+        tmap = self.temporal_mapping[cat].attrs['tmap_csr']  # (nt_opt x nt_mod)
+        ntopt = tmap.shape[0]
         emcoarse = emcoarse.reshape(ntopt, -1)
+        return (tmap.T @ emcoarse)  # (nt_mod x npoints)
 
-        # Remap by matrix product (emfine = Tmap^t * emcoarse)
-        return disaggregation_matrix.transpose() @ emcoarse
+    # @debug.timer
+    # def distribflux_time(self, emcoarse: NDArray, cat: Category) -> NDArray:
+    #     """
+    #     Distribute the fluxes from the optimization time steps to the model time steps
+    #     inputs:
+    #     emcoarse: state vector (nx,), with nx = nt_optim * npoints
+    #     cat: category name
+
+    #     returns:
+    #     emfine: (nt_model, npoints) matrix, with nt_model the numnber of model time steps
+    #     """
+
+    #     # 1) Select the transition matrix (nt_optim, nt_model)
+    #     tmap = self.temporal_mapping[cat].overlap_fraction
+    #     ntopt = tmap.time_optim.size
+    #     disaggregation_matrix = tmap.data
+
+    #     # Reshape the vector to a (nt_optim, npoints) array
+    #     emcoarse = emcoarse.reshape(ntopt, -1)
+
+    #     # Remap by matrix product (emfine = Tmap^t * emcoarse)
+    #     return disaggregation_matrix.transpose() @ emcoarse
 
     @debug.timer
     def distribflux_time_adj(self, emcoarse_adj: NDArray, cat: Category):
-        """
-        Adjoint of distribuflux_time.
-        Inputs:
-        - emcoarse_adj: a (nt_model, npoints) matrix, containing adjoint fluxes
-        - cat: the category name
-        Returns:
-        - emfine_adj: a (nt_optim * npoints,) vector
-        """
+        tmap = self.temporal_mapping[cat].attrs['tmap_csr']
+        return (tmap @ emcoarse_adj).reshape(-1)
 
-        # 1) Select the transition matrix (n_optim, n_model)
-        disaggregation_matrix = self.temporal_mapping[cat].overlap_fraction.data
+    # @debug.timer
+    # def distribflux_time_adj(self, emcoarse_adj: NDArray, cat: Category):
+    #     """
+    #     Adjoint of distribuflux_time.
+    #     Inputs:
+    #     - emcoarse_adj: a (nt_model, npoints) matrix, containing adjoint fluxes
+    #     - cat: the category name
+    #     Returns:
+    #     - emfine_adj: a (nt_optim * npoints,) vector
+    #     """
 
-        # 2) Aggregate by matrix product (emcoarse_adj = T * emfine^adj)
-        emcoarse_adj = disaggregation_matrix @ emcoarse_adj
+    #     # 1) Select the transition matrix (n_optim, n_model)
+    #     disaggregation_matrix = self.temporal_mapping[cat].overlap_fraction.data
 
-        # 3) Reshape as a vector and return
-        return emcoarse_adj.reshape(-1)
+    #     # 2) Aggregate by matrix product (emcoarse_adj = T * emfine^adj)
+    #     emcoarse_adj = disaggregation_matrix @ emcoarse_adj
+
+    #     # 3) Reshape as a vector and return
+    #     return emcoarse_adj.reshape(-1)
 
     @debug.timer
-    def distribflux_space(self, emcoarse : NDArray, cat: Category) -> NDArray:
-        """
-        Distribute the fluxes from the spatial clusters used in the optimization to the model grid.
-        Input:
-            - emcoarse: (nt, np) matrix, with np the number of spatial clusters
-        Output:
-            - emfine: (nt, nlat, nlon) matrix, with gridded fluxes
-        """
+    def distribflux_space(self, emcoarse: NDArray, cat: Category) -> NDArray:
+        sp = self.spatial_mapping[cat].attrs
+        shape = self.model_data[cat.tracer].shape  # (nt, nlat, nlon)
 
-        # 1) Select the transition matrix (np, nlat*nlon) and transpose it:
-        disaggregation_matrix = self.spatial_mapping[cat].overlap_fraction.data
+        if 'select_idx' in sp:  # boolean/native case
+            nm = shape[1] * shape[2]
+            emfine = np.zeros((emcoarse.shape[0], nm), dtype=emcoarse.dtype)
+            emfine[:, sp['select_idx']] = emcoarse
+        else:
+            vts = sp['vts_csr']       # (nm x nv)
+            emfine = emcoarse @ vts.T # (nt x nm)
+
+        return emfine.reshape(shape)
+
+    # @debug.timer
+    # def distribflux_space(self, emcoarse : NDArray, cat: Category) -> NDArray:
+    #     """
+    #     Distribute the fluxes from the spatial clusters used in the optimization to the model grid.
+    #     Input:
+    #         - emcoarse: (nt, np) matrix, with np the number of spatial clusters
+    #     Output:
+    #         - emfine: (nt, nlat, nlon) matrix, with gridded fluxes
+    #     """
+
+    #     # 1) Select the transition matrix (np, nlat*nlon) and transpose it:
+    #     disaggregation_matrix = self.spatial_mapping[cat].overlap_fraction.data
         
-        # 2) distribute the fluxes to a (nt, nlat*nlon) matrix
-        if disaggregation_matrix.dtype == bool:
-            # if there is no spatial aggregation (just filtering of some pixels), we can take a shortcut:
-            emfine = zeros((emcoarse.shape[0], disaggregation_matrix.shape[0]))
-            emfine[:, disaggregation_matrix.sum(1).astype(bool)] = emcoarse
-        else :
-            emfine = emcoarse @ disaggregation_matrix.transpose()
+    #     # 2) distribute the fluxes to a (nt, nlat*nlon) matrix
+    #     if disaggregation_matrix.dtype == bool:
+    #         # if there is no spatial aggregation (just filtering of some pixels), we can take a shortcut:
+    #         emfine = zeros((emcoarse.shape[0], disaggregation_matrix.shape[0]))
+    #         emfine[:, disaggregation_matrix.sum(1).astype(bool)] = emcoarse
+    #     else :
+    #         emfine = emcoarse @ disaggregation_matrix.transpose()
 
-        # 3) reshape as a (nt, nlat, nlon) array and return:
-        return emfine.reshape(self.model_data[cat.tracer].shape)
+    #     # 3) reshape as a (nt, nlat, nlon) array and return:
+    #     return emfine.reshape(self.model_data[cat.tracer].shape)
 
     @debug.timer
     def distribflux_space_adj(self, emcoarse_adj: NDArray, cat: Category) -> NDArray:
-        """
-        Adjoint of distribflux_space.
-        Inputs:
-            - emcoarse_adj: a (nt_mod, nlat, nlon) adjoint field
-        Returns:
-            - emfine_adj: a (nt_mod, npoints) adjoint field
-        """
+        sp = self.spatial_mapping[cat].attrs
+        nt, nlat, nlon = emcoarse_adj.shape
+        emflat = emcoarse_adj.reshape(nt, -1)
 
-        # 1) Reshape as a (nt_mod, nlat*nlon) matrix:
-        emcoarse_adj = emcoarse_adj.reshape(emcoarse_adj.shape[0], -1)
-
-        # 2) Select the spatial transition matrix (np, nlat*nlon):
-        disaggregation_matrix = self.spatial_mapping[cat].overlap_fraction.data
-
-        # 3) Regrid by matrix product: emfine = emcoarse * T^t -> (nt, np)
-        if disaggregation_matrix.dtype == bool:
-            # If there is no spatial aggregation, it is a simple mapping of emission components on state vector, so we can take a shortcut:
-            emfine_adj = emcoarse_adj[:, disaggregation_matrix.sum(1).astype(bool)]
-        else :
-            emfine_adj = emcoarse_adj @ disaggregation_matrix
+        if 'select_idx' in sp:
+            emfine_adj = emflat[:, sp['select_idx']]  # (nt x nv)
+        else:
+            stv = sp['stv_csr']                        # (nv x nm)
+            emfine_adj = emflat @ stv.T                # (nt x nv)
 
         return emfine_adj
+
+    # @debug.timer
+    # def distribflux_space_adj(self, emcoarse_adj: NDArray, cat: Category) -> NDArray:
+    #     """
+    #     Adjoint of distribflux_space.
+    #     Inputs:
+    #         - emcoarse_adj: a (nt_mod, nlat, nlon) adjoint field
+    #     Returns:
+    #         - emfine_adj: a (nt_mod, npoints) adjoint field
+    #     """
+
+    #     # 1) Reshape as a (nt_mod, nlat*nlon) matrix:
+    #     emcoarse_adj = emcoarse_adj.reshape(emcoarse_adj.shape[0], -1)
+
+    #     # 2) Select the spatial transition matrix (np, nlat*nlon):
+    #     disaggregation_matrix = self.spatial_mapping[cat].overlap_fraction.data
+
+    #     # 3) Regrid by matrix product: emfine = emcoarse * T^t -> (nt, np)
+    #     if disaggregation_matrix.dtype == bool:
+    #         # If there is no spatial aggregation, it is a simple mapping of emission components on state vector, so we can take a shortcut:
+    #         emfine_adj = emcoarse_adj[:, disaggregation_matrix.sum(1).astype(bool)]
+    #     else :
+    #         emfine_adj = emcoarse_adj @ disaggregation_matrix
+
+    #     return emfine_adj
 
     @property
     def tracers(self):
@@ -217,42 +264,83 @@ class Mapping:
             self.spatial_mapping[cat] = self.calc_spatial_coarsening(cat, sensi_map=smap)
 
     @debug.timer
-    def calc_temporal_coarsening(self, cat: Category) -> Dataset :
+    def calc_temporal_coarsening(self, cat: Category) -> Dataset:
         mapping = Dataset()
 
-        # Model times :
+        # Model & optimization intervals
         times_model = self.model_data[cat.tracer].intervals
-
-        # Determine the optimization intervals:
-        # We could just use "times_model[0]" as initial time, but we want to have interval definitions
-        # that don't depend on the actual date of the inversion. I.e., if an inversion that solves for 7D
-        # fluxesy, the first interval will be 1st to 7th of January, regardless of whether the inversion
-        # starts on 1st january or 5th. If it solves for weekly fluxes, then the first interval should be
-        # the first partially covered calendar week.
         t0 = Timestamp(self.model_data[cat.tracer].start.year, 1, 1)
-        while t0 < self.model_data[cat.tracer].start :
+        while t0 < self.model_data[cat.tracer].start:
             t0 += Timedelta(cat.optimization_interval)
         times_optim = interval_range(t0, self.model_data[cat.tracer].end, freq=cat.optimization_interval)
 
-        # Mapping:
         nt_optim = len(times_optim)
         nt_model = len(times_model)
-        catmap = DataArray(
-            zeros((nt_optim, nt_model), dtype=float32),
-            dims = [f'time_optim', 'time_model'],
-            coords = {f'time_optim': [t.left for t in times_optim], 'time_model': [t.left for t in times_model]},
-            attrs = {'interval_optim': cat.optimization_interval}
-        )
 
+        # Build sparse overlap matrix (nt_optim x nt_model)
+        rows, cols, vals = [], [], []
         for imod, tmod in enumerate(times_model):
             for iopt, topt in enumerate(times_optim):
-                catmap.data[iopt, imod] = overlap_percent(tmod, topt)
-        catmap.data = (catmap.data.transpose() / catmap.data.sum(1)).transpose()
-        mapping["overlap_fraction"] = catmap
-        # mapping[f'time_optim_{cat.name}'] = DataArray([t.left for t in times_optim], dims=[f'time_optim_{cat.optimization_interval}'])
-        mapping['timestep'] = DataArray([t.length for t in times_optim], dims=[f'time_optim_{cat.optimization_interval}'])
+                w = overlap_percent(tmod, topt)
+                if w > 0:
+                    rows.append(iopt); cols.append(imod); vals.append(w)
+        # row-normalize (each optim interval distributes to model steps)
+        # Build as COO then CSR
+        tmap = csr_matrix((vals, (rows, cols)), shape=(nt_optim, nt_model), dtype=np.float32)
+        # Normalize rows to sum to 1
+        rs = np.asarray(tmap.sum(axis=1)).ravel()
+        rs[rs == 0] = 1.0
+        rinv = csr_matrix((1.0/rs, (np.arange(nt_optim), np.arange(nt_optim))), shape=(nt_optim, nt_optim))
+        tmap = rinv @ tmap
+
+        # Store sparse in attrs; keep coords as DataArrays
+        mapping.attrs['tmap_csr'] = tmap
+        mapping['time_optim'] = DataArray([t.left for t in times_optim], dims=['time_optim'])
+        mapping['time_model'] = DataArray([t.left for t in times_model], dims=['time_model'])
+        mapping['timestep']   = DataArray([t.length for t in times_optim], dims=['time_optim'])
+        # lightweight preview (optional): a tiny scalar to avoid huge dense arrays
+        k, da = _mk_placeholder()
+        mapping[k] = da
 
         return mapping
+
+    # @debug.timer
+    # def calc_temporal_coarsening(self, cat: Category) -> Dataset :
+    #     mapping = Dataset()
+
+    #     # Model times :
+    #     times_model = self.model_data[cat.tracer].intervals
+
+    #     # Determine the optimization intervals:
+    #     # We could just use "times_model[0]" as initial time, but we want to have interval definitions
+    #     # that don't depend on the actual date of the inversion. I.e., if an inversion that solves for 7D
+    #     # fluxesy, the first interval will be 1st to 7th of January, regardless of whether the inversion
+    #     # starts on 1st january or 5th. If it solves for weekly fluxes, then the first interval should be
+    #     # the first partially covered calendar week.
+    #     t0 = Timestamp(self.model_data[cat.tracer].start.year, 1, 1)
+    #     while t0 < self.model_data[cat.tracer].start :
+    #         t0 += Timedelta(cat.optimization_interval)
+    #     times_optim = interval_range(t0, self.model_data[cat.tracer].end, freq=cat.optimization_interval)
+
+    #     # Mapping:
+    #     nt_optim = len(times_optim)
+    #     nt_model = len(times_model)
+    #     catmap = DataArray(
+    #         zeros((nt_optim, nt_model), dtype=float32),
+    #         dims = [f'time_optim', 'time_model'],
+    #         coords = {f'time_optim': [t.left for t in times_optim], 'time_model': [t.left for t in times_model]},
+    #         attrs = {'interval_optim': cat.optimization_interval}
+    #     )
+
+    #     for imod, tmod in enumerate(times_model):
+    #         for iopt, topt in enumerate(times_optim):
+    #             catmap.data[iopt, imod] = overlap_percent(tmod, topt)
+    #     catmap.data = (catmap.data.transpose() / catmap.data.sum(1)).transpose()
+    #     mapping["overlap_fraction"] = catmap
+    #     # mapping[f'time_optim_{cat.name}'] = DataArray([t.left for t in times_optim], dims=[f'time_optim_{cat.optimization_interval}'])
+    #     mapping['timestep'] = DataArray([t.length for t in times_optim], dims=[f'time_optim_{cat.optimization_interval}'])
+
+    #     return mapping
 
     @debug.timer
     def calc_spatial_coarsening(
@@ -300,121 +388,254 @@ class Mapping:
     @debug.timer
     def reduce_resolution(self, cat: Category, aggregate_lat : int, aggregate_lon : int, lsm : None | NDArray) -> Dataset:
         raise NotImplementedError
-    
+
     @debug.timer
     def aggregate_in_spatial_clusters(self, cat: Category, sensi_map: NDArray, lsm : None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
 
-        # Determine if we want to use a land-sea mask (and construct it!)
-        # Calculate the clusters
         indices = grid.indices.reshape(grid.shape)
         clusters = clusterize(sensi_map, cat.n_optim_points, mask=lsm, cat=cat.name, indices=indices)
 
         lons, lats = grid.mesh(reshape=-1)
         area = grid.area.reshape(-1)
+        lsm_flat = None if lsm is None else lsm.reshape(-1)
 
         for icl, cl in enumerate(tqdm(clusters)):
-            indices = cl.ind[cl.mask]
-            cl.indices = indices
+            idx = cl.ind[cl.mask]
+            cl.indices = idx
             cl.ipos = icl
-            cl.mean_lat = average(lats[indices], weights=area[indices])
-            cl.mean_lon = average(lons[indices], weights=area[indices])
-            cl.area_tot = area[indices].sum()
-            if lsm is not None :
-                cl.land_fraction = average(lsm.reshape(-1)[indices], weights=area[indices])
-            else :
-                cl.land_fraction = None
+            cl.mean_lat = average(lats[idx], weights=area[idx])
+            cl.mean_lon = average(lons[idx], weights=area[idx])
+            cl.area_tot = area[idx].sum()
+            cl.land_fraction = None if lsm is None else average(lsm_flat[idx], weights=area[idx])
 
-        # Calculate transition matrices:
         nm = grid.nlat * grid.nlon
         nv = len(clusters)
-        stv_matrix = zeros((nv, nm), dtype=bool)
-        for cluster in clusters :
-            stv_matrix[cluster.ipos, cluster.indices] = True
-        vts_matrix = stv_matrix.transpose()/stv_matrix.sum(1).astype(float32)
-        
+
+        # Build STV (nv x nm) as CSR: row i has 1s at model points belonging to cluster i
+        rows = []
+        cols = []
+        data = []
+        for cl in clusters:
+            rows.extend([cl.ipos]*len(cl.indices))
+            cols.extend(cl.indices.tolist())
+            data.extend([1.0]*len(cl.indices))
+        stv = csr_matrix((data, (rows, cols)), shape=(nv, nm), dtype=np.float32)
+
+        # VTS = normalized transpose: nm x nv where each model point splits equally across its cluster
+        # (each cluster row in STV has k ones; we want 1/k weights in VTS on those columns)
+        w = np.asarray(stv.sum(axis=1)).ravel()
+        w[w == 0] = 1.0
+        invw = csr_matrix((1.0/w, (np.arange(nv), np.arange(nv))), shape=(nv, nv))
+        vts = (invw @ stv).T.tocsr()   # (nm x nv)
+
         mapping = Dataset()
-        mapping["overlap_fraction"] = DataArray(
-            vts_matrix,
-            dims=['points_model', f'points_optim_{cat.name}'],
-            coords={'points_model': grid.indices, f'points_optim_{cat.name}': [cl.ipos for cl in clusters]}
-        )
-        mapping[f'lat'] = DataArray([c.mean_lat for c in clusters], dims=[f'points_optim_{cat.name}'])
-        mapping[f'lon'] = DataArray([c.mean_lon for c in clusters], dims=[f'points_optim_{cat.name}'])
-        mapping[f'area'] = DataArray([c.area_tot for c in clusters], dims=[f'points_optim_{cat.name}'])
-        mapping[f'landfraction'] = DataArray([c.land_fraction for c in clusters], dims=[f'points_optim_{cat.name}'])
+        mapping.attrs['stv_csr'] = stv      # nv x nm
+        mapping.attrs['vts_csr'] = vts      # nm x nv
+
+        mapping['lat'] = DataArray([c.mean_lat for c in clusters], dims=[f'points_optim_{cat.name}'])
+        mapping['lon'] = DataArray([c.mean_lon for c in clusters], dims=[f'points_optim_{cat.name}'])
+        mapping['area'] = DataArray([c.area_tot for c in clusters], dims=[f'points_optim_{cat.name}'])
+        mapping['landfraction'] = DataArray([c.land_fraction for c in clusters], dims=[f'points_optim_{cat.name}'])
+        # tiny placeholder to keep API shape-compatible if referenced
+        k, da = _mk_placeholder()
+        mapping[k] = da
 
         return mapping
+
+    # @debug.timer
+    # def aggregate_in_spatial_clusters(self, cat: Category, sensi_map: NDArray, lsm : None | NDArray) -> Dataset:
+    #     grid = self.model_data[cat.tracer].grid
+
+    #     # Determine if we want to use a land-sea mask (and construct it!)
+    #     # Calculate the clusters
+    #     indices = grid.indices.reshape(grid.shape)
+    #     clusters = clusterize(sensi_map, cat.n_optim_points, mask=lsm, cat=cat.name, indices=indices)
+
+    #     lons, lats = grid.mesh(reshape=-1)
+    #     area = grid.area.reshape(-1)
+
+    #     for icl, cl in enumerate(tqdm(clusters)):
+    #         indices = cl.ind[cl.mask]
+    #         cl.indices = indices
+    #         cl.ipos = icl
+    #         cl.mean_lat = average(lats[indices], weights=area[indices])
+    #         cl.mean_lon = average(lons[indices], weights=area[indices])
+    #         cl.area_tot = area[indices].sum()
+    #         if lsm is not None :
+    #             cl.land_fraction = average(lsm.reshape(-1)[indices], weights=area[indices])
+    #         else :
+    #             cl.land_fraction = None
+
+    #     # Calculate transition matrices:
+    #     nm = grid.nlat * grid.nlon
+    #     nv = len(clusters)
+    #     stv_matrix = zeros((nv, nm), dtype=bool)
+    #     for cluster in clusters :
+    #         stv_matrix[cluster.ipos, cluster.indices] = True
+    #     vts_matrix = stv_matrix.transpose()/stv_matrix.sum(1).astype(float32)
+        
+    #     mapping = Dataset()
+    #     mapping["overlap_fraction"] = DataArray(
+    #         vts_matrix,
+    #         dims=['points_model', f'points_optim_{cat.name}'],
+    #         coords={'points_model': grid.indices, f'points_optim_{cat.name}': [cl.ipos for cl in clusters]}
+    #     )
+    #     mapping[f'lat'] = DataArray([c.mean_lat for c in clusters], dims=[f'points_optim_{cat.name}'])
+    #     mapping[f'lon'] = DataArray([c.mean_lon for c in clusters], dims=[f'points_optim_{cat.name}'])
+    #     mapping[f'area'] = DataArray([c.area_tot for c in clusters], dims=[f'points_optim_{cat.name}'])
+    #     mapping[f'landfraction'] = DataArray([c.land_fraction for c in clusters], dims=[f'points_optim_{cat.name}'])
+
+    #     return mapping
 
     @debug.timer
     def optimize_at_native_spatial_resolution(self, cat, lsm: None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
-
-        # Select only the pixels where lsm is > 0:
         sel = lsm.reshape(-1) > 0
-        
-        # Calculate the transition matrix itself
+
         nm = grid.nlat * grid.nlon
-        nv = (lsm > 0).sum()
-        vts_matrix = eye(nm, dtype=bool)[:, sel]
-        
-        # Calculate the coordinates:
+        nv = int(sel.sum())
+
+        # STV: nv x nm, each row selects exactly one model point
+        rows = np.arange(nv, dtype=np.int32)
+        cols = np.where(sel)[0].astype(np.int32)
+        data = np.ones(nv, dtype=np.float32)
+        stv = csr_matrix((data, (rows, cols)), shape=(nv, nm), dtype=np.float32)
+
+        # VTS: nm x nv with 1 at the selected point (no averaging needed)
+        vts = stv.T.tocsr()
+
         lons, lats = grid.mesh()
         lons = lons.reshape(-1)[sel]
         lats = lats.reshape(-1)[sel]
         areas = grid.area.reshape(-1)[sel]
         land_fractions = lsm.reshape(-1)[sel]
-        
+
         mapping = Dataset()
-        mapping['overlap_fraction'] = DataArray(
-            vts_matrix,
-            dims = ['points_model', f'points_optim_{cat.name}'],
-            coords={'points_model': grid.indices, f'points_optim_{cat.name}': range(nv)}
-        )
-        mapping[f'lat'] = DataArray(lats, dims=[f'points_optim_{cat.name}'])
-        mapping[f'lon'] = DataArray(lons, dims=[f'points_optim_{cat.name}'])
-        mapping[f'area'] = DataArray(areas, dims=[f'points_optim_{cat.name}'])
-        mapping[f'landfraction'] = DataArray(land_fractions, dims=[f'points_optim_{cat.name}'])
-        
+        mapping.attrs['stv_csr'] = stv
+        mapping.attrs['vts_csr'] = vts
+        mapping['lat'] = DataArray(lats, dims=[f'points_optim_{cat.name}'])
+        mapping['lon'] = DataArray(lons, dims=[f'points_optim_{cat.name}'])
+        mapping['area'] = DataArray(areas, dims=[f'points_optim_{cat.name}'])
+        mapping['landfraction'] = DataArray(land_fractions, dims=[f'points_optim_{cat.name}'])
+        k, da = _mk_placeholder()
+        mapping[k] = da
         return mapping
+
+    # @debug.timer
+    # def optimize_at_native_spatial_resolution(self, cat, lsm: None | NDArray) -> Dataset:
+    #     grid = self.model_data[cat.tracer].grid
+
+    #     # Select only the pixels where lsm is > 0:
+    #     sel = lsm.reshape(-1) > 0
+        
+    #     # Calculate the transition matrix itself
+    #     nm = grid.nlat * grid.nlon
+    #     nv = (lsm > 0).sum()
+    #     vts_matrix = eye(nm, dtype=bool)[:, sel]
+        
+    #     # Calculate the coordinates:
+    #     lons, lats = grid.mesh()
+    #     lons = lons.reshape(-1)[sel]
+    #     lats = lats.reshape(-1)[sel]
+    #     areas = grid.area.reshape(-1)[sel]
+    #     land_fractions = lsm.reshape(-1)[sel]
+        
+    #     mapping = Dataset()
+    #     mapping['overlap_fraction'] = DataArray(
+    #         vts_matrix,
+    #         dims = ['points_model', f'points_optim_{cat.name}'],
+    #         coords={'points_model': grid.indices, f'points_optim_{cat.name}': range(nv)}
+    #     )
+    #     mapping[f'lat'] = DataArray(lats, dims=[f'points_optim_{cat.name}'])
+    #     mapping[f'lon'] = DataArray(lons, dims=[f'points_optim_{cat.name}'])
+    #     mapping[f'area'] = DataArray(areas, dims=[f'points_optim_{cat.name}'])
+    #     mapping[f'landfraction'] = DataArray(land_fractions, dims=[f'points_optim_{cat.name}'])
+        
+    #     return mapping
 
     @debug.timer
     def setup_prior(self) -> None :
         self.optim_data = self.control_vector.loc[:, ['category', 'tracer', 'state_prior']]
 
     @debug.timer
-    def coarsen_cat(self, cat : Category, data : NDArray = None, value_field : str = 'state_prior') -> DataFrame:
-        if data is None :
+    def coarsen_cat(self, cat: Category, data: NDArray = None, value_field: str = 'state_prior') -> DataFrame:
+        if data is None:
             data = self.model_data[cat.tracer][cat.name].data
 
-        tmap = self.temporal_mapping[cat].overlap_fraction.data.astype(bool)
-        hmap = self.spatial_mapping[cat].overlap_fraction.data.astype(bool)
-        field = tmap @ data.reshape(tmap.shape[1], -1)
-        emv = (field @ hmap).reshape(-1)
+        tmap = self.temporal_mapping[cat].attrs['tmap_csr']  # (nt_opt x nt_mod)
+        nt_mod = tmap.shape[1]
 
-        nh = hmap.shape[1]
-        nt = tmap.shape[0]
+        sp = self.spatial_mapping[cat].attrs
 
+        # time aggregate → (nt_opt x nm)
+        field = tmap @ data.reshape(nt_mod, -1)
+
+        # spatial aggregate → (nt_opt x nv)
+        if 'select_idx' in sp:
+            em_mat = field[:, sp['select_idx']]
+        else:
+            stv = sp['stv_csr']    # (nv x nm)
+            em_mat = field @ stv.T
+
+        emv = em_mat.reshape(-1)
+        nh, nt = em_mat.shape[1], em_mat.shape[0]
         ipos, itime = meshgrid(range(nh), range(nt))
-        ipos = ipos.reshape(-1)
-        itime = itime.reshape(-1)
+        ipos = ipos.reshape(-1); itime = itime.reshape(-1)
 
-        # Return as a vector:
-        vec = DataFrame(columns=['category', 'tracer', 'ipos', 'itime'])
+        vec = DataFrame(columns=['category','tracer','ipos','itime'])
         vec.loc[:, value_field] = emv
         vec.loc[:, 'category'] = cat.name
-        vec.loc[:, 'tracer'] = cat.tracer
-        vec.loc[:, 'ipos'] = ipos
-        vec.loc[:, 'itime'] = itime
-        vec.loc[:, 'lon'] = self.spatial_mapping[cat].lon.values[ipos]
-        vec.loc[:, 'lat'] = self.spatial_mapping[cat].lat.values[ipos]
-        vec.loc[:, 'area'] = self.spatial_mapping[cat].area.values[ipos]
-        vec.loc[:, 'land_fraction'] = self.spatial_mapping[cat].landfraction.values[ipos]
-        vec.loc[:, 'time'] = self.temporal_mapping[cat].time_optim.values[itime]
-        vec.loc[:, 'dt'] = self.temporal_mapping[cat].timestep.values[itime]
-        vec.loc[:, 'state_prior_preco'] = 0.
+        vec.loc[:, 'tracer']   = cat.tracer
+        vec.loc[:, 'ipos']     = ipos
+        vec.loc[:, 'itime']    = itime
+
+        spmap = self.spatial_mapping[cat]
+        vec.loc[:, 'lon'] = spmap.lon.values[ipos]
+        vec.loc[:, 'lat'] = spmap.lat.values[ipos]
+        vec.loc[:, 'area'] = spmap.area.values[ipos]
+        vec.loc[:, 'land_fraction'] = spmap.landfraction.values[ipos]
+
+        tmap_ds = self.temporal_mapping[cat]
+        vec.loc[:, 'time'] = tmap_ds.time_optim.values[itime]
+        vec.loc[:, 'dt']   = tmap_ds.timestep.values[itime]
+        vec.loc[:, 'state_prior_preco'] = 0.0
 
         return vec
+
+    # @debug.timer
+    # def coarsen_cat(self, cat : Category, data : NDArray = None, value_field : str = 'state_prior') -> DataFrame:
+    #     if data is None :
+    #         data = self.model_data[cat.tracer][cat.name].data
+
+    #     tmap = self.temporal_mapping[cat].overlap_fraction.data.astype(bool)
+    #     hmap = self.spatial_mapping[cat].overlap_fraction.data.astype(bool)
+    #     field = tmap @ data.reshape(tmap.shape[1], -1)
+    #     emv = (field @ hmap).reshape(-1)
+
+    #     nh = hmap.shape[1]
+    #     nt = tmap.shape[0]
+
+    #     ipos, itime = meshgrid(range(nh), range(nt))
+    #     ipos = ipos.reshape(-1)
+    #     itime = itime.reshape(-1)
+
+    #     # Return as a vector:
+    #     vec = DataFrame(columns=['category', 'tracer', 'ipos', 'itime'])
+    #     vec.loc[:, value_field] = emv
+    #     vec.loc[:, 'category'] = cat.name
+    #     vec.loc[:, 'tracer'] = cat.tracer
+    #     vec.loc[:, 'ipos'] = ipos
+    #     vec.loc[:, 'itime'] = itime
+    #     vec.loc[:, 'lon'] = self.spatial_mapping[cat].lon.values[ipos]
+    #     vec.loc[:, 'lat'] = self.spatial_mapping[cat].lat.values[ipos]
+    #     vec.loc[:, 'area'] = self.spatial_mapping[cat].area.values[ipos]
+    #     vec.loc[:, 'land_fraction'] = self.spatial_mapping[cat].landfraction.values[ipos]
+    #     vec.loc[:, 'time'] = self.temporal_mapping[cat].time_optim.values[itime]
+    #     vec.loc[:, 'dt'] = self.temporal_mapping[cat].timestep.values[itime]
+    #     vec.loc[:, 'state_prior_preco'] = 0.
+
+    #     return vec
 
     @property
     def control_vector(self) -> DataFrame :

@@ -3,7 +3,7 @@
 from pandas import Timedelta, Timestamp, DataFrame, TimedeltaIndex, concat
 import h5py
 from gridtools import Grid
-from numpy import inf
+from numpy import inf, int64
 from loguru import logger
 from typing import List
 from types import SimpleNamespace
@@ -95,7 +95,7 @@ class LumiaFootprintFile(h5py.File):
 
         # Check if the time of the last time step is same as release time (it should be lower by 1 timestep normally)
         # if it's the case, decrement that time index by 1
-        if self.origin + itims[-1] * self.timestep == Timestamp(self[obsid].attrs['release_end']):
+        if self.origin + int64(itims[-1]) * self.timestep == Timestamp(self[obsid].attrs['release_end']):
             ii = ilons[itims == itims[-1]]
             jj = ilats[itims == itims[-1]]
             s = sensi[itims == itims[-1]]

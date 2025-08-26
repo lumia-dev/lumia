@@ -100,8 +100,8 @@ class Forward(BaseTransport):
         # The rational is that 2 tracers will likely have different set of footprints, while two categories for one tracer will share the same footprints
         for tracer in emis.tracers :
 
-            obs = obs.loc[obs.tracer == tracer.tracer].copy()
-            fwd = self.run_tracer(tracer, obs)
+            obs_t = obs.loc[obs.tracer == tracer.tracer].copy() # TODO: second tracer missing
+            fwd = self.run_tracer(tracer, obs_t)
 
             # Combine :
             for col in [col for col in fwd.columns if col.startswith('mix')]:
@@ -132,10 +132,11 @@ class Forward(BaseTransport):
             obs.loc[:, 'mix'] = obs.mix_background.copy()
         except AttributeError:
             logger.warning(f'Missing background concentrations for tracer {emis.tracer}. Setting mix_background to 0')
-            obs.loc[:, 'mix_background'] = 0
+            obs.loc[:, 'mix_background'] = 0.
             obs.loc[:, 'mix'] = 0.
         for cat in emis.categories:
-            obs.loc[:, 'mix'] += obs.loc[:, f'mix_{cat}'].values
+            import pdb; pdb.set_trace()
+            obs.loc[:, 'mix'] += obs.loc[:, f'mix_{cat}'].values #TODO: Radiocarbon
 
         return obs
 
@@ -207,7 +208,7 @@ class Adjoint(BaseTransport):
                 coords = ds['coords'][:]
                 values = ds['values'][:]
                 for cat in adjemis.categories :
-                    adjemis[cat].data.reshape(-1)[coords] += values
+                    adjemis[cat].data.reshape(-1)[coords] += values #TODO: Radiocarbon
             os.remove(adjfile)
 
         # # Attempt of a new implementation using the multiprocessing.shared_memory module:
@@ -337,6 +338,7 @@ class Model(ABC):
     tempdir : str = '/tmp'
 
     def run_forward(self, obs: Observations, emis: Emissions) -> Observations :
+        import pdb; pdb.set_trace()
         return Forward(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(emis, obs)
 
     def run_adjoint(self, obs: Observations, adj_emis: Emissions) -> Emissions:

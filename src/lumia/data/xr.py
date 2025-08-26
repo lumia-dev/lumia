@@ -4,6 +4,7 @@ from typing import Union, List, Tuple
 from pathlib import Path
 from pint import Quantity
 import xarray as xr
+import numpy as np
 from dataclasses import dataclass, field
 from numpy import ndarray, unique, array, zeros
 from numpy.typing import NDArray
@@ -39,7 +40,6 @@ def offset_to_pint(offset: DateOffset):
         elif offset.freqstr == 'W':
             return offset.n * ureg.week
 
-
 class TracerEmis(xr.Dataset):
     __slots__ = 'grid', '_mapping'
 
@@ -73,7 +73,7 @@ class TracerEmis(xr.Dataset):
             self.attrs['units'] = units
             self.grid = grid
 
-            self['area'] = xr.DataArray(data=grid.area, dims=['lat', 'lon'], attrs={'units': ureg('m**2').units})
+            self['area'] = xr.DataArray(data=grid.area.astype('float32', copy=False), dims=['lat', 'lon'], attrs={'units': ureg('m**2').units})
             self['timestep_length'] = xr.DataArray((time + to_offset(timestep) - time).total_seconds().values,
                                                    dims=['time', ], attrs={'units': ureg.s})
 
@@ -88,7 +88,7 @@ class TracerEmis(xr.Dataset):
     def __getitem__(self, key) -> xr.DataArray:
         var = super().__getitem__(key)
         if var.attrs.get('meta', False):
-            arr = xr.DataArray(coords=self.coords, dims=['time', 'lat', 'lon'], data=zeros(self.shape), attrs=var.attrs)
+            arr = xr.DataArray(coords=self.coords, dims=['time', 'lat', 'lon'], data=zeros(self.shape, dtype='float32'), attrs=var.attrs)
             for cat, coeff in Constructor(var.constructor).items():
                 arr.data[:] += coeff * self[cat].data
             return arr
@@ -102,7 +102,7 @@ class TracerEmis(xr.Dataset):
 
     @property
     def shape(self) -> Tuple[int, int, int]:
-        return self.dims['time'], self.dims['lat'], self.dims['lon']
+        return self.sizes['time'], self.sizes['lat'], self.sizes['lon']
 
     @property
     def optimized_categories(self) -> List[Category]:
@@ -172,7 +172,7 @@ class TracerEmis(xr.Dataset):
     # Regular methods
     def add_cat(self, name: str, value: NDArray, attrs: dict = None):
         if isinstance(value, numbers.Number):
-            value = zeros(self.shape) + value
+            value = zeros(self.shape, dtype='float32') + value
         assert isinstance(value, ndarray), logger.error(f"The value provided is not a numpy array ({type(value) = }")
         assert value.shape == self.shape, logger.error(
             f"Shape mismatch between the value provided ({value.shape}) and the rest of the dataset ({self.shape})")
@@ -286,10 +286,12 @@ class TracerEmis(xr.Dataset):
             if power_s == 2:
                 self[cat.name].data *= self.area.data
                 catunits *= self.area.units
+                self[cat.name].data = self[cat.name].data.astype('float32', copy=False)
             # from units/gridcell to units/m2
             elif power_s == -2:
                 self[cat.name].data /= self.area.data
                 catunits /= self.area.units
+                self[cat.name].data = self[cat.name].data.astype('float32', copy=False)
             elif power_s != 0:
                 raise RuntimeError(
                     f"Unexpected units conversion request: {self[cat.name].data.unit} to {dest} ({power_s = })")
@@ -298,16 +300,19 @@ class TracerEmis(xr.Dataset):
             if power_t == 1:
                 self[cat.name].data = (self[cat.name].data.swapaxes(0, -1) * self.timestep_length.data).swapaxes(0, -1)
                 catunits *= self.timestep_length.units
+                self[cat.name].data = self[cat.name].data.astype('float32', copy=False)
             # From units/tstep to units/s
             elif power_t == -1:
                 self[cat.name].data = (self[cat.name].data.swapaxes(0, -1) / self.timestep_length.data).swapaxes(0, -1)
                 catunits /= self.timestep_length.units
+                self[cat.name].data = self[cat.name].data.astype('float32', copy=False)
             elif power_t != 0:
                 raise RuntimeError(
                     f"Unexpected units conversion request: {self[cat.name].data.units} to {dest} ({power_t =})")
 
             # Finally, convert:
             self[cat.name].data = (self[cat.name].data * catunits).to(dest).magnitude * coeff
+            self[cat.name].data = self[cat.name].data.astype('float32', copy=False)
 
         self.attrs['units'] = dest
 
@@ -333,7 +338,8 @@ class TracerEmis(xr.Dataset):
                     nc[var].calendar = 'proleptic_gregorian'
                     nc[var][:] = data
                 else:
-                    nc.createVariable(var, self[var].dtype, self[var].dims)
+                    vtype = 'f4' if str(self[var].dtype).startswith('float') else self[var].dtype
+                    nc.createVariable(var, vtype, self[var].dims)
                     nc[var][:] = self[var].data
 
             varlist = ['area', 'timestep_length']
@@ -344,7 +350,8 @@ class TracerEmis(xr.Dataset):
 
             # data variables
             for var in varlist:
-                nc.createVariable(var, self[var].dtype, self[var].dims)
+                vtype = 'f4' if str(self[var].dtype).startswith('float') else self[var].dtype
+                nc.createVariable(var, vtype, self[var].dims, zlib=True, complevel=1)  # small compression
                 nc[var][:] = self[var].data
 
                 # Copy var attributes:
@@ -472,7 +479,8 @@ class Data:
                     timestep=to_offset(time).freqstr,
                 )
                 for cat in self[tracer].base_categories:
-                    tr.add_cat(cat.name, resampled_data[cat.name].values, attrs=self[tracer][cat.name].attrs)
+                    vals = resampled_data[cat.name].values.astype('float32', copy=False)
+                    tr.add_cat(cat.name, vals, attrs=self[tracer][cat.name].attrs)
 
                 for cat in self[tracer].meta_categories:
                     tr.add_metacat(cat.name, cat.constructor, self[tracer].variables[cat.name].attrs)
@@ -611,7 +619,7 @@ class Data:
                         if ds[cat].attrs.get('meta', False):
                             em[tracer].add_metacat(cat, ds[cat].constructor, attrs=ds[cat].attrs)
                         else:
-                            em[tracer].add_cat(cat, ds[cat].data, attrs=ds[cat].attrs)
+                            em[tracer].add_cat(cat, ds[cat].data.astype('float32', copy=False), attrs=ds[cat].attrs)
 
                 # Convert (if needed!):
                 if units is not None:
@@ -651,7 +659,7 @@ class Data:
         em = cls()
         for tracer in dconf.emissions.tracers:
             tr = dconf.emissions[tracer]
-            time = date_range(start, end, freq=tr.interval, inclusive='left')
+            time = date_range(start, end, freq=tr.interval.lower(), inclusive='left')
             unit_emis = species[tracer].unit_emis
 
             # Add new tracer to the emission object
@@ -760,7 +768,7 @@ def load_preprocessed(
 
         # Resample if needed:
         if freq is not None :
-            times_dest = date_range(start, end, freq=freq, inclusive='left')
+            times_dest = date_range(start, end, freq=freq.lower(), inclusive='left')
             dt1 = Timedelta(data.time.values[1] - data.time.values[0])   # first interval of the data
             dt2 = times_dest[1] - times_dest[0]                          # first interval requested
             assert (dt1 % dt2).total_seconds() == 0, f"The requested temporal resolution ({freq}) is not an integer fraction of the temporal resolution of the data ({xr.infer_freq(data.time)})"
@@ -772,6 +780,9 @@ def load_preprocessed(
 
         # Ensure that we have no nan values (i.e. nan == 0):
         data = data.fillna(0)
+
+        # Ensure float32 before .values to avoid f64 materialization
+        data = data.astype('float32')
             
         # Coarsen, if needed:
         if grid is not None:
