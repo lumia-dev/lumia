@@ -7,7 +7,7 @@ from pandas.tseries.frequencies import to_offset
 from .protocols import Mapping
 from loguru import logger
 from .uncertainties import calc_temporal_correlation, calc_horizontal_correlation, calc_total_uncertainty
-from numpy import zeros
+from numpy import zeros, sqrt, log, where
 from lumia.optimizer.categories import Category
 from pathlib import Path
 from lumia.utils import debug
@@ -42,6 +42,12 @@ class PriorConstraints:
             if errmap is None:
                 logger.debug('No predefined prior error. Setting the error proportional to the abs value of flux')
                 errmap = abs(mapping.model_data[cat.tracer][cat.name])
+            elif errmap == 'sqrt':
+                logger.info('No predefined prior error, but sqrt selected. Setting the error proportional to the sqrt(abs value of flux)')
+                errmap = sqrt(abs(mapping.model_data[cat.tracer][cat.name]))
+            elif errmap == 'log':
+                logger.info('No predefined prior error, but log selected. Setting the error proportional to the ln(abs value of flux +1)')
+                errmap = log(abs(mapping.model_data[cat.tracer][cat.name])+1)    
             else:
                 
                 #Ensure predefined errmap has same dimension as prescribed
@@ -77,7 +83,15 @@ class PriorConstraints:
                 f"Uncertainty for category {cat.name} set to {cat.total_uncertainty.magnitude} {cat.total_uncertainty.units} (standard deviations scaled by {scalef = })")
 
             # Store the results
-            sigmas[cat] = errvec.prior_uncertainty.values
+            if 'rel' in cat.mapping_func:
+                prior = mapping.coarsen_cat(cat, value_field='prior')
+                sigmas[cat] = errvec.prior_uncertainty.values/prior['prior'].where(prior['prior']>1e-6,1e-6).values
+            else:
+                sigmas[cat] = errvec.prior_uncertainty.values
+
+            if 'E' in cat.mapping_func and 'SE' not in cat.mapping_func:
+                sigmas[cat] = where(sigmas[cat]>0,log(sigmas[cat]),0)
+                
             vectors.append(errvec)
 
         vectors = concat(vectors)

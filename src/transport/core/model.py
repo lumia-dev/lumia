@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from abc import ABC, abstractmethod
 from functools import partial
-from numpy import array, argsort, dot, finfo, ndarray, zeros, arange, nonzero, ndarray
+from numpy import array, argsort, dot, finfo, ndarray, zeros, arange, nonzero, ndarray, shape, array_equal
 from typing import List, Protocol, Type
 from tqdm import tqdm
 from loguru import logger
@@ -14,7 +14,29 @@ from pandas import Timestamp, Timedelta, DataFrame
 from pandas import DataFrame as Observations
 from transport.emis import EmissionFields, Emissions, Grid
 from lumia.utils import debug
+import time
+from pathlib import Path
 
+class SourceContributionFile(File):
+    def __init__(self, *args, origin=Timestamp, count: int = 0, wait: int = 1, **kwargs):
+        # Open the file, but wait for it to be free if it's busy
+        maxcount = 20
+        try:
+            super().__init__(*args, **kwargs)
+        except (OSError, BlockingIOError) as e:
+            if count < maxcount:
+                logger.info(f"Waiting {wait} sec for the access to file {args[0]}")
+                time.sleep(wait)
+                count += 1
+                wait += count
+                self.__init__(*args, count=count, wait=wait, **kwargs)
+            else:
+                logger.error(f"Couldn't open file {args[0]} (File busy?)")
+                raise e
+
+        # Application attributes
+        self.origin = origin
+        self.attrs['origin'] = str(self.origin)
 
 class Footprint(Protocol):
     itims : ndarray
@@ -94,6 +116,7 @@ class BaseTransport:
 
 @dataclass
 class Forward(BaseTransport):
+    source_contribution: bool = False
 
     def run(self, emis: Emissions, obs: Observations) -> Observations :
         # Loop over the tracers:
@@ -124,7 +147,7 @@ class Forward(BaseTransport):
         for obslist in self.run_files(filenames):
             for field in emis.categories:
                 obs.loc[obslist.index, f'mix_{field}'] = obslist.loc[:, f'mix_{field}']#.astype(float)
-
+        
         shared_mem.clear('emis', 'obs')
 
         # Combine the flux components :
@@ -142,22 +165,24 @@ class Forward(BaseTransport):
     def run_files_serial(self, filenames: List[str]) -> List[Observations]:
         res = []
         for filename in tqdm(filenames):
-            res.append(self.run_file(filename, silent=self.silent))
+            res.append(self.run_file(filename, silent=self.silent, source_contribution=self.source_contribution))
         return res
 
     def run_files_mp(self, filenames: List[str]) -> List[Observations]:
+        func = partial(self.run_file, silent=self.silent, source_contribution=self.source_contribution)
         with Pool(processes=self.ncpus) as pool:
-            res = list(tqdm(pool.imap(self.run_file, filenames, chunksize=1), total=len(filenames), leave=False))
+            res = list(tqdm(pool.imap(func, filenames, chunksize=1), total=len(filenames), leave=False))
         return res
 
     @staticmethod
-    def run_file(filename: str, silent: bool = True) -> Observations:
+    def run_file(filename: str, silent: bool = True, source_contribution: bool = False) -> Observations:
         """
         Do a forward run on the selected footprint file. Set silent to False to enable progress bar
         """
         obslist = shared_mem.obs
         obslist = obslist.loc[obslist.footprint == filename, ['obsid',]]
         emis = shared_mem.emis
+        
         with shared_mem.footprint_class(filename) as fpf :
 
             # Align the coordinates
@@ -165,8 +190,51 @@ class Forward(BaseTransport):
 
             for iobs, obs in tqdm(obslist.itertuples(), desc=fpf.filename, total=obslist.shape[0], disable=silent):
                 fp = fpf.get(obs)
+                
+                if source_contribution:
+                    source_cont = []    
+                    cats = []
+                    
                 for cat in emis.categories :
-                    obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
+                    try:
+                        obslist.loc[iobs, f'mix_{cat}'] = (emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi).sum()
+                    except IndexError as er:
+                        logger.error(f'Index error when performing mixing for obs: {obs}, with fp shape {shape(fp)}')
+                        logger.error(f'{fp=}')
+                        raise IndexError(er)
+                    
+                    if source_contribution:
+                        source_cont.append(emis[cat].data[fp.itims, fp.ilats, fp.ilons] * fp.sensi)
+                        cats.append(cat)    
+   
+                if source_contribution:
+                    filename = Path(fpf.filename).stem
+                    filename = source_contribution+'/source_cont_'+filename+'.hdf'
+                    with SourceContributionFile(filename,origin=fpf.origin,mode='a') as file:
+                        
+                        # Store/check lat and lon:
+                        if 'latitudes' in file:
+                            assert array_equal(file['latitudes'][:], fpf['latitudes'][:])
+                            assert array_equal(file['longitudes'][:], fpf['longitudes'][:])
+                        else:
+                            file['latitudes'] = fpf['latitudes'][:]
+                            file['latitudes'].attrs['units'] = 'degrees North'
+                            file['latitudes'].attrs['info'] = 'center of the grid cells'
+                            file['longitudes'] = fpf['longitudes'][:]
+                            file['longitudes'].attrs['units'] = 'degrees East'
+                            file['longitudes'].attrs['info'] = 'center of the grid cells'
+                        
+                        try:
+                            gr = file.create_group(f'{obs}')
+                            gr['cat']=cats
+                            gr['ilons'] = fp.ilons
+                            gr['ilats'] = fp.ilats
+                            gr['itims'] = fp.itims
+                            gr['source_cont']=source_cont
+                        except ValueError:
+                            logger.warning(f'{obs} already in {filename}, skipping...')
+                    
+                        
         return obslist
 
 
@@ -335,9 +403,10 @@ class Model(ABC):
     parallel : bool = False
     ncpus : int = cpu_count()
     tempdir : str = '/tmp'
+    source_contribution : bool = False
 
     def run_forward(self, obs: Observations, emis: Emissions) -> Observations :
-        return Forward(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(emis, obs)
+        return Forward(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir, source_contribution=self.source_contribution).run(emis, obs)
 
     def run_adjoint(self, obs: Observations, adj_emis: Emissions) -> Emissions:
         return Adjoint(self.footprint_class, self.parallel, self.ncpus, tempdir=self.tempdir).run(adj_emis, obs)

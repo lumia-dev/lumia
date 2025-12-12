@@ -45,6 +45,7 @@ if __name__ == '__main__':
     p.add_argument('--max-footprint-length', type=Timedelta, default='14D')
     p.add_argument('--verbosity', '-v', default='INFO')
     p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
+    p.add_argument('--source-contribution', type=str, default=False, help='Path to file where to store the dissaggregated spatial and temporal source contribution')
     p.add_argument('--obs', required=True)
     p.add_argument('--emis')#, required=True)
     p.add_argument('args', nargs=REMAINDER)
@@ -59,6 +60,7 @@ if __name__ == '__main__':
 
     # Set the max time limit for footprints:
     LumiaFootprintFile.maxlength = args.max_footprint_length
+    logger.warning(f'Maxlength of footprints set to: {LumiaFootprintFile.maxlength}')
 
     # Optional: detect footprints
     if args.check_footprints or 'footprint' not in obs.columns:
@@ -74,10 +76,16 @@ if __name__ == '__main__':
         if not args.forward or args.adjoint or args.adjtest:
             obs.write(args.obs)
 
-    model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp)
+    model = MultiTracer(parallel=not args.serial, ncpus=args.ncpus, tempdir=args.tmp, source_contribution=args.source_contribution)
 
     emis = Emissions.read(args.emis)
 
+    if args.source_contribution:
+        logger.info(f'Stores the dissaggregated spatial and temporal source contribution at {args.source_contribution}')
+        logger.warning('Only implemented for a single tracer')
+        logger.warning('Produces large files!')
+
+    
     if args.forward:
         obs = model.run_forward(obs, emis)
         obs.write(args.obs)

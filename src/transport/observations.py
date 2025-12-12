@@ -45,7 +45,9 @@ class Observations(DataFrame):
         self.to_hdf(filename, key='observations')
 
     def gen_filenames(self) -> None:
-        fnames = self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
+        #fnames = self.code.str.lower() + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
+        fnames = self.code + self.height.map('.{:.0f}m.'.format) + self.time.dt.strftime('%Y-%m.hdf')
+        logger.debug(fnames)
         self.loc[:, 'footprint'] = fnames
 
     def find_footprint_files(self, archive: str, local: str=None) -> None:

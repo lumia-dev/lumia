@@ -55,6 +55,7 @@ class Category(Hashable):
     horizontal_correlation: str = None
     temporal_correlation: str = None
     total_uncertainty: Quantity = nan
+    mapping_func: str = 'L'
     unit_emis: Quantity = None
     unit_mix: Quantity = None
     # unit_budget : Quantity = None

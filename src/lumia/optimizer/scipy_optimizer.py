@@ -125,19 +125,18 @@ class Optimizer:
     def compute_gradient(self, state_preco: NDArray) -> NDArray:
         obs_departures = self.forward_step(state_preco)
         prior_departures = state_preco - self.prior.state_preco
-        gradient_preco = self.adjoint_step(obs_departures) + prior_departures
-        
+        gradient_preco = self.adjoint_step(obs_departures, state_preco) + prior_departures
         self.n_gradient_evaluations += 1
         return gradient_preco
     
-    def solve(self) -> NDArray:
+    def solve(self, print_summary_cats: list[str] = None) -> NDArray:
         
         # Prior run 
         self.step = 'apri'
-        prior_obs_departures = self.forward_step(self.prior.state_preco)
+        prior_obs_departures = self.forward_step(self.prior.state_preco, print_summary_cats = print_summary_cats)
         
         if self.settings.gradient_norm_reduction is not None :
-            gradient_preco = self.adjoint_step(prior_obs_departures)
+            gradient_preco = self.adjoint_step(prior_obs_departures, self.prior.state_preco)
             prior_gradient_norm = (gradient_preco @ gradient_preco) ** .5
             
             # the scipy minimizer only accepts an absolute value for the target gradient norm. So we deduce that value from the initial gradient and the requested gradient norm reduction
@@ -180,7 +179,7 @@ class Optimizer:
         return result.x
     
     @debug.timer
-    def forward_step(self, state_preco: NDArray) -> protocols.Departures:
+    def forward_step(self, state_preco: NDArray, print_summary_cats: list[str] = None) -> protocols.Departures:
         if array_equal(self.cached_results.get('state_preco', None), state_preco) and self.step != 'apos':
             return self.cached_results['departures']
         
@@ -189,11 +188,12 @@ class Optimizer:
 
         # cache the results to avoid them having to be re-computed if the state doesn't change
         self.cached_results['state_preco'] = state_preco
-        self.cached_results['departures'] = self.model.calc_departures(model_data, step=self.step)
+        self.cached_results['departures'] = self.model.calc_departures(model_data, step=self.step, print_summary_cats = print_summary_cats)
         return self.cached_results['departures']
 
     @debug.timer
-    def adjoint_step(self, obs_departures : protocols.Departures) -> NDArray:
+    def adjoint_step(self, obs_departures : protocols.Departures, state_preco : NDArray = None) -> NDArray:
         model_data_adj = self.model.calc_departures_adj(obs_departures.mismatch / obs_departures.sigma ** 2)
-        state_adj = self.mapping.vec_to_struct_adj(model_data_adj)
+        state = self.xc_to_x(state_preco)
+        state_adj = self.mapping.vec_to_struct_adj(model_data_adj, state=state)
         return self.g_to_gc(state_adj)

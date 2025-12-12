@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from dataclasses import dataclass, field
 from loguru import logger
 from pandas import Timedelta, Timestamp, DataFrame, concat
-from numpy import float32, zeros, average, meshgrid, array, eye, ones
+from numpy import float32, zeros, average, meshgrid, array, eye, ones, exp, where
 from tqdm import tqdm
 from collections.abc import Iterable
 from numpy.typing import NDArray
@@ -29,10 +29,10 @@ class Mapping:
     temporal_mapping : Dict[Category, Dataset] = field(default_factory=dict)
 
     @classmethod
-    def init(cls, dconf: DictConfig, emis: Data, sensi_map: NDArray = None) -> "Mapping":
+    def init(cls, dconf: DictConfig, emis: Data, sensi_map: NDArray = None, aggregate_lat: int = 1, aggregate_lon: int = 1) -> "Mapping":
         mapping = cls(model_data=emis, dconf=dconf, sensi_map=sensi_map)
         mapping.setup_optimization()
-        mapping.setup_coarsening(mapping.sensi_map)
+        mapping.setup_coarsening(mapping.sensi_map, aggregate_lat=aggregate_lat, aggregate_lon=aggregate_lon)
         mapping.setup_prior()
         return mapping
 
@@ -57,20 +57,100 @@ class Mapping:
             vec = vector[(categ == cat.name) & (tracer == cat.tracer)]
             dem = self.distribflux_time(vec, cat)
             dem = self.distribflux_space(dem, cat)
-            struct[cat.tracer][cat.name].data += dem
-
+            
+            if cat.mapping_func == 'L':
+                struct[cat.tracer][cat.name].data += dem
+                
+            elif cat.mapping_func == 'L-rel':
+                struct[cat.tracer][cat.name].data *= (1+dem)
+                
+            elif cat.mapping_func == 'E':
+                temp = struct[cat.tracer][cat.name].data
+                exponent = dem/where(temp>1e-6,temp,1e-6)
+                struct[cat.tracer][cat.name].data *= exp(dem)
+                
+            elif cat.mapping_func == 'E-rel':
+                struct[cat.tracer][cat.name].data *= exp(dem)
+                
+            elif cat.mapping_func == 'SE':
+                temp = struct[cat.tracer][cat.name].data
+                exponent = where(dem<0,dem/where(temp>1e-6,temp,1e-6),0)
+                out = where(dem>=-1e-6,temp+dem,(temp*exp(exponent)))
+                struct[cat.tracer][cat.name].data = out
+                
+            elif cat.mapping_func == 'SE-rel':
+                temp = struct[cat.tracer][cat.name].data
+                exponent = where(dem<0,dem,0)
+                out = where(dem>=-1e-6,temp(1+dem),(temp*exp(exponent)))
+                struct[cat.tracer][cat.name].data = out
+                
+            else:    
+                logger.error('Mapping func must be either L, E or SE (with or without -rel)')
+                raise NotImplementedError
+                
         struct.to_intensive()
         return struct
 
     @debug.timer
-    def vec_to_struct_adj(self, adjemis : Data) -> NDArray:
+    def vec_to_struct_adj(self, adjemis : Data, state : NDArray = None) -> NDArray:
+        
+        struct = self.model_data.copy(copy_attrs=True)
+        struct.resolve_metacats()
+        tracer = self.optim_data.tracer
+        categ = self.optim_data.category
+        
         adjemis.to_intensive_adj()
 
         adjvec = []
         for cat in self.optimized_categories :
-            emcoarse_adj = self.distribflux_space_adj(adjemis[cat.tracer][cat.name].data, cat)
+            
+            #For the exponential adjoint, we need the state vector. We do the multiplication in the model space so distribute it here.
+            if state is not None:
+                if 'E' in cat.mapping_func:
+                    state_cat = state[(categ == cat.name) & (tracer == cat.tracer)]
+                    dem = self.distribflux_time(state_cat, cat)
+                    dem = self.distribflux_space(dem, cat)
+            
+            if cat.mapping_func == 'L':
+                adjemis_temp = adjemis[cat.tracer][cat.name].data
+                
+            elif cat.mapping_func == 'L-rel':
+                adjemis_temp = struct[cat.tracer][cat.name].data*adjemis[cat.tracer][cat.name].data #For the linearized exp E=Eb(1+x), x_adj = E_b*E_adj
+                
+            elif cat.mapping_func == 'E':
+                temp = struct[cat.tracer][cat.name].data
+                adjemis_temp = adjemis[cat.tracer][cat.name].data #For the exp E=Eb*exp(x/Eb), x_adj = exp(x/Eb)*E_adj
+                exponent = dem/where(temp>1e-6,temp,1e-6)
+                out = adjemis_temp*exp(exponent)
+                adjemis_temp = out
+                
+            elif cat.mapping_func == 'E-rel':
+                adjemis_temp = exp(dem)*struct[cat.tracer][cat.name].data*adjemis[cat.tracer][cat.name].data #For the exp E=Eb*exp(x), x_adj = E_b*exp(x)*E_adj
+                
+            elif cat.mapping_func == 'SE':
+                temp = struct[cat.tracer][cat.name].data
+                adjemis_temp = adjemis[cat.tracer][cat.name].data
+                exponent = where(dem<0,dem/where(temp>1e-6,temp,1e-6),0)
+                out = where(dem>=-1e-6,adjemis_temp,(adjemis_temp*exp(exponent)))
+                adjemis_temp = out
+            
+            elif cat.mapping_func == 'SE-rel':
+                temp = struct[cat.tracer][cat.name].data
+                adjemis_temp = adjemis[cat.tracer][cat.name].data
+                exponent = where(dem<0,dem,0)
+                out = where(dem>=-1e-6,adjemis_temp*temp,(adjemis_temp*exp(exponent)))
+                adjemis_temp = out    
+                
+            else:
+                raise NotImplementedError
+            
+            
+            emcoarse_adj = self.distribflux_space_adj(adjemis_temp, cat)
             emcoarse_adj = self.distribflux_time_adj(emcoarse_adj, cat)
+            
+                    
             adjvec.extend(emcoarse_adj)
+
         return array(adjvec)
 
     @debug.timer
@@ -197,24 +277,40 @@ class Mapping:
                     'is_ocean': optim_pars.get('is_ocean', False),
                     'n_optim_points': optim_pars.get('npoints', None),
                     'horizontal_correlation': optim_pars.spatial_correlation,
-                    'temporal_correlation': optim_pars.temporal_correlation
+                    'temporal_correlation': optim_pars.temporal_correlation,
+                    'mapping_func': optim_pars.get('mapping_func','L')
                 })
                 err = ureg(optim_pars.annual_uncertainty)
                 scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
                 attrs['total_uncertainty'] = err * scf
+                if attrs['mapping_func'] == 'L':
+                    logger.info('With linear mapping function')
+                elif attrs['mapping_func'] == 'L-rel':
+                    logger.info('With linear-relative mapping function')
+                elif attrs['mapping_func'] == 'E':
+                    logger.info('With exponential mapping function')
+                elif attrs['mapping_func'] == 'E-rel':
+                    logger.info('With exponential relative mapping function')
+                elif attrs['mapping_func'] == 'SE':
+                    logger.info('With semi-exponential mapping function')
+                elif attrs['mapping_func'] == 'SE-rel':
+                    logger.info('With semi-exponential relative mapping function')
+                else:
+                    logger.error('Mapping func must be either L, E or SE (with or without -rel)')
+                    raise NotImplementedError
             else :
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will NOT be optimized')
             self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
 
     @debug.timer
-    def setup_coarsening(self, sensi_map : Dict | None = None):
+    def setup_coarsening(self, sensi_map : Dict | None = None, aggregate_lon : int = 1, aggregate_lat : int = 1):
         """
         Calculate spatial and temporal coarsening matrices
         """
         for cat in self.optimized_categories :
             self.temporal_mapping[cat] = self.calc_temporal_coarsening(cat)
             smap = sensi_map[cat.tracer] if sensi_map else None
-            self.spatial_mapping[cat] = self.calc_spatial_coarsening(cat, sensi_map=smap)
+            self.spatial_mapping[cat] = self.calc_spatial_coarsening(cat, sensi_map=smap, aggregate_lat=aggregate_lat, aggregate_lon=aggregate_lon)
 
     @debug.timer
     def calc_temporal_coarsening(self, cat: Category) -> Dataset :
@@ -304,7 +400,7 @@ class Mapping:
     @debug.timer
     def aggregate_in_spatial_clusters(self, cat: Category, sensi_map: NDArray, lsm : None | NDArray) -> Dataset:
         grid = self.model_data[cat.tracer].grid
-
+        
         # Determine if we want to use a land-sea mask (and construct it!)
         # Calculate the clusters
         indices = grid.indices.reshape(grid.shape)
@@ -319,6 +415,8 @@ class Mapping:
             cl.ipos = icl
             cl.mean_lat = average(lats[indices], weights=area[indices])
             cl.mean_lon = average(lons[indices], weights=area[indices])
+            cl.dlat = max(lats[indices])-min(lats[indices])
+            cl.dlon = max(lons[indices])-min(lons[indices])
             cl.area_tot = area[indices].sum()
             if lsm is not None :
                 cl.land_fraction = average(lsm.reshape(-1)[indices], weights=area[indices])
@@ -341,6 +439,8 @@ class Mapping:
         )
         mapping[f'lat'] = DataArray([c.mean_lat for c in clusters], dims=[f'points_optim_{cat.name}'])
         mapping[f'lon'] = DataArray([c.mean_lon for c in clusters], dims=[f'points_optim_{cat.name}'])
+        mapping[f'dlon'] = DataArray([c.dlon for c in clusters], dims=[f'points_optim_{cat.name}'])
+        mapping[f'dlat'] = DataArray([c.dlat for c in clusters], dims=[f'points_optim_{cat.name}'])
         mapping[f'area'] = DataArray([c.area_tot for c in clusters], dims=[f'points_optim_{cat.name}'])
         mapping[f'landfraction'] = DataArray([c.land_fraction for c in clusters], dims=[f'points_optim_{cat.name}'])
 

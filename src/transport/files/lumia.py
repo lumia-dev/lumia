@@ -121,7 +121,7 @@ class LumiaFootprintFile(h5py.File):
         # Exclude negative time steps
         if itims.min() < 0 :
             sel *= False
-
+        
         return SimpleNamespace(
             name=obsid,
             shift_t=self.shift_t,

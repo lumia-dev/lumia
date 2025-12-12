@@ -103,7 +103,7 @@ class Var4D:
             return 'apos'
         return 'var4d'
 
-    def solve(self) -> NDArray:
+    def solve(self, print_summary_cats: list[str] = None) -> NDArray:
 
         state_preco = self.prior.state_preco
 
@@ -112,7 +112,7 @@ class Var4D:
             logger.info(f'Start iteration {self.iteration}, {self.step} step')
 
             # Full forward-adjoint loop
-            obs_departures = self.forward_step(state_preco)
+            obs_departures = self.forward_step(state_preco, print_summary_cats=print_summary_cats)
             prior_departures = state_preco - self.prior.state_preco
             cost_func = CostFunction(prior_departures=prior_departures, obs_departures=obs_departures)
             gradient_preco = self.adjoint_step(obs_departures) + prior_departures
@@ -133,10 +133,10 @@ class Var4D:
         self.calc_posterior_uncertainties()
         return state_preco
 
-    def forward_step(self, state_preco: NDArray) -> Departures:
+    def forward_step(self, state_preco: NDArray, print_summary_cats: list[str] = None) -> Departures:
         state = self.xc_to_x(state_preco)
         model_data = self.mapping.vec_to_struct(state)
-        return self.model.calc_departures(model_data, step=self.step)
+        return self.model.calc_departures(model_data, step=self.step, print_summary_cats=print_summary_cats)
 
     def adjoint_step(self, obs_departures : Departures) -> NDArray:
         model_data_adj = self.model.calc_departures_adj(obs_departures.mismatch / obs_departures.sigma ** 2)

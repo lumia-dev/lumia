@@ -70,8 +70,8 @@ class Transport:
 
     # Main methods:
     @debug.timer
-    def calc_departures(self, emissions: Emissions, step: str = None) -> Departures:
-        _, obsfile = self.run_forward(emissions, step)
+    def calc_departures(self, emissions: Emissions, step: str = None, print_summary_cats: list[str] = None) -> Departures:
+        _, obsfile = self.run_forward(emissions, step, print_summary_cats=print_summary_cats)
 
         # db = self._observations.from_hdf(obsfile)
         db : DataFrame = read_hdf(obsfile)
@@ -104,10 +104,12 @@ class Transport:
     def calc_departures_adj(self, forcings : DataFrame, step='adjoint') -> Data:
 
         # Write departures file
-        self.observations.loc[forcings.index, 'dy'] = forcings
+        if step == 'calc_sensi_map':
+            self.observations.loc[forcings.index, 'dy'] = 1
+        else:    
+            self.observations.loc[forcings.index, 'dy'] = forcings
         departures_file = self.path_temp / 'departures.hdf'
         self.observations.dropna(subset=['dy']).to_hdf(departures_file, 'departures')
-
         # Point to the existing emissions file (just used as a template)
         adjemis_file = self.emissions_file
 
@@ -126,11 +128,12 @@ class Transport:
         return Data.from_file(adjemis_file)
 
     @debug.timer
-    def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False) -> Tuple[Path, Path]:
+    def run_forward(self, emissions: Emissions, step: str = None, serial: bool = False, print_summary_cats: list[str] = None) -> Tuple[Path, Path]:
 
         # Write the emissions. Don't compress when inside a 4dvar loop, for faster speed
         compression = step in self.output_steps
-        emissions.print_summary()
+        if print_summary_cats:
+            emissions.print_summary(cats=print_summary_cats)
         emf = emissions.to_netcdf(self.emissions_file, zlib=compression, only_transported=True)
 
         # Write the observations:
@@ -171,9 +174,9 @@ class Transport:
 
     @debug.timer
     def calc_sensi_map(self, emissions: Emissions):
-        departures = ones(self.observations.shape[0])
+        departures = DataFrame(ones(self.observations.shape[0]),index=self.observations.index)
         emissions.to_netcdf(self.path_temp / 'emissions.nc', zlib=False, only_transported=True)
-        adjfield = self.calc_departures_adj(departures)
+        adjfield = self.calc_departures_adj(departures, step='calc_sensi_map')
         sensi = {}
         for tracer in adjfield.tracers:
             sensi[tracer] = array([adjfield[tracer][cat].data.sum(0) for cat in adjfield[tracer].categories]).sum(0)
