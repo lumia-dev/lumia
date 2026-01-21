@@ -304,8 +304,11 @@ class Mapping:
                         logger.info('With linear-relative mapping function')
                     case 'E':
                         logger.info('With exponential mapping function')
+                        logger.error('The current implementation of this mapping function does not seem to work...')
+                        raise NotImplementedError
                     case 'E-rel':
                         logger.info('With exponential relative mapping function')
+                        logger.warning('The current implenetation of the prior uncertainty in logspace decreases the total magnitude of the uncertainties drastically')
                     case 'SE':
                         logger.info('With semi-exponential mapping function')
                     case 'SE-rel':
