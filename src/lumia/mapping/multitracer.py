@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from dataclasses import dataclass, field
 from loguru import logger
 from pandas import Timedelta, Timestamp, DataFrame, concat
-from numpy import float32, zeros, average, meshgrid, array, eye, ones, exp, where
+from numpy import float32, zeros, average, meshgrid, array, eye, ones, exp, where, log
 from tqdm import tqdm
 from collections.abc import Iterable
 from numpy.typing import NDArray
@@ -55,38 +55,46 @@ class Mapping:
 
         for cat in self.optimized_categories :
             vec = vector[(categ == cat.name) & (tracer == cat.tracer)]
-            dem = self.distribflux_time(vec, cat)
-            dem = self.distribflux_space(dem, cat)
+            state_vec_distrib = self.distribflux_time(vec, cat)
+            state_vec_distrib = self.distribflux_space(state_vec_distrib, cat)
             
-            if cat.mapping_func == 'L':
-                struct[cat.tracer][cat.name].data += dem
-                
-            elif cat.mapping_func == 'L-rel':
-                struct[cat.tracer][cat.name].data *= (1+dem)
-                
-            elif cat.mapping_func == 'E':
-                temp = struct[cat.tracer][cat.name].data
-                exponent = dem/where(temp>1e-6,temp,1e-6)
-                struct[cat.tracer][cat.name].data *= exp(dem)
-                
-            elif cat.mapping_func == 'E-rel':
-                struct[cat.tracer][cat.name].data *= exp(dem)
-                
-            elif cat.mapping_func == 'SE':
-                temp = struct[cat.tracer][cat.name].data
-                exponent = where(dem<0,dem/where(temp>1e-6,temp,1e-6),0)
-                out = where(dem>=-1e-6,temp+dem,(temp*exp(exponent)))
-                struct[cat.tracer][cat.name].data = out
-                
-            elif cat.mapping_func == 'SE-rel':
-                temp = struct[cat.tracer][cat.name].data
-                exponent = where(dem<0,dem,0)
-                out = where(dem>=-1e-6,temp(1+dem),(temp*exp(exponent)))
-                struct[cat.tracer][cat.name].data = out
-                
-            else:    
-                logger.error('Mapping func must be either L, E or SE (with or without -rel)')
-                raise NotImplementedError
+            match cat.mapping_func:
+                case'L':
+                    # Optimize a offset E = Eb + x
+                    struct[cat.tracer][cat.name].data += state_vec_distrib
+                case 'L-rel':
+                    # Optimize a scf E = Eb(1+x)
+                    struct[cat.tracer][cat.name].data *= (1+state_vec_distrib)
+                case 'E':
+                    # Optimize a exponentional tangental to the offset (same unit as L) E = Eb*exp(x/Eb)
+                    # exp will explode if prior emissions are to small -> exponent to large, limit exponentent to ln(10)*250 since oveflow limit in python is 10^308
+                    prior_emis = struct[cat.tracer][cat.name].data
+                    exponent = state_vec_distrib/where(prior_emis>1e-15,prior_emis,1e-15)
+                    exponent = where(exponent<log(10)*250,exponent,log(10)*250)
+                    struct[cat.tracer][cat.name].data *= exp(exponent)
+                case 'E-rel':
+                    # Optimize an exponentional tangental to the scf (same unit as L-rel) E = Eb*exp(x)
+                    # exp will explode if statevector to large, limit exponentent to ln(10)*250 since oveflow limit in python is 10^308
+                    exponent = state_vec_distrib
+                    exponent = where(exponent<log(10)*250,exponent,log(10)*250)
+                    struct[cat.tracer][cat.name].data *= exp(exponent)
+                case 'SE':
+                    # Use L if state vec >= 0 else E
+                    # Since state vec per definition is negative in exponent, no need to check for overflow, instead set max to 0
+                    prior_emis = struct[cat.tracer][cat.name].data
+                    exponent = state_vec_distrib/where(prior_emis>1e-15,prior_emis,1e-15)
+                    exponent = where(state_vec_distrib<0,exponent,0)
+                    struct[cat.tracer][cat.name].data = where(state_vec_distrib>=0,prior_emis+state_vec_distrib,(prior_emis*exp(exponent)))
+                case 'SE-rel':
+                    # Use L-rel if state vec >= 0 else E-rel
+                    # Since state vec per definition is negative in exponent, no need to check for overflow, instead set max to 0
+                    prior_emis = struct[cat.tracer][cat.name].data
+                    exponent = state_vec_distrib
+                    exponent = where(state_vec_distrib<0,exponent,0)
+                    struct[cat.tracer][cat.name].data = where(state_vec_distrib>=0,prior_emis*(1+state_vec_distrib),(prior_emis*exp(state_vec_distrib)))
+                case _:    
+                    logger.error('Mapping func must be either L, E or SE (with or without -rel)')
+                    raise NotImplementedError
                 
         struct.to_intensive()
         return struct
@@ -108,44 +116,49 @@ class Mapping:
             if state is not None:
                 if 'E' in cat.mapping_func:
                     state_cat = state[(categ == cat.name) & (tracer == cat.tracer)]
-                    dem = self.distribflux_time(state_cat, cat)
-                    dem = self.distribflux_space(dem, cat)
+                    state_vec_distrib = self.distribflux_time(state_cat, cat)
+                    state_vec_distrib = self.distribflux_space(state_vec_distrib, cat)
             
-            if cat.mapping_func == 'L':
-                adjemis_temp = adjemis[cat.tracer][cat.name].data
-                
-            elif cat.mapping_func == 'L-rel':
-                adjemis_temp = struct[cat.tracer][cat.name].data*adjemis[cat.tracer][cat.name].data #For the linearized exp E=Eb(1+x), x_adj = E_b*E_adj
-                
-            elif cat.mapping_func == 'E':
-                temp = struct[cat.tracer][cat.name].data
-                adjemis_temp = adjemis[cat.tracer][cat.name].data #For the exp E=Eb*exp(x/Eb), x_adj = exp(x/Eb)*E_adj
-                exponent = dem/where(temp>1e-6,temp,1e-6)
-                out = adjemis_temp*exp(exponent)
-                adjemis_temp = out
-                
-            elif cat.mapping_func == 'E-rel':
-                adjemis_temp = exp(dem)*struct[cat.tracer][cat.name].data*adjemis[cat.tracer][cat.name].data #For the exp E=Eb*exp(x), x_adj = E_b*exp(x)*E_adj
-                
-            elif cat.mapping_func == 'SE':
-                temp = struct[cat.tracer][cat.name].data
-                adjemis_temp = adjemis[cat.tracer][cat.name].data
-                exponent = where(dem<0,dem/where(temp>1e-6,temp,1e-6),0)
-                out = where(dem>=-1e-6,adjemis_temp,(adjemis_temp*exp(exponent)))
-                adjemis_temp = out
-            
-            elif cat.mapping_func == 'SE-rel':
-                temp = struct[cat.tracer][cat.name].data
-                adjemis_temp = adjemis[cat.tracer][cat.name].data
-                exponent = where(dem<0,dem,0)
-                out = where(dem>=-1e-6,adjemis_temp*temp,(adjemis_temp*exp(exponent)))
-                adjemis_temp = out    
-                
-            else:
-                raise NotImplementedError
+            prior_emis = struct[cat.tracer][cat.name].data
+            adj = adjemis[cat.tracer][cat.name].data
             
             
-            emcoarse_adj = self.distribflux_space_adj(adjemis_temp, cat)
+            match cat.mapping_func: 
+                case 'L':
+                    # For optimizing a offset x_adj = E_adj, so we don't need to do anything else
+                    pass
+                case 'L-rel':
+                    #For the linearized exp E=Eb(1+x), x_adj = E_b*E_adj
+                    adj *= prior_emis 
+                case 'E':
+                    #For the exp E=Eb*exp(x/Eb), x_adj = exp(x/Eb)*E_adj
+                    # exp will explode if prior emissions are to small -> exponent to large, limit exponentent to ln(10)*250 since oveflow limit in python is 10^308
+                    exponent = state_vec_distrib/where(prior_emis>1e-15,prior_emis,1e-15)
+                    exponent = where(exponent<log(10)*250,exponent,log(10)*250)
+                    adj *= exp(exponent)
+                case 'E-rel':
+                    #For the exp E=Eb*exp(x), x_adj = E_b*exp(x)*E_adj
+                    # exp will explode if statevector to large, limit exponenent to ln(10)*250 since oveflow limit in python is 10^308
+                    exponent = state_vec_distrib
+                    exponent = where(exponent<log(10)*250,exponent,log(10)*250)
+                    adj *= exp(state_vec_distrib)*prior_emis 
+                case 'SE':
+                    # Use L if state vec >= 0 else E
+                    # Since state vec per definition is negative in exponent, no need to check for overflow, instead set max to 0
+                    exponent = state_vec_distrib/where(prior_emis>1e-15,prior_emis,1e-15)
+                    exponent = where(state_vec_distrib<0,exponent,0)
+                    adj = where(state_vec_distrib>=0,adj,adj*exp(exponent))
+                case 'SE-rel':
+                    # Use L if state vec >= 0 else E
+                    # Since state vec per definition is negative in exponent, no need to check for overflow, instead set max to 0
+                    exponent = where(state_vec_distrib<0,state_vec_distrib,0)
+                    adj = where(state_vec_distrib>=0,adj*prior_emis,(adj*exp(exponent)*prior_emis)) 
+                case _:
+                    logger.error('Mapping func must be either L, E or SE (with or without -rel)')
+                    raise NotImplementedError
+            
+            
+            emcoarse_adj = self.distribflux_space_adj(adj, cat)
             emcoarse_adj = self.distribflux_time_adj(emcoarse_adj, cat)
             
                     
@@ -283,21 +296,23 @@ class Mapping:
                 err = ureg(optim_pars.annual_uncertainty)
                 scf = ((1 * err.units) / species[cat.tracer].unit_budget).m
                 attrs['total_uncertainty'] = err * scf
-                if attrs['mapping_func'] == 'L':
-                    logger.info('With linear mapping function')
-                elif attrs['mapping_func'] == 'L-rel':
-                    logger.info('With linear-relative mapping function')
-                elif attrs['mapping_func'] == 'E':
-                    logger.info('With exponential mapping function')
-                elif attrs['mapping_func'] == 'E-rel':
-                    logger.info('With exponential relative mapping function')
-                elif attrs['mapping_func'] == 'SE':
-                    logger.info('With semi-exponential mapping function')
-                elif attrs['mapping_func'] == 'SE-rel':
-                    logger.info('With semi-exponential relative mapping function')
-                else:
-                    logger.error('Mapping func must be either L, E or SE (with or without -rel)')
-                    raise NotImplementedError
+                
+                match attrs['mapping_func']:
+                    case 'L':
+                        logger.info('With linear mapping function')
+                    case 'L-rel':
+                        logger.info('With linear-relative mapping function')
+                    case 'E':
+                        logger.info('With exponential mapping function')
+                    case 'E-rel':
+                        logger.info('With exponential relative mapping function')
+                    case 'SE':
+                        logger.info('With semi-exponential mapping function')
+                    case 'SE-rel':
+                        logger.info('With semi-exponential relative mapping function')
+                    case _:
+                        logger.error('Mapping func must be either L, E or SE (with or without -rel)')
+                        raise NotImplementedError
             else :
                 logger.info(f'Category {cat.name} of tracer {cat.tracer} will NOT be optimized')
             self.model_data[cat.tracer].variables[cat.name].attrs.update(attrs)
