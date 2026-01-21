@@ -7,7 +7,7 @@ from pandas.tseries.frequencies import to_offset
 from .protocols import Mapping
 from loguru import logger
 from .uncertainties import calc_temporal_correlation, calc_horizontal_correlation, calc_total_uncertainty
-from numpy import zeros, sqrt, log, where
+from numpy import zeros, sqrt, log, where, exp, mean
 from lumia.optimizer.categories import Category
 from pathlib import Path
 from lumia.utils import debug
@@ -82,16 +82,45 @@ class PriorConstraints:
             logger.info(
                 f"Uncertainty for category {cat.name} set to {cat.total_uncertainty.magnitude} {cat.total_uncertainty.units} (standard deviations scaled by {scalef = })")
 
-            # Store the results
-            if 'rel' in cat.mapping_func:
-                prior = mapping.coarsen_cat(cat, value_field='prior')
-                sigmas[cat] = errvec.prior_uncertainty.values/prior['prior'].where(prior['prior']>1e-6,1e-6).values
-            else:
-                sigmas[cat] = errvec.prior_uncertainty.values
+            temp = errvec.loc[:, 'prior_uncertainty']
+            logger.debug('----Prior uncertainty vector info before modifying:-----')
+            logger.debug(f'Max: {max(temp)}')
+            logger.debug(f'Min: {min(temp)}')
+            logger.debug(f'Mean: {mean(temp)}')
+            
+            # If we optimize scaling factors (i.e. the state vector is in relative terms), then the uncertainty needs to be divided by the prior.
+            match cat.mapping_func:
+                case 'L-rel' | 'E-rel' | 'SE-rel':
+                    # Set uncertainty to the ratio between uncertainty on the emissions and the emission themselves (in absolute values)
+                    # nan can occur when uncertainty on emissions is 0 ==> ensure it stays 0
+                    # inf can occur when emissions are 0 and uncertainty is not ==> set uncertainty to 0, the inversion would not be able to adjust it anyway
+                    prior_em = mapping.optim_data.loc[(mapping.optim_data.category == cat.name) & (mapping.optim_data.tracer == cat.tracer)].state_prior.values
+                    err_rel = (errvec.prior_uncertainty / prior_em).fillna(0).values
+                    err_rel[prior_em == 0] = 0
+                    errvec.loc[:, 'prior_uncertainty'] = abs(err_rel)
 
-            if 'E' in cat.mapping_func and 'SE' not in cat.mapping_func:
-                sigmas[cat] = where(sigmas[cat]>0,log(sigmas[cat]),0)
-                
+                    temp = errvec.loc[:, 'prior_uncertainty']
+                    logger.debug('----Prior uncertainty vector info after modifying to rel:-----')
+                    logger.debug(f'Max: {max(temp)}')
+                    logger.debug(f'Min: {min(temp)}')
+                    logger.debug(f'Mean: {mean(temp)}')
+                case _:
+                    pass
+
+            # If we optimize an exp state vector, the uncertainties should be in exp space
+            match cat.mapping_func:
+                case 'E' | 'E-rel':
+                    errvec.loc[:, 'prior_uncertainty'] = where(errvec.loc[:, 'prior_uncertainty']>0,log(errvec.loc[:, 'prior_uncertainty']),0)
+                    temp = errvec.loc[:, 'prior_uncertainty']
+                    logger.debug('----Prior uncertainty vector info after modifying to exp:-----')
+                    logger.debug(f'Max: {max(temp)}')
+                    logger.debug(f'Min: {min(temp)}')
+                    logger.debug(f'Mean: {mean(temp)}')
+                case _:
+                    pass
+            
+            # Store the results
+            sigmas[cat] = errvec.prior_uncertainty.values
             vectors.append(errvec)
 
         vectors = concat(vectors)
