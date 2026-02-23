@@ -5,7 +5,6 @@ from typing import Iterator, List
 from pandas import Timedelta, Timestamp
 from pandas.tseries.frequencies import to_offset
 from dataclasses import dataclass
-import netCDF4 as nc
 import xarray as xr
 from numpy import ndarray, array, append
 
@@ -75,8 +74,9 @@ class EmissionFields(xr.Dataset):
             self[cat].data *= 0.
 
     @classmethod
-    def open_dataset(cls, source: str, group: str=None):
-        with xr.open_dataset(source, group=group) as ds :
+    def open_dataset(cls, source: str, group: str = None, engine: str = None):
+        kwargs = {"engine": engine} if engine else {}
+        with xr.open_dataset(source, group=group, **kwargs) as ds:
             obj = cls(data_vars=ds.data_vars, coords=ds.coords, attrs=ds.attrs)
             obj.load()
         return obj
@@ -92,13 +92,17 @@ class Emissions(dict):
     @classmethod
     def read(cls, filename) -> "Emissions":
         obj = cls()
-        with nc.Dataset(filename, 'r') as fid :
-            if 'tracers' in fid.ncattrs():
-                tracers = fid.tracers
-            else :
+        # Use h5netcdf instead of netCDF4 to avoid HDF -101 with HDF5 1.14.x on node-local scratch
+        import h5netcdf
+        with h5netcdf.File(filename, "r") as fid:
+            if "tracers" in fid.attrs:
+                tracers = fid.attrs["tracers"]
+                if isinstance(tracers, str):
+                    tracers = [tracers]
+            else:
                 tracers = list(fid.groups.keys())
-        for tracer in tracers :
-            obj[tracer] = EmissionFields.open_dataset(filename, group=tracer)
+        for tracer in tracers:
+            obj[tracer] = EmissionFields.open_dataset(filename, group=tracer, engine="h5netcdf")
         return obj
 
     def write(self, fname: str) -> None:
