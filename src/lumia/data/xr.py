@@ -29,6 +29,16 @@ from lumia.utils import debug
 from lumia.optimizer.categories import Category, attrs_to_nc, Constructor
 from functools import partial
 
+# Pandas 3+ deprecated uppercase frequency strings; normalize for date_range/to_offset
+_PANDAS_FREQ_ALIASES = {'H': 'h', 'T': 'min', 'S': 's', 'L': 'ms', 'U': 'us', 'N': 'ns'}
+
+
+def _normalize_freq(freq):
+    """Return pandas-3 compatible freq string (e.g. 'H' -> 'h')."""
+    if isinstance(freq, str) and freq in _PANDAS_FREQ_ALIASES:
+        return _PANDAS_FREQ_ALIASES[freq]
+    return freq
+
 
 def offset_to_pint(offset: DateOffset):
     try:
@@ -58,7 +68,7 @@ class TracerEmis(xr.Dataset):
         else:
             # Ensure we have the correct data types:
             time = DatetimeIndex(time)
-            timestep = to_offset(timestep).freqstr
+            timestep = to_offset(_normalize_freq(timestep)).freqstr
 
             super().__init__(
                 coords=dict(time=time, lat=grid.latc, lon=grid.lonc),
@@ -328,8 +338,10 @@ class TracerEmis(xr.Dataset):
             # Coordinates
             for var in self.coords:
                 vartype = self[var].dtype
-                if vartype == 'datetime64[ns]':
-                    data = (self[var].data - self[var].data[0]) / 1.e9
+                # NetCDF4 only accepts primitive numeric types; match satellite_old format for transport compatibility
+                if hasattr(vartype, 'kind') and vartype.kind == 'M':
+                    t_ns = self[var].data.astype('datetime64[ns]')
+                    data = ((t_ns - t_ns[0]) / 1.e9).astype('int64')
                     nc.createVariable(var, 'int64', self[var].dims)
                     nc[var].units = f'seconds since {self[var][0].dt.strftime("%Y-%m-%d").data}'
                     nc[var].calendar = 'proleptic_gregorian'
@@ -660,12 +672,13 @@ class Data:
         em = cls()
         for tracer in dconf.emissions.tracers:
             tr = dconf.emissions[tracer]
-            time = date_range(start, end, freq=tr.interval, inclusive='left')
+            freq = _normalize_freq(tr.interval)
+            time = date_range(start, end, freq=freq, inclusive='left')
             unit_emis = species[tracer].unit_emis
 
             # Add new tracer to the emission object
             em.add_tracer(
-                TracerEmis(tracer_name=tracer, grid=tr.region, time=time, units=unit_emis, timestep=tr.interval))
+                TracerEmis(tracer_name=tracer, grid=tr.region, time=time, units=unit_emis, timestep=freq))
 
             for catname, cat in tr.categories.items():
                 # The name of the files should follow the pattern {path}/{prefix}{origin}.*.nc
@@ -698,7 +711,7 @@ class Data:
                     archive = archive + '/' + freq_src
 
                 # Load the emissions
-                emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=archive, field=field)
+                emis = load_preprocessed(prefix, start, end, freq=freq, archive=archive, field=field)
                 
                 # Add them to the current data structure
                 attrs = {'origin': cat} if isinstance(cat, str) else cat
@@ -780,7 +793,7 @@ def load_preprocessed(
 
         # Resample if needed:
         if freq is not None :
-            times_dest = date_range(start, end, freq=freq, inclusive='left')
+            times_dest = date_range(start, end, freq=_normalize_freq(freq), inclusive='left')
             dt1 = Timedelta(data.time.values[1] - data.time.values[0])   # first interval of the data
             dt2 = times_dest[1] - times_dest[0]                          # first interval requested
             assert (dt1 % dt2).total_seconds() == 0, f"The requested temporal resolution ({freq}) is not an integer fraction of the temporal resolution of the data ({xr.infer_freq(data.time)})"
