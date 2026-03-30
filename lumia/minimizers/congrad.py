@@ -4,6 +4,7 @@ import subprocess, os
 import shutil
 import logging
 from lumia.Tools.logging_tools import colorize
+from lumia.Tools import debug
 
 logger = logging.getLogger(__name__)
 
@@ -22,21 +23,25 @@ class Minimizer:
         self.read_eigsys = self.commfile.read_eigsys
         self.readState = self.commfile.readState
 
+    # @debug.trace_call
     def reset(self):
         self.init(self.nstate)
         self.iter = 0
         self.converged = False
         self.finished = False
 
+    # @debug.trace_call
     def resume(self, trim=0):
         self.commfile.resume(self.nstate, trim=trim)
         self.iter = self.commfile.len_x
         return self.commfile.readState()
 
+    # @debug.trace_call
     def init(self, nstate):
         self.nstate = nstate
         self.commfile.createFile(nstate)
 
+    # @debug.trace_call
     def calc_update(self, state_preco, gradient_preco, J_tot):
         if self.iter == 0 :
             self.commfile.write_state(state_preco)
@@ -50,6 +55,7 @@ class Minimizer:
         self.iter += 1
         return status
 
+    # @debug.trace_call
     def runMinimizer(self):
         #exec_name = self.rcf.get('var4d.conGrad.exec', default='/home/lumia/var4d/bin/congrad.exe')
         exec_name = self.rcf.get('var4d.conGrad.exec', default='/home/x_cagom/lumia/bin/congrad.exe')
@@ -57,6 +63,7 @@ class Minimizer:
         logger.info(colorize(' '.join([*cmd]), 'g'))
         subprocess.check_call(cmd)
 
+    # @debug.trace_call
     def update(self, gradient, J_tot):
         self.commfile.update(gradient, J_tot)
         
@@ -159,6 +166,7 @@ class CommFile(object):
         self.len_g = 0
         self.len_x = 0
         self.initialized = True
+        logger.info("Created file %s"%self.filepath)
 
     def write_state(self, state_preco):
         with Dataset(self.filepath, 'a') as ds:

@@ -1,12 +1,32 @@
-#!/usr/bin/env python
+from pandas import Timedelta, Timestamp, DataFrame, TimedeltaIndex, concat
+import h5py
+import sys
+import os
+import logging
+from lumia.Tools.gridtools import Grid
+from numpy import inf
+from loguru import logger
+from typing import List
+from types import SimpleNamespace
+from dataclasses import asdict
+
+from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from archive import Archive
+from numpy import array, nan, meshgrid, nonzero
+from tqdm import tqdm
+
+logger = logging.getLogger(os.path.basename(__file__))
 
 from calendar import c
 import sys
 import os
 import logging
+import xarray as xr
+import h5py
 from h5py import File
 from datetime import datetime, timedelta
 from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+# from concentrations import interp_file, read_conc_file
 from archive import Archive
 from numpy import array, nan, meshgrid, nonzero
 from netCDF4 import Dataset, chartostring
@@ -37,14 +57,15 @@ class Interval:
         return self.start < other.start
 
 
-class LegacyFootprintFile(FootprintFile):
+class LumiaFootprintFile(FootprintFile):
+
     def read(self):
 
         if not os.path.exists(self.filename):
             return False
         self.ds = File(self.filename, 'r')
         self.close = self.ds.close
-        self.footprints = [x for x in self.ds.keys()]
+        self.footprints = [x for x in self.ds.keys() if isinstance(self.ds[x], h5py.Group)]
 
         # Store time and space coordinates
         try :
@@ -56,11 +77,8 @@ class LegacyFootprintFile(FootprintFile):
             print(self.filename)
             raise RuntimeError
 
-        self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
-        self.dt = timedelta(seconds=self.ds.attrs['tres'])
-
-        # self.dt = timedelta(seconds=abs(self.ds.attrs['run_loutstep']))
-        # self.origin = datetime.strptime(self.ds.attrs['origin'], '%Y-%m-%d %H:%M:%S')
+        self.dt = timedelta(seconds=int(abs(self.ds.attrs['run_loutstep'])))
+        self.origin = datetime.strptime(self.ds.attrs['origin'], '%Y-%m-%d %H:%M:%S')
 
         # Copy them to the Footprint class 
         self.Footprint.lats = self.coordinates.lats
@@ -87,13 +105,18 @@ class LegacyFootprintFile(FootprintFile):
 
     def getFootprint(self, obsid, origin=None):
 
-
         fp = self.Footprint()
-        fp.itims = self.ds[obsid]['itims'][:] + self.shift_t
+        fp.itims = self.ds[obsid]['itims'][:] 
         fp.ilats = self.ds[obsid]['ilats'][:]
         fp.ilons = self.ds[obsid]['ilons'][:]
-        fp.sensi = self.ds[obsid]['sensi'][:] * 0.0002897
+
+        if self.ds[obsid]['sensi'].attrs.get('units') == 's m3 kg-1':
+            fp.sensi = self.ds[obsid]['sensi'][:] * 0.0002897
+        
         fp.origin = self.origin
+
+        fp.itims += self.shift_t
+
         valid = sum(fp.sensi) > 0
         if not valid :
             msg = f"No usable data found in footprint {obsid}"
@@ -103,14 +126,37 @@ class LegacyFootprintFile(FootprintFile):
                 logger.info(msg+ f": the footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
         return fp
 
-
     def writeFootprints(self, obs, footprint):
         raise NotImplementedError
 
+    # def endpoints(self) -> DataFrame | None:
+    #     # Get list of footprints that have a "background" subgroup:
+    #     footprints_with_background = [f for f in self.footprints if 'background' in self[f]]
+        
+    #     # If endpoints have not been calculated by FLEXPART, just return None
+    #     if not footprints_with_background :
+    #         return None
+        
+    #     # Retrieve all endpoints and return them in as a DataFrame:
+    #     return self.get_endpoints(footprints_with_background)
+        
+    # def get_endpoint(self, obsid : str) -> DataFrame:
+        
+    #     df = DataFrame(dict(
+    #         lon = self.ds[obsid]['background']['lon'][:],
+    #         lat = self.ds[obsid]['background']['lat'][:],
+    #         height = self.ds[obsid]['background']['height'][:],
+    #         time = self.origin + TimedeltaIndex(self.ds[obsid]['background']['time'][:], unit='s')
+    #     ))
+    #     df.loc[:, 'obsid'] = obsid
+    #     return df
 
-class LegacyFootprintTransport(FootprintTransport):
+    # def get_endpoints(self, obsids : List[str]) -> DataFrame :
+    #     return concat([self.get_endpoint(obsid) for obsid in obsids])
+    
+class LumiaFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emfile=None, atmdel=None, mp=False, checkfile=None, ncpus=None):
-        super().__init__(rcf, obs, emfile, atmdel, LegacyFootprintFile, mp, checkfile, ncpus)
+        super().__init__(rcf, obs, emfile, atmdel, LumiaFootprintFile, mp, checkfile, ncpus)
 
     def genFileNames(self, tr, t):
         return [f'{o.site}.{o.height:.0f}m.{o.time.strftime("%Y-%m")}.hdf' for o in self.obs.observations.loc[(self.obs.observations.tracer == tr) & (self.obs.observations.type == t)].itertuples()]
@@ -143,6 +189,22 @@ class LegacyFootprintTransport(FootprintTransport):
         obsids = [f'{o.site}.{o.height:.0f}m.{o.time.to_pydatetime().strftime("%Y%m%d-%H%M%S")}' for o in self.obs.observations.itertuples()]
         self.obs.observations.loc[:, 'obsid'] = obsids
 
+    # def interp_background(self, conc_field, footprint_class):
+    #     # single process implementation:
+    #     files = self.obs.observations.loc[:, ['footprint', 'tracer']].drop_duplicates().dropna()
+    #     self.obs.observations.loc[:, 'mix_background'] = nan
+    #     pbar = tqdm(files.itertuples(), total=len(files))
+    #     # import pdb; pdb.set_trace()
+    #     for fpfile in pbar:
+    #         obs = self.obs.observations.loc[(self.obs.observations.footprint == fpfile.footprint) & (self.obs.observations.tracer == fpfile.tracer), ['footprint', 'obsid', 'tracer']]
+    #         import pdb; pdb.set_trace()
+    #         with footprint_class(fpfile.footprint) as fpf:
+    #             endpoints = fpf.get_endpoints(obs.obsid)
+    #         bg = interp_file(conc_field, endpoints, fpfile.tracer.upper(), field='mix_interpolated')
+    #         tqdm.write(f'Mean {fpfile.tracer} background for file {fpfile.footprint}: {bg.mix_interpolated.mean()}')
+    #         bg = self.obs.observations.merge(bg, on='obsid', how='left').set_index(self.index).mix_interpolated.dropna()
+    #         self.obs.observations.loc[bg.index, 'mix_background'] = bg
+
 
 if __name__ == '__main__':
     import sys
@@ -157,6 +219,7 @@ if __name__ == '__main__':
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--ncpus', '-n', default=32)
     p.add_argument('--verbosity', '-v', default='INFO')
+    # p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True) 
@@ -171,7 +234,7 @@ if __name__ == '__main__':
     logger.warning('test logger')
 
     # Create the transport model
-    model = LegacyFootprintTransport(args.rc, args.db, args.emis, args.atmdel, mp= not args.serial, ncpus=args.ncpus) 
+    model = LumiaFootprintTransport(args.rc, args.db, args.emis, args.atmdel, mp = not args.serial, ncpus=args.ncpus) 
 
     if args.checkFootprints: 
         ftp_path = {}
@@ -183,6 +246,15 @@ if __name__ == '__main__':
                 ftp_path[tr][tp] = model.rcf.get(f'path.{tr}.{tp}.footprints')
         model.checkFootprints(ftp_path)
     model.genObsIDs()
+
+    # Optional: interpolate a background field:
+    # if model.bg_path: #args.background:# and 'mix_background' not in obs.columns:
+    #     logger.info(f'Interpolating backgrounds from {model.bg_path}')
+    #     logger.debug(model.bg_path)
+    #     bg = read_conc_file(model.bg_path)
+    #     model.interp_background(bg, LumiaFootprintFile.getFootprint)
+    #     # if not args.forward or args.adjoint or args.adjtest:
+    #     #     obs.write(args.obs)
 
     if args.forward :
         model.runForward()

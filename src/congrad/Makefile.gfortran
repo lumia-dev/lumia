@@ -28,8 +28,8 @@ FFLAGS = $(FFLAGS_DEF) $(FFLAGS_OPT) -ffree-line-length-none
 
 # --- libs etc ---------------------------------------
 
-INCS = -I/usr/include
-LIBS = -L/usr/lib -lnetcdff -lnetcdf
+INCS = -I/home/carlosg/.conda/envs/lumia/include/
+LIBS = -L/home/carlosg/.conda/envs/lumia/lib/ -lnetcdff -lnetcdf
 
 # --- implicit rules ---------------------------------
 

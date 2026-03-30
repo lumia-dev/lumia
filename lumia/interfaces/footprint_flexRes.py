@@ -307,14 +307,18 @@ class Interface :
                 lsm = self.region.get_land_mask(refine_factor=2, from_file=lsm_from_file)
                 if cat.is_ocean :
                     lsm = 1-lsm
-                if not cat.apply_lsm :
-                    lsm = None
+                # if not cat.apply_lsm :
+                #     lsm = None
 
                 if 'sensi_map' not in self.ancilliary_data :
                     self.ancilliary_data['sensi_map'] = zeros((self.region.nlat, self.region.nlon))
+                elif type(self.ancilliary_data['sensi_map']) == dict :
+                    sensi_map = self.ancilliary_data['sensi_map'][tr.name][cat.name].copy()
+                else :
+                    sensi_map = self.ancilliary_data['sensi_map'].copy()
 
                 clusters = clusterize(
-                    self.ancilliary_data['sensi_map'],
+                    sensi_map,
                     self.rcf.get(f'optimize.{tr.name}.{cat.name}.ngridpoints'), # TODO: by category
                     mask=lsm,
                     minxsize=minxsize,
@@ -409,4 +413,4 @@ class Interface :
                             mapping[tr][cat.name]['map'][iopt, imod] = tmod.overlap_percent(topt)
                     mapping[tr][cat.name]['map'] = (mapping[tr][cat.name]['map'].transpose()/mapping[tr][cat.name]['map'].sum(1)).transpose()
 
-        return mapping            
+        return mapping

@@ -4,8 +4,12 @@ from loguru import logger
 from copy import deepcopy
 from multiprocessing import Pool
 from tqdm import tqdm
-from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log, linspace
+from numpy import zeros, exp, linalg, eye, meshgrid, dot, pi, sin, cos, arcsin, flipud, argsort, sqrt, where, diag, unique, log, linspace, array
 from scipy.stats import norm
+from pdb import set_trace
+import numpy as np
+# from scipy.sparse import coo_matrix, csr_matrix
+# from scipy.spatial import cKDTree
 
 
 common = {}
@@ -13,13 +17,13 @@ common = {}
 
 def _aggregate_uncertainty(it1):
     itimes = common['itimes']
-    sig1 = common['sigmas'][itimes == it1]
+    sig1 = array(common['sigmas'][itimes == it1])
     Ct = common['Ct']
     Ch = common['Ch']
     nt = len(unique(itimes))
     err = 0
     for it2 in range(nt):
-        sig2 = common['sigmas'][itimes == it2]
+        sig2 = array(common['sigmas'][itimes == it2])
         err += (Ct[it1, it2] * Ch * sig1[None, :] * sig2[:, None]).sum()
 
     return err
@@ -64,29 +68,74 @@ def calc_dist_matrix(lats, lons, stretch_ratio=1.):
     for i, v in tqdm(enumerate(res), desc="Computing spatial distance matrix", total=len(lats)):
         M[:i+1, i] = v
         M[i, :i+1] = v
+    logger.debug(f"Distance matrix computed with shape {M.shape} and stretch ratio {stretch_ratio}.")
     del common['lons'], common['lats']
+    logger.debug("Latitudes and longitudes removed from common context.")
     return M
 
 
 class HorCor:
     def __init__(self, corlen, cortype, lats, lons, min_eigval=0.00001):
-        self.corlen = corlen
-        self.cortype = cortype
-        self.lats = lats
-        self.lons = lons
+        self.corlen = int(corlen)             # in km
+        self.cortype = cortype.lower()          # 'e','g','h'
+        self.lats = np.asarray(lats, dtype=np.float32)
+        self.lons = np.asarray(lons, dtype=np.float32)
         self.n = len(self.lats)
         self.min_eigval = min_eigval
         if cortype == 'g' :
             self.genCovarMat = self.genGaussianCovarMat
+            logger.info("Using Gaussian covariances for horizontal correlations.")
         elif cortype == 'h' :
             self.genCovarMat = self.genHyperbolicCovariances
+            logger.info("Using hyperbolic covariances for horizontal correlations.")
         elif cortype == 'e' :
             self.genCovarMat = self.genExponentialCovariances
+            logger.info("Using exponential covariances for horizontal correlations.")
+
+    def _project_xy_km(self):
+        R = 6371.0
+        latr = np.deg2rad(self.lats)
+        lonr = np.deg2rad(self.lons)
+        x = lonr * R * np.cos(latr)
+        y = latr * R
+        return np.column_stack([x, y])
+    
+    # def genSparseCov(self, minw=1e-7, radius_mult=3.0):
+    #     """Sparse horizontal correlation CSR (n x n)."""
+    #     XY = self._project_xy_km()
+    #     tree = cKDTree(XY)
+    #     r = radius_mult * self.corlen
+    #     sparse matrix of pairwise distances within radius r
+    #     D = tree.sparse_distance_matrix(tree, max_distance=r, output_type='coo_matrix')
+
+    #     d = D.data.astype(np.float32, copy=False)
+    #     if self.cortype == 'e':
+    #         w = np.exp(-d / self.corlen, dtype=np.float32)
+    #     elif self.cortype == 'g':
+    #         w = np.exp(-(d / self.corlen) ** 2, dtype=np.float32)
+    #     else:  # 'h' hyperbolic
+    #         w = 1.0 / (1.0 + d / self.corlen)
+
+    #     keep = w >= minw
+    #     W = coo_matrix((w[keep], (D.row[keep], D.col[keep])), shape=(self.n, self.n)).tocsr()
+    #     W.setdiag(1.0)
+    #     W.eliminate_zeros()
+    #     self.mat = W                               # store CSR directly
+    #     logger.debug(f"Sparse Hcor: n={self.n}, nnz={W.nnz}")
+    #     return W
+
+    # def __call__(self, sparse=True):
+    #     if sparse:
+    #         return self.genSparseCov()
+    #     # fallback to your original dense+eigendecomp path if ever needed
+    #     self.mat = self.genCovarMat()
+    #     p, lam = self.eigenDecompose(self.mat)
+    #     return p * lam
 
     def __call__(self):
         self.mat = self.genCovarMat()
         p, lam = self.eigenDecompose(self.mat)
-        return p*lam   # TODO: check why this is not a dot product
+        return p*lam 
     
     def genGaussianCovarMat(self, minv=1.e-7):
         # Get a matrix of distances
@@ -194,29 +243,18 @@ class Uncertainties:
                     self.Ch[tr][cat.name] = {}
 
         self.CalcUncertaintyStructure()
+        logger.info("Uncertainties structure initialized.")
         self.setup_Hcor()
+        logger.info("Horizontal correlations set up.")
         self.setup_Tcor()
+        logger.info("Temporal correlations set up.")
         self.ScaleUncertainty()
+        logger.info("Uncertainties scaled to the desired values.")
 
     def errStructToVec(self, errstruct):
         data = self.interface.StructToVec(errstruct)
         data.loc[:, 'prior_uncertainty'] = data.loc[:, 'value']
         return data.drop(columns=['value'])
-    #
-    # def calcPriorUncertainties(self):
-    #     """
-    #     Uncertainties set to a percentage of the prior control vector
-    #     """
-    #     data = deepcopy(self.interface.ancilliary_data)
-    #     data = self.errStructToVec(data)
-    #     for cat in self.interface.categories :
-    #         if cat.optimize :
-    #             errfact = cat.uncertainty*0.01
-    #             errcat = abs(data.loc[data.category == cat, 'prior_uncertainty'].values)*errfact
-    #             errcat[(errcat < 0.01*errcat.max())*(data.loc[:, 'land_fraction']>0)] = errcat.max()/100
-    #             data.loc[data.category == cat, 'prior_uncertainty'] = errcat
-    #     self.data = data
-    #     self.dict['prior_uncertainty'] = data.prior_uncertainty
 
     def setup_Hcor(self):
         for tr in self.interface.tracers.list:
@@ -227,10 +265,31 @@ class Uncertainties:
                         corlen = int(corlen)
                         vec = self.data.loc[(self.data.category == cat)]
                         vec = vec.loc[vec.time == vec.iloc[0].time]
-
+                        logger.debug(f"Setting up horizontal correlation for tracer {tr}, category {cat.name}, correlation type {cortype} with length {corlen}.")
                         corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
+                        logger.debug(f"Horizontal correlation matrix generated.")
                         self.dict['Hcor'][tr][cat.name][cat.horizontal_correlation] = corr()
                         self.Ch[tr][cat.name][cat.horizontal_correlation] = corr
+                        logger.debug(f"Horizontal correlation matrix stored for tracer {tr}, category {cat.name}, correlation type {cortype} with length {corlen}.")
+
+    # def setup_Hcor(self):
+    #     for tr in self.interface.tracers.list:
+    #         for cat in self.interface.tracers[tr].categories:
+    #             if not cat.optimize: 
+    #                 continue
+    #             key = cat.horizontal_correlation
+    #             if key in self.dict['Hcor'][tr][cat.name]:
+    #                 continue
+    #             corlen, cortype = key.split('-')
+    #             corlen = int(corlen)
+    #             vec = self.data.loc[(self.data.category == cat)]
+    #             vec = vec.loc[vec.time == vec.iloc[0].time]  # one snapshot for coords
+    #             corr = self.HorCor(corlen, cortype, vec.lat.values, vec.lon.values)
+    #             Hcsr = corr(sparse=True)                     # <<< sparse!
+    #             self.dict['Hcor'][tr][cat.name][key] = Hcsr  # store CSR directly
+    #             self.Ch[tr][cat.name][key] = corr            # keep object if needed
+    #             logger.debug(f"Hcor[{tr}/{cat.name}] CSR nnz={Hcsr.nnz}")
+
 
     def setup_Tcor(self):
         for tr in self.interface.tracers.list:
@@ -238,7 +297,7 @@ class Uncertainties:
                 if cat.optimize :
                     if cat.temporal_correlation not in self.dict['Tcor'][tr][cat.name] :
                         
-                        temp_corlen = float(cat.temporal_correlation[:3].strip())
+                        temp_corlen = float(cat.temporal_correlation.split('-')[0])
 
                         # Time interval of the optimization
                         dt = cat.optimization_interval.months + 12*cat.optimization_interval.years + cat.optimization_interval.days/30. + cat.optimization_interval.hours/30/24
@@ -250,6 +309,77 @@ class Uncertainties:
                         corr = self.TempCor(temp_corlen, dt, nt)
                         self.dict['Tcor'][tr][cat.name][cat.temporal_correlation] = corr()
                         self.Ct[tr][cat.name][cat.temporal_correlation] = corr
+
+    # def _total_uncertainty_fast(self, tr, cat):
+    #     """
+    #     Compute sqrt( trace( Ct · ( V · Ch · V^T ) ) )
+    #     Inputs:
+    #     tr  : tracer name (str)
+    #     cat : Category object (has .name, .horizontal_correlation, .temporal_correlation)
+    #     """
+    #     import numpy as np
+    #     from scipy.sparse import csr_matrix
+
+    #     # 1) Keys from the Category object
+    #     key_h = cat.horizontal_correlation           # e.g. "500-e"
+    #     key_t = cat.temporal_correlation             # e.g. "6" (months) etc.
+
+    #     # 2) Correlation matrices
+    #     # Ch: CSR (nv x nv) stored in dict['Hcor']
+    #     Ch = self.dict['Hcor'][tr][cat.name][key_h]
+    #     if not isinstance(Ch, csr_matrix):
+    #         Ch = csr_matrix(Ch, dtype=np.float32)
+    #     # Ct: dense (nt x nt) stored in dict['Tcor']
+    #     Ct = self.dict['Tcor'][tr][cat.name][key_t].astype(np.float32, copy=False)
+
+    #     # 3) Build V (nt x nv) from the DataFrame rows for THIS category
+    #     df = self.data.loc[self.data['category'] == cat.name].sort_values(['itime', 'iloc'], kind='mergesort')
+    #     it = df['itime'].to_numpy(np.int32, copy=False)
+    #     il = df['iloc'].to_numpy(np.int32, copy=False)
+    #     nt = int(it.max()) + 1
+    #     nv = int(il.max()) + 1
+
+    #     sig = df['prior_uncertainty'].to_numpy(np.float32, copy=False)
+    #     V = np.zeros((nt, nv), dtype=np.float32)
+    #     V[it, il] = sig
+
+    #     # 4) Z = V · (Ch · V^T), computed in column chunks of V to cap memory
+    #     Z = np.zeros((nt, nt), dtype=np.float64)     # accumulate in f64 for accuracy
+    #     chunk = 2000 if nv >= 10000 else nv
+
+    #     for j0 in range(0, nv, chunk):
+    #         j1 = min(nv, j0 + chunk)
+    #         Vblk = V[:, j0:j1]           # (nt x k)
+    #         W    = Ch[:, j0:j1]          # (nv x k) CSR
+    #         T    = V @ W                 # (nt x k), sparse-dense matmul
+    #         Z   += T @ Vblk.T            # (nt x nt)
+
+    #     var_total = float(np.trace(Ct @ Z))
+    #     return np.sqrt(var_total)
+
+
+    # def calcTotalUncertainty(self):
+    #     errtot = {}
+    #     for tr in self.interface.tracers.list:
+    #         errtot[tr] = {}
+    #         for cat in self.interface.tracers[tr].categories:
+    #             if not cat.optimize:
+    #                 continue
+
+    #             # units: scale sigmas temporarily (keep float32 inside)
+    #             unitconv = dict(PgC=12.e-21, TgCH4=16.e-21)[cat.unit]
+    #             sel = (self.data['category'] == cat.name)    # <-- use cat.name (string)
+    #             bak = self.data.loc[sel, 'prior_uncertainty'].to_numpy(copy=True)
+    #             self.data.loc[sel, 'prior_uncertainty'] = bak.astype(np.float32) * unitconv
+
+    #             std = self._total_uncertainty_fast(tr, cat)
+    #             errtot[tr][cat.name] = std
+
+    #             # restore
+    #             self.data.loc[sel, 'prior_uncertainty'] = bak
+    #             logger.debug(f"Total original uncertainty [{tr}/{cat.name}] = {std:.3e} {cat.unit}")
+    #     return errtot
+
 
     def calcTotalUncertainty(self): 
         errtot = {}
@@ -265,6 +395,8 @@ class Uncertainties:
                     common['itimes'] = self.data.loc[self.data.category == cat].itime.values
 
                     nt = len(unique(common['itimes']))
+
+                    # import pdb; pdb.set_trace()
 
                     with Pool() as pp :
                         errm = pp.imap(_aggregate_uncertainty, range(nt))
@@ -320,6 +452,8 @@ class Uncertainties:
                         data[tr][cat.name]['emis'] = abs(data[tr][cat.name]['emis'])**.5
                     elif cat.error_structure == 'flat':
                         data[tr][cat.name]['emis'][:] = self.interface.region.area
+                    elif cat.error_structure == 'model':
+                        data[tr][cat.name]['emis'][:] = abs(data['emis_unc'][tr][cat.name]['emis'] - data[tr][cat.name]['emis'])
         # Aggregate the variances into a control vector
         self.data = self.interface.StructToVec(data, store_ancilliary=False)
 
@@ -338,11 +472,6 @@ class Uncertainties:
         for tr in self.interface.tracers.list:
             for cat in self.interface.tracers[tr].categories:
                 if cat.optimize :
-                    # for i, err in enumerate(errtot[tr][cat.name]):
-                    #     scalef = cat.uncertainty / err * nsec / nsec_year # Unit conversion
-                    #     self.data.loc[(self.data.category == cat) & (self.data.itime == i), 'prior_uncertainty'] *= scalef
-                    #     logger.info(f"Uncertainty for category {cat.name} at itime {i} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")
-
                     scalef = cat.uncertainty / errtot[tr][cat.name] * nsec / nsec_year 
                     self.data.loc[self.data.category == cat, 'prior_uncertainty'] *= scalef
                     logger.info(f"Uncertainty for category {cat.name} set to {cat.uncertainty} {cat.unit} (standard deviations scaled by {scalef = })")

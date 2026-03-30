@@ -5,7 +5,12 @@ import re
 from dateutil.relativedelta import relativedelta
 from numpy import arange, ones_like, array, cumsum
 from lumia import tqdm
+from lumia.Tools.logging_tools import logger
 
+# import numpy as np
+# from scipy.ndimage import label, generate_binary_structure
+
+logger.setLevel('INFO')
 
 class Tracers:
     def __init__(self, rcf=None):
@@ -263,6 +268,30 @@ class Cluster:
             indices = [ii for ii in indices if ii not in cl2]
         return new_clusters
 
+## TODO: This is new
+    # def splitByMask(self):
+    #     """Split current cluster into connected components of self.mask (4-connected)."""
+    #     m = self.mask.astype(bool, copy=False)
+    #     if not m.any():
+    #         return []
+
+    #     # 4-connectivity (N,S,E,W)
+    #     st = generate_binary_structure(2, 1)
+    #     lab, nlab = label(m, structure=st)
+    #     if nlab <= 1:
+    #         return [self]
+
+    #     new_clusters = []
+    #     for i in range(1, nlab + 1):
+    #         cmask = (lab == i)
+    #         # Keep same data/indices; only the mask changes
+    #         new_clusters.append(Cluster(self.data,
+    #                                     indices=self.ind,
+    #                                     mask=cmask,
+    #                                     dy=self.dy,
+    #                                     crop=False))
+    #     return new_clusters
+
     def _find_neighbours(self, ind):
         neighbours = [ind-1, ind+1, ind-self.dy, ind+self.dy]
         return [n for n in neighbours if n in self.ind[self.mask>0]]
@@ -277,6 +306,37 @@ class Cluster:
             neighbours = self._walk(nb, neighbours)
         return neighbours
 
+## TODO: This is new
+# def clusterize(field, nmax, mask=None, minxsize=1, minysize=1, tr='', cat=''):
+#     Cluster.minxsize = minxsize
+#     Cluster.minysize = minysize
+#     clusters = [Cluster(field, mask=mask, crop=False)]
+#     clusters_final = []
+
+#     nclmax = min(nmax, (clusters[0].mask > 0).sum())
+#     with tqdm(total=nclmax, desc=f"Spatial aggregation of tracer {tr}, category {cat}") as pbar:
+#         ncl = len(clusters + clusters_final)
+#         while ncl < nclmax:
+#             ranks = [c.rank for c in clusters]
+#             ind = ranks.index(max(ranks))
+#             new_clusters = clusters[ind].split()
+#             clusters.pop(ind)
+#             for cl in new_clusters:
+#                 if cl.mask.any():
+#                     if cl.nx <= cl.minxsize and cl.ny <= cl.minysize:
+#                         clusters_final.append(cl)
+#                     else:
+#                         if mask is not None:
+#                             clusters.extend(cl.splitByMask())  # now non-recursive
+#                         else:
+#                             clusters.append(cl)
+#             inc = len(clusters + clusters_final) - ncl
+#             pbar.update(inc)
+#             ncl += inc
+
+#     logger.info(f"Found {len(clusters + clusters_final)} clusters for tracer {tr}, category {cat}.")
+
+#     return clusters + clusters_final
 
 def clusterize(field, nmax, mask=None, minxsize=1, minysize=1, tr='', cat=''):
     Cluster.minxsize = minxsize

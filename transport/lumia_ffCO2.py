@@ -1,12 +1,32 @@
-#!/usr/bin/env python
+# from pandas import Timedelta, Timestamp, DataFrame, TimedeltaIndex, concat
+# import h5py
+# import sys
+# import os
+# import logging
+# from lumia.Tools.gridtools import Grid
+# from numpy import inf
+# from loguru import logger
+# from typing import List
+# from types import SimpleNamespace
+# from dataclasses import asdict
+
+# from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+# from archive import Archive
+# from numpy import array, nan, meshgrid, nonzero
+# from tqdm import tqdm
+
+# logger = logging.getLogger(os.path.basename(__file__))
 
 from calendar import c
 import sys
 import os
 import logging
+import xarray as xr
+import h5py
 from h5py import File
 from datetime import datetime, timedelta
-from footprints import FootprintTransport, FootprintFile, SpatialCoordinates
+from footprints_ffCO2 import FootprintTransport, FootprintFile, SpatialCoordinates
+# from concentrations import interp_file, read_conc_file
 from archive import Archive
 from numpy import array, nan, meshgrid, nonzero
 from netCDF4 import Dataset, chartostring
@@ -37,14 +57,15 @@ class Interval:
         return self.start < other.start
 
 
-class LegacyFootprintFile(FootprintFile):
+class LumiaFootprintFile(FootprintFile):
+
     def read(self):
 
         if not os.path.exists(self.filename):
             return False
         self.ds = File(self.filename, 'r')
         self.close = self.ds.close
-        self.footprints = [x for x in self.ds.keys()]
+        self.footprints = [x for x in self.ds.keys() if isinstance(self.ds[x], h5py.Group)]
 
         # Store time and space coordinates
         try :
@@ -56,11 +77,8 @@ class LegacyFootprintFile(FootprintFile):
             print(self.filename)
             raise RuntimeError
 
-        self.origin = datetime.strptime(self.ds.attrs['start'], '%Y-%m-%d %H:%M:%S')
-        self.dt = timedelta(seconds=self.ds.attrs['tres'])
-
-        # self.dt = timedelta(seconds=abs(self.ds.attrs['run_loutstep']))
-        # self.origin = datetime.strptime(self.ds.attrs['origin'], '%Y-%m-%d %H:%M:%S')
+        self.dt = timedelta(seconds=int(abs(self.ds.attrs['run_loutstep'])))
+        self.origin = datetime.strptime(self.ds.attrs['origin'], '%Y-%m-%d %H:%M:%S')
 
         # Copy them to the Footprint class 
         self.Footprint.lats = self.coordinates.lats
@@ -87,13 +105,18 @@ class LegacyFootprintFile(FootprintFile):
 
     def getFootprint(self, obsid, origin=None):
 
-
         fp = self.Footprint()
-        fp.itims = self.ds[obsid]['itims'][:] + self.shift_t
+        fp.itims = self.ds[obsid]['itims'][:] 
         fp.ilats = self.ds[obsid]['ilats'][:]
         fp.ilons = self.ds[obsid]['ilons'][:]
-        fp.sensi = self.ds[obsid]['sensi'][:] * 0.0002897
+
+        if self.ds[obsid]['sensi'].attrs.get('units') == 's m3 kg-1':
+            fp.sensi = self.ds[obsid]['sensi'][:] * 0.0002897
+        
         fp.origin = self.origin
+
+        fp.itims += self.shift_t
+
         valid = sum(fp.sensi) > 0
         if not valid :
             msg = f"No usable data found in footprint {obsid}"
@@ -103,14 +126,12 @@ class LegacyFootprintFile(FootprintFile):
                 logger.info(msg+ f": the footprint covers the period {fp.itime_to_times(fp.itims.min())} to {fp.itime_to_times(fp.itims.max())}")
         return fp
 
-
     def writeFootprints(self, obs, footprint):
         raise NotImplementedError
-
-
-class LegacyFootprintTransport(FootprintTransport):
+    
+class LumiaFootprintTransport(FootprintTransport):
     def __init__(self, rcf, obs, emfile=None, atmdel=None, mp=False, checkfile=None, ncpus=None):
-        super().__init__(rcf, obs, emfile, atmdel, LegacyFootprintFile, mp, checkfile, ncpus)
+        super().__init__(rcf, obs, emfile, atmdel, LumiaFootprintFile, mp, checkfile, ncpus)
 
     def genFileNames(self, tr, t):
         return [f'{o.site}.{o.height:.0f}m.{o.time.strftime("%Y-%m")}.hdf' for o in self.obs.observations.loc[(self.obs.observations.tracer == tr) & (self.obs.observations.type == t)].itertuples()]
@@ -157,6 +178,7 @@ if __name__ == '__main__':
     p.add_argument('--serial', '-s', action='store_true', default=False, help="Run on a single CPU")
     p.add_argument('--ncpus', '-n', default=32)
     p.add_argument('--verbosity', '-v', default='INFO')
+    # p.add_argument('--background', '-b', type=str, nargs='*', default=None, help="Path or glob pattern pointing to concentrations files to use as background (files should be in the CAMS format). If a 'mix_background' field is present in the observations, the backgrounds won't be re-interpolated")
     p.add_argument('--rc')
     p.add_argument('--db', required=True)
     p.add_argument('--emis', required=True) 
@@ -171,7 +193,7 @@ if __name__ == '__main__':
     logger.warning('test logger')
 
     # Create the transport model
-    model = LegacyFootprintTransport(args.rc, args.db, args.emis, args.atmdel, mp= not args.serial, ncpus=args.ncpus) 
+    model = LumiaFootprintTransport(args.rc, args.db, args.emis, args.atmdel, mp = not args.serial, ncpus=args.ncpus) 
 
     if args.checkFootprints: 
         ftp_path = {}

@@ -4,7 +4,7 @@ import sys
 import os
 import shutil
 from numpy import ones, array
-from lumia.Tools import checkDir
+from lumia.Tools import checkDir, debug
 from lumia.obsdb import obsdb
 from lumia.Tools.system_tools import runcmd
 from loguru import logger
@@ -53,6 +53,7 @@ class transport(object):
                 pass
         return rcfile, obsfile
 
+    # @debug.trace_call
     def runForward(self, struct, atmos_del=None, step=None, serial=False):
         """
         Prepare input data for a forward run, launch the actual transport model in a subprocess and retrieve the results
@@ -83,6 +84,7 @@ class transport(object):
         # Retrieve results :
         return emf, dbf
 
+    # @debug.trace_call
     def calcDepartures(self, struct, atmdel=None, step=None, serial=False):
         emf, dbf = self.runForward(struct, atmos_del=atmdel, step=step, serial=serial)
         db = obsdb(filename=dbf)
@@ -91,9 +93,6 @@ class transport(object):
             for tr in self.rcf.get('obs.tracers'):
                 tr_columns = [col for col in db.observations.columns if f'mix_{tr}' in col]
                 self.db.observations.loc[:, db.observations[tr_columns].columns] = db.observations[tr_columns]
-
-                # for cat in self.rcf.get(f'emissions.{tr}.categories'):
-                #     self.db.observations.loc[:, f'mix_{tr}_{cat}'] = db.observations.loc[:, f'mix_{tr}_{cat}'].values
 
         self.db.observations.loc[:, f'mix_{step}'] = db.observations.mix.values
         self.db.observations.loc[:, 'mix_background'] = db.observations.mix_background.values
@@ -152,43 +151,27 @@ class transport(object):
         try :
             adjfield = self.readStruct(self.tempdir, prefix='adjoint')
         except :
-            adjfield = self.runAdjoint(departures, self.atmdf)
+            if hasattr(self, 'atmdf') :
+                adjfield = self.runAdjoint(departures, self.atmdf)
+            else :
+                adjfield = self.runAdjoint(departures)
+
         return array([adjfield[tr][cat]['emis'].sum(0) for tr in adjfield.keys() for cat in adjfield[tr].keys()]).sum(0)
+    
+    def calcSensitivityMapPerTracer(self):
+        departures = ones(self.db.observations.shape[0])
+        try :
+            adjfield = self.readStruct(self.tempdir, prefix='adjoint')
+        except :
+            if hasattr(self, 'atmdf') :
+                adjfield = self.runAdjoint(departures, self.atmdf)
+            else :
+                adjfield = self.runAdjoint(departures)
 
-    # def adjoint_test_(self, struct):
-    #     # Write model inputs:
-    #     emf = self.writeStruct(struct, self.tempdir, 'modelData.adjtest', zlib=True)
-    #     dbf = self.db.save_tar(os.path.join(self.tempdir, 'observations.adjtest.tar.gz'))
-    #     rcf = self.rcf.write(os.path.join(self.tempdir, f'forward.adjtest.rc'))
-    #
-    #     # Run the model
-    #     cmd = [sys.executable, '-u', self.executable, '--rc', rcf, '--adjtest', '--emis', emf, '--db', dbf]
-    #     if self.serial :
-    #         cmd.append('--serial')
-    #     cmd.extend(self.rcf.get('model.transport.extra_arguments', default='').split(','))
-    #     runcmd(cmd)
+        sensi = {}
+        for tracer in adjfield.keys():
+            sensi[tracer] = {}
+            for cat in adjfield[tracer].keys():
+                sensi[tracer][cat] = adjfield[tracer][cat]['emis'].sum(0)
 
-    # def adjoint_test(self, struct):
-    #     from numpy import dot, random
-
-    #     # 1) Do a first forward run with these emissions:
-    #     _, dbf = self.runForward(struct, step='adjtest1')
-    #     db = obsdb(filename=dbf)
-    #     y1 = db.observations.loc[:, 'mix'].dropna().values
-
-    #     # 2) Do a second forward run, with perturbed emissions :
-    #     x1 = struct['biosphere']['emis'].reshape(-1)
-    #     dx = random.randn(x1.shape[0])
-    #     struct['biosphere']['emis'] += dx.reshape(*struct['biosphere']['emis'].shape)
-    #     _, dbf = self.runForward(struct, step='adjtest2')
-    #     db = obsdb(filename=dbf)
-    #     y2 = db.observations.loc[:, 'mix'].dropna().values
-    #     dy = y2-y1
-
-    #     # 3) Do an adjoint run :
-    #     adj = self.runAdjoint(db.observations.loc[:, 'mix_biosphere'])
-
-    #     # 4) Convert to vectors:
-    #     y2 = self.db.observations.loc[:, 'dy'].dropna().values
-    #     x2 = adj['biosphere']['emis'].reshape(-1)
-    #     logger.info(f"Adjoint test value: { 1 - dot(dy, y2) / dot(dx, x2) = }")
+        return sensi

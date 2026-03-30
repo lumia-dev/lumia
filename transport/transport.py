@@ -107,8 +107,6 @@ class LumiaFootprintTransport(FootprintTransport):
         cache = Archive(path, parent=Archive(archive))
 
         # Add the footprint files
-        #fnames = [os.path.join(path, f) for f in self.genFileNames()]
-        #fnames = [f if os.path.exists(f) else nan for f in fnames]
         fnames = array(self.genFileNames())
         exists = array([cache.get(f, dest=path, fail=False) for f in tqdm(fnames, desc="Check footprints")])
         fnames = array([os.path.join(path, fname) for fname in fnames])

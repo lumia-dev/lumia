@@ -6,10 +6,9 @@ from datetime import datetime
 import h5py
 from numpy import float64, zeros_like
 from pandas import DataFrame, read_hdf
-# from lumia.Tools.rctools import rc
 from rctools import RcFile as rc
 from lumia.precon import preconditioner as precon
-from lumia.Tools import Region, Categories, Tracers
+from lumia.Tools import Region, Categories, Tracers, debug
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +49,14 @@ class Control:
 
     def loadrc(self, rcf):
         self.rcf = rcf
-        # self.categories = Categories(rcf)
         self.tracers = Tracers(rcf)
         self.region = Region(self.rcf)
         self.start = datetime(*self.rcf.get('time.start'))
         self.end = datetime(*self.rcf.get('time.end'))
 
     def setupPrior(self, prior):
-        self.vectors.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']]
+        # self.vectors.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']]
+        self.vectors[['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']] = prior.loc[:, ['tracer', 'category', 'time', 'lat', 'lon', 'land_fraction']]
         self.vectors.loc[:, 'state_prior'] = prior.value
         self.vectors.loc[:, 'state_prior_preco'] = 0.
         self.vectors.loc[:, 'iloc'] = prior.loc[:, 'iloc']
@@ -68,6 +67,7 @@ class Control:
         self.horizontal_correlations = uncdict['Hcor']
         self.temporal_correlations = uncdict['Tcor']
 
+    # @debug.trace_call
     def xc_to_x(self, state_preco, add_prior=True): #TODO: 
         uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
         state = 0*uncertainty
@@ -90,6 +90,7 @@ class Control:
 
         return state
 
+    # @debug.trace_call
     def g_to_gc(self, g):
         g_c = zeros_like(g)
         state_uncertainty = self.vectors.loc[:, 'prior_uncertainty'].values
@@ -100,7 +101,8 @@ class Control:
                     Hor_Lt = self.horizontal_correlations[tr][cat.name][cat.horizontal_correlation].transpose()
                     Temp_Lt = self.temporal_correlations[tr][cat.name][cat.temporal_correlation].transpose()
                     ipos = catIndex.index((tr, cat.name))
-                    g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos)#, 1, path=self.rcf.get('path.run'))
+                    # import pdb; pdb.set_trace()
+                    g_c += self.preco.g_to_gc(state_uncertainty, Temp_Lt, Hor_Lt, g, ipos).astype('float64')    #, 1, path=self.rcf.get('path.run'))
         return g_c
         
     def _to_hdf(self, filename):

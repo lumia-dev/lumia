@@ -1,0 +1,35 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+cartopy=0.18.0=py39h0d9ca2b_1
+geopandas=0.10.2=pypi_0
+h5py=2.10.0=py39hec9cf62_0
+ipykernel=6.4.1=py39h06a4308_1
+ipython=7.29.0=py39hb070fc8_0
+ipython_genutils=0.2.0=pyhd3eb1b0_1
+ipywidgets=7.6.5=pyhd3eb1b0_1
+jupyter-packaging=0.7.12=pyhd3eb1b0_0
+jupyter_client=6.1.12=pyhd3eb1b0_0
+jupyter_core=4.7.1=py39h06a4308_0
+jupyter_server=1.4.1=py39h06a4308_0
+jupyterlab=3.2.8=pyhd8ed1ab_0
+jupyterlab_pygments=0.1.2=py_0
+jupyterlab_server=2.4.0=pyhd3eb1b0_0
+jupyterlab_widgets=1.0.0=pyhd3eb1b0_1
+loguru=0.6.0=pypi_0
+matplotlib=3.3.4=py39h06a4308_0
+matplotlib-base=3.3.4=py39h62a2d02_0
+matplotlib-inline=0.1.2=pyhd3eb1b0_2
+netcdf4=1.5.6=py39hd5c503a_0
+numpy=1.21.4=pypi_0
+numpy-base=1.21.2=py39h79a1101_0
+pandas=1.4.1=py39h295c915_0
+plotly=5.8.0=py_0
+python=3.9.4=hdb3f193_0
+python-dateutil=2.8.1=pyhd3eb1b0_0
+python-flatbuffers=2.0=pyhd3eb1b0_0
+python_abi=3.9=2_cp39
+scipy=1.7.3=pypi_0
+shapely=1.7.0=py39h7c4d384_0
+tqdm=4.59.0=pyhd3eb1b0_1
+xarray=0.20.1=pyhd3eb1b0_1

@@ -1,50 +1,3 @@
-# #!/usr/bin/env python
-
-# from tqdm import tqdm
-# from datetime import datetime, timedelta
-# from numpy import zeros
-# from lumia.obsdb import obsdb
-# from lumia.Tools.logging_tools import logger
-
-
-# class obsdb(obsdb):
-#     def __init__(self, rcf, setupUncertainties=True):
-#         self.rcf = rcf
-#         start = datetime(*self.rcf.get('time.start'))
-#         end = datetime(*self.rcf.get('time.end'))
-
-#         super().__init__(self.rcf.get('obs.file'), start=start, end=end)
-
-#         if setupUncertainties:
-#             self.SetupUncertainties()
-
-#     def SetupUncertainties(self):
-#         errtype = self.rcf.get('obs.uncertainty')
-#         if errtype == 'weekly':
-#             self.SetupUncertainties_weekly()
-#         elif errtype == 'cst':
-#             self.SetupUncertainties_cst()
-#         else :
-#             logger.error(f'The rc-key "obs.uncertainty" has an invalid value: "{errtype}"')
-#             raise NotImplementedError
-
-#     def SetupUncertainties_weekly(self):
-#         for site in self.sites.itertuples():
-#             dbs = self.observations.loc[self.observations.site == site.Index]
-#             times = dbs.time
-#             err = zeros(len(times)) + site.err
-#             nobs = zeros((len(times)))
-#             for it, tt in tqdm(enumerate(times), desc=site.code, total=dbs.shape[0]):
-#                 nobs[it] = sum((times >= tt-timedelta(days=3.5)) * (times < tt+timedelta(days=3.5)))
-#             err *= nobs**.5
-#             self.observations.loc[self.observations.site == site.Index, 'err'] = err
-
-#     def SetupUncertainties_cst(self):
-#         for site in self.sites.itertuples():
-#             self.observations.loc[self.observations.site == site.Index, 'err'] = site.err
-
-### NEW CODE
-
 #!/usr/bin/env python
 
 from datetime import datetime, timedelta
@@ -64,16 +17,14 @@ infokeys = {
 }
 
 
-def _calc_weekly_uncertainty(site, times, dbs):
-    # err = zeros(len(times)) + err
-    # nobs = zeros((len(times)))
+def _calc_weekly_uncertainty(site, times, dbs, xstd, minerr, wndw, col):
     err = zeros(len(times))
     for it, tt in enumerate(times):
-        # nobs[it] = sum((times >= tt-timedelta(days=3.5)) & (times < tt+timedelta(days=3.5)))
-        err[it] = dbs.obs[(dbs.time >= tt-timedelta(days=3.5)) & (dbs.time < tt+timedelta(days=3.5))].std() * 2 #TODO: Remember to go back to obs instead of old_obs
-    # err *= sqrt(nobs)
+        err[it] = dbs[col][(dbs.time >= tt-timedelta(days=wndw/2)) & (dbs.time < tt+timedelta(days=wndw/2))].std() * xstd
     if  isnan(err).any():
         err[isnan(err)] = nanmedian(err)
+    if minerr > 0:
+        err[err < minerr] = minerr
     return site, err
 
 
@@ -90,38 +41,45 @@ class obsdb(obsdb):
 
         if self.rcf.get('obs.uncertainty.setup', default=setupUncertainties, info=infokeys):
             for tr in self.rcf.get('obs.tracers'):
-                self.SetupUncertainties(tr)
+                for ty in self.rcf.get(f'obs.type.{tr}', tolist='force'):
+                    self.SetupUncertainties(tr, ty)
 
-    def SetupUncertainties(self, tr):
-        errtype = self.rcf.get(f'obs.uncertainty.{tr}') #, info=infokeys)
+    def SetupUncertainties(self, tr, ty):
+        errtype = self.rcf.get(f'obs.uncertainty.{tr}.{ty}') #, info=infokeys)
         if errtype == 'weekly':
-            self.SetupUncertainties_weekly(tr)
+            xstd = self.rcf.get(f'obs.uncertainty.{tr}.{ty}.xstd', totype=float, default=1)
+            minerr = self.rcf.get(f'obs.uncertainty.{tr}.{ty}.min', totype=float, default=0)
+            wndw = self.rcf.get(f'obs.uncertainty.{tr}.{ty}.wndw', totype=float, default=7)
+            col = self.rcf.get(f'obs.uncertainty.{tr}.{ty}.col', default='obs')
+            self.SetupUncertainties_weekly(tr, ty, xstd, minerr, wndw, col)
         elif errtype == 'cst':
-            self.SetupUncertainties_cst(tr)
+            err = self.rcf.get(f'obs.uncertainty.{tr}.{ty}.err', totype=float, default=1)
+            self.SetupUncertainties_cst(tr, ty, err)
         elif errtype == 'tracer':
-            self.SetupUncertainties_tracer(tr)
+            self.SetupUncertainties_tracer(tr, ty)
         else :
             logger.error(f'The rc-key "obs.uncertainty" has an invalid value: "{errtype}"')
             raise NotImplementedError
 
-    def SetupUncertainties_weekly(self, tr):
+    def SetupUncertainties_weekly(self, tr, ty, xstd, minerr, wndw, col):
         res = []
         with Pool() as pp :
             for site in self.sites.itertuples():
-                dbs = self.observations.loc[(self.observations.site == site.Index) & (self.observations.tracer == tr)]
+                dbs = self.observations.loc[(self.observations.site == site.Index) & (self.observations.tracer == tr) & (self.observations.type == ty)]
                 if dbs.shape[0] > 0 :
-                    res.append(pp.apply_async(_calc_weekly_uncertainty, args=(site.code, dbs.time, dbs))) #site._asdict()[f'err_{tr}'])))
+                    res.append(pp.apply_async(_calc_weekly_uncertainty, args=(site.Index, dbs.time, dbs, xstd, minerr, wndw, col)))
         
             for r in res :
                 s, e = r.get()
-                self.observations.loc[(self.observations.site == s) & (self.observations.tracer == tr), 'err'] = e
-                logger.info(f"Error for {tr} and site {s:^5s} set to an averge of {e.mean():^8.2f} ppm")
+                self.observations.loc[(self.observations.site == s) & (self.observations.tracer == tr) & (self.observations.type == ty), 'err'] = e
+                logger.info(f"Error for {tr}, {ty} and site {s:^5s} set to an average of {e.mean():^8.2f} ppm")
 
-    def SetupUncertainties_cst(self, tr):
-        for site in self.sites.loc[self.sites[tr] == True].itertuples():
-            self.observations.loc[(self.observations.site == site.Index) & (self.observations.tracer == tr), 'err'] = site._asdict()[f'err_{tr}']
-            logger.info(f"Error for {tr} and site {site.Index:^5s} set to an averge of {site._asdict()[f'err_{tr}']:^8.2f} ppm")
+    def SetupUncertainties_cst(self, tr, ty, err):
+        for site in self.observations.loc[(self.observations.tracer == tr) & (self.observations.type == ty), 'site'].unique():
+            self.observations.loc[(self.observations.site == site) & (self.observations.tracer == tr) & (self.observations.type == ty), 'err'] = err
+            logger.info(f"Error for {tr}, {ty} and site {site:^5s} set to an average of {err:^8.2f} ppm")
 
-    def SetupUncertainties_tracer(self, tr):
-        self.observations.loc[self.observations.tracer == tr, 'err'] = self.observations.loc[self.observations.tracer == tr, 'obs'] * self.rcf.get(f'obs.uncertainty.scale.{tr}', totype=float)
-        logger.info(f"Error for tracer {tr:^5s} set to an averge of {self.observations.loc[self.observations.tracer == tr, 'err'].mean():^8.2f} ppm")
+    def SetupUncertainties_tracer(self, tr, ty):
+        self.observations.loc[self.observations.tracer == tr, 'err'] = self.observations.loc[self.observations.tracer == tr, 'obs'] * self.rcf.get(f'obs.uncertainty.{tr}.{ty}.scale', totype=float)
+        for site in self.observations.loc[(self.observations.tracer == tr) & (self.observations.type == ty), 'site'].unique():
+            logger.info(f"Error for {tr}, {ty} and site {site:^5s} set to an average of {self.observations.loc[(self.observations.site == site) & (self.observations.tracer == tr) & (self.observations.type == ty), 'err'].mean():^8.2f} ppm")

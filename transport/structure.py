@@ -29,7 +29,6 @@ class Emissions:
         except:
             self.atmos_del = None
 
-        # trlist = rcf.get('obs.tracers') if isinstance(rcf.get('obs.tracers'), list) else [rcf.get('obs.tracers')]
         for tr in list(rcf.get('obs.tracers')):
             self.tracers[tr] = {}
             self.tracers[tr] = dict.fromkeys(rcf.get(f'emissions.{tr}.categories'))
@@ -50,7 +49,6 @@ class Emissions:
             logger.info("Trying to convert fluxes to umol (from umol/m2/s")
             self.data.to_extensive()   # Convert to umol
             self.print_summary(unit=self.rcf.get(f'emissions.{tr}.{cat}.unit'))
-            # self.data.to_intensive()
 
         if self.atmos_del is not None:
             self.Del_14C = ReadArchive(self.start, self.end, prefix=self.rcf.get('atmospheric.D14C.prefix'), freq=self.rcf.get('emissions.interval'), atmos_del=True)
@@ -64,7 +62,7 @@ class Emissions:
             dlat=self.rcf.get('region.dlat'),
             dlon=self.rcf.get('region.dlon')
         )
-        self.data.coarsen(reg)
+        # self.data.coarsen(reg)
         self.data.print_summary()
     
     def print_summary(self, unit='PgC'):
@@ -77,7 +75,6 @@ class Struct(dict):
         self.unit_type = 'intensive'
 
     def __add__(self, other):
-        #TODO: needs development for multitracer
         allcats = set(list(self.keys())+list(other.keys()))
         for cat in allcats :
             if cat in self.keys():
@@ -144,7 +141,6 @@ class Struct(dict):
         logger.info("Converted fluxes to extensive units (i.e. umol)")
 
     def to_intensive(self):
-        # assert self.unit_type == 'extensive', pdb.set_trace()
         for tr in self.keys():
             for cat in self[tr].keys():
                 dt = self[tr][cat]['time_interval']['time_end']-self[tr][cat]['time_interval']['time_start']
@@ -162,7 +158,6 @@ class Struct(dict):
         The other structure must have the same spatial boundaries. If the temporal boundaries of the two structures overlap, the data from "other"
         overwrite the original data, unless the "overwrite" optional attribute is set to False.
         """
-        #TODO: needs development for multitracer
         new = Struct()
         for cat in self.keys():
 
@@ -204,7 +199,6 @@ class Struct(dict):
         return new
 
     def _get_boundaries_t(self):
-        #TODO: needs development for multitracer
         beg = [self[cat]['time_interval']['time_start'].min() for cat in self.keys()]
         end = [self[cat]['time_interval']['time_end'].max() for cat in self.keys()]
         assert all([b == beg[0] for b in beg] + [e == end[0] for e in end]), f"All categories do not share the same time boundaries, cannot append {beg}, {end}"
@@ -215,8 +209,9 @@ class Struct(dict):
         if self.unit_type == 'intensive':
             self.to_extensive()
         scaling_factor = {
-            'PgC':12 * 1.e-21,
+            'PgC'  : 12 * 1.e-21,
             'PgCO2': 44 * 1.e-21,
+            'PgCO' : 28 * 1.e-21,
             'TgCH4': 16.0425 * 1.e-18
         }[unit]
         for tr in self.keys() :
@@ -276,11 +271,12 @@ def WriteStruct(data, path, prefix=None, atmos_del=False, zlib=False, complevel=
             for tr in tracers:
                 ds.createGroup(tr)
                 for cat in [c for c in data[tr].keys() if 'cat_list' not in c]:
+                    
                     gr = ds[tr].createGroup(cat)
                     gr.createDimension('nt', data[tr][cat]['emis'].shape[0])
                     gr.createDimension('nlat', data[tr][cat]['emis'].shape[1])
                     gr.createDimension('nlon', data[tr][cat]['emis'].shape[2])
-                    gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon'))
+                    gr.createVariable('emis', 'd', ('nt', 'nlat', 'nlon')) #
                     gr['emis'][:,:,:] = data[tr][cat]['emis']
                     gr.createVariable('times_start', 'i', ('nt', 'time_components'))
                     gr['times_start'][:,:] = array([x.timetuple()[:6] for x in data[tr][cat]['time_interval']['time_start']])
@@ -290,6 +286,7 @@ def WriteStruct(data, path, prefix=None, atmos_del=False, zlib=False, complevel=
                     gr['lats'][:] = data[tr][cat]['lats']
                     gr.createVariable('lons', 'f', ('nlon',))
                     gr['lons'][:] = data[tr][cat]['lons']
+
     logger.debug(f"Model parameters written to {filename}")
     return filename
 
@@ -367,7 +364,6 @@ def ReadArchive(start, end, **kwargs):
     :return:
     """
 
-    # TODO: remove the dependency to xarray
     data = Struct()
 
     if kwargs.get('tracers',False):
@@ -441,12 +437,13 @@ def ReadArchive(start, end, **kwargs):
                                 times.extend(date_range(start=start_file, periods=len(ds['time'][:]), freq=freq).to_pydatetime().tolist())
                                 lat = ds['lat'][:]
                                 lon = ds['lon'][:]
+                            
 
                         emis = array(emis)
                         times = array(times)
                         emis = emis[(times >= start) & (times < end), :, :]
                         times = times[(times >= start) & (times < end)]
-                            
+                        
                         data[tr][cat] = {
                             'emis': emis,
                             'time_interval': {
@@ -481,29 +478,13 @@ def ReadArchive(start, end, **kwargs):
             tqdm.write(f"Atmospheric delta for year {year}, will be read from file {fname}")
             with Dataset(fname, 'r') as ds:
                 obs.extend(ds['obs'][:])
-                # units = ds['time'].units.split()
                 start_file = datetime(*ds['times_start'][:][0])
                 times.extend(date_range(start=start_file, periods=len(ds['times_start'][:]), freq=freq).to_pydatetime().tolist())
-
-                # start_tr = datetime(start.year, start.month, 1)
-                # end_tr = datetime(end.year, end.month, 1)
-
-                # dates = []
-                # for i in ds['dates']:
-                #     dt = []
-                #     for j in i:
-                #         dt.append(j)
-                #     dt.append(1)
-                #     dates.append(datetime(*dt))
         
         obs = array(obs)
         times = array(times)
         obs = obs[(times >= start) & (times < end)]
         times = times[(times >= start) & (times < end)]
-        
-        # obs = ones(len(times))
-        # for i in range(len(dates)):
-        #     obs[(times >= dates[i]) & (times < dates[i] + relativedelta(months=1))] = obs[(times >= dates[i]) & (times < dates[i] + relativedelta(months=1))] * Del_14C[i]
 
         data = {'Del_14C': {
             'obs': obs,

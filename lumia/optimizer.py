@@ -7,6 +7,7 @@ from numpy import zeros, zeros_like, sqrt, inner, nan_to_num, dot, random, ones
 from lumia.minimizers.congrad import Minimizer as congrad
 from .Tools import costFunction
 from archive import Archive
+from lumia.Tools import debug
 
 # logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ class Optimizer(object):
         self.J = self._computeCostFunction(state_preco, dy, err)
         gradient_preco = self._ComputeGradient(state_preco, dy, err)
         self.minimizer.update(gradient_preco, self.J.tot)
-        self._calcPosteriorUncertainties()
+        # self._calcPosteriorUncertainties()
         self.save(label)
         
     def Var4D_resume(self, label='apos', trim=0):
@@ -106,8 +107,12 @@ class Optimizer(object):
         self._calcPosteriorUncertainties()
         self.save(label)
 
+    # @debug.trace_call
     def _Var4D_step(self, state_preco, step='apri'):
         dy, err = self._computeDepartures(state_preco, step)
+
+        # import pdb; pdb.set_trace()
+        
         self.J = self._computeCostFunction(state_preco, dy, err)
         gradient_preco = self._ComputeGradient(state_preco, dy, err)
         status = self.minimizer.calc_update(state_preco, gradient_preco, self.J.tot)
@@ -132,34 +137,40 @@ class Optimizer(object):
         except:
             return adjoint_struct
 
+    # @debug.trace_call
     def _computeDepartures(self, state_preco, step, add_prior=True):
         state = self.control.xc_to_x(state_preco, add_prior=add_prior)
         struct = self.interface.VecToStruct(state)
-        departures = self.model.calcDepartures(struct, step=step, atmdel=self.atmdel) # TODO: add atmdel
+        departures = self.model.calcDepartures(struct, step=step, atmdel=self.atmdel)
         dy = departures.loc[:, 'mismatch']
         dye = departures.loc[:, 'err']
         return dy, dye
 
+    # @debug.trace_call
     def _computeCostFunction(self, state_preco, dy, dye):
-        dstate = state_preco-self.control.get('state_prior_preco')   # TODO: check if state_prior_preco is ever non-zero
+        dstate = state_preco-self.control.get('state_prior_preco')
         J_bg = 0.5*dot(dstate, dstate)
         J_obs = 0.5*dot(dy/dye, dy/dye)
         J = costFunction(bg=J_bg, obs=J_obs)
-        logger.info(f"Iteration {self.iteration}: J_bg={J_bg:.2f}; J_obs={J_obs:.2f}")
+        chi2 = sum((dy / dye) ** 2)
+        reduced_chi2 = chi2 / (len(dy) - 1)
+        logger.info(f"Iteration {self.iteration}: J_bg={J_bg:.2f}; J_obs={J_obs:.2f}; Chi2={chi2:.2f}; Chi2_r={reduced_chi2:.2f}")
         return J
+    
 
+    # @debug.trace_call
     def _ComputeGradient(self, state_preco, dy, dye):
-        # adjoint_struct = self.model.runAdjoint(dy/dye**2, self.atmdel)
-        # adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
-        gradient_obs_preco = self._compute_adjoint(dy/dye**2) #self.control.g_to_gc(adjoint_state)
+        gradient_obs_preco = self._compute_adjoint(dy/dye**2) 
         state_departures = state_preco-self.control.get('state_prior_preco')
         gradient_preco = gradient_obs_preco + state_departures
         mode = 'w' if self.iteration == 0 else 'a'
+        chi2 = sum((dy / dye) ** 2)
+        reduced_chi2 = chi2 / (len(dy) - 1)
         with open(os.path.join(self.rcf.get('path.output'), 'costFunction.txt'), mode=mode) as fid :
-            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)} \n")
-                    # x_adj={sum(adjoint_state), sum(adjoint_struct[tr][cat]['emis'] for tr in adjoint_struct.keys() for cat in adjoint_struct[tr].keys()).sum()} \n")
+            fid.write(f"iter {self.iteration}: J_obs = {self.J.obs}; J_bg = {self.J.bg}; dJ_obs={sum(gradient_obs_preco)}; dJ_bg={sum(state_departures)}; Chi2={chi2}; Chi2_r={reduced_chi2} \n")
         return gradient_preco
 
+    # @debug.trace_call
     def _compute_adjoint(self, departures):
         adjoint_struct = self.model.runAdjoint(departures, self.atmdel)
         adjoint_state = self.interface.VecToStruct_adj(adjoint_struct)
@@ -190,7 +201,6 @@ class Optimizer(object):
         self.rcf.write(os.path.join(path, 'lumia.%src'%step))
         self.model.save(path, step)
         self.control.save(os.path.join(path, 'control.%shdf'%step))
-        #self.minimizer.save(os.path.join(path, 'comm_file.%snc4'%step))
 
         # Copy to archive
         arc = Archive(self.rcf.get('path.archive'))
