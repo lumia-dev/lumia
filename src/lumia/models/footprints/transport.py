@@ -106,7 +106,7 @@ class Transport:
         # Write departures file
         self.observations.loc[forcings.index, 'dy'] = forcings
         departures_file = self.path_temp / 'departures.hdf'
-        self.observations.dropna(subset=['dy']).to_hdf(departures_file, 'departures')
+        self.observations.dropna(subset=['dy']).to_hdf(departures_file, key='departures')
 
         # Point to the existing emissions file (just used as a template)
         adjemis_file = self.emissions_file
@@ -134,7 +134,7 @@ class Transport:
 
         # Write the observations:
         dbf = self.path_temp / 'observations.hdf'
-        self.observations.to_hdf(dbf, 'observations')
+        self.observations.to_hdf(dbf, key='observations')
 
         # Run the model:
         cmd = self.executable + ['--forward', '--obs', dbf, '--emis', emf, '--footprints', self.path_footprints, '--tmp', self.path_temp]

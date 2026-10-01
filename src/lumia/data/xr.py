@@ -13,6 +13,13 @@ from pandas import PeriodIndex, Timestamp, DatetimeIndex, interval_range, Interv
 from loguru import logger
 from pandas import date_range, DateOffset, Timedelta
 from pandas.tseries.frequencies import to_offset
+
+# Pandas 2.2 dropped the uppercase aliases. The flux directories are still named H and D.
+_pandas_freq = {'H': 'h', 'T': 'min', 'S': 's', 'L': 'ms', 'U': 'us', 'N': 'ns'}
+
+
+def pandas_freq(freq: str) -> str:
+    return _pandas_freq.get(str(freq), str(freq))
 from netCDF4 import Dataset
 import numbers
 from typing import Iterator
@@ -327,9 +334,9 @@ class TracerEmis(xr.Dataset):
 
             # Coordinates
             for var in self.coords:
-                vartype = self[var].dtype
-                if vartype == 'datetime64[ns]':
-                    data = ((self[var].data - self[var].data[0]) / 1.e9).astype('int64')
+                vartype = str(self[var].dtype)
+                if vartype.startswith('datetime64'):
+                    data = (self[var].data - self[var].data[0]).astype('timedelta64[s]').astype('int64')
                     nc.createVariable(var, 'int64', self[var].dims)
                     nc[var].units = f'seconds since {self[var][0].dt.strftime("%Y-%m-%d").data}'
                     nc[var].calendar = 'proleptic_gregorian'
@@ -660,12 +667,12 @@ class Data:
         em = cls()
         for tracer in dconf.emissions.tracers:
             tr = dconf.emissions[tracer]
-            time = date_range(start, end, freq=tr.interval, inclusive='left')
+            time = date_range(start, end, freq=pandas_freq(tr.interval), inclusive='left')
             unit_emis = species[tracer].unit_emis
 
             # Add new tracer to the emission object
             em.add_tracer(
-                TracerEmis(tracer_name=tracer, grid=tr.region, time=time, units=unit_emis, timestep=tr.interval))
+                TracerEmis(tracer_name=tracer, grid=tr.region, time=time, units=unit_emis, timestep=pandas_freq(tr.interval)))
 
             for catname, cat in tr.categories.items():
                 # The name of the files should follow the pattern {path}/{prefix}{origin}.*.nc
@@ -698,7 +705,7 @@ class Data:
                     archive = archive + '/' + freq_src
 
                 # Load the emissions
-                emis = load_preprocessed(prefix, start, end, freq=tr.interval, archive=archive, field=field)
+                emis = load_preprocessed(prefix, start, end, freq=pandas_freq(tr.interval), archive=archive, field=field)
                 
                 # Add them to the current data structure
                 attrs = {'origin': cat} if isinstance(cat, str) else cat

@@ -203,7 +203,9 @@ class SpatialCorrelation:
             if corrfile.exists():
                 logger.info(f"Reading correlations from {corrfile}")
                 with File(self.cache_dir / f'horizontal_correlation.{self.hash}.nc') as fid :
-                    return fid['eigen_vectors'][:], fid['eigen_values'][:]**.5
+                    self._eigenvec = fid['eigen_vectors'][:]
+                    self._eigenval = fid['eigen_values'][:] ** .5
+                return self._eigenvec, self._eigenval
                 
         lam, p = linalg.eigh(self.mat)
         

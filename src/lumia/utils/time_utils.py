@@ -15,7 +15,7 @@ def overlap_percent(a : Interval, b : Interval) -> float:
 
 
 def interval_range(start: Timestamp, end: Timestamp, freq: str | Timedelta) -> NDArray:
-    nt = ceil((end - start) / Timedelta(freq))
+    nt = int(ceil((end - start) / Timedelta(freq)))
     intervals = array(pd_interval_range(start, freq=freq, periods=nt))
     intervals[-1] = Interval(intervals[-1].left, end)
     return intervals
